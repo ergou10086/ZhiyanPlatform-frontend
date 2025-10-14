@@ -99,9 +99,22 @@ export default {
       }
     }
   },
+  watch: {
+    'loginForm.email': {
+      handler(newEmail) {
+        if (newEmail) {
+          this.loadUserAvatarByEmail(newEmail)
+        } else {
+          // 没有输入时，保持默认头像显示
+          this.userAvatar = null
+        }
+      },
+      immediate: false
+    }
+  },
   mounted() {
-    // 页面加载时尝试获取用户头像
-    this.loadUserAvatar()
+    // 页面加载时保持默认头像状态
+    this.userAvatar = null
   },
   methods: {
     loadUserAvatar() {
@@ -109,6 +122,24 @@ export default {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) {
         this.userAvatar = savedAvatar
+      }
+    },
+    loadUserAvatarByEmail(email) {
+      // 根据邮箱加载用户头像
+      // 这里可以模拟从数据库获取用户信息
+      // 实际项目中应该调用API
+      this.simulateLoadUserByEmail(email)
+    },
+    simulateLoadUserByEmail(email) {
+      // 模拟从数据库加载用户信息
+      // 这里使用localStorage模拟数据库存储
+      const userData = localStorage.getItem('userData_' + email)
+      if (userData) {
+        const user = JSON.parse(userData)
+        this.userAvatar = user.avatar || null
+      } else {
+        // 如果没有找到用户数据，清空头像
+        this.userAvatar = null
       }
     },
     setUserAvatar(avatarUrl) {
