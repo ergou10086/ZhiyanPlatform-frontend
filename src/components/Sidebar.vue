@@ -2,7 +2,7 @@
   <div class="sidebar-overlay" v-if="isOpen" @click="closeSidebar">
     <div class="sidebar" @click.stop>
       <div class="sidebar-header">
-        <h2 class="sidebar-title">智研1</h2>
+        <h2 class="sidebar-title">智研</h2>
         <button class="close-btn" @click="closeSidebar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
