@@ -4,6 +4,10 @@ import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import Home from '../views/Home.vue'
+import ProjectSquare from '../views/ProjectSquare.vue'
+import KnowledgeBase from '../views/KnowledgeBase.vue'
+import AIAssistant from '../views/AIAssistant.vue'
+import Profile from '../views/Profile.vue'
 
 Vue.use(VueRouter)
 
@@ -35,22 +39,22 @@ const routes = [
   {
     path: '/project-square',
     name: 'ProjectSquare',
-    component: () => import('@/views/ProjectSquare.vue')
+    component: ProjectSquare
   },
   {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
-    component: () => import('@/views/KnowledgeBase.vue')
+    component: KnowledgeBase
   },
   {
     path: '/ai-assistant',
     name: 'AIAssistant',
-    component: () => import('@/views/AIAssistant.vue')
+    component: AIAssistant
   },
   {
     path: '/profile',
     name: 'Profile',
-    component: () => import('@/views/Profile.vue')
+    component: Profile
   }
 ]
 
