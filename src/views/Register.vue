@@ -132,6 +132,7 @@ export default {
     return {
       loading: false,
       countdown: 0,
+      submitLocked: false,
       registerForm: {
         email: '',
         code: '',
@@ -176,6 +177,9 @@ export default {
       }
     },
     async handleRegister() {
+      if (this.submitLocked) return
+      this.submitLocked = true
+      setTimeout(() => { this.submitLocked = false }, 1000)
       if (this.registerForm.password !== this.registerForm.confirmPassword) {
         alert('两次输入的密码不一致')
         return
@@ -317,7 +321,10 @@ export default {
 }
 
 .send-code-btn:disabled {
-  opacity: 0.7;
+  background: #e0e0e0;
+  color: #9aa0a6;
+  border: none;
+  opacity: 1;
   cursor: not-allowed;
 }
 

@@ -245,6 +245,7 @@ export default {
     },
     handleProjectSquare() {
       console.log('项目广场')
+      this.$router.push('/project-square')
     },
     handleKnowledgeBase() {
       console.log('知识库')
@@ -270,7 +271,8 @@ export default {
 .top-header {
   background: white;
   border-bottom: 1px solid #e9ecef;
-  padding: 16px 24px;
+  height: 64px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;

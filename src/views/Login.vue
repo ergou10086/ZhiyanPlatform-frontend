@@ -89,6 +89,7 @@ export default {
   data() {
     return {
       loading: false,
+      submitLocked: false,
       userAvatar: null, // 用户头像URL，可以从localStorage或API获取
       loginForm: {
         email: '',
@@ -116,6 +117,9 @@ export default {
       localStorage.setItem('userAvatar', avatarUrl)
     },
     async handleLogin() {
+      if (this.submitLocked) return
+      this.submitLocked = true
+      setTimeout(() => { this.submitLocked = false }, 1000)
       this.loading = true
       try {
         // 这里添加登录逻辑
