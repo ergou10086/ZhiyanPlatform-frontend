@@ -232,7 +232,7 @@ export default {
       this.currentPage = 1
     },
     createNewProject() {
-      this.$router.push('/home')
+      this.$router.push('/project-create')
     },
     goPrev() {
       if (this.currentPage > 1) this.currentPage--

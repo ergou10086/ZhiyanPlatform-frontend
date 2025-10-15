@@ -113,28 +113,25 @@
       <!-- AI对话区域 -->
       <div class="ai-chat-section">
         <div class="chat-container">
-          <div class="ai-message">
-            <div class="message-bubble">
-              您好!我是您的AI实验分析助手。请选择任务并提出问题,我将为您提供数据分析和建议。
+          <div 
+            v-for="message in chatMessages" 
+            :key="message.id"
+            :class="message.type === 'ai' ? 'ai-message' : 'user-message'"
+          >
+            <div :class="message.type === 'ai' ? 'message-bubble' : 'user-bubble'">
+              {{ message.content }}
             </div>
           </div>
-          
-          <div class="ai-message">
-            <div class="message-bubble">
-              根据数据分析,该任务的实验结果呈现稳定上升趋势,建议继续优化参数以提升效率。
-            </div>
-          </div>
-
-          <div class="example-prompt">
-            <div class="prompt-bubble">
-              请分析任务"量子纠缠态制备"的实验结果趋势。
-            </div>
-          </div>
-
-          <div class="user-input-area">
-            <input type="text" placeholder="输入您的问题..." />
-            <button class="send-btn">发送</button>
-          </div>
+        </div>
+        
+        <div class="user-input-area">
+          <input 
+            type="text" 
+            placeholder="输入您的问题..." 
+            v-model="userMessage"
+            @keyup.enter="sendMessage"
+          />
+          <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim()">发送</button>
         </div>
       </div>
 
@@ -226,6 +223,8 @@ export default {
       sidebarOpen: false,
       activeFilter: 'all',
       searchQuery: '',
+      userMessage: '',
+      chatMessages: [],
       tasks: [
         {
           id: 1,
@@ -329,6 +328,55 @@ export default {
     },
     getStatusClass(status) {
       return status
+    },
+    sendMessage() {
+      console.log('sendMessage called, userMessage:', this.userMessage)
+      if (!this.userMessage.trim()) {
+        console.log('Message is empty, not sending')
+        return
+      }
+      
+      console.log('Adding user message to chat')
+      // 添加用户消息
+      const userMsg = {
+        id: Date.now(),
+        type: 'user',
+        content: this.userMessage.trim(),
+        timestamp: new Date()
+      }
+      this.chatMessages.push(userMsg)
+      console.log('Chat messages after adding user message:', this.chatMessages)
+      
+      // 模拟AI回复
+      setTimeout(() => {
+        console.log('Adding AI response')
+        const aiMsg = {
+          id: Date.now() + 1,
+          type: 'ai',
+          content: '目前功能仍在开发',
+          timestamp: new Date()
+        }
+      this.chatMessages.push(aiMsg)
+      console.log('Chat messages after adding AI response:', this.chatMessages)
+      // 滚动到最新消息
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+    }, 1000)
+    
+    // 清空输入框
+    this.userMessage = ''
+    console.log('Input cleared')
+    // 滚动到最新消息
+    this.$nextTick(() => {
+      this.scrollToBottom()
+    })
+    },
+    scrollToBottom() {
+      const chatContainer = this.$el.querySelector('.chat-container')
+      if (chatContainer) {
+        chatContainer.scrollTop = chatContainer.scrollHeight
+      }
     }
   }
 }
@@ -630,22 +678,51 @@ export default {
 .ai-chat-section {
   background: white;
   border-radius: 12px;
-  padding: 50px 40px 20px 40px;
+  padding: 20px 40px 20px 40px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  min-height: 400px;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 .chat-container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  min-height: 300px;
-  justify-content: flex-start;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  padding-bottom: 80px;
+}
+
+/* 自定义滚动条样式 */
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .ai-message {
   display: flex;
   justify-content: flex-start;
+}
+
+.user-message {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .message-bubble {
@@ -658,27 +735,27 @@ export default {
   line-height: 1.4;
 }
 
-.example-prompt {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.prompt-bubble {
-  background: #e3f2fd;
+.user-bubble {
+  background: #007bff;
+  color: white;
   padding: 12px 16px;
   border-radius: 18px;
   max-width: 70%;
   font-size: 14px;
-  color: #1976d2;
   line-height: 1.4;
 }
 
 .user-input-area {
   display: flex;
   gap: 12px;
-  margin-top: auto;
-  padding-top: 0;
-  margin-bottom: 0;
+  padding: 16px 0 0 0;
+  border-top: 1px solid #e9ecef;
+  flex-shrink: 0;
+  background: white;
+  position: absolute;
+  bottom: 20px;
+  left: 40px;
+  right: 40px;
 }
 
 .user-input-area input {
@@ -707,9 +784,16 @@ export default {
   transition: background-color 0.3s ease;
 }
 
-.send-btn:hover {
+.send-btn:hover:not(:disabled) {
   background: #0056b3;
 }
+
+.send-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 
 /* AI分析建议区域 */
 .ai-suggestions {
