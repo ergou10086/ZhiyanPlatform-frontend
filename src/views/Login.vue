@@ -3,7 +3,18 @@
     <Header />
     
     <div class="login-content">
-      <div class="login-box">
+      <!-- 左侧文字信息 -->
+      <div class="login-info">
+        <div class="info-content">
+          <div class="brand-title">智研</div>
+          <h1 class="platform-title">高校科研团队协作与成果管理平台</h1>
+          <p class="platform-description">旨在为科研团队提供一个"一体化、规范化、可沉淀"的协作环境</p>
+        </div>
+      </div>
+      
+      <!-- 右侧登录表单 -->
+      <div class="login-form-section">
+        <div class="login-box">
       <div class="login-header">
         <div class="user-avatar">
           <img 
@@ -69,6 +80,7 @@
           {{ loading ? '登录中...' : '安全登录' }}
         </button>
       </form>
+      </div>
       </div>
     </div>
     
@@ -181,7 +193,13 @@ export default {
 <style scoped>
 .login-container {
   min-height: 100vh;
+  height: 100vh;
   background-color: #f5f5f5;
+  background-image: url('@/assets/image/background_login.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -192,18 +210,185 @@ export default {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
+  justify-content: space-between;
+  padding: 40px 60px;
+  gap: 60px;
 }
 
 
+/* 左侧信息区域 */
+.login-info {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-right: 40px;
+  padding-bottom: 60px;
+}
+
+.info-content {
+  max-width: 700px;
+  text-align: center;
+  width: 100%;
+}
+
+.platform-title {
+  font-size: 32px;
+  font-weight: 500;
+  font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 80px 0;
+  line-height: 1.2;
+  text-shadow: 
+    0 2px 6px rgba(102, 126, 234, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.2);
+  position: relative;
+  animation: titleGentle 5s ease-in-out infinite;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.platform-title::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -8px;
+  right: -8px;
+  bottom: -3px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+  border-radius: 12px;
+  z-index: -1;
+  animation: titleSoftPulse 6s ease-in-out infinite;
+}
+
+.platform-description {
+  font-size: 18px;
+  font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.4;
+  text-shadow: 
+    0 1px 3px rgba(255, 255, 255, 0.6),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.15);
+  padding: 15px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: descriptionGentle 6s ease-in-out infinite;
+}
+
+.platform-description::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, 
+    rgba(102, 126, 234, 0.1) 0%, 
+    transparent 50%, 
+    rgba(118, 75, 162, 0.1) 100%);
+  border-radius: 12px;
+  z-index: -1;
+  animation: descriptionShimmer 6s ease-in-out infinite;
+}
+
+@keyframes titleGentle {
+  0%, 100% { 
+    transform: translateY(0px);
+    text-shadow: 
+      0 2px 6px rgba(102, 126, 234, 0.3),
+      0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  50% { 
+    transform: translateY(-1px);
+    text-shadow: 
+      0 3px 8px rgba(102, 126, 234, 0.4),
+      0 5px 15px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@keyframes titleSoftPulse {
+  0%, 100% { 
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.7;
+    transform: scale(1.01);
+  }
+}
+
+@keyframes descriptionGentle {
+  0%, 100% { 
+    transform: translateY(0px);
+    opacity: 1;
+  }
+  50% { 
+    transform: translateY(-1px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes descriptionShimmer {
+  0%, 100% { 
+    opacity: 0.2;
+  }
+  50% { 
+    opacity: 0.4;
+  }
+}
+
+/* 右侧登录区域 */
+.login-form-section {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand-title {
+  font-size: 96px;
+  font-weight: 700;
+  font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+  color: #667eea;
+  margin: 0 0 60px 0;
+  text-shadow: 
+    0 2px 8px rgba(102, 126, 234, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.1);
+  letter-spacing: 12px;
+  position: relative;
+  text-align: center;
+  text-transform: uppercase;
+  display: inline-block;
+  padding: 15px 25px;
+  border: 3px solid #667eea;
+  border-radius: 15px;
+  background: rgba(102, 126, 234, 0.05);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+
+
 .login-box {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(15px);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 40px;
   width: 100%;
   max-width: 400px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .login-header {
@@ -334,7 +519,78 @@ export default {
 }
 
 
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .login-content {
+    flex-direction: column;
+    gap: 40px;
+    padding: 30px 40px;
+  }
+  
+  .login-info {
+    padding-right: 0;
+    padding-bottom: 40px;
+    text-align: center;
+  }
+  
+  .info-content {
+    text-align: center;
+  }
+  
+  .platform-title {
+    font-size: 28px;
+    white-space: normal;
+    line-height: 1.3;
+    margin-bottom: 30px;
+  }
+  
+  .platform-description {
+    font-size: 16px;
+    padding: 12px 18px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  
+  .brand-title {
+    font-size: 80px;
+    text-align: center;
+    letter-spacing: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-content {
+    padding: 20px 30px;
+    gap: 30px;
+  }
+  
+  .platform-title {
+    font-size: 24px;
+    white-space: normal;
+    line-height: 1.3;
+    margin-bottom: 25px;
+  }
+  
+  .platform-description {
+    font-size: 15px;
+    padding: 10px 16px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  
+  .brand-title {
+    font-size: 64px;
+    text-align: center;
+    letter-spacing: 8px;
+  }
+}
+
 @media (max-width: 480px) {
+  .login-content {
+    padding: 15px 20px;
+    gap: 20px;
+  }
+  
   .login-box {
     padding: 30px 20px;
     margin: 10px;
@@ -342,6 +598,26 @@ export default {
   
   .login-title {
     font-size: 20px;
+  }
+  
+  .platform-title {
+    font-size: 20px;
+    white-space: normal;
+    line-height: 1.3;
+    margin-bottom: 20px;
+  }
+  
+  .platform-description {
+    font-size: 14px;
+    padding: 8px 12px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  
+  .brand-title {
+    font-size: 48px;
+    text-align: center;
+    letter-spacing: 6px;
   }
   
   .form-options {

@@ -197,7 +197,13 @@ export default {
 <style scoped>
 .forgot-password-container {
   min-height: 100vh;
+  height: 100vh;
   background-color: #f5f5f5;
+  background-image: url('@/assets/image/background_login.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -213,12 +219,14 @@ export default {
 }
 
 .forgot-password-box {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(15px);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 40px;
   width: 100%;
   max-width: 450px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .forgot-password-header {

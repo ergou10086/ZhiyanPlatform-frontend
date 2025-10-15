@@ -224,7 +224,13 @@ export default {
 <style scoped>
 .register-container {
   min-height: 100vh;
+  height: 100vh;
   background-color: #f5f5f5;
+  background-image: url('@/assets/image/background_login.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -236,26 +242,28 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 40px 20px;
 }
 
 
 .register-box {
-  background: white;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(15px);
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  padding: 32px;
   width: 100%;
-  max-width: 500px;
+  max-width: 420px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .register-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 .register-title {
-  font-size: 24px;
+  font-size: 20px;
   color: #333;
   font-weight: 500;
   margin: 0;
@@ -266,7 +274,7 @@ export default {
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -280,7 +288,7 @@ export default {
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px 14px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
@@ -356,7 +364,7 @@ export default {
 
 .register-btn {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   background: #007bff;
   color: white;
   border: none;
