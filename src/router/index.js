@@ -5,7 +5,6 @@ import Register from '../views/Register.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import Home from '../views/Home.vue'
 import ProjectSquare from '../views/ProjectSquare.vue'
-import ProjectDetail from '../views/ProjectDetail.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
 import KnowledgeBaseCatalog from '../views/KnowledgeBaseCatalog.vue'
 import KnowledgeBaseCabinet from '../views/KnowledgeBaseCabinet.vue'
@@ -44,11 +43,6 @@ const routes = [
     path: '/project-square',
     name: 'ProjectSquare',
     component: ProjectSquare
-  },
-  {
-    path: '/project-detail/:id',
-    name: 'ProjectDetail',
-    component: ProjectDetail
   },
   {
     path: '/knowledge-base',
