@@ -5,7 +5,11 @@ import Register from '../views/Register.vue'
 import ForgotPassword from '../views/ForgotPassword.vue'
 import Home from '../views/Home.vue'
 import ProjectSquare from '../views/ProjectSquare.vue'
+import ProjectDetail from '../views/ProjectDetail.vue'
 import KnowledgeBase from '../views/KnowledgeBase.vue'
+import KnowledgeBaseCatalog from '../views/KnowledgeBaseCatalog.vue'
+import KnowledgeBaseCabinet from '../views/KnowledgeBaseCabinet.vue'
+import KnowledgeBaseAI from '../views/KnowledgeBaseAI.vue'
 import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 
@@ -42,9 +46,21 @@ const routes = [
     component: ProjectSquare
   },
   {
+    path: '/project-detail/:id',
+    name: 'ProjectDetail',
+    component: ProjectDetail
+  },
+  {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
-    component: KnowledgeBase
+    component: KnowledgeBase,
+    children: [
+      { path: '', redirect: 'home' },
+      { path: 'home', component: { render: h => h('div') } },
+      { path: 'catalog', component: KnowledgeBaseCatalog },
+      { path: 'cabinet', component: KnowledgeBaseCabinet },
+      { path: 'ai', component: KnowledgeBaseAI }
+    ]
   },
   {
     path: '/ai-assistant',

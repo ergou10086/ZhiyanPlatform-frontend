@@ -81,43 +81,44 @@
         </div>
       </div>
 
+      <div class="content-wrapper">
       <div class="grid">
-        <div v-for="project in paginatedProjects" :key="project.id" class="card">
-          <div class="card-media">
-            <span>Image</span>
+        <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
+          <div class="card-media" :class="`gradient-${(index % 6) + 1}`">
+            <span>{{ project.category }}</span>
           </div>
-          <div class="card-body">
-            <div class="card-title-row">
-              <h3 class="card-title">{{ project.title }}</h3>
-              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+            <div class="card-body">
+              <div class="card-title-row">
+                <h3 class="card-title">{{ project.title }}</h3>
+                <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+              </div>
+              <ul class="meta-list">
+                <li>
+                  <span class="meta-label">团队规模：</span>
+                  <span class="meta-value">{{ project.teamSize }}人</span>
+                </li>
+                <li>
+                  <span class="meta-label">数据资产：</span>
+                  <span class="meta-value">{{ project.dataAssets }}</span>
+                </li>
+                <li>
+                  <span class="meta-label">研究方向：</span>
+                  <span class="meta-value">{{ project.direction }}</span>
+                </li>
+                <li>
+                  <span class="meta-label">AI 核心：</span>
+                  <span class="meta-value">{{ project.aiCore }}</span>
+                </li>
+              </ul>
             </div>
-            <ul class="meta-list">
-              <li>
-                <span class="meta-label">团队规模：</span>
-                <span class="meta-value">{{ project.teamSize }}人</span>
-              </li>
-              <li>
-                <span class="meta-label">数据资产：</span>
-                <span class="meta-value">{{ project.dataAssets }}</span>
-              </li>
-              <li>
-                <span class="meta-label">研究方向：</span>
-                <span class="meta-value">{{ project.direction }}</span>
-              </li>
-              <li>
-                <span class="meta-label">AI 核心：</span>
-                <span class="meta-value">{{ project.aiCore }}</span>
-              </li>
-            </ul>
-            <button class="btn primary btn-block">查看详情</button>
           </div>
         </div>
-      </div>
 
-      <div class="pagination">
-        <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
-        <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
-        <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
+        <div class="pagination">
+          <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
+          <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
+          <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
+        </div>
       </div>
     </div>
   </div>
@@ -242,6 +243,10 @@ export default {
     },
     goPage(p) {
       this.currentPage = p
+    },
+    viewProjectDetail(project) {
+      // 跳转到项目详情页面
+      this.$router.push(`/project-detail/${project.id}`)
     }
   }
 }
@@ -323,7 +328,18 @@ export default {
 
 .main-content {
   flex: 1;
-  padding: 20px 24px 28px;
+  padding: 20px 24px 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px); /* 减去顶部导航栏高度 */
+}
+
+.content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 }
 
 .toolbar {
@@ -387,8 +403,13 @@ export default {
 .grid {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr); /* 调整为每行3个卡片 */
+  gap: 16px; /* 增加间距 */
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start; /* 内容从顶部开始排列 */
+  padding-bottom: 10px; /* 底部留白 */
 }
 
 .card {
@@ -398,25 +419,65 @@ export default {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 280px; /* 固定卡片高度，确保所有页面一致 */
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-media {
-  background: #e9ecef;
-  height: 160px;
+  height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9aa0a6;
+  color: #fff;
   font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px 10px 0 0;
 }
 
-.card-body { padding: 14px; }
+.gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.gradient-6 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+.card-media::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.card-media span {
+  position: relative;
+  z-index: 2;
+}
+
+.card-body { 
+  padding: 16px; 
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
 
 .card-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
 }
 
 .card-title {
@@ -424,31 +485,54 @@ export default {
   color: #222;
   font-weight: 600;
   margin: 0;
+  line-height: 1.4;
+  flex: 1;
 }
 
 .status-badge {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 18px;
+  line-height: 1;
   border: 1px solid transparent;
+  flex-shrink: 0;
 }
 .status-badge.ongoing { background: #fff3cd; color: #cc9a06; border-color: #ffe69c; }
 .status-badge.done { background: #e2f7e2; color: #1f7a1f; border-color: #bfeabd; }
 .status-badge.steady { background: #e8f3ff; color: #2c6df2; border-color: #cfe2ff; }
 
-.meta-list { list-style: none; padding: 0; margin: 8px 0 0; }
-.meta-list li { display: flex; align-items: center; padding: 5px 0; font-size: 13px; color: #4f5153; }
+.meta-list { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.meta-list li { 
+  display: flex; 
+  align-items: center; 
+  padding: 4px 0; 
+  font-size: 12px; 
+  color: #4f5153;
+  line-height: 1.3;
+}
 .meta-label { color: #8b8d91; }
 .meta-value { color: #343a40; }
 
 .pagination {
-  margin-top: 18px;
+  margin-top: auto; /* 自动推到底部 */
   display: flex;
   justify-content: center;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0; /* 防止分页按钮被压缩 */
+  padding: 20px 0;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+  margin-bottom: 0; /* 确保贴底 */
 }
 .pager, .page-num {
   height: 32px;
@@ -463,14 +547,23 @@ export default {
 .pager:disabled { opacity: 0.5; cursor: not-allowed; }
 
 @media (max-width: 1200px) {
-  .grid { grid-template-columns: repeat(3, 1fr); }
+  .grid { 
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 @media (max-width: 900px) {
-  .grid { grid-template-columns: repeat(2, 1fr); }
+  .grid { 
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 @media (max-width: 600px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid { 
+    grid-template-columns: 1fr;
+  }
   .toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-actions { justify-content: flex-end; }
+  .card { height: 260px; } /* 移动端稍微缩小 */
+  .card-media { height: 120px; }
+  .card-body { padding: 12px; }
 }
 </style>

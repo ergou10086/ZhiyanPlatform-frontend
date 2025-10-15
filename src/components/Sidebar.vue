@@ -78,6 +78,10 @@ export default {
       this.$emit('close')
     },
     navigateTo(route) {
+      if (this.$route.path === route) {
+        this.closeSidebar()
+        return
+      }
       this.$router.push(route)
       this.closeSidebar()
     }
