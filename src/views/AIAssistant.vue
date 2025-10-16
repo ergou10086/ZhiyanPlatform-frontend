@@ -393,7 +393,8 @@ export default {
 .top-header {
   background: white;
   border-bottom: 1px solid #e9ecef;
-  padding: 16px 24px;
+  height: 64px;
+  padding: 0 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;

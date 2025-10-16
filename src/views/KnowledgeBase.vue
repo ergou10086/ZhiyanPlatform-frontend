@@ -3,7 +3,7 @@
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
-    <!-- 顶部导航栏（不含右侧提醒/设置/搜索） -->
+    <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">
         <button class="menu-btn" @click="toggleSidebar" aria-label="open sidebar">
@@ -11,109 +11,51 @@
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <span class="page-title">未来教育管理会议</span>
+        <span class="page-title">知识库</span>
       </div>
     </div>
 
-    <!-- 主要内容区域 -->
+    <!-- 主要内容区域 - 直接显示项目列表 -->
     <div class="main-content">
-      <div class="content-layout leftbar">
-        <!-- 页面内左侧选项栏 -->
-        <aside class="left-options">
-          <div class="options-card">
-            <div class="options-title">选项</div>
-            <div class="option-item" :class="{ active: activeTab==='home' }" @click="goTab('home')">
-              <span>主页</span>
-            </div>
-            <div class="option-item" :class="{ active: activeTab==='catalog' }" @click="goTab('catalog')">
-              <span>成果目录</span>
-            </div>
-            <div class="option-item" :class="{ active: activeTab==='cabinet' }" @click="goTab('cabinet')">
-              <span>知识柜</span>
-            </div>
-            <div class="option-item" :class="{ active: activeTab==='ai' }" @click="goTab('ai')">
-              <span>AI 赋能</span>
-            </div>
+      <div class="section-card">
+        <div class="section-title">我的知识库</div>
+        <div class="section-subtitle">管理您参与的项目知识文档</div>
+      </div>
+      
+      <div class="grid">
+        <div 
+          v-for="(project, index) in joinedProjects" 
+          :key="project.id" 
+          class="card"
+          @click="viewProjectKnowledge(project)"
+        >
+          <div class="card-media" :class="`gradient-${(index % 6) + 1}`">
+            <span>{{ project.category }}</span>
           </div>
-        </aside>
-
-        <!-- 右侧内容主体 -->
-        <div class="content-right">
-          <!-- 顶部介绍（仅主页显示） -->
-          <div v-if="activeTab==='home'" class="kb-header">
-            <div class="kb-title">未来教育管理会议</div>
-            <div class="kb-subtitle">欢迎来到项目空间，这是围绕AI教育与知识管理的核心平台，通过目录系统统一管理各类成果，利用知识库沉淀团队智慧，并借助AI助理赋能提升工作效率。</div>
+          <div class="card-body">
+            <div class="card-title-row">
+              <h3 class="card-title">{{ project.title }}</h3>
+              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+            </div>
+            <ul class="meta-list">
+              <li>
+                <span class="meta-label">团队规模：</span>
+                <span class="meta-value">{{ project.teamSize }}人</span>
+              </li>
+              <li>
+                <span class="meta-label">数据资产：</span>
+                <span class="meta-value">{{ project.dataAssets }}</span>
+              </li>
+              <li>
+                <span class="meta-label">研究方向：</span>
+                <span class="meta-value">{{ project.direction }}</span>
+              </li>
+              <li>
+                <span class="meta-label">AI 核心：</span>
+                <span class="meta-value">{{ project.aiCore }}</span>
+              </li>
+            </ul>
           </div>
-
-          <!-- 统计卡片（仅主页显示） -->
-          <div v-if="activeTab==='home'" class="home-content">
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-card-header">
-                <div class="stat-card-title">成果总数</div>
-                <div class="stat-icon blue">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-              <div class="stat-value">142</div>
-              <div class="stat-desc">较上月增长 12%</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-header">
-                <div class="stat-card-title">知识文档</div>
-                <div class="stat-icon green">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 19H20M4 5H20M7 5V19M17 5V19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-              <div class="stat-value">87</div>
-              <div class="stat-desc">协作编辑中 5 篇</div>
-            </div>
-
-            <div class="stat-card">
-              <div class="stat-card-header">
-                <div class="stat-card-title">团队成员</div>
-                <div class="stat-icon purple">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-              <div class="stat-value">12</div>
-              <div class="stat-desc">在线 8 人</div>
-            </div>
-          </div>
-
-          <!-- 最近活动 -->
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">最近活动</div>
-            </div>
-            <div class="activity-list">
-              <div v-for="item in activities" :key="item.id" class="activity-item">
-                <div class="activity-bullet" :class="item.type"></div>
-                <div class="activity-main">
-                  <div class="activity-text">{{ item.text }}</div>
-                  <div class="activity-meta">{{ item.time }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          </div>
-
-          <!-- 目录面板 -->
-          <KnowledgeBaseCatalog v-else-if="activeTab==='catalog'" :archiveRows="archiveRows" />
-
-          <!-- 知识柜面板 -->
-          <KnowledgeBaseCabinet v-else-if="activeTab==='cabinet'" />
-
-          <!-- AI 赋能面板 -->
-          <KnowledgeBaseAI v-else />
         </div>
       </div>
     </div>
@@ -122,42 +64,78 @@
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
-import KnowledgeBaseCatalog from './KnowledgeBaseCatalog.vue'
-import KnowledgeBaseCabinet from './KnowledgeBaseCabinet.vue'
-import KnowledgeBaseAI from './KnowledgeBaseAI.vue'
 
 export default {
   name: 'KnowledgeBase',
   components: {
-    Sidebar,
-    KnowledgeBaseCatalog,
-    KnowledgeBaseCabinet,
-    KnowledgeBaseAI
+    Sidebar
   },
   data() {
     return {
       sidebarOpen: false,
-      activeTab: 'home',
-      activities: [
-        { id: 1, type: 'doc', text: '张伟上传了论文《基于AI的教育个性化推荐系统研究》', time: '2小时前' },
-        { id: 2, type: 'update', text: '李梦更新了知识文档《项目管理规范V2.1》', time: '3小时前' },
-        { id: 3, type: 'ai', text: 'AI助手为《深度学习在教育中的应用》生成了摘要和标签', time: '1天前' }
-      ],
-      archiveRows: [
-        { id: 1, name: '基于AI的教育个性化推荐系统研究.pdf', type: '论文', uploader: '张伟', time: '2023-11-15 14:30', typeCls: 'doc' },
-        { id: 2, name: '智能教学系统交互方法专利.docx', type: '专利', uploader: '李想', time: '2023-11-10 09:15', typeCls: 'patent' },
-        { id: 3, name: '学生行为数据集样例.csv', type: '数据集', uploader: '王强', time: '2023-11-05 16:45', typeCls: 'dataset' },
-        { id: 4, name: '个性化推荐模型_v2.pkl', type: '模型文件', uploader: '赵敏', time: '2023-10-28 11:20', typeCls: 'model' },
-        { id: 5, name: '深度学习课堂实验报告.pdf', type: '实验报告', uploader: '陈美玲', time: '2023-10-22 13:40', typeCls: 'report' }
+      // 用户加入的项目列表
+      joinedProjects: [
+        {
+          id: 1,
+          title: '多模态医学影像数据平台',
+          category: '医疗健康',
+          status: '稳健中',
+          teamSize: 8,
+          dataAssets: 'MRI, CT, PET扫描',
+          direction: '肿瘤检测算法',
+          aiCore: '深度学习模型'
+        },
+        {
+          id: 2,
+          title: '气候变化预测模型研究',
+          category: '环境气候',
+          status: '进行中',
+          teamSize: 12,
+          dataAssets: '气象站数据',
+          direction: '气候建模',
+          aiCore: '神经网络预测'
+        },
+        {
+          id: 3,
+          title: '基因组数据分析平台',
+          category: '生物信息',
+          status: '已完成',
+          teamSize: 6,
+          dataAssets: '基因序列数据',
+          direction: '基因变异分析',
+          aiCore: '机器学习算法'
+        },
+        {
+          id: 4,
+          title: '脑科学神经网络研究',
+          category: '科研探索',
+          status: '稳健中',
+          teamSize: 10,
+          dataAssets: '脑电信号数据',
+          direction: '模式识别',
+          aiCore: '卷积神经网络'
+        },
+        {
+          id: 5,
+          title: '新型材料发现研究平台',
+          category: '材料科学',
+          status: '进行中',
+          teamSize: 15,
+          dataAssets: '材料属性数据',
+          direction: '材料设计',
+          aiCore: '强化学习'
+        },
+        {
+          id: 6,
+          title: '深空天体观测数据分析',
+          category: '天文学',
+          status: '稳健中',
+          teamSize: 7,
+          dataAssets: '天文观测数据',
+          direction: '天体分类',
+          aiCore: '图像识别算法'
+        }
       ]
-    }
-  },
-  created() {
-    this.syncTabWithRoute()
-  },
-  watch: {
-    $route() {
-      this.syncTabWithRoute()
     }
   },
   methods: {
@@ -167,21 +145,17 @@ export default {
     closeSidebar() {
       this.sidebarOpen = false
     },
-    syncTabWithRoute() {
-      if (this.$route.path.startsWith('/knowledge-base/')) {
-        const seg = this.$route.path.split('/')[2] || 'home'
-        this.activeTab = seg
-      } else if (this.$route.path === '/knowledge-base') {
-        this.activeTab = 'home'
-      }
+    viewProjectKnowledge(project) {
+      // 跳转到项目知识库分类界面（图3）
+      this.$router.push(`/project-knowledge/${project.id}`)
     },
-    goTab(tab) {
-      if (this.activeTab === tab) return
-      this.activeTab = tab
-      const target = `/knowledge-base/${tab}`
-      if (this.$route.path !== target) {
-        this.$router.push(target)
+    statusClass(status) {
+      const statusMap = {
+        '稳健中': 'stable',
+        '进行中': 'progress',
+        '已完成': 'completed'
       }
+      return statusMap[status] || 'stable'
     }
   }
 }
@@ -232,37 +206,10 @@ export default {
 .main-content {
   flex: 1;
   padding: 20px 24px 28px;
-}
-
-.content-layout.leftbar { 
-  display: grid; 
-  grid-template-columns: 220px 1fr; 
-  gap: 16px; 
-  align-items: start; 
-  height: calc(100vh - 64px - 40px - 28px); /* 减去顶部导航、主内容padding和底部padding */
-}
-.left-options { position: sticky; top: 20px; }
-.options-card { 
-  background: #fff; 
-  border: 1px solid #eef0f2; 
-  border-radius: 12px; 
-  padding: 8px; 
-  margin-bottom: 12px; 
-  height: calc(100vh - 64px - 40px - 28px); /* 与右侧内容高度一致 */
-  display: flex; 
-  flex-direction: column; 
-}
-.options-title { font-size: 14px; color: #6b7280; padding: 8px 10px; }
-.option-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; color: #374151; }
-.option-item:hover { background: #f6f7fb; }
-.option-item.active { background: #eef2ff; color: #4f46e5; }
-.content-right { 
-  min-width: 0; 
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 40px - 28px); /* 与左侧边栏高度一致 */
+  height: calc(100vh - 64px - 40px - 28px);
 }
-.panel-body { padding: 14px; color: #4b5563; font-size: 14px; }
 
 /* 主页内容样式 */
 .home-content {
@@ -370,10 +317,160 @@ export default {
 .pager.small, .page-num.small { height: 28px; min-width: 28px; padding: 0 10px; border: 1px solid #e0e0e0; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; }
 .page-num.small.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
 
+/* 项目网格样式 - 完全按照项目广场的样式 */
+.grid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  align-content: start;
+  padding-bottom: 10px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: 280px;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-media {
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px 10px 0 0;
+}
+
+.gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+.gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+.gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+.gradient-6 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
+
+.card-media::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.card-media span {
+  position: relative;
+  z-index: 2;
+}
+
+.card-body { 
+  padding: 16px; 
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.card-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.status-badge.stable {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-badge.progress {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.status-badge.completed {
+  background: #e8f5e8;
+  color: #388e3c;
+}
+
+.meta-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+}
+
+.meta-list li {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.meta-label {
+  color: #6b7280;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.meta-value {
+  color: #374151;
+  flex: 1;
+}
+
+@media (max-width: 1200px) {
+  .grid { 
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 900px) {
-  .stats-grid { grid-template-columns: 1fr; }
-  .content-layout.leftbar { grid-template-columns: 1fr; }
-  .left-options { position: static; }
-  .add-grid { grid-template-columns: 1fr; }
+  .grid { 
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .grid { 
+    grid-template-columns: 1fr;
+  }
 }
 </style>

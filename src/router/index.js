@@ -13,6 +13,7 @@ import KnowledgeBaseAI from '../views/KnowledgeBaseAI.vue'
 import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
+import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 
 Vue.use(VueRouter)
 
@@ -55,6 +56,11 @@ const routes = [
     path: '/project-detail/:id',
     name: 'ProjectDetail',
     component: ProjectDetail
+  },
+  {
+    path: '/project-knowledge/:id',
+    name: 'ProjectKnowledge',
+    component: ProjectKnowledge
   },
   {
     path: '/knowledge-base',

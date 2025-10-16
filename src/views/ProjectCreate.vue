@@ -78,25 +78,6 @@
             </div>
           </div>
 
-          <div class="form-field">
-            <label class="form-label">项目分类</label>
-            <select v-model="formData.category" class="form-input" required>
-              <option value="">请选择项目分类</option>
-              <option value="医疗健康">医疗健康</option>
-              <option value="环境气候">环境气候</option>
-              <option value="生物信息">生物信息</option>
-              <option value="科研探索">科研探索</option>
-              <option value="材料科学">材料科学</option>
-              <option value="天文学">天文学</option>
-              <option value="智慧城市">智慧城市</option>
-              <option value="金融科技">金融科技</option>
-              <option value="教育科技">教育科技</option>
-              <option value="农业科技">农业科技</option>
-              <option value="工业4.0">工业4.0</option>
-              <option value="人工智能">人工智能</option>
-              <option value="数据科学">数据科学</option>
-            </select>
-          </div>
           
           <div class="form-field">
             <label class="form-label">自定义标签</label>
@@ -269,14 +250,6 @@
           </div>
 
           <div class="preview-item">
-            <label class="preview-label">项目分类</label>
-            <div class="preview-category">
-              <span v-if="!formData.category" class="preview-placeholder">分类将在此显示</span>
-              <span v-else class="preview-category-tag">{{ formData.category }}</span>
-            </div>
-          </div>
-          
-          <div class="preview-item">
             <label class="preview-label">自定义标签</label>
             <div class="preview-tags">
               <span v-if="formData.tags.length === 0" class="preview-placeholder">标签将在此显示</span>
@@ -353,7 +326,6 @@ export default {
         projectDescription: '',
         startDate: '',
         endDate: '',
-        category: '',
         tags: [],
         tasks: [],
         positions: []
@@ -451,11 +423,6 @@ export default {
           return
         }
         
-        if (!this.formData.category) {
-          alert('请选择项目分类')
-          this.isSubmitting = false
-          return
-        }
         
         console.log('表单数据:', this.formData)
         
@@ -473,7 +440,7 @@ export default {
           dataAssets: this.formData.projectDescription || '暂无描述',
           direction: this.formData.projectDescription || '暂无描述',
           aiCore: '待定',
-          category: this.formData.category || '其他',
+          category: '其他', // 默认分类
           // 保存完整的项目信息
           description: this.formData.projectDescription,
           start_date: this.formData.startDate, // 修改为与数据库一致的字段名
@@ -912,19 +879,6 @@ export default {
   font-style: italic;
 }
 
-.preview-category {
-  margin-bottom: 8px;
-}
-
-.preview-category-tag {
-  background: #4caf50;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 500;
-  display: inline-block;
-}
 
 .preview-tags {
   display: flex;

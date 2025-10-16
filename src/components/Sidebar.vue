@@ -78,10 +78,12 @@ export default {
       this.$emit('close')
     },
     navigateTo(route) {
-      if (this.$route.path === route) {
+      // 如果已经在目标路径，只关闭侧边栏
+      if (this.$route.path === route || (route === '/knowledge-base' && this.$route.path.startsWith('/knowledge-base'))) {
         this.closeSidebar()
         return
       }
+      
       this.$router.push(route)
       this.closeSidebar()
     }
