@@ -175,26 +175,49 @@
         </div>
         <div class="task-grid">
           <div v-for="task in filteredTasks" :key="task.id" class="task-card">
-            <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
+            <div class="task-header">
+              <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
+              <div class="task-actions" v-if="isProjectManager">
+                <div class="task-status-dropdown">
+                  <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
+                    {{ task.status }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div class="task-status-menu" v-if="task.showStatusMenu">
+                    <button @click="changeTaskStatus(task, '待接取')" class="status-option" :class="{ active: task.status === '待接取' }">待接取</button>
+                    <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
+                    <button @click="changeTaskStatus(task, '暂停')" class="status-option" :class="{ active: task.status === '暂停' }">暂停</button>
+                    <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
+                  </div>
+                </div>
+                <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div class="task-content">
               <h3 class="task-title">{{ task.title }}</h3>
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
-                <span class="task-date">{{ task.date }}</span>
+                <span class="task-date" v-if="task.date">{{ task.date }}</span>
+                <span class="task-creator">创建人: {{ task.created_by_name }}</span>
+                <span v-if="task.assignee_name" class="task-assignee">
+                  负责人: {{ task.assignee_name }}
+                </span>
               </div>
             </div>
-            <div class="task-actions" v-if="isProjectManager">
-              <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
+            <div v-if="task.status === '待接取'" class="task-assign-section">
+              <button @click="assignTask(task)" class="assign-btn">接取任务</button>
             </div>
           </div>
         </div>
@@ -210,41 +233,6 @@
           </div>
         </div>
         
-        <!-- 岗位需求展示 -->
-        <div class="positions-section">
-          <div class="positions-header">
-            <h3 class="positions-title">岗位需求 ({{ project.positions ? project.positions.length : 0 }}个岗位)</h3>
-            <button v-if="isProjectManager" class="btn btn-sm btn-success" @click="addNewPosition">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              添加岗位
-            </button>
-          </div>
-          <div v-if="project && project.positions && project.positions.length > 0" class="positions-grid">
-            <div v-for="position in project.positions" :key="position.id" class="position-card">
-              <div class="position-header">
-                <h4 class="position-name">{{ position.name }}</h4>
-                <span class="position-count">{{ position.count }}人</span>
-              </div>
-              <p class="position-description">{{ position.description }}</p>
-              <div class="position-skills">
-                <span class="skills-label">技能要求:</span>
-                <span class="skills-text">{{ position.skills || '无特殊要求' }}</span>
-              </div>
-              <div class="position-actions">
-                <button class="btn btn-sm btn-outline" @click="applyForPosition(position)">
-                  申请此岗位
-                </button>
-                <button v-if="isProjectManager" class="btn btn-sm btn-delete-icon" @click="deletePosition(position)" title="删除岗位">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
         
         <div class="team-grid">
           <div v-for="member in teamMembers" :key="member.id" class="member-card">
@@ -375,7 +363,8 @@ export default {
         title: '',
         description: '',
         dueDate: '',
-        priority: '中'
+        priority: '中',
+        status: '待接取'
       },
       project: null,
       tasks: [],
@@ -447,15 +436,24 @@ export default {
             id: task.id,
             title: task.title,
             description: task.description,
-            date: task.due_date || task.dueDate || task.date || '未设置',
+            date: task.due_date || task.dueDate || task.date || '',
             due_date: task.due_date || task.dueDate, // 添加数据库字段名
-            priority: task.priority || 'MEDIUM',
-            status: task.status || 'TODO', // 添加状态字段
+            priority: this.getPriorityDisplay(task.priority || 'MEDIUM'), // 转换为中文显示
+            priority_value: task.priority || 'MEDIUM', // 保留数据库值
+            status: this.getStatusDisplay(task.status || 'IN_PROGRESS'), // 转换为中文状态显示
+            status_value: task.status || 'IN_PROGRESS', // 保留数据库值
             assignee_id: task.assignee_id || [], // 添加负责人ID字段
-            created_by: task.created_by || 1 // 添加创建人字段
+            created_by: task.created_by || 1, // 添加创建人字段
+            created_by_name: this.getUserNameById(task.created_by || 1) // 添加创建人姓名
           }))
           
           console.log('转换后的任务数据:', this.tasks)
+          if (this.tasks.length > 0) {
+            console.log('第一个任务的优先级:', this.tasks[0].priority)
+            console.log('第一个任务的状态:', this.tasks[0].status)
+            console.log('优先级类名:', this.priorityClass(this.tasks[0].priority))
+            console.log('状态类名:', this.statusClass(this.tasks[0].status))
+          }
           
           // 加载团队成员数据
           this.teamMembers = foundProject.teamMembers || [
@@ -463,9 +461,6 @@ export default {
           ]
           this.inviteSlots = foundProject.inviteSlots || []
           
-          // 加载岗位数据
-          this.project.positions = foundProject.positions || []
-          console.log('项目岗位数据:', this.project.positions)
         } else {
           console.log('未找到项目，ID:', projectId)
           this.project = {
@@ -535,57 +530,6 @@ export default {
         this.saveProjectData()
       }
     },
-    applyForPosition(position) {
-      // 申请岗位功能 - 直接使用已设置的用户姓名
-      const currentUserName = this.getCurrentUserName()
-      
-      if (confirm(`确定要申请岗位"${position.name}"吗？\n\n申请人: ${currentUserName}\n岗位描述: ${position.description || '无特殊描述'}\n技能要求: ${position.skills || '无特殊要求'}`)) {
-        // 这里可以添加申请逻辑，比如发送申请通知
-        alert(`申请已提交！\n\n岗位: ${position.name}\n申请人: ${currentUserName}\n需求人数: ${position.count}人\n\n项目负责人将收到您的申请通知。`)
-        
-        // 可以在这里添加申请记录到项目数据中
-        console.log('岗位申请记录:', {
-          positionId: position.id,
-          positionName: position.name,
-          applicantName: currentUserName,
-          applyTime: new Date().toISOString()
-        })
-      }
-    },
-    addNewPosition() {
-      // 添加新岗位
-      const positionName = prompt('请输入岗位名称:')
-      if (positionName && positionName.trim()) {
-        const positionDescription = prompt('请输入岗位描述:') || ''
-        const positionCount = prompt('请输入需求人数:') || '1'
-        const positionSkills = prompt('请输入技能要求:') || ''
-        
-        const newPosition = {
-          id: Date.now(),
-          name: positionName.trim(),
-          description: positionDescription.trim(),
-          count: parseInt(positionCount) || 1,
-          skills: positionSkills.trim()
-        }
-        
-        // 确保positions数组存在
-        if (!this.project.positions) {
-          this.project.positions = []
-        }
-        
-        this.project.positions.push(newPosition)
-        this.saveProjectData()
-        alert('岗位添加成功！')
-      }
-    },
-    deletePosition(position) {
-      // 删除岗位
-      if (confirm(`确定要删除岗位"${position.name}"吗？\n\n此操作不可撤销！`)) {
-        this.project.positions = this.project.positions.filter(p => p.id !== position.id)
-        this.saveProjectData()
-        alert('岗位已删除！')
-      }
-    },
     saveProjectData() {
       // 保存项目数据到localStorage
       const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
@@ -646,13 +590,16 @@ export default {
         id: Date.now(),
         title: this.newTask.title.trim(),
         description: this.newTask.description.trim(),
-        date: this.newTask.dueDate || '未设置',
+        date: this.newTask.dueDate || '',
         due_date: this.newTask.dueDate, // 添加数据库字段名
         dueDate: this.newTask.dueDate, // 保留前端字段名
-        priority: this.newTask.priority === '高' ? 'HIGH' : this.newTask.priority === '中' ? 'MEDIUM' : 'LOW',
-        status: 'TODO', // 添加状态字段
+        priority: this.getPriorityDisplay(this.getPriorityValue(this.newTask.priority)), // 显示中文
+        priority_value: this.getPriorityValue(this.newTask.priority), // 保存数据库值
+        status: '待接取', // 新任务默认为待接取状态
+        status_value: 'PENDING', // 数据库状态值
         assignee_id: [], // 添加负责人ID字段
-        created_by: 1 // 添加创建人字段
+        created_by: 1, // 添加创建人字段
+        created_by_name: this.getCurrentUserName() // 添加创建人姓名
       }
       
       this.tasks.push(task)
@@ -708,6 +655,87 @@ export default {
       }
       return '用户'
     },
+    getPriorityDisplay(priority) {
+      // 将数据库的英文优先级转换为中文显示
+      const priorityMap = {
+        'HIGH': '高',
+        'MEDIUM': '中',
+        'LOW': '低'
+      }
+      return priorityMap[priority] || '中'
+    },
+    getPriorityValue(priority) {
+      // 将中文优先级转换为数据库的英文值
+      const valueMap = {
+        '高': 'HIGH',
+        '中': 'MEDIUM',
+        '低': 'LOW'
+      }
+      return valueMap[priority] || 'MEDIUM'
+    },
+    getUserNameById(userId) {
+      // 根据用户ID获取用户姓名
+      if (userId === 1) {
+        return this.getCurrentUserName()
+      }
+      // 这里可以从用户服务或本地存储获取用户信息
+      // 暂时返回默认值
+      return '用户' + userId
+    },
+    getStatusValue(status) {
+      // 将中文状态转换为数据库的英文值
+      const valueMap = {
+        '待接取': 'PENDING',
+        '进行中': 'IN_PROGRESS',
+        '暂停': 'PAUSED',
+        '完成': 'COMPLETED'
+      }
+      return valueMap[status] || 'PENDING'
+    },
+    getStatusDisplay(status) {
+      // 将数据库的英文状态转换为中文显示
+      const statusMap = {
+        'PENDING': '待接取',
+        'IN_PROGRESS': '进行中',
+        'PAUSED': '暂停',
+        'COMPLETED': '完成'
+      }
+      return statusMap[status] || '待接取'
+    },
+    toggleTaskStatusDropdown(task) {
+      // 关闭其他任务的状态菜单
+      this.tasks.forEach(t => {
+        if (t.id !== task.id) {
+          this.$set(t, 'showStatusMenu', false)
+        }
+      })
+      // 切换当前任务的状态菜单
+      this.$set(task, 'showStatusMenu', !task.showStatusMenu)
+    },
+    changeTaskStatus(task, newStatus) {
+      // 更新任务状态
+      task.status = newStatus
+      task.status_value = this.getStatusValue(newStatus)
+      // 关闭状态菜单
+      this.$set(task, 'showStatusMenu', false)
+      // 保存数据
+      this.saveProjectData()
+      console.log(`任务"${task.title}"状态已更改为: ${newStatus}`)
+    },
+    assignTask(task) {
+      // 接取任务
+      const currentUser = this.getCurrentUserName()
+      task.assignee_name = currentUser
+      task.assignee_id = 1 // 假设当前用户ID为1
+      task.status = '进行中'
+      task.status_value = 'IN_PROGRESS'
+      
+      // 保存到localStorage
+      this.saveProjectData()
+      
+      alert(`您已成功接取任务: ${task.title}`)
+      console.log(`任务 ${task.title} 已被 ${currentUser} 接取`)
+    },
     goToProfile() {
       this.userMenuOpen = false
       this.$router.push('/profile')
@@ -718,14 +746,16 @@ export default {
       this.$router.push('/login')
     },
     statusClass(status) {
-      if (status === '进行中') return 'ongoing'
-      if (status === '已完成') return 'done'
-      return 'steady'
+      if (status === '待接取') return '待接取'
+      if (status === '进行中') return '进行中'
+      if (status === '暂停') return '暂停'
+      if (status === '完成') return '完成'
+      return '待接取'
     },
     priorityClass(priority) {
-      if (priority === '高') return 'high'
-      if (priority === '中') return 'medium'
-      return 'low'
+      if (priority === '高') return '高'
+      if (priority === '中') return '中'
+      return '低'
     },
     toggleTaskTypeDropdown() {
       this.taskTypeOpen = !this.taskTypeOpen
@@ -1104,35 +1134,39 @@ export default {
 }
 
 .task-priority {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  background: #e9ecef;
+  color: #6c757d;
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  white-space: nowrap;
+}
+
+.task-priority.高 {
+  background: #dc3545 !important;
+  color: white !important;
   font-weight: 600;
-  color: #fff;
 }
 
-.task-priority.high {
-  background: #dc3545;
+.task-priority.中 {
+  background: #ffc107 !important;
+  color: #333 !important;
+  font-weight: 600;
 }
 
-.task-priority.medium {
-  background: #ffc107;
-  color: #333;
-}
-
-.task-priority.low {
-  background: #28a745;
+.task-priority.低 {
+  background: #28a745 !important;
+  color: white !important;
+  font-weight: 600;
 }
 
 .task-content {
-  padding-right: 40px;
+  /* 移除padding-right，因为优先级不再绝对定位 */
 }
 
 .task-title {
@@ -1151,31 +1185,197 @@ export default {
 
 .task-meta {
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.task-creator {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.task-assignee {
+  display: block;
+  margin-top: 4px;
+}
+
+.task-assign-section {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+}
+
+.assign-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+}
+
+.assign-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+
+.task-status {
+  background: #e9ecef;
+  color: #6c757d;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.task-status.进行中 {
+  background: #d4edda;
+  color: #155724;
+}
+
+.task-status.暂停 {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.task-status.完成 {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.task-status-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.task-status-btn {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 2px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.task-status-btn:hover {
+  background: #dee2e6;
+}
+
+.task-status-btn.待接取 {
+  background: #6c757d !important;
+  color: white !important;
+  border-color: #6c757d !important;
+  font-weight: 600;
+}
+
+.task-status-btn.进行中 {
+  background: #007bff !important;
+  color: white !important;
+  border-color: #007bff !important;
+  font-weight: 600;
+}
+
+.task-status-btn.暂停 {
+  background: #ffc107 !important;
+  color: #333 !important;
+  border-color: #ffc107 !important;
+  font-weight: 600;
+}
+
+.task-status-btn.完成 {
+  background: #28a745 !important;
+  color: white !important;
+  border-color: #28a745 !important;
+  font-weight: 600;
+}
+
+.task-status-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+  min-width: 80px;
+}
+
+.status-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: white;
+  color: #333;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.status-option:hover {
+  background: #f8f9fa;
+}
+
+.status-option.active {
+  background: #007bff;
+  color: white;
+}
+
+.status-option:first-child {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.status-option:last-child {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .task-actions {
-  position: absolute;
-  top: 8px;
-  right: 8px;
   display: flex;
   gap: 4px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.task-card:hover .task-actions {
-  opacity: 1;
+  align-items: center;
 }
 
 .task-edit-btn, .task-delete-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
+  padding: 3px;
   border-radius: 4px;
   transition: all 0.3s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .task-edit-btn {
@@ -1447,102 +1647,6 @@ export default {
   margin: 0;
 }
 
-/* 岗位相关样式 */
-.positions-section {
-  margin-bottom: 24px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.positions-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.positions-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.positions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
-}
-
-.position-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 16px;
-  transition: box-shadow 0.2s;
-}
-
-.position-card:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.position-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.position-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.position-count {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.position-description {
-  color: #666;
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0 0 12px 0;
-}
-
-.position-skills {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.skills-label {
-  font-size: 12px;
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.skills-text {
-  font-size: 12px;
-  color: #495057;
-  background: #f8f9fa;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.position-actions {
-  display: flex;
-  justify-content: flex-end;
-}
 
 .btn-sm {
   padding: 6px 12px;

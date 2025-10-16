@@ -167,71 +167,6 @@
           </div>
         </div>
 
-        <!-- 岗位配置 -->
-        <div class="form-group">
-          <div class="section-header">
-            <h3 class="section-title">岗位配置</h3>
-            <button type="button" @click="addPosition" class="add-position-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              添加岗位
-            </button>
-          </div>
-
-          <div v-for="(position, index) in formData.positions" :key="position.id" class="position-item">
-            <div class="position-header">
-              <span class="position-title">岗位 {{ index + 1 }}</span>
-              <button @click="removePosition(index)" class="delete-position-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label">岗位名称</label>
-              <input
-                type="text"
-                v-model="position.name"
-                class="form-input"
-                placeholder="如：前端开发工程师"
-              />
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label">岗位描述</label>
-              <textarea
-                v-model="position.description"
-                class="form-textarea"
-                placeholder="描述该岗位的职责和要求"
-                rows="3"
-              ></textarea>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-field">
-                <label class="form-label">需求人数</label>
-                <input
-                  type="number"
-                  v-model.number="position.count"
-                  class="form-input"
-                  min="1"
-                  max="10"
-                />
-              </div>
-              <div class="form-field">
-                <label class="form-label">技能要求</label>
-                <input
-                  type="text"
-                  v-model="position.skills"
-                  class="form-input"
-                  placeholder="如：Vue.js, JavaScript"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 右侧实时预览区域 -->
@@ -271,26 +206,15 @@
               <div v-else v-for="(task, index) in formData.tasks" :key="task.id" class="preview-task">
                 <div class="task-name">{{ task.title || '未命名任务' }}</div>
                 <div class="task-meta">
-                  <span class="task-due">截止: {{ task.dueDate || '未设置' }}</span>
+                  <span class="task-due" v-if="task.dueDate">截止: {{ task.dueDate }}</span>
                   <span class="task-priority">{{ task.priority || '中' }}</span>
+                  <span class="task-status">{{ task.status || '进行中' }}</span>
+                  <span class="task-creator">创建人: {{ task.created_by_name || this.getCurrentUserName() }}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="preview-item">
-            <label class="preview-label">岗位需求</label>
-            <div class="preview-positions">
-              <div v-if="formData.positions.length === 0" class="preview-placeholder">暂无岗位</div>
-              <div v-else v-for="(position, index) in formData.positions" :key="position.id" class="preview-position">
-                <div class="position-name">{{ position.name || '未命名岗位' }}</div>
-                <div class="position-meta">
-                  <span class="position-count">需求: {{ position.count || 1 }}人</span>
-                  <span class="position-skills">{{ position.skills || '无特殊要求' }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -328,7 +252,6 @@ export default {
         endDate: '',
         tags: [],
         tasks: [],
-        positions: []
       }
     }
   },
@@ -355,6 +278,15 @@ export default {
       }
       return '用户'
     },
+    getPriorityValue(priority) {
+      // 将中文优先级转换为数据库的英文值
+      const valueMap = {
+        '高': 'HIGH',
+        '中': 'MEDIUM',
+        '低': 'LOW'
+      }
+      return valueMap[priority] || 'MEDIUM'
+    },
     addTag() {
       if (this.newTag.trim() && !this.formData.tags.includes(this.newTag.trim())) {
         this.formData.tags.push(this.newTag.trim())
@@ -371,9 +303,13 @@ export default {
         description: '',
         due_date: '', // 添加数据库字段名
         dueDate: '', // 保留前端字段名
-        priority: 'MEDIUM', // 修改为与数据库枚举一致
-        status: 'TODO', // 添加状态字段
-        assignee_id: [] // 添加负责人ID字段
+        priority: '中', // 前端显示中文
+        priority_value: 'MEDIUM', // 数据库存储英文
+        status: '进行中', // 前端显示中文状态
+        status_value: 'IN_PROGRESS', // 数据库存储英文状态
+        assignee_id: [], // 添加负责人ID字段
+        created_by: 1, // 添加创建人ID
+        created_by_name: this.getCurrentUserName() // 添加创建人姓名
       })
     },
     removeTask(index) {
@@ -449,7 +385,11 @@ export default {
           endDate: this.formData.endDate, // 保留驼峰命名用于前端
           created_by: 1, // 添加创建人ID
           tags: this.formData.tags,
-          tasks: this.formData.tasks,
+          tasks: this.formData.tasks.map(task => ({
+            ...task,
+            priority_value: this.getPriorityValue(task.priority), // 确保保存英文值到数据库
+            due_date: task.dueDate || task.due_date
+          })),
           // 添加默认团队成员信息
           teamMembers: [
             { 
@@ -463,8 +403,6 @@ export default {
             }
           ],
           inviteSlots: [],
-          // 添加岗位信息
-          positions: this.formData.positions
         }
         
         console.log('新项目数据:', newProject)
@@ -1012,10 +950,15 @@ export default {
 
 .task-meta {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
   font-size: 11px;
   color: #6c757d;
+}
+
+.task-creator {
+  color: #007bff;
+  font-weight: 500;
 }
 
 .task-due {
