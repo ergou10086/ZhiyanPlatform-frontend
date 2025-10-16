@@ -307,8 +307,40 @@ export default {
       this.isSubmitting = true
       
       try {
+        // 验证表单数据
+        if (!this.formData.projectName || this.formData.projectName.trim() === '') {
+          alert('请输入项目名称')
+          this.isSubmitting = false
+          return
+        }
+        
+        console.log('表单数据:', this.formData)
+        
         // 模拟API调用
         await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // 创建新项目对象
+        const newProject = {
+          id: Date.now(), // 使用时间戳作为唯一ID
+          title: this.formData.projectName,
+          status: '进行中',
+          teamSize: this.formData.tasks.length || 1,
+          dataAssets: this.formData.projectDescription || '暂无描述',
+          direction: this.formData.projectDescription || '暂无描述',
+          aiCore: '待定',
+          category: this.formData.tags.length > 0 ? this.formData.tags[0] : '其他'
+        }
+        
+        console.log('新项目数据:', newProject)
+        
+        // 从localStorage获取现有项目
+        const existingProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+        
+        // 添加新项目到列表开头
+        existingProjects.unshift(newProject)
+        
+        // 保存到localStorage
+        localStorage.setItem('projects', JSON.stringify(existingProjects))
         
         // 显示成功消息
         alert('项目发布成功！')

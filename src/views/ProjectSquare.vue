@@ -142,16 +142,7 @@ export default {
       pageSize: 6,
       userMenuOpen: false,
       userAvatar: null,
-      projects: [
-        { id: 1, title: '多模态医学影像数据平台', status: '稳健中', teamSize: 8, dataAssets: 'MRI, CT, PET扫描', direction: '肿瘤检测算法', aiCore: '深度学习模型', category: '医疗健康' },
-        { id: 2, title: '气候变化预测模型研究', status: '进行中', teamSize: 6, dataAssets: '卫星遥感, 气象站', direction: 'LSTM时序预测', aiCore: '时序网络', category: '环境气候' },
-        { id: 3, title: '基因组数据分析平台', status: '已完成', teamSize: 10, dataAssets: 'DNA测序, 蛋白组结构', direction: '可解释性建模', aiCore: '图神经网络', category: '生物信息' },
-        { id: 4, title: '脑科学神经网络研究', status: '稳健中', teamSize: 7, dataAssets: 'fMRI, EEG数据集', direction: '神经网络可视化', aiCore: '深度学习模型', category: '科研探索' },
-        { id: 5, title: '新型材料发现研究平台', status: '进行中', teamSize: 9, dataAssets: '分子结构, 光谱数据', direction: '材料性质预测', aiCore: '图模型', category: '材料科学' },
-        { id: 6, title: '深空天体观测数据分析', status: '稳健中', teamSize: 5, dataAssets: '天体光谱, 动辄数据', direction: '天体识别算法', aiCore: '卷积网络', category: '天文学' },
-        { id: 7, title: '卫星遥感图像分割', status: '进行中', teamSize: 12, dataAssets: '遥感影像库', direction: '语义分割', aiCore: 'Transformer', category: '环境气候' },
-        { id: 8, title: '智慧城市交通预测', status: '已完成', teamSize: 11, dataAssets: '路网探针, 车流数据', direction: '交通预测', aiCore: '图时空网络', category: '智慧城市' }
-      ]
+      projects: []
     }
   },
   computed: {
@@ -177,6 +168,7 @@ export default {
   },
   mounted() {
     this.loadUserAvatar()
+    this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
@@ -200,6 +192,27 @@ export default {
     loadUserAvatar() {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
+    },
+    loadProjects() {
+      // 从localStorage加载项目数据
+      const savedProjects = localStorage.getItem('projects')
+      if (savedProjects) {
+        this.projects = JSON.parse(savedProjects)
+      } else {
+        // 如果没有保存的项目，使用默认数据
+        this.projects = [
+          { id: 1, title: '多模态医学影像数据平台', status: '稳健中', teamSize: 8, dataAssets: 'MRI, CT, PET扫描', direction: '肿瘤检测算法', aiCore: '深度学习模型', category: '医疗健康' },
+          { id: 2, title: '气候变化预测模型研究', status: '进行中', teamSize: 6, dataAssets: '卫星遥感, 气象站', direction: 'LSTM时序预测', aiCore: '时序网络', category: '环境气候' },
+          { id: 3, title: '基因组数据分析平台', status: '已完成', teamSize: 10, dataAssets: 'DNA测序, 蛋白组结构', direction: '可解释性建模', aiCore: '图神经网络', category: '生物信息' },
+          { id: 4, title: '脑科学神经网络研究', status: '稳健中', teamSize: 7, dataAssets: 'fMRI, EEG数据集', direction: '神经网络可视化', aiCore: '深度学习模型', category: '科研探索' },
+          { id: 5, title: '新型材料发现研究平台', status: '进行中', teamSize: 9, dataAssets: '分子结构, 光谱数据', direction: '材料性质预测', aiCore: '图模型', category: '材料科学' },
+          { id: 6, title: '深空天体观测数据分析', status: '稳健中', teamSize: 5, dataAssets: '天体光谱, 动辄数据', direction: '天体识别算法', aiCore: '卷积网络', category: '天文学' },
+          { id: 7, title: '卫星遥感图像分割', status: '进行中', teamSize: 12, dataAssets: '遥感影像库', direction: '语义分割', aiCore: 'Transformer', category: '环境气候' },
+          { id: 8, title: '智慧城市交通预测', status: '已完成', teamSize: 11, dataAssets: '路网探针, 车流数据', direction: '交通预测', aiCore: '图时空网络', category: '智慧城市' }
+        ]
+        // 保存默认数据到localStorage
+        localStorage.setItem('projects', JSON.stringify(this.projects))
+      }
     },
     setUserAvatar(url) {
       this.userAvatar = url
