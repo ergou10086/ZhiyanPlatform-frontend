@@ -85,7 +85,7 @@
       <div class="grid">
         <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
           <div class="card-media" :class="`gradient-${(index % 6) + 1}`">
-            <span>{{ project.category }}</span>
+            <!-- 暂时不显示任何内容 -->
           </div>
             <div class="card-body">
               <div class="card-title-row">
@@ -139,7 +139,7 @@ export default {
       selectedStatus: '',
       statusOpen: false,
       currentPage: 1,
-      pageSize: 6,
+      pageSize: 8, // 每页显示8个项目（2行，每行4个）
       userMenuOpen: false,
       userAvatar: null,
       projects: []
@@ -163,7 +163,9 @@ export default {
     },
     paginatedProjects() {
       const start = (this.currentPage - 1) * this.pageSize
-      return this.filteredProjects.slice(start, start + this.pageSize)
+      const result = this.filteredProjects.slice(start, start + this.pageSize)
+      console.log('当前页:', this.currentPage, '每页大小:', this.pageSize, '过滤后项目数:', this.filteredProjects.length, '当前页项目数:', result.length)
+      return result
     }
   },
   mounted() {
@@ -198,17 +200,23 @@ export default {
       const savedProjects = localStorage.getItem('projects')
       if (savedProjects) {
         this.projects = JSON.parse(savedProjects)
+        console.log('加载的项目数量:', this.projects.length)
+        console.log('第一个项目的标签:', this.projects[0]?.tags)
       } else {
         // 如果没有保存的项目，使用默认数据
         this.projects = [
-          { id: 1, title: '多模态医学影像数据平台', status: '稳健中', teamSize: 8, dataAssets: 'MRI, CT, PET扫描', direction: '肿瘤检测算法', aiCore: '深度学习模型', category: '医疗健康' },
-          { id: 2, title: '气候变化预测模型研究', status: '进行中', teamSize: 6, dataAssets: '卫星遥感, 气象站', direction: 'LSTM时序预测', aiCore: '时序网络', category: '环境气候' },
-          { id: 3, title: '基因组数据分析平台', status: '已完成', teamSize: 10, dataAssets: 'DNA测序, 蛋白组结构', direction: '可解释性建模', aiCore: '图神经网络', category: '生物信息' },
-          { id: 4, title: '脑科学神经网络研究', status: '稳健中', teamSize: 7, dataAssets: 'fMRI, EEG数据集', direction: '神经网络可视化', aiCore: '深度学习模型', category: '科研探索' },
-          { id: 5, title: '新型材料发现研究平台', status: '进行中', teamSize: 9, dataAssets: '分子结构, 光谱数据', direction: '材料性质预测', aiCore: '图模型', category: '材料科学' },
-          { id: 6, title: '深空天体观测数据分析', status: '稳健中', teamSize: 5, dataAssets: '天体光谱, 动辄数据', direction: '天体识别算法', aiCore: '卷积网络', category: '天文学' },
-          { id: 7, title: '卫星遥感图像分割', status: '进行中', teamSize: 12, dataAssets: '遥感影像库', direction: '语义分割', aiCore: 'Transformer', category: '环境气候' },
-          { id: 8, title: '智慧城市交通预测', status: '已完成', teamSize: 11, dataAssets: '路网探针, 车流数据', direction: '交通预测', aiCore: '图时空网络', category: '智慧城市' }
+          { id: 1, name: '多模态医学影像数据平台', title: '多模态医学影像数据平台', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 8, dataAssets: 'MRI, CT, PET扫描', direction: '肿瘤检测算法', aiCore: '深度学习模型', category: '医疗健康', tags: ['医学影像', '深度学习', '肿瘤检测'], created_by: 1, start_date: '2024-01-01', end_date: '2024-12-31' },
+          { id: 2, name: '气候变化预测模型研究', title: '气候变化预测模型研究', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 6, dataAssets: '卫星遥感, 气象站', direction: 'LSTM时序预测', aiCore: '时序网络', category: '环境气候', tags: ['气候变化', 'LSTM', '时序预测'], created_by: 1, start_date: '2024-02-01', end_date: '2024-11-30' },
+          { id: 3, name: '基因组数据分析平台', title: '基因组数据分析平台', status: 'COMPLETED', visibility: 'PRIVATE', teamSize: 10, dataAssets: 'DNA测序, 蛋白组结构', direction: '可解释性建模', aiCore: '图神经网络', category: '生物信息', tags: ['基因组', '图神经网络', '生物信息'], created_by: 1, start_date: '2023-06-01', end_date: '2024-03-31' },
+          { id: 4, name: '脑科学神经网络研究', title: '脑科学神经网络研究', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 7, dataAssets: 'fMRI, EEG数据集', direction: '神经网络可视化', aiCore: '深度学习模型', category: '科研探索', tags: ['脑科学', '神经网络', '可视化'], created_by: 1, start_date: '2024-01-15', end_date: '2024-12-15' },
+          { id: 5, name: '新型材料发现研究平台', title: '新型材料发现研究平台', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 9, dataAssets: '分子结构, 光谱数据', direction: '材料性质预测', aiCore: '图模型', category: '材料科学', tags: ['材料科学', '图模型', '性质预测'], created_by: 1, start_date: '2024-03-01', end_date: '2024-12-31' },
+          { id: 6, name: '深空天体观测数据分析', title: '深空天体观测数据分析', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 5, dataAssets: '天体光谱, 动辄数据', direction: '天体识别算法', aiCore: '卷积网络', category: '天文学', tags: ['天体观测', '卷积网络', '天体识别'], created_by: 1, start_date: '2024-02-15', end_date: '2024-11-15' },
+          { id: 7, name: '卫星遥感图像分割', title: '卫星遥感图像分割', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 12, dataAssets: '遥感影像库', direction: '语义分割', aiCore: 'Transformer', category: '环境气候', tags: ['遥感', '图像分割', 'Transformer'], created_by: 1, start_date: '2024-01-20', end_date: '2024-10-20' },
+          { id: 8, name: '智慧城市交通预测', title: '智慧城市交通预测', status: 'COMPLETED', visibility: 'PRIVATE', teamSize: 11, dataAssets: '路网探针, 车流数据', direction: '交通预测', aiCore: '图时空网络', category: '智慧城市', tags: ['智慧城市', '交通预测', '图网络'], created_by: 1, start_date: '2023-09-01', end_date: '2024-02-29' },
+          { id: 9, name: '金融风险评估系统', title: '金融风险评估系统', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 6, dataAssets: '交易数据, 市场指标', direction: '风险预测模型', aiCore: '机器学习', category: '金融科技', tags: ['金融科技', '风险评估', '机器学习'], created_by: 1, start_date: '2024-03-15', end_date: '2024-12-15' },
+          { id: 10, name: '教育智能推荐平台', title: '教育智能推荐平台', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 8, dataAssets: '学习行为, 课程数据', direction: '个性化推荐', aiCore: '协同过滤', category: '教育科技', tags: ['教育科技', '推荐系统', '协同过滤'], created_by: 1, start_date: '2024-02-01', end_date: '2024-11-30' },
+          { id: 11, name: '农业智能监测系统', title: '农业智能监测系统', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 5, dataAssets: '土壤数据, 气象信息', direction: '作物生长预测', aiCore: '时序分析', category: '农业科技', tags: ['农业科技', '智能监测', '时序分析'], created_by: 1, start_date: '2024-04-01', end_date: '2024-12-31' },
+          { id: 12, name: '智能制造质量检测', title: '智能制造质量检测', status: 'COMPLETED', visibility: 'PRIVATE', teamSize: 9, dataAssets: '产品图像, 质量指标', direction: '缺陷检测算法', aiCore: '计算机视觉', category: '工业4.0', tags: ['智能制造', '质量检测', '计算机视觉'], created_by: 1, start_date: '2023-12-01', end_date: '2024-05-31' }
         ]
         // 保存默认数据到localStorage
         localStorage.setItem('projects', JSON.stringify(this.projects))
@@ -416,7 +424,7 @@ export default {
 .grid {
   margin-top: 16px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr); /* 调整为每行3个卡片 */
+  grid-template-columns: repeat(4, 1fr); /* 调整为每行4个卡片 */
   gap: 16px; /* 增加间距 */
   flex: 1;
   min-height: 0;
@@ -443,7 +451,7 @@ export default {
 }
 
 .card-media {
-  height: 140px;
+  height: 120px; /* 减少媒体区域高度 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,7 +487,7 @@ export default {
 }
 
 .card-body { 
-  padding: 16px; 
+  padding: 12px; /* 减少内边距 */
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -489,7 +497,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 8px; /* 减少底部间距 */
   gap: 8px;
 }
 
@@ -527,7 +535,7 @@ export default {
 .meta-list li { 
   display: flex; 
   align-items: center; 
-  padding: 4px 0; 
+  padding: 2px 0; /* 减少内边距 */
   font-size: 12px; 
   color: #4f5153;
   line-height: 1.3;
@@ -559,12 +567,12 @@ export default {
 .page-num.active { background: #5b6bff; color: #fff; border-color: #5b6bff; }
 .pager:disabled { opacity: 0.5; cursor: not-allowed; }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .grid { 
     grid-template-columns: repeat(3, 1fr);
   }
 }
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .grid { 
     grid-template-columns: repeat(2, 1fr);
   }

@@ -1,5 +1,13 @@
 <template>
   <div class="project-detail-container">
+    <!-- 加载状态 -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">正在加载项目详情...</p>
+    </div>
+    
+    <!-- 主要内容 -->
+    <div v-else>
     <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">
@@ -87,28 +95,57 @@
                 <span class="meta-label">负责人：</span>
                 <span class="meta-value">{{ project.manager }}</span>
               </div>
+              <div class="meta-item" v-if="project.tags && project.tags.length > 0">
+                <span class="meta-label">项目标签：</span>
+                <div class="tags-container">
+                  <span v-for="(tag, index) in project.tags" :key="index" class="tag">{{ tag }}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="project-actions">
-            <button class="btn secondary">
+          <div class="project-actions" v-if="isProjectManager">
+            <button class="btn secondary" @click="editProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               编辑项目
             </button>
-            <button class="btn primary">
+            <div class="dropdown" @click.stop="toggleStatusDropdown">
+              <button class="btn primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M8 3H5C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 15L15 8L19 12L8 23V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                更改状态
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <ul class="dropdown-menu" v-if="statusDropdownOpen">
+                <li class="dropdown-item" :class="{ active: project.status === '进行中' }" @click="changeStatus('进行中')">
+                  <span class="status-indicator" style="background-color: #28a745;"></span>
+                  进行中
+                </li>
+                <li class="dropdown-item" :class="{ active: project.status === '已完成' }" @click="changeStatus('已完成')">
+                  <span class="status-indicator" style="background-color: #007bff;"></span>
+                  已完成
+                </li>
+                <li class="dropdown-item" :class="{ active: project.status === '稳健中' }" @click="changeStatus('稳健中')">
+                  <span class="status-indicator" style="background-color: #ffc107;"></span>
+                  稳健中
+                </li>
+                <li class="dropdown-item" :class="{ active: project.status === '暂停' }" @click="changeStatus('暂停')">
+                  <span class="status-indicator" style="background-color: #6c757d;"></span>
+                  暂停
+                </li>
+              </ul>
+            </div>
+            <button class="btn btn-danger" @click="deleteProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 3H5C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 15L15 8L19 12L8 23V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              更改状态
-            </button>
-            <button class="btn secondary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 5H20C20.5304 5 21.0391 5.21071 21.4142 5.58579C21.7893 5.96086 22 6.46957 22 7V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              存档项目
+              删除项目
             </button>
           </div>
         </div>
@@ -133,7 +170,7 @@
                 <li class="dropdown-item" :class="{ active: selectedTaskType === '低' }" @click="selectTaskType('低')">低优先级</li>
               </ul>
             </div>
-            <button class="btn primary">新建任务</button>
+            <button v-if="isProjectManager" class="btn primary" @click="createTask">新建任务</button>
           </div>
         </div>
         <div class="task-grid">
@@ -146,6 +183,19 @@
                 <span class="task-date">{{ task.date }}</span>
               </div>
             </div>
+            <div class="task-actions" v-if="isProjectManager">
+              <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -154,8 +204,48 @@
       <div class="section-card">
         <div class="section-header">
           <h2 class="section-title">团队成员</h2>
-          <button class="btn primary">邀请成员</button>
+          <div class="section-actions" v-if="isProjectManager">
+            <button class="btn secondary" @click="addTeamMember">添加成员</button>
+            <button class="btn primary" @click="inviteMember">邀请成员</button>
+          </div>
         </div>
+        
+        <!-- 岗位需求展示 -->
+        <div class="positions-section">
+          <div class="positions-header">
+            <h3 class="positions-title">岗位需求 ({{ project.positions ? project.positions.length : 0 }}个岗位)</h3>
+            <button v-if="isProjectManager" class="btn btn-sm btn-success" @click="addNewPosition">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              添加岗位
+            </button>
+          </div>
+          <div v-if="project && project.positions && project.positions.length > 0" class="positions-grid">
+            <div v-for="position in project.positions" :key="position.id" class="position-card">
+              <div class="position-header">
+                <h4 class="position-name">{{ position.name }}</h4>
+                <span class="position-count">{{ position.count }}人</span>
+              </div>
+              <p class="position-description">{{ position.description }}</p>
+              <div class="position-skills">
+                <span class="skills-label">技能要求:</span>
+                <span class="skills-text">{{ position.skills || '无特殊要求' }}</span>
+              </div>
+              <div class="position-actions">
+                <button class="btn btn-sm btn-outline" @click="applyForPosition(position)">
+                  申请此岗位
+                </button>
+                <button v-if="isProjectManager" class="btn btn-sm btn-delete-icon" @click="deletePosition(position)" title="删除岗位">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div class="team-grid">
           <div v-for="member in teamMembers" :key="member.id" class="member-card">
             <div class="member-avatar">
@@ -171,6 +261,11 @@
               <h4 class="member-name">{{ member.name }}</h4>
               <p class="member-role">{{ member.role }}</p>
             </div>
+            <button v-if="isProjectManager" class="remove-member-btn" @click="removeTeamMember(member.id)" title="移除成员">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
           <!-- 邀请成员占位符 -->
           <div v-for="invite in inviteSlots" :key="invite.id" class="member-card invite-card">
@@ -186,10 +281,81 @@
               <h4 class="member-name">{{ invite.role }}</h4>
               <p class="member-role">待邀请</p>
             </div>
+            <button v-if="isProjectManager" class="remove-member-btn" @click="removeInviteSlot(invite.id)" title="取消邀请">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
       </div>
+    </div>
+
+    <!-- 新建任务模态框 -->
+    <div v-if="taskModalOpen" class="modal-overlay" @click="closeTaskModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">新建任务</h3>
+          <button class="modal-close" @click="closeTaskModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">任务标题</label>
+            <input 
+              v-model="newTask.title" 
+              type="text" 
+              class="form-input" 
+              placeholder="请输入任务标题"
+              maxlength="50"
+            />
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label">任务描述</label>
+            <textarea 
+              v-model="newTask.description" 
+              class="form-textarea" 
+              placeholder="请输入任务描述"
+              rows="3"
+              maxlength="200"
+            ></textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">截止日期</label>
+              <input 
+                v-model="newTask.dueDate" 
+                type="date" 
+                class="form-input"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label">优先级</label>
+              <select v-model="newTask.priority" class="form-select">
+                <option value="高">高</option>
+                <option value="中">中</option>
+                <option value="低">低</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" @click="closeTaskModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim()">
+            创建任务
+          </button>
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 </template>
@@ -203,53 +369,30 @@ export default {
       userAvatar: null,
       taskTypeOpen: false,
       selectedTaskType: '',
+      statusDropdownOpen: false,
+      taskModalOpen: false,
+      newTask: {
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: '中'
+      },
       project: null,
-      tasks: [
-        {
-          id: 1,
-          title: '文献综述与理论框架构建',
-          description: '收集并分析相关领域最新研究成果，建立理论分析框架',
-          date: '2023-07-15',
-          priority: '高'
-        },
-        {
-          id: 2,
-          title: '实验方案设计',
-          description: '制定详细的实验计划和操作规程',
-          date: '2023-08-30',
-          priority: '中'
-        },
-        {
-          id: 3,
-          title: '纳米材料合成',
-          description: '按照设计方案进行纳米材料的实验室合成',
-          date: '2023-07-30',
-          priority: '高'
-        },
-        {
-          id: 4,
-          title: '细胞实验与数据分析',
-          description: '开展体外细胞实验，收集并分析实验数据',
-          date: '2023-11-15',
-          priority: '高'
-        }
-      ],
-      teamMembers: [
-        { id: 1, name: '张伟', role: '项目负责人', avatar: null },
-        { id: 2, name: '李娜', role: '生物医学研究员', avatar: null },
-        { id: 3, name: '王强', role: '材料科学专家', avatar: null },
-        { id: 4, name: '陈美玲', role: '数据分析师', avatar: null }
-      ],
-      inviteSlots: [
-        { id: 1, role: '临床试验协调员' },
-        { id: 2, role: '生物统计学家' }
-      ]
+      tasks: [],
+      teamMembers: [],
+      inviteSlots: [],
+      isLoading: true
     }
   },
   computed: {
     filteredTasks() {
       if (!this.selectedTaskType) return this.tasks
       return this.tasks.filter(task => task.priority === this.selectedTaskType)
+    },
+    isProjectManager() {
+      // 判断当前用户是否是项目负责人
+      const currentUserName = this.getCurrentUserName()
+      return this.project && this.project.manager === currentUserName
     }
   },
   mounted() {
@@ -262,86 +405,283 @@ export default {
   },
   methods: {
     loadProject() {
-      const projectId = this.$route.params.id
-      // 模拟项目数据 - 在实际应用中这里应该从API获取
-      const projectsData = {
-        1: {
-          id: 1,
-          title: '多模态医学影像数据平台',
-          description: '探索新型纳米材料在靶向癌症治疗中的潜力，通过实验验证其生物相容性和治疗效果',
-          period: '2023-06-01 至 2023-12-31',
-          status: '稳健中',
-          manager: '张伟'
-        },
-        2: {
-          id: 2,
-          title: '气候变化预测模型研究',
-          description: '基于深度学习的全球气候变化预测模型，整合多源气象数据',
-          period: '2023-03-01 至 2024-02-28',
-          status: '进行中',
-          manager: '李娜'
-        },
-        3: {
-          id: 3,
-          title: '基因组数据分析平台',
-          description: '大规模基因组数据的存储、处理和分析平台',
-          period: '2023-01-01 至 2023-12-31',
-          status: '已完成',
-          manager: '王强'
-        },
-        4: {
-          id: 4,
-          title: '脑科学神经网络研究',
-          description: '基于脑电信号的神经网络模式识别研究',
-          period: '2023-04-01 至 2024-03-31',
-          status: '稳健中',
-          manager: '陈美玲'
-        },
-        5: {
-          id: 5,
-          title: '新型材料发现研究平台',
-          description: '利用机器学习加速新型材料的发现和设计',
-          period: '2023-05-01 至 2024-04-30',
-          status: '进行中',
-          manager: '刘建国'
-        },
-        6: {
-          id: 6,
-          title: '深空天体观测数据分析',
-          description: '深空天体观测数据的自动化处理和分析系统',
-          period: '2023-02-01 至 2024-01-31',
-          status: '稳健中',
-          manager: '赵天文'
-        },
-        7: {
-          id: 7,
-          title: '卫星遥感图像分割',
-          description: '基于深度学习的卫星遥感图像语义分割技术',
-          period: '2023-07-01 至 2024-06-30',
-          status: '进行中',
-          manager: '孙遥感'
-        },
-        8: {
-          id: 8,
-          title: '智慧城市交通预测',
-          description: '基于大数据的城市交通流量预测和优化系统',
-          period: '2023-01-01 至 2023-12-31',
-          status: '已完成',
-          manager: '周交通'
+      const projectId = parseInt(this.$route.params.id)
+      console.log('正在加载项目ID:', projectId)
+      
+      // 从localStorage加载项目数据
+      const savedProjects = localStorage.getItem('projects')
+      console.log('localStorage中的项目数据:', savedProjects)
+      
+      if (savedProjects) {
+        const projects = JSON.parse(savedProjects)
+        const foundProject = projects.find(p => p.id === projectId)
+        
+        if (foundProject) {
+          console.log('找到的项目数据:', foundProject)
+          
+          // 将项目广场的数据格式转换为详情页面的格式
+          this.project = {
+            id: foundProject.id,
+            name: foundProject.name || foundProject.title, // 添加数据库字段名
+            title: foundProject.title,
+            description: foundProject.description || foundProject.dataAssets || foundProject.direction || '暂无描述',
+            period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
+              `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
+              '2024-01-01 至 2024-12-31',
+            status: foundProject.status,
+            visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
+            manager: this.getCurrentUserName(), // 从用户信息获取负责人
+            teamSize: foundProject.teamSize,
+            category: foundProject.category,
+            aiCore: foundProject.aiCore,
+            tags: foundProject.tags || [],
+            tasks: foundProject.tasks || [],
+            created_by: foundProject.created_by || 1 // 添加创建人字段
+          }
+          
+          console.log('项目周期:', foundProject.startDate, foundProject.endDate)
+          console.log('项目任务:', foundProject.tasks)
+          
+          // 加载项目任务数据，转换数据格式
+          this.tasks = (foundProject.tasks || []).map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            date: task.due_date || task.dueDate || task.date || '未设置',
+            due_date: task.due_date || task.dueDate, // 添加数据库字段名
+            priority: task.priority || 'MEDIUM',
+            status: task.status || 'TODO', // 添加状态字段
+            assignee_id: task.assignee_id || [], // 添加负责人ID字段
+            created_by: task.created_by || 1 // 添加创建人字段
+          }))
+          
+          console.log('转换后的任务数据:', this.tasks)
+          
+          // 加载团队成员数据
+          this.teamMembers = foundProject.teamMembers || [
+            { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+          ]
+          this.inviteSlots = foundProject.inviteSlots || []
+          
+          // 加载岗位数据
+          this.project.positions = foundProject.positions || []
+          console.log('项目岗位数据:', this.project.positions)
+        } else {
+          console.log('未找到项目，ID:', projectId)
+          this.project = {
+            id: projectId,
+            title: '项目不存在',
+            description: '抱歉，未找到指定的项目',
+            period: '未知',
+            status: '未知',
+            manager: '未知'
+          }
+        }
+      } else {
+        console.log('localStorage中没有项目数据')
+        this.project = {
+          id: projectId,
+          title: '项目不存在',
+          description: '抱歉，未找到指定的项目',
+          period: '未知',
+          status: '未知',
+          manager: '未知'
         }
       }
       
-      this.project = projectsData[projectId] || {
-        id: projectId,
-        title: '项目不存在',
-        description: '抱歉，未找到指定的项目',
-        period: '未知',
-        status: '未知',
-        manager: '未知'
-      }
+      // 加载完成
+      this.isLoading = false
+      console.log('项目加载完成，project:', this.project)
     },
     goBack() {
       this.$router.go(-1)
+    },
+    addTeamMember() {
+      const name = prompt('请输入成员姓名:')
+      if (name && name.trim()) {
+        const role = prompt('请输入成员角色:')
+        const newMember = {
+          id: Date.now(),
+          name: name.trim(),
+          role: role ? role.trim() : '团队成员',
+          avatar: null
+        }
+        this.teamMembers.push(newMember)
+        this.saveProjectData()
+        alert('成员添加成功！')
+      }
+    },
+    inviteMember() {
+      const role = prompt('请输入邀请的角色:')
+      if (role && role.trim()) {
+        const newInvite = {
+          id: Date.now(),
+          role: role.trim()
+        }
+        this.inviteSlots.push(newInvite)
+        this.saveProjectData()
+        alert('邀请已发送！')
+      }
+    },
+    removeTeamMember(memberId) {
+      if (confirm('确定要移除此成员吗？')) {
+        this.teamMembers = this.teamMembers.filter(m => m.id !== memberId)
+        this.saveProjectData()
+      }
+    },
+    removeInviteSlot(slotId) {
+      if (confirm('确定要取消此邀请吗？')) {
+        this.inviteSlots = this.inviteSlots.filter(s => s.id !== slotId)
+        this.saveProjectData()
+      }
+    },
+    applyForPosition(position) {
+      // 申请岗位功能 - 直接使用已设置的用户姓名
+      const currentUserName = this.getCurrentUserName()
+      
+      if (confirm(`确定要申请岗位"${position.name}"吗？\n\n申请人: ${currentUserName}\n岗位描述: ${position.description || '无特殊描述'}\n技能要求: ${position.skills || '无特殊要求'}`)) {
+        // 这里可以添加申请逻辑，比如发送申请通知
+        alert(`申请已提交！\n\n岗位: ${position.name}\n申请人: ${currentUserName}\n需求人数: ${position.count}人\n\n项目负责人将收到您的申请通知。`)
+        
+        // 可以在这里添加申请记录到项目数据中
+        console.log('岗位申请记录:', {
+          positionId: position.id,
+          positionName: position.name,
+          applicantName: currentUserName,
+          applyTime: new Date().toISOString()
+        })
+      }
+    },
+    addNewPosition() {
+      // 添加新岗位
+      const positionName = prompt('请输入岗位名称:')
+      if (positionName && positionName.trim()) {
+        const positionDescription = prompt('请输入岗位描述:') || ''
+        const positionCount = prompt('请输入需求人数:') || '1'
+        const positionSkills = prompt('请输入技能要求:') || ''
+        
+        const newPosition = {
+          id: Date.now(),
+          name: positionName.trim(),
+          description: positionDescription.trim(),
+          count: parseInt(positionCount) || 1,
+          skills: positionSkills.trim()
+        }
+        
+        // 确保positions数组存在
+        if (!this.project.positions) {
+          this.project.positions = []
+        }
+        
+        this.project.positions.push(newPosition)
+        this.saveProjectData()
+        alert('岗位添加成功！')
+      }
+    },
+    deletePosition(position) {
+      // 删除岗位
+      if (confirm(`确定要删除岗位"${position.name}"吗？\n\n此操作不可撤销！`)) {
+        this.project.positions = this.project.positions.filter(p => p.id !== position.id)
+        this.saveProjectData()
+        alert('岗位已删除！')
+      }
+    },
+    saveProjectData() {
+      // 保存项目数据到localStorage
+      const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+      const projectIndex = savedProjects.findIndex(p => p.id === this.project.id)
+      if (projectIndex !== -1) {
+        savedProjects[projectIndex].teamMembers = this.teamMembers
+        savedProjects[projectIndex].inviteSlots = this.inviteSlots
+        savedProjects[projectIndex].tasks = this.tasks
+        savedProjects[projectIndex].status = this.project.status
+        localStorage.setItem('projects', JSON.stringify(savedProjects))
+      }
+    },
+    // 项目操作按钮功能
+    editProject() {
+      alert('编辑项目功能正在开发中，敬请期待！')
+    },
+    changeStatus(newStatus) {
+      // 更改项目状态
+      if (newStatus && newStatus !== this.project.status) {
+        this.project.status = newStatus
+        this.saveProjectData()
+        this.statusDropdownOpen = false
+        console.log('项目状态已更改为:', newStatus)
+      }
+    },
+    deleteProject() {
+      if (confirm('确定要删除此项目吗？\n\n此操作不可撤销！项目及其所有数据将被永久删除。')) {
+        // 从localStorage中删除项目
+        const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+        const updatedProjects = savedProjects.filter(p => p.id !== this.project.id)
+        localStorage.setItem('projects', JSON.stringify(updatedProjects))
+        
+        alert('项目已删除！')
+        this.$router.push('/project-square')
+      }
+    },
+    // 任务操作功能
+    createTask() {
+      this.taskModalOpen = true
+      // 重置表单
+      this.newTask = {
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: '中'
+      }
+    },
+    closeTaskModal() {
+      this.taskModalOpen = false
+    },
+    saveNewTask() {
+      if (!this.newTask.title.trim()) {
+        alert('请输入任务标题')
+        return
+      }
+      
+      const task = {
+        id: Date.now(),
+        title: this.newTask.title.trim(),
+        description: this.newTask.description.trim(),
+        date: this.newTask.dueDate || '未设置',
+        due_date: this.newTask.dueDate, // 添加数据库字段名
+        dueDate: this.newTask.dueDate, // 保留前端字段名
+        priority: this.newTask.priority === '高' ? 'HIGH' : this.newTask.priority === '中' ? 'MEDIUM' : 'LOW',
+        status: 'TODO', // 添加状态字段
+        assignee_id: [], // 添加负责人ID字段
+        created_by: 1 // 添加创建人字段
+      }
+      
+      this.tasks.push(task)
+      this.saveProjectData()
+      this.closeTaskModal()
+      alert('任务创建成功！')
+    },
+    editTask(task) {
+      const newTitle = prompt('编辑任务标题:', task.title)
+      if (newTitle !== null) {
+        const newDescription = prompt('编辑任务描述:', task.description)
+        const newDate = prompt('编辑截止日期:', task.date)
+        const newPriority = prompt('编辑优先级 (高/中/低):', task.priority)
+        
+        task.title = newTitle.trim()
+        task.description = newDescription ? newDescription.trim() : task.description
+        task.date = newDate || task.date
+        task.priority = newPriority || task.priority
+        
+        this.saveProjectData()
+        alert('任务更新成功！')
+      }
+    },
+    deleteTask(taskId) {
+      if (confirm('确定要删除此任务吗？')) {
+        this.tasks = this.tasks.filter(t => t.id !== taskId)
+        this.saveProjectData()
+        alert('任务已删除！')
+      }
     },
     handleClickOutside(event) {
       if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
@@ -349,6 +689,7 @@ export default {
       }
       if (!event.target.closest('.dropdown')) {
         this.taskTypeOpen = false
+        this.statusDropdownOpen = false
       }
     },
     toggleUserMenu() {
@@ -357,6 +698,15 @@ export default {
     loadUserAvatar() {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
+    },
+    getCurrentUserName() {
+      // 从localStorage获取当前用户信息
+      const globalUserInfo = localStorage.getItem('globalUserInfo')
+      if (globalUserInfo) {
+        const userInfo = JSON.parse(globalUserInfo)
+        return userInfo.nickname || userInfo.name || '用户'
+      }
+      return '用户'
     },
     goToProfile() {
       this.userMenuOpen = false
@@ -379,6 +729,9 @@ export default {
     },
     toggleTaskTypeDropdown() {
       this.taskTypeOpen = !this.taskTypeOpen
+    },
+    toggleStatusDropdown() {
+      this.statusDropdownOpen = !this.statusDropdownOpen
     },
     selectTaskType(type) {
       this.selectedTaskType = type
@@ -578,6 +931,22 @@ export default {
   gap: 8px;
 }
 
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+}
+
 .meta-label {
   color: #6c757d;
   font-size: 14px;
@@ -721,8 +1090,9 @@ export default {
 
 .task-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 400px));
   gap: 16px;
+  justify-content: start;
 }
 
 .task-card {
@@ -785,9 +1155,459 @@ export default {
   gap: 12px;
 }
 
+.task-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.task-card:hover .task-actions {
+  opacity: 1;
+}
+
+.task-edit-btn, .task-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.task-edit-btn {
+  color: #007bff;
+}
+
+.task-edit-btn:hover {
+  background: #e3f2fd;
+  color: #0056b3;
+}
+
+.task-delete-btn {
+  color: #dc3545;
+}
+
+.task-delete-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
+}
+
 .task-date {
   font-size: 12px;
   color: #6c757d;
+}
+
+/* 下拉菜单样式 */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item.active {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #f8f9fa;
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px 24px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+.form-field {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-primary:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+/* 加载状态样式 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* 岗位相关样式 */
+.positions-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.positions-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.positions-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.positions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.position-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  transition: box-shadow 0.2s;
+}
+
+.position-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.position-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.position-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.position-count {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.position-description {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.position-skills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.skills-label {
+  font-size: 12px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.skills-text {
+  font-size: 12px;
+  color: #495057;
+  background: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.position-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.btn-outline:hover {
+  background: #007bff;
+  color: white;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.btn-delete-icon {
+  background: transparent;
+  color: #dc3545;
+  border: none;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-icon:hover {
+  background: #f8f9fa;
+  color: #dc3545;
+}
+
+.position-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .team-grid {
@@ -804,6 +1624,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 12px;
+  position: relative;
 }
 
 .member-card.invite-card {
@@ -845,6 +1666,29 @@ export default {
   font-size: 12px;
   color: #6c757d;
   margin: 0;
+}
+
+.remove-member-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #dc3545;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.member-card:hover .remove-member-btn {
+  opacity: 1;
+}
+
+.remove-member-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
 }
 
 .loading-container {

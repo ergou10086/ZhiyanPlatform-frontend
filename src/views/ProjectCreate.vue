@@ -79,14 +79,34 @@
           </div>
 
           <div class="form-field">
-            <label class="form-label">标签分类</label>
+            <label class="form-label">项目分类</label>
+            <select v-model="formData.category" class="form-input" required>
+              <option value="">请选择项目分类</option>
+              <option value="医疗健康">医疗健康</option>
+              <option value="环境气候">环境气候</option>
+              <option value="生物信息">生物信息</option>
+              <option value="科研探索">科研探索</option>
+              <option value="材料科学">材料科学</option>
+              <option value="天文学">天文学</option>
+              <option value="智慧城市">智慧城市</option>
+              <option value="金融科技">金融科技</option>
+              <option value="教育科技">教育科技</option>
+              <option value="农业科技">农业科技</option>
+              <option value="工业4.0">工业4.0</option>
+              <option value="人工智能">人工智能</option>
+              <option value="数据科学">数据科学</option>
+            </select>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label">自定义标签</label>
             <div class="tag-input-container">
               <input
                 type="text"
                 v-model="newTag"
                 @keyup.enter="addTag"
                 class="form-input tag-input"
-                placeholder="输入标签后按回车添加"
+                placeholder="输入标签后按回车添加（可选）"
               />
               <button type="button" @click="addTag" class="add-tag-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -165,6 +185,72 @@
             </div>
           </div>
         </div>
+
+        <!-- 岗位配置 -->
+        <div class="form-group">
+          <div class="section-header">
+            <h3 class="section-title">岗位配置</h3>
+            <button type="button" @click="addPosition" class="add-position-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              添加岗位
+            </button>
+          </div>
+
+          <div v-for="(position, index) in formData.positions" :key="position.id" class="position-item">
+            <div class="position-header">
+              <span class="position-title">岗位 {{ index + 1 }}</span>
+              <button @click="removePosition(index)" class="delete-position-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label">岗位名称</label>
+              <input
+                type="text"
+                v-model="position.name"
+                class="form-input"
+                placeholder="如：前端开发工程师"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label">岗位描述</label>
+              <textarea
+                v-model="position.description"
+                class="form-textarea"
+                placeholder="描述该岗位的职责和要求"
+                rows="3"
+              ></textarea>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-field">
+                <label class="form-label">需求人数</label>
+                <input
+                  type="number"
+                  v-model.number="position.count"
+                  class="form-input"
+                  min="1"
+                  max="10"
+                />
+              </div>
+              <div class="form-field">
+                <label class="form-label">技能要求</label>
+                <input
+                  type="text"
+                  v-model="position.skills"
+                  class="form-input"
+                  placeholder="如：Vue.js, JavaScript"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 右侧实时预览区域 -->
@@ -183,7 +269,15 @@
           </div>
 
           <div class="preview-item">
-            <label class="preview-label">标签</label>
+            <label class="preview-label">项目分类</label>
+            <div class="preview-category">
+              <span v-if="!formData.category" class="preview-placeholder">分类将在此显示</span>
+              <span v-else class="preview-category-tag">{{ formData.category }}</span>
+            </div>
+          </div>
+          
+          <div class="preview-item">
+            <label class="preview-label">自定义标签</label>
             <div class="preview-tags">
               <span v-if="formData.tags.length === 0" class="preview-placeholder">标签将在此显示</span>
               <span v-else v-for="(tag, index) in formData.tags" :key="index" class="preview-tag">{{ tag }}</span>
@@ -206,6 +300,20 @@
                 <div class="task-meta">
                   <span class="task-due">截止: {{ task.dueDate || '未设置' }}</span>
                   <span class="task-priority">{{ task.priority || '中' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="preview-item">
+            <label class="preview-label">岗位需求</label>
+            <div class="preview-positions">
+              <div v-if="formData.positions.length === 0" class="preview-placeholder">暂无岗位</div>
+              <div v-else v-for="(position, index) in formData.positions" :key="position.id" class="preview-position">
+                <div class="position-name">{{ position.name || '未命名岗位' }}</div>
+                <div class="position-meta">
+                  <span class="position-count">需求: {{ position.count || 1 }}人</span>
+                  <span class="position-skills">{{ position.skills || '无特殊要求' }}</span>
                 </div>
               </div>
             </div>
@@ -245,8 +353,10 @@ export default {
         projectDescription: '',
         startDate: '',
         endDate: '',
+        category: '',
         tags: [],
-        tasks: []
+        tasks: [],
+        positions: []
       }
     }
   },
@@ -264,6 +374,15 @@ export default {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
     },
+    getCurrentUserName() {
+      // 从localStorage获取当前用户信息
+      const globalUserInfo = localStorage.getItem('globalUserInfo')
+      if (globalUserInfo) {
+        const userInfo = JSON.parse(globalUserInfo)
+        return userInfo.nickname || userInfo.name || '用户'
+      }
+      return '用户'
+    },
     addTag() {
       if (this.newTag.trim() && !this.formData.tags.includes(this.newTag.trim())) {
         this.formData.tags.push(this.newTag.trim())
@@ -278,12 +397,30 @@ export default {
         id: Date.now(),
         title: '',
         description: '',
-        dueDate: '',
-        priority: '中'
+        due_date: '', // 添加数据库字段名
+        dueDate: '', // 保留前端字段名
+        priority: 'MEDIUM', // 修改为与数据库枚举一致
+        status: 'TODO', // 添加状态字段
+        assignee_id: [] // 添加负责人ID字段
       })
     },
     removeTask(index) {
       this.formData.tasks.splice(index, 1)
+    },
+    addPosition() {
+      this.formData.positions.push({
+        id: Date.now(),
+        name: '',
+        description: '',
+        requirements: '', // 修改为与数据库字段一致
+        count: 1,
+        skills: '', // 保留前端字段
+        status: 'OPEN', // 添加状态字段
+        created_at: new Date().toISOString() // 添加创建时间
+      })
+    },
+    removePosition(index) {
+      this.formData.positions.splice(index, 1)
     },
     getProjectPeriod() {
       if (this.formData.startDate && this.formData.endDate) {
@@ -314,6 +451,12 @@ export default {
           return
         }
         
+        if (!this.formData.category) {
+          alert('请选择项目分类')
+          this.isSubmitting = false
+          return
+        }
+        
         console.log('表单数据:', this.formData)
         
         // 模拟API调用
@@ -322,16 +465,44 @@ export default {
         // 创建新项目对象
         const newProject = {
           id: Date.now(), // 使用时间戳作为唯一ID
-          title: this.formData.projectName,
-          status: '进行中',
+          name: this.formData.projectName, // 修改为与数据库一致的字段名
+          title: this.formData.projectName, // 保留title字段用于前端显示
+          status: 'ONGOING', // 修改为与数据库枚举一致
+          visibility: 'PRIVATE', // 添加可见性字段
           teamSize: this.formData.tasks.length || 1,
           dataAssets: this.formData.projectDescription || '暂无描述',
           direction: this.formData.projectDescription || '暂无描述',
           aiCore: '待定',
-          category: this.formData.tags.length > 0 ? this.formData.tags[0] : '其他'
+          category: this.formData.category || '其他',
+          // 保存完整的项目信息
+          description: this.formData.projectDescription,
+          start_date: this.formData.startDate, // 修改为与数据库一致的字段名
+          startDate: this.formData.startDate, // 保留驼峰命名用于前端
+          end_date: this.formData.endDate, // 修改为与数据库一致的字段名
+          endDate: this.formData.endDate, // 保留驼峰命名用于前端
+          created_by: 1, // 添加创建人ID
+          tags: this.formData.tags,
+          tasks: this.formData.tasks,
+          // 添加默认团队成员信息
+          teamMembers: [
+            { 
+              id: 1, 
+              user_id: 1, // 添加数据库字段名
+              name: this.getCurrentUserName(), 
+              project_role: 'LEADER', // 修改为与数据库枚举一致
+              role: '项目负责人', // 保留前端显示字段
+              avatar: null,
+              joined_at: new Date().toISOString() // 添加加入时间
+            }
+          ],
+          inviteSlots: [],
+          // 添加岗位信息
+          positions: this.formData.positions
         }
         
         console.log('新项目数据:', newProject)
+        console.log('项目周期数据:', this.formData.startDate, this.formData.endDate)
+        console.log('项目任务数据:', this.formData.tasks)
         
         // 从localStorage获取现有项目
         const existingProjects = JSON.parse(localStorage.getItem('projects') || '[]')
@@ -741,6 +912,20 @@ export default {
   font-style: italic;
 }
 
+.preview-category {
+  margin-bottom: 8px;
+}
+
+.preview-category-tag {
+  background: #4caf50;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-block;
+}
+
 .preview-tags {
   display: flex;
   flex-wrap: wrap;
@@ -760,6 +945,101 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.preview-positions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preview-position {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.position-name {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.position-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.position-count {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.position-skills {
+  color: #6c757d;
+}
+
+.position-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.position-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.position-title {
+  font-weight: 500;
+  color: #333;
+}
+
+.delete-position-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.delete-position-btn:hover {
+  background: #c82333;
+}
+
+.add-position-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.add-position-btn:hover {
+  background: #218838;
 }
 
 .preview-task {

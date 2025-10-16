@@ -161,12 +161,16 @@ export default {
       tempNickname: '',
       tempIntro: '',
       userInfo: {
-        avatar: '',
-        nickname: '李明轩',
+        id: 1, // 添加用户ID
+        username: 'limingxuan', // 添加用户名字段
         email: 'limingxuan@example.com',
+        nickname: '李明轩',
+        avatar: '',
         position: '高级前端工程师',
         organization: '腾讯科技有限公司',
-        introduction: '资深前端开发工程师,拥有8年以上 Web应用开发经验。专注于Vue.js 和 React 生态系统,擅长构建高性能、可扩展的用户界面。热爱技术分享,定期在技术社区发表文章。目前就职于一家知名互联网公司,担任前端技术负责人。'
+        introduction: '资深前端开发工程师,拥有8年以上 Web应用开发经验。专注于Vue.js 和 React 生态系统,擅长构建高性能、可扩展的用户界面。热爱技术分享,定期在技术社区发表文章。目前就职于一家知名互联网公司,担任前端技术负责人。',
+        role: 'MEMBER', // 添加角色字段
+        status: 'ACTIVE' // 添加状态字段
       }
     }
   },
