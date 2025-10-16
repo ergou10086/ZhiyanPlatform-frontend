@@ -57,6 +57,14 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
+      <!-- 加载状态 -->
+      <div v-if="!project" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>正在加载项目详情...</p>
+      </div>
+      
+      <!-- 项目详情内容 -->
+      <div v-if="project">
       <!-- 项目信息卡片 -->
       <div class="project-card">
         <div class="project-header">
@@ -181,6 +189,7 @@
           </div>
         </div>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -194,14 +203,7 @@ export default {
       userAvatar: null,
       taskTypeOpen: false,
       selectedTaskType: '',
-      project: {
-        id: 1,
-        title: '新型纳米材料在癌症治疗中的应用研究',
-        description: '探索新型纳米材料在靶向癌症治疗中的潜力，通过实验验证其生物相容性和治疗效果',
-        period: '2023-06-01 至 2023-12-31',
-        status: '进行中',
-        manager: '张伟'
-      },
+      project: null,
       tasks: [
         {
           id: 1,
@@ -252,12 +254,92 @@ export default {
   },
   mounted() {
     this.loadUserAvatar()
+    this.loadProject()
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    loadProject() {
+      const projectId = this.$route.params.id
+      // 模拟项目数据 - 在实际应用中这里应该从API获取
+      const projectsData = {
+        1: {
+          id: 1,
+          title: '多模态医学影像数据平台',
+          description: '探索新型纳米材料在靶向癌症治疗中的潜力，通过实验验证其生物相容性和治疗效果',
+          period: '2023-06-01 至 2023-12-31',
+          status: '稳健中',
+          manager: '张伟'
+        },
+        2: {
+          id: 2,
+          title: '气候变化预测模型研究',
+          description: '基于深度学习的全球气候变化预测模型，整合多源气象数据',
+          period: '2023-03-01 至 2024-02-28',
+          status: '进行中',
+          manager: '李娜'
+        },
+        3: {
+          id: 3,
+          title: '基因组数据分析平台',
+          description: '大规模基因组数据的存储、处理和分析平台',
+          period: '2023-01-01 至 2023-12-31',
+          status: '已完成',
+          manager: '王强'
+        },
+        4: {
+          id: 4,
+          title: '脑科学神经网络研究',
+          description: '基于脑电信号的神经网络模式识别研究',
+          period: '2023-04-01 至 2024-03-31',
+          status: '稳健中',
+          manager: '陈美玲'
+        },
+        5: {
+          id: 5,
+          title: '新型材料发现研究平台',
+          description: '利用机器学习加速新型材料的发现和设计',
+          period: '2023-05-01 至 2024-04-30',
+          status: '进行中',
+          manager: '刘建国'
+        },
+        6: {
+          id: 6,
+          title: '深空天体观测数据分析',
+          description: '深空天体观测数据的自动化处理和分析系统',
+          period: '2023-02-01 至 2024-01-31',
+          status: '稳健中',
+          manager: '赵天文'
+        },
+        7: {
+          id: 7,
+          title: '卫星遥感图像分割',
+          description: '基于深度学习的卫星遥感图像语义分割技术',
+          period: '2023-07-01 至 2024-06-30',
+          status: '进行中',
+          manager: '孙遥感'
+        },
+        8: {
+          id: 8,
+          title: '智慧城市交通预测',
+          description: '基于大数据的城市交通流量预测和优化系统',
+          period: '2023-01-01 至 2023-12-31',
+          status: '已完成',
+          manager: '周交通'
+        }
+      }
+      
+      this.project = projectsData[projectId] || {
+        id: projectId,
+        title: '项目不存在',
+        description: '抱歉，未找到指定的项目',
+        period: '未知',
+        status: '未知',
+        manager: '未知'
+      }
+    },
     goBack() {
       this.$router.go(-1)
     },
@@ -762,6 +844,36 @@ export default {
 .member-role {
   font-size: 12px;
   color: #6c757d;
+  margin: 0;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #5b6bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #6c757d;
+  font-size: 16px;
   margin: 0;
 }
 

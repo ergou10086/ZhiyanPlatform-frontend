@@ -9,7 +9,7 @@
       <!-- 左侧列表 -->
       <div class="list-pane">
         <div class="toolbar">
-          <button class="btn primary small">+ 新建文档</button>
+          <button class="btn primary">+ 新建文档</button>
           <input class="search" type="text" placeholder="搜索文档" />
         </div>
         <div class="group-title">项目管理规范</div>
@@ -128,7 +128,7 @@ export default {
 .editor-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-shrink: 0; }
 .flex-spacer { flex: 1; }
 
-.btn { height: 32px; padding: 0 12px; border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 12px; }
+.btn { height: 32px; padding: 0 16px; border: 1px solid #e0e0e0; background: #fff; border-radius: 8px; cursor: pointer; font-size: 13px; white-space: nowrap; }
 .btn.primary { background: #4f46e5; color: #fff; border-color: #4f46e5; }
 .btn.small { height: 28px; }
 
