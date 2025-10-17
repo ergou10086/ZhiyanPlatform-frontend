@@ -11,6 +11,11 @@
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button class="back-btn" @click="goToHome" title="返回首页">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="page-title">AI 实验分析助手</span>
       </div>
       <div class="header-right">
@@ -45,8 +50,8 @@
             </button>
             <div v-if="showProjectDropdown" class="project-dropdown">
               <div class="dropdown-header">选择项目</div>
-              <div 
-                v-for="project in availableProjects" 
+              <div
+                v-for="project in availableProjects"
                 :key="project.id"
                 class="project-option"
                 :class="{ active: project.id === currentProject.id }"
@@ -79,8 +84,8 @@
             >
               全部状态
             </div>
-            <div 
-              class="tab" 
+            <div
+              class="tab"
               :class="{ active: activeFilter === 'published' }"
               @click="setFilter('published')"
             >
@@ -149,8 +154,8 @@
               <span>{{ task.assignee }}</span>
             </div>
             <div v-if="!isTaskPublished(task)" class="task-actions">
-              <button 
-                class="publish-btn" 
+              <button
+                class="publish-btn"
                 @click="updateTaskPublishStatus(task.id, true)"
                 title="发布任务"
               >
@@ -489,7 +494,7 @@ export default {
       console.log('当前任务列表:', filtered)
       console.log('当前过滤器:', this.activeFilter)
       console.log('任务数量:', filtered.length)
-      
+
       // 按状态筛选
       if (this.activeFilter === 'published') {
         // 只显示已发布的任务
@@ -501,7 +506,7 @@ export default {
         console.log(`${this.activeFilter} 状态任务数量:`, filtered.length)
       }
       // 全部状态时显示所有任务，不进行发布状态过滤
-      
+
       // 按搜索关键词筛选
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
@@ -538,30 +543,30 @@ export default {
         this.loadProjectTasks(project.id)
       }
     },
-    
+
     // 同步任务状态变化
     syncTaskStatusChanges() {
       console.log('同步任务状态变化...')
-      
+
       // 重新加载用户项目数据（确保获取最新的项目信息）
       this.loadUserProjects()
-      
+
       // 重新加载当前项目的任务数据
       this.loadProjectTasks(this.currentProject.id)
-      
+
       console.log('任务状态同步完成，当前任务数量:', this.tasks.length)
     },
     loadProjectTasks(projectId) {
       // 根据项目ID加载对应的任务数据
       console.log(`加载项目 ${projectId} 的任务数据`)
-      
+
       // 从项目加载任务数据
       const projectTasks = this.loadTasksFromProject(projectId)
-      
+
       if (projectTasks && projectTasks.length > 0) {
         console.log(`找到 ${projectTasks.length} 个任务`)
         console.log('任务详情:', projectTasks)
-        
+
         // 更新任务列表，保持响应式
         this.tasks.splice(0, this.tasks.length, ...projectTasks)
       } else {
@@ -571,11 +576,11 @@ export default {
     },
     loadUserProjects() {
       console.log('开始加载用户项目...')
-      
+
       // 从localStorage加载用户创建的项目
       const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
       console.log('从localStorage加载的项目:', createdProjects)
-      
+
       // 将用户创建的项目添加到可用项目列表中
       const userProjects = createdProjects.map(project => ({
         id: project.id + 1000, // 避免ID冲突
@@ -584,19 +589,19 @@ export default {
         lead: project.lead || '您',
         progress: Math.floor(Math.random() * 100) // 模拟进度
       }))
-      
+
       console.log('处理后的用户项目:', userProjects)
-      
+
       // 为每个用户项目加载任务数据
       userProjects.forEach(project => {
         const projectId = project.id
         const originalProjectId = project.id - 1000 // 转换回原始ID
-        
+
         console.log(`处理项目 ${project.title} (ID: ${originalProjectId})`)
-        
+
         // 从localStorage加载该项目的任务
         const projectTasks = this.loadTasksFromProject(originalProjectId)
-        
+
         if (projectTasks.length > 0) {
           // 如果有任务，使用这些任务
           this.projectTasks[projectId] = projectTasks.map((task, index) => ({
@@ -615,56 +620,56 @@ export default {
           console.log(`项目 ${project.title} 没有任务`)
         }
       })
-      
+
       // 合并默认项目和用户项目
       this.availableProjects = [...this.availableProjects, ...userProjects]
-      
+
       console.log('最终可用项目列表:', this.availableProjects)
       console.log('最终项目任务数据:', this.projectTasks)
     },
-    
+
     // 从项目加载任务数据
     loadTasksFromProject(projectId) {
       console.log(`开始加载项目 ${projectId} 的任务数据`)
-      
+
       // 首先尝试从项目广场的任务存储格式加载（直接从项目的tasks字段）
       const projectSquareTasks = this.loadTasksFromProjectSquare(projectId)
       if (projectSquareTasks.length > 0) {
         console.log(`从项目广场加载了 ${projectSquareTasks.length} 个任务`)
         return projectSquareTasks
       }
-      
+
       // 如果是默认项目，从projectTasks中加载
       if (this.projectTasks[projectId]) {
         console.log(`从默认项目数据加载了 ${this.projectTasks[projectId].length} 个任务`)
         return this.projectTasks[projectId]
       }
-      
+
       console.log(`项目 ${projectId} 没有找到任务数据`)
       return []
     },
-    
+
     // 从项目广场加载任务数据
     loadTasksFromProjectSquare(projectId) {
       console.log(`尝试从项目广场加载项目 ${projectId} 的任务`)
-      
+
       // 获取项目信息
       const projects = JSON.parse(localStorage.getItem('projects') || '[]')
       const project = projects.find(p => p.id === projectId)
-      
+
       if (!project) {
         console.log(`未找到项目 ${projectId}`)
         return []
       }
-      
+
       console.log(`找到项目: ${project.title}`)
       console.log(`项目数据:`, project)
-      
+
       // 直接从项目的tasks字段获取任务
       if (project.tasks && Array.isArray(project.tasks) && project.tasks.length > 0) {
         console.log(`从项目 ${project.title} 的tasks字段找到 ${project.tasks.length} 个任务`)
         console.log(`任务数据:`, project.tasks)
-        
+
         // 转换任务格式以匹配AI助手的显示格式
         return project.tasks.map(task => ({
           id: task.id,
@@ -677,11 +682,11 @@ export default {
           originalTask: task // 保留原始任务数据
         }))
       }
-      
+
       console.log(`项目 ${project.title} 没有tasks字段或任务为空`)
       return []
     },
-    
+
     // 转换任务状态格式
     convertTaskStatus(status) {
       const statusMap = {
@@ -696,22 +701,22 @@ export default {
       }
       return statusMap[status] || 'pending'
     },
-    
+
     // 获取已发布的任务
     getPublishedTasksForProject(projectId) {
       // 从localStorage获取项目的已发布任务
       const projectTasks = JSON.parse(localStorage.getItem(`project_${projectId}_tasks`) || '[]')
-      
+
       // 只返回已发布状态的任务
       return projectTasks.filter(task => task.status === 'published')
     },
-    
+
     // 检查任务是否已发布
     isTaskPublished(task) {
       // 检查任务是否有发布状态标记
       return task.published === true || task.status === 'published'
     },
-    
+
     // 更新任务发布状态
     updateTaskPublishStatus(taskId, published) {
       // 更新任务列表中的发布状态
@@ -722,53 +727,53 @@ export default {
           task.status = 'published'
         }
       }
-      
+
       // 保存到localStorage
       this.saveTasksToStorage()
     },
-    
+
     // 保存任务到localStorage
     saveTasksToStorage() {
       // 这里可以添加保存逻辑
       console.log('保存任务状态到localStorage')
     },
-    
+
     // 调试方法：查看localStorage中的数据
     debugLocalStorage() {
       console.log('=== localStorage 调试信息 ===')
       console.log('projects:', JSON.parse(localStorage.getItem('projects') || '[]'))
       console.log('tasks:', JSON.parse(localStorage.getItem('tasks') || '[]'))
       console.log('all_tasks:', JSON.parse(localStorage.getItem('all_tasks') || '[]'))
-      
+
       // 检查所有localStorage键
       const keys = Object.keys(localStorage)
       console.log('所有localStorage键:', keys)
-      
+
       // 查找包含task的键
       const taskKeys = keys.filter(key => key.includes('task') || key.includes('Task'))
       console.log('任务相关键:', taskKeys)
-      
+
       taskKeys.forEach(key => {
         console.log(`${key}:`, JSON.parse(localStorage.getItem(key) || '[]'))
       })
-      
+
       // 专门检查项目广场相关的数据
       this.debugProjectSquareData()
     },
-    
+
     // 调试项目广场数据
     debugProjectSquareData() {
       console.log('=== 项目广场数据调试 ===')
-      
+
       const projects = JSON.parse(localStorage.getItem('projects') || '[]')
       console.log('用户创建的项目:', projects)
-      
+
       // 查找"潘兴林这一块"项目
       const panxinglinProject = projects.find(p => p.title.includes('潘兴林'))
       if (panxinglinProject) {
         console.log('找到潘兴林项目:', panxinglinProject)
         console.log('项目tasks字段:', panxinglinProject.tasks)
-        
+
         if (panxinglinProject.tasks && Array.isArray(panxinglinProject.tasks)) {
           console.log(`项目有 ${panxinglinProject.tasks.length} 个任务:`)
           panxinglinProject.tasks.forEach((task, index) => {
@@ -779,7 +784,7 @@ export default {
         }
       } else {
         console.log('未找到潘兴林项目')
-        
+
         // 显示所有项目以便调试
         console.log('所有项目列表:')
         projects.forEach((project, index) => {
@@ -788,32 +793,32 @@ export default {
         })
       }
     },
-    
+
     // 刷新任务数据
     refreshTasks() {
       console.log('刷新任务数据...')
       this.debugLocalStorage()
-      
+
       // 清空现有数据
       this.availableProjects = this.availableProjects.filter(project => project.id <= 4) // 只保留默认项目
       this.projectTasks = {}
-      
+
       // 重新加载用户项目
       this.loadUserProjects()
-      
+
       // 重新加载当前项目的任务
       this.loadProjectTasks(this.currentProject.id)
-      
+
       console.log('刷新完成')
     },
-    
+
     // 为测试创建示例任务数据
     createSampleTasks() {
       console.log('创建示例任务数据...')
-      
+
       // 获取用户项目
       const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-      
+
       createdProjects.forEach(project => {
         const projectId = project.id
         const sampleTasks = [
@@ -845,14 +850,17 @@ export default {
             published: true
           }
         ]
-        
+
         // 保存到localStorage
         localStorage.setItem(`project_${projectId}_tasks`, JSON.stringify(sampleTasks))
         console.log(`为项目 ${project.title} 创建了 ${sampleTasks.length} 个示例任务`)
       })
-      
+
       // 刷新数据
       this.refreshTasks()
+    },
+    goToHome() {
+      this.$router.push('/home')
     },
     setFilter(filter) {
       this.activeFilter = filter
@@ -941,19 +949,19 @@ export default {
     this.loadUserProjects()
     // 初始化当前项目的任务数据
     this.loadProjectTasks(this.currentProject.id)
-    
+
     // 设置定时器定期同步任务状态（每30秒）
     this.syncTimer = setInterval(() => {
       this.syncTaskStatusChanges()
     }, 30000)
-    
+
     // 监听页面可见性变化，当页面重新获得焦点时同步
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) {
         this.syncTaskStatusChanges()
       }
     })
-    
+
     // 监听窗口焦点变化
     window.addEventListener('focus', () => {
       this.syncTaskStatusChanges()
@@ -963,7 +971,7 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
     window.removeEventListener('focus', this.syncTaskStatusChanges)
-    
+
     // 清理定时器
     if (this.syncTimer) {
       clearInterval(this.syncTimer)
@@ -998,6 +1006,22 @@ export default {
   display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: #666;
+  transition: background-color 0.3s ease;
+  margin-right: 8px;
+}
+
+.back-btn:hover {
+  background-color: #f8f9fa;
+  color: #333;
 }
 
 .menu-btn {
@@ -1706,16 +1730,16 @@ export default {
     align-items: stretch;
     gap: var(--space-4);
   }
-  
+
   .project-info {
     text-align: center;
   }
-  
+
   .project-progress {
     min-width: 200px;
     align-self: center;
   }
-  
+
   .switch-btn {
     min-width: 200px;
     align-self: center;
@@ -1730,17 +1754,17 @@ export default {
   .project-overview {
     padding: var(--space-4);
   }
-  
+
   .project-header {
     flex-direction: column;
     align-items: stretch;
     gap: var(--space-4);
   }
-  
+
   .project-info {
     text-align: center;
   }
-  
+
   .project-title {
     font-size: var(--text-2xl);
   }
@@ -1749,16 +1773,16 @@ export default {
     min-width: 180px;
     align-self: center;
   }
-  
+
   .switch-btn {
     min-width: 180px;
     align-self: center;
   }
-  
+
   .current-project {
     max-width: 120px;
   }
-  
+
   .project-dropdown {
     min-width: 280px;
     right: -20px;

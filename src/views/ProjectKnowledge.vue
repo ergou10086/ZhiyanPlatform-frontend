@@ -1,16 +1,8 @@
 <template>
   <div class="knowledge-base-container">
-    <!-- 侧边栏 -->
-    <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
-    
     <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">
-        <button class="menu-btn" @click="toggleSidebar" aria-label="open sidebar">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
         <button class="back-btn" @click="goBack" aria-label="返回">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -129,7 +121,6 @@
 </template>
 
 <script>
-import Sidebar from '@/components/Sidebar.vue'
 import KnowledgeBaseCatalog from './KnowledgeBaseCatalog.vue'
 import KnowledgeBaseCabinet from './KnowledgeBaseCabinet.vue'
 import KnowledgeBaseAI from './KnowledgeBaseAI.vue'
@@ -137,14 +128,12 @@ import KnowledgeBaseAI from './KnowledgeBaseAI.vue'
 export default {
   name: 'ProjectKnowledge',
   components: {
-    Sidebar,
     KnowledgeBaseCatalog,
     KnowledgeBaseCabinet,
     KnowledgeBaseAI
   },
   data() {
     return {
-      sidebarOpen: false,
       activeTab: 'home',
       projectId: null,
       projectName: '加载中...',
@@ -191,12 +180,6 @@ export default {
     this.saveToLocalStorage()
   },
   methods: {
-    toggleSidebar() {
-      this.sidebarOpen = !this.sidebarOpen
-    },
-    closeSidebar() {
-      this.sidebarOpen = false
-    },
     goBack() {
       this.$router.go(-1)
     },

@@ -211,7 +211,7 @@ export default {
     },
     handleNewProject() {
       console.log('新建项目')
-      this.$router.push('/project-create')
+      this.$router.push({ path: '/project-create', query: { from: 'home' } })
     },
     handleProjectSquare() {
       console.log('项目广场')
