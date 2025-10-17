@@ -62,6 +62,39 @@
           </div>
 
           <div class="form-field">
+            <label class="form-label">项目图片</label>
+            <div class="image-upload-container">
+              <div class="image-upload-area" @click="triggerImageUpload" :class="{ 'has-image': projectImage }">
+                <div v-if="!projectImage" class="upload-placeholder">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <p class="upload-text">点击上传项目图片</p>
+                  <p class="upload-hint">支持 JPG、PNG 格式，建议尺寸 400x300</p>
+                </div>
+                <div v-else class="image-preview">
+                  <img :src="projectImage" alt="项目图片预览" />
+                  <button class="remove-image" @click.stop="removeImage" title="删除图片">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <input
+                ref="imageInput"
+                type="file"
+                accept="image/*"
+                @change="handleImageUpload"
+                style="display: none"
+                id="imageInput"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
             <label class="form-label">项目周期</label>
             <div class="date-range">
               <input
@@ -246,6 +279,7 @@ export default {
       userAvatar: null,
       newTag: '',
       fromPage: '', // 记录来源页面
+      projectImage: null, // 项目图片
       formData: {
         projectName: '',
         projectDescription: '',
@@ -291,6 +325,44 @@ export default {
       } else {
         this.$router.push('/project-square')
       }
+    },
+    triggerImageUpload() {
+      // 尝试多种方式触发文件选择
+      const input = document.getElementById('imageInput')
+      if (input) {
+        input.click()
+      } else if (this.$refs.imageInput) {
+        this.$refs.imageInput.click()
+      } else {
+        console.error('无法找到文件输入元素')
+      }
+    },
+    handleImageUpload(event) {
+      const file = event.target.files[0]
+      if (file) {
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+          alert('请选择图片文件')
+          return
+        }
+        
+        // 检查文件大小 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('图片文件大小不能超过5MB')
+          return
+        }
+        
+        // 创建预览URL
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.projectImage = e.target.result
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    removeImage() {
+      this.projectImage = null
+      this.$refs.imageInput.value = ''
     },
     loadUserAvatar() {
       const savedAvatar = localStorage.getItem('userAvatar')
@@ -386,6 +458,25 @@ export default {
           return
         }
         
+        if (!this.formData.startDate) {
+          alert('请选择项目开始日期')
+          this.isSubmitting = false
+          return
+        }
+        
+        if (!this.formData.endDate) {
+          alert('请选择项目结束日期')
+          this.isSubmitting = false
+          return
+        }
+        
+        // 验证日期逻辑
+        if (new Date(this.formData.startDate) >= new Date(this.formData.endDate)) {
+          alert('项目结束日期必须晚于开始日期')
+          this.isSubmitting = false
+          return
+        }
+        
         
         console.log('表单数据:', this.formData)
         
@@ -412,6 +503,7 @@ export default {
           endDate: this.formData.endDate, // 保留驼峰命名用于前端
           created_by: 1, // 添加创建人ID
           tags: this.formData.tags,
+          image: this.projectImage, // 添加项目图片
           tasks: this.formData.tasks.map(task => ({
             ...task,
             priority_value: this.getPriorityValue(task.priority), // 确保保存英文值到数据库
@@ -437,13 +529,28 @@ export default {
         console.log('项目任务数据:', this.formData.tasks)
         
         // 从localStorage获取现有项目
-        const existingProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+        let existingProjects = []
+        try {
+          const projectsData = localStorage.getItem('projects')
+          if (projectsData) {
+            existingProjects = JSON.parse(projectsData)
+          }
+        } catch (parseError) {
+          console.error('解析现有项目数据失败:', parseError)
+          existingProjects = []
+        }
         
         // 添加新项目到列表开头
         existingProjects.unshift(newProject)
         
         // 保存到localStorage
-        localStorage.setItem('projects', JSON.stringify(existingProjects))
+        try {
+          localStorage.setItem('projects', JSON.stringify(existingProjects))
+          console.log('项目数据已保存到localStorage')
+        } catch (storageError) {
+          console.error('保存到localStorage失败:', storageError)
+          throw new Error('数据保存失败，请检查浏览器存储空间')
+        }
         
         // 显示成功消息
         alert('项目发布成功！')
@@ -452,7 +559,10 @@ export default {
         this.$router.push('/project-square')
       } catch (error) {
         console.error('发布项目失败:', error)
-        alert('发布项目失败，请重试')
+        console.error('错误详情:', error.message)
+        console.error('表单数据:', this.formData)
+        console.error('项目图片:', this.projectImage)
+        alert(`发布项目失败，请重试。错误信息: ${error.message}`)
       } finally {
         this.isSubmitting = false
       }
@@ -528,6 +638,104 @@ export default {
   gap: 24px;
 }
 
+
+.image-upload-container {
+  margin-top: 8px;
+}
+
+.image-upload-area {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #fafafa;
+  min-height: 135px; /* 与预览区域高度一致 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  pointer-events: auto;
+  user-select: none;
+  max-width: 300px; /* 限制最大宽度 */
+  margin: 0 auto; /* 居中显示 */
+}
+
+.image-upload-area:hover {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.image-upload-area.has-image {
+  border-style: solid;
+  border-color: #10b981;
+  background: #f0fdf4;
+  padding: 0;
+  min-height: 135px; /* 保持与上传区域一致的高度 */
+  max-width: 300px; /* 保持与上传区域一致的宽度 */
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.upload-placeholder svg {
+  color: #9ca3af;
+}
+
+.upload-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.upload-hint {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.image-preview {
+  position: relative;
+  width: 100%;
+  height: 135px; /* 调整高度，与项目广场比例一致 */
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 300px; /* 限制最大宽度，保持比例 */
+  margin: 0 auto; /* 居中显示 */
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.remove-image:hover {
+  background: rgba(0, 0, 0, 0.9);
+}
 
 .user-profile {
   display: flex;
