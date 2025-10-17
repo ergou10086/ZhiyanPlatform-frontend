@@ -98,21 +98,23 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  background-color: var(--bg-overlay);
+  z-index: var(--z-modal);
   display: flex;
   justify-content: flex-start;
   align-items: flex-start;
+  backdrop-filter: blur(4px);
 }
 
 .sidebar {
   width: 280px;
   height: 100vh;
-  background-color: #f5f5f5;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn var(--transition-normal) ease-out;
+  border-right: 1px solid var(--border-primary);
 }
 
 @keyframes slideIn {
@@ -125,79 +127,104 @@ export default {
 }
 
 .sidebar-header {
-  padding: 24px 20px;
-  border-bottom: 1px solid #e9ecef;
+  padding: var(--space-6) var(--space-5);
+  border-bottom: 1px solid var(--border-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: white;
+  background: var(--bg-primary);
 }
 
 .sidebar-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
   margin: 0;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .close-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  color: #666;
-  transition: background-color 0.3s ease;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .close-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: scale(1.05);
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 20px 0;
+  padding: var(--space-4) 0;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 16px 20px;
+  padding: var(--space-4) var(--space-5);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   position: relative;
-  color: #666;
+  color: var(--text-secondary);
+  margin: 0 var(--space-2);
+  border-radius: var(--radius-lg);
 }
 
 .nav-item:hover {
-  background-color: #f8f9fa;
-  color: #333;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: translateX(4px);
 }
 
 .nav-item.active {
-  background-color: #e0f2f7;
-  color: #007bff;
-  border-left: 4px solid #007bff;
+  background: linear-gradient(135deg, var(--primary-light), var(--info-light));
+  color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+  transform: translateX(4px);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 24px;
+  background: var(--primary-color);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
 .nav-item.active .nav-icon {
-  color: #007bff;
+  color: var(--primary-color);
 }
 
 .nav-icon {
-  width: 24px;
-  height: 24px;
-  margin-right: 16px;
+  width: 20px;
+  height: 20px;
+  margin-right: var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
-  transition: color 0.3s ease;
+  color: var(--text-tertiary);
+  transition: all var(--transition-normal);
 }
 
 .nav-text {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   flex: 1;
 }
 
@@ -208,15 +235,16 @@ export default {
   }
   
   .sidebar-header {
-    padding: 20px 16px;
+    padding: var(--space-5) var(--space-4);
   }
   
   .nav-item {
-    padding: 14px 16px;
+    padding: var(--space-3) var(--space-4);
+    margin: 0 var(--space-1);
   }
   
   .nav-text {
-    font-size: 15px;
+    font-size: var(--text-sm);
   }
 }
 </style>

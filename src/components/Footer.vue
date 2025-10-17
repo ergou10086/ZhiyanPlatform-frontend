@@ -21,58 +21,30 @@ export default {
 
 <style scoped>
 .footer {
-  background: linear-gradient(135deg, 
-    rgba(248, 249, 250, 0.8) 0%, 
-    rgba(248, 249, 250, 0.6) 50%, 
-    rgba(248, 249, 250, 0.7) 100%);
-  backdrop-filter: blur(15px);
-  border-top: 1px solid rgba(233, 236, 239, 0.3);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
   margin: 0;
-  padding: 30px 0;
-  box-shadow: 
-    0 -2px 20px rgba(0, 0, 0, 0.05),
-    0 -1px 3px rgba(0, 0, 0, 0.1),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+  padding: var(--space-8) 0;
   position: relative;
-  z-index: 10;
-  transition: all 0.3s ease;
-}
-
-.footer::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.08) 50%, 
-    transparent 100%);
-  pointer-events: none;
-  animation: shimmer 4s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+  z-index: var(--z-sticky);
+  transition: all var(--transition-normal);
 }
 
 .footer-content {
-  max-width: 1200px;
+  max-width: var(--container-xl);
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 var(--space-6);
   text-align: center;
 }
 
 .footer-main {
-  margin-bottom: 15px;
+  margin-bottom: var(--space-4);
 }
 
 .copyright {
-  color: #666;
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
   margin: 0;
 }
 
@@ -80,40 +52,43 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 15px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .contact,
 .filing {
-  color: #888;
-  font-size: 12px;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color var(--transition-fast);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
 }
 
 .contact:hover,
 .filing:hover {
-  color: #666;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
 }
 
 .separator {
-  color: #ccc;
-  font-size: 12px;
+  color: var(--text-disabled);
+  font-size: var(--text-xs);
 }
 
 @media (max-width: 768px) {
   .footer {
-    padding: 25px 0;
+    padding: var(--space-6) 0;
   }
   
   .footer-content {
-    padding: 0 15px;
+    padding: 0 var(--space-4);
   }
   
   .footer-links {
     flex-direction: column;
-    gap: 10px;
+    gap: var(--space-2);
   }
   
   .separator {
@@ -121,12 +96,12 @@ export default {
   }
   
   .copyright {
-    font-size: 13px;
+    font-size: var(--text-xs);
   }
   
   .contact,
   .filing {
-    font-size: 11px;
+    font-size: var(--text-xs);
   }
 }
 </style>

@@ -232,20 +232,23 @@ export default {
 <style scoped>
 .home-container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .top-header {
-  background: white;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
   height: 64px;
-  padding: 0 24px;
+  padding: 0 var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 .header-left {
@@ -258,20 +261,25 @@ export default {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  color: #666;
-  transition: background-color 0.3s ease;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .menu-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: scale(1.05);
 }
 
 .page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .header-right {
@@ -384,30 +392,40 @@ export default {
 .main-content {
   flex: 1;
   display: flex;
-  gap: 24px;
-  padding: 24px;
+  gap: var(--space-6);
+  padding: var(--space-6);
 }
 
 .content-left {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-6);
 }
 
 .section-card {
-  background: white;
-  border-radius: 8px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f0f0f0;
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-primary);
+  transition: all var(--transition-normal);
+}
+
+.section-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
 .section-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 20px 0;
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-5) 0;
+  background: linear-gradient(135deg, var(--text-primary), var(--primary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .section-header {
@@ -433,72 +451,112 @@ export default {
 
 .action-cards {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
 
 .action-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
   text-align: center;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   min-width: 120px;
   flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--info-color), var(--success-color));
+  transform: scaleX(0);
+  transition: transform var(--transition-normal);
 }
 
 .action-card:hover {
-  border-color: #007bff;
-  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
-  transform: translateY(-2px);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.action-card:hover::before {
+  transform: scaleX(1);
 }
 
 .card-icon {
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto var(--space-3);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8f9fa;
-  border-radius: 8px;
-  color: #666;
+  background: linear-gradient(135deg, var(--primary-light), var(--info-light));
+  border-radius: var(--radius-xl);
+  color: var(--primary-color);
+  transition: all var(--transition-normal);
+}
+
+.action-card:hover .card-icon {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--text-inverse);
+  transform: scale(1.1);
 }
 
 .card-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  transition: color var(--transition-normal);
+}
+
+.action-card:hover .card-label {
+  color: var(--primary-color);
 }
 
 .work-item-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .work-item {
-  background: white;
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   border-left: 4px solid;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+  border: 1px solid var(--border-primary);
+}
+
+.work-item:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateX(4px);
 }
 
 .work-item.high-priority {
-  border-left-color: #dc3545;
+  border-left-color: var(--error-color);
+  background: linear-gradient(135deg, var(--bg-primary), var(--error-light));
 }
 
 .work-item.medium-priority {
-  border-left-color: #fd7e14;
+  border-left-color: var(--warning-color);
+  background: linear-gradient(135deg, var(--bg-primary), var(--warning-light));
 }
 
 .work-item.low-priority {
-  border-left-color: #28a745;
+  border-left-color: var(--success-color);
+  background: linear-gradient(135deg, var(--bg-primary), var(--success-light));
 }
 
 .priority-bar {
@@ -512,16 +570,17 @@ export default {
 }
 
 .item-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin: 0 0 8px 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
 }
 
 .item-description {
-  font-size: 14px;
-  color: #666;
-  margin: 0 0 12px 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3) 0;
+  line-height: var(--leading-relaxed);
 }
 
 .item-meta {
