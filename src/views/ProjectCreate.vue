@@ -11,14 +11,14 @@
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button class="back-btn" @click="goBack" :title="fromPage === 'home' ? '返回首页' : '返回项目广场'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="page-title">创建项目</span>
       </div>
       <div class="header-right">
-        <nav class="breadcrumb">
-          <a class="breadcrumb-link" @click.prevent="$router.push('/home')">首页</a>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-current">创建项目</span>
-        </nav>
         <div class="user-profile">
           <div class="user-avatar">
             <img v-if="userAvatar" :src="userAvatar" alt="用户头像" />
@@ -245,6 +245,7 @@ export default {
       isSubmitting: false,
       userAvatar: null,
       newTag: '',
+      fromPage: '', // 记录来源页面
       formData: {
         projectName: '',
         projectDescription: '',
@@ -257,6 +258,7 @@ export default {
   },
   mounted() {
     this.loadUserAvatar()
+    this.detectFromPage()
   },
   methods: {
     toggleSidebar() {
@@ -264,6 +266,31 @@ export default {
     },
     closeSidebar() {
       this.sidebarOpen = false
+    },
+    detectFromPage() {
+      // 检测来源页面
+      const referrer = document.referrer
+      const currentPath = this.$route.path
+      
+      // 如果是从项目广场进入的
+      if (referrer.includes('/project-square') || this.$route.query.from === 'project-square') {
+        this.fromPage = 'project-square'
+      } 
+      // 如果是从首页进入的
+      else if (referrer.includes('/home') || this.$route.query.from === 'home') {
+        this.fromPage = 'home'
+      }
+      // 默认从项目广场进入
+      else {
+        this.fromPage = 'project-square'
+      }
+    },
+    goBack() {
+      if (this.fromPage === 'home') {
+        this.$router.push('/home')
+      } else {
+        this.$router.push('/project-square')
+      }
     },
     loadUserAvatar() {
       const savedAvatar = localStorage.getItem('userAvatar')
@@ -459,6 +486,22 @@ export default {
   gap: 16px;
 }
 
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: #666;
+  transition: background-color 0.3s ease;
+  margin-right: 8px;
+}
+
+.back-btn:hover {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
 .menu-btn {
   background: none;
   border: none;
@@ -485,32 +528,6 @@ export default {
   gap: 24px;
 }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.breadcrumb-link {
-  color: #6c757d;
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.breadcrumb-link:hover {
-  color: #343a40;
-}
-
-.breadcrumb-sep {
-  color: #adb5bd;
-}
-
-.breadcrumb-current {
-  color: #333;
-  font-weight: 500;
-}
 
 .user-profile {
   display: flex;

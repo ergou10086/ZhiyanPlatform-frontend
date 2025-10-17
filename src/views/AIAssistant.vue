@@ -11,6 +11,11 @@
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button class="back-btn" @click="goToHome" title="返回首页">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="page-title">AI 实验分析助手</span>
       </div>
       <div class="header-right">
@@ -306,6 +311,9 @@ export default {
     closeSidebar() {
       this.sidebarOpen = false
     },
+    goToHome() {
+      this.$router.push('/home')
+    },
     setFilter(filter) {
       this.activeFilter = filter
     },
@@ -405,6 +413,22 @@ export default {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: #666;
+  transition: background-color 0.3s ease;
+  margin-right: 8px;
+}
+
+.back-btn:hover {
+  background-color: #f8f9fa;
+  color: #333;
 }
 
 .menu-btn {

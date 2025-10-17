@@ -11,14 +11,14 @@
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button class="back-btn" @click="goToHome" title="返回首页">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="page-title">项目广场</span>
       </div>
       <div class="header-right">
-        <nav class="breadcrumb">
-          <a class="breadcrumb-link" @click.prevent="$router.push('/home')">首页</a>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-current">项目广场</span>
-        </nav>
         <div class="user-area">
           <div class="user-profile" @click="toggleUserMenu">
             <div class="user-avatar">
@@ -183,6 +183,9 @@ export default {
     closeSidebar() {
       this.sidebarOpen = false
     },
+    goToHome() {
+      this.$router.push('/home')
+    },
     handleClickOutside(event) {
       if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
         this.userMenuOpen = false
@@ -257,7 +260,7 @@ export default {
       this.currentPage = 1
     },
     createNewProject() {
-      this.$router.push('/project-create')
+      this.$router.push({ path: '/project-create', query: { from: 'project-square' } })
     },
     goPrev() {
       if (this.currentPage > 1) this.currentPage--
@@ -304,6 +307,22 @@ export default {
   gap: 16px;
 }
 
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: #666;
+  transition: background-color 0.3s ease;
+  margin-right: 8px;
+}
+
+.back-btn:hover {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
 .menu-btn {
   background: none;
   border: none;
@@ -326,22 +345,6 @@ export default {
 
 .header-right { display: flex; align-items: center; gap: 24px; position: relative; }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.breadcrumb-link {
-  color: #6c757d;
-  cursor: pointer;
-}
-
-.breadcrumb-link:hover { color: #343a40; }
-
-.breadcrumb-sep { color: #adb5bd; }
 
 .user-profile { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: background-color 0.3s ease; }
 .user-profile:hover { background-color: #f8f9fa; }
