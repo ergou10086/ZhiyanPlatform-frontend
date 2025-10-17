@@ -5,6 +5,11 @@
     <div class="register-content">
       <div class="register-box">
       <div class="register-header">
+        <button class="back-btn" @click="goToLogin" title="返回登录">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <h1 class="register-title">创建您的账户</h1>
       </div>
       
@@ -78,14 +83,6 @@
           />
         </div>
         
-        <div class="form-group">
-          <label for="gender">性别</label>
-          <select id="gender" v-model="registerForm.gender">
-            <option value="">请选择性别</option>
-            <option value="male">男</option>
-            <option value="female">女</option>
-          </select>
-        </div>
         
         <div class="form-group">
           <label for="organization">所属机构或学校</label>
@@ -139,7 +136,6 @@ export default {
         password: '',
         confirmPassword: '',
         name: '',
-        gender: '',
         organization: '',
         agreement: false
       }
@@ -216,6 +212,9 @@ export default {
           clearInterval(timer)
         }
       }, 1000)
+    },
+    goToLogin() {
+      this.$router.push('/login')
     }
   }
 }
@@ -238,16 +237,6 @@ export default {
   position: relative;
 }
 
-.register-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.8) 0%, rgba(30, 64, 175, 0.9) 100%);
-  z-index: 1;
-}
 
 .register-content {
   flex: 1;
@@ -261,31 +250,51 @@ export default {
 
 
 .register-box {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-2xl);
-  padding: var(--space-8);
+  padding: var(--space-6);
   width: 100%;
   max-width: 450px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.register-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), var(--info-color), var(--success-color));
+.register-box:hover {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
 }
+
 
 .register-header {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.back-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-btn:hover {
+  color: var(--primary-color);
+  background: var(--primary-light);
 }
 
 .register-title {
@@ -304,7 +313,7 @@ export default {
 }
 
 .form-group {
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .form-group label {

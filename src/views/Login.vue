@@ -195,16 +195,6 @@ export default {
   position: relative;
 }
 
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.8) 0%, rgba(30, 64, 175, 0.9) 100%);
-  z-index: 1;
-}
 
 .login-content {
   flex: 1;
@@ -225,8 +215,8 @@ export default {
 
 
 .login-box {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
   border-radius: var(--radius-2xl);
   box-shadow: var(--shadow-2xl);
   padding: var(--space-10);
@@ -235,17 +225,14 @@ export default {
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.login-box::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), var(--info-color), var(--success-color));
+.login-box:hover {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
 }
+
 
 .login-header {
   text-align: center;
