@@ -1,9 +1,21 @@
 <template>
-  <div class="header">
+  <header class="header">
     <div class="header-content">
-      <span class="account-label">账户</span>
+      <div class="header-left">
+        <div class="logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="logo-text">智研</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="account-label">账户管理</span>
+      </div>
     </div>
-  </div>
+  </header>
 </template>
 
 <script>
@@ -14,67 +26,76 @@ export default {
 
 <style scoped>
 .header {
-  background: linear-gradient(135deg, 
-    rgba(248, 249, 250, 0.9) 0%, 
-    rgba(248, 249, 250, 0.7) 50%, 
-    rgba(248, 249, 250, 0.8) 100%);
-  backdrop-filter: blur(15px);
-  border-bottom: 1px solid rgba(233, 236, 239, 0.3);
-  margin: 0;
-  padding: 20px 0;
-  box-shadow: 
-    0 2px 20px rgba(0, 0, 0, 0.05),
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  position: relative;
-  z-index: 10;
-  transition: all 0.3s ease;
-}
-
-.header::before {
-  content: '';
-  position: absolute;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(255, 255, 255, 0.1) 50%, 
-    transparent 100%);
-  pointer-events: none;
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+  z-index: var(--z-sticky);
+  transition: all var(--transition-normal);
 }
 
 .header-content {
-  max-width: 1200px;
-  margin: 0;
-  padding: 0 20px;
+  max-width: var(--container-xl);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--primary-color);
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+}
+
+.logo svg {
+  color: var(--primary-color);
+}
+
+.logo-text {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
 }
 
 .account-label {
-  font-size: 18px;
-  color: #333;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
 }
 
 @media (max-width: 768px) {
-  .header {
-    padding: 15px 0;
+  .header-content {
+    padding: var(--space-3) var(--space-4);
   }
   
-  .header-content {
-    padding: 0 15px;
+  .logo {
+    font-size: var(--text-base);
   }
   
   .account-label {
-    font-size: 16px;
+    font-size: var(--text-xs);
+    padding: var(--space-1) var(--space-2);
   }
 }
 </style>

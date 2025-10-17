@@ -23,18 +23,11 @@ export default {
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  background-color: #f5f5f5;
-}
+@import './assets/styles/variables.css';
 
 #app {
   min-height: 100vh;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 </style>

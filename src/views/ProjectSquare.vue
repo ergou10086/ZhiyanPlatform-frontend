@@ -279,20 +279,23 @@ export default {
 <style scoped>
 .project-square-container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .top-header {
-  background: white;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
   height: 64px;
-  padding: 0 24px;
+  padding: 0 var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 .header-left {
@@ -352,7 +355,7 @@ export default {
 
 .main-content {
   flex: 1;
-  padding: 20px 24px 0;
+  padding: var(--space-5) var(--space-6) 0;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 64px); /* 减去顶部导航栏高度 */
@@ -370,37 +373,68 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  background: #fff;
-  border: 1px solid #e9ecef;
-  padding: 12px;
-  border-radius: 8px;
+  gap: var(--space-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .search-input {
   flex: 1;
   height: 40px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 0 14px;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-4);
   outline: none;
-  font-size: 14px;
+  font-size: var(--text-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-normal);
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 
 .toolbar-actions { display: flex; gap: 10px; position: relative; }
 
 .btn {
   height: 40px;
-  padding: 0 14px;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  background: #fff;
-  color: #333;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-normal);
 }
 
-.btn.secondary { background: #f8f9ff; }
-.btn.primary { background: #5b6bff; border-color: #5b6bff; color: #fff; }
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn.secondary { 
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+}
+
+.btn.primary { 
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  border-color: var(--primary-color);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn.primary:hover {
+  background: linear-gradient(135deg, var(--primary-hover), var(--primary-dark));
+  box-shadow: var(--shadow-lg);
+}
 .btn-block { width: 100%; margin-top: 10px; }
 
 .dropdown { position: relative; }
@@ -428,32 +462,50 @@ export default {
 .dropdown-item.active { color: #5b6bff; background: #eef1ff; }
 
 .grid {
-  margin-top: 16px;
+  margin-top: var(--space-4);
   display: grid;
   grid-template-columns: repeat(4, 1fr); /* 调整为每行4个卡片 */
-  gap: 16px; /* 增加间距 */
+  gap: var(--space-4); /* 增加间距 */
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   align-content: start; /* 内容从顶部开始排列 */
-  padding-bottom: 10px; /* 底部留白 */
+  padding-bottom: var(--space-3); /* 底部留白 */
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all var(--transition-normal);
   height: 280px; /* 固定卡片高度，确保所有页面一致 */
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--info-color), var(--success-color));
+  transform: scaleX(0);
+  transition: transform var(--transition-normal);
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-color);
+}
+
+.card:hover::before {
+  transform: scaleX(1);
 }
 
 .card-media {
@@ -493,7 +545,7 @@ export default {
 }
 
 .card-body { 
-  padding: 12px; /* 减少内边距 */
+  padding: var(--space-3); /* 减少内边距 */
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -508,26 +560,40 @@ export default {
 }
 
 .card-title {
-  font-size: 16px;
-  color: #222;
-  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--leading-snug);
   flex: 1;
 }
 
 .status-badge {
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   line-height: 1;
   border: 1px solid transparent;
   flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.status-badge.ongoing { background: #fff3cd; color: #cc9a06; border-color: #ffe69c; }
-.status-badge.done { background: #e2f7e2; color: #1f7a1f; border-color: #bfeabd; }
-.status-badge.steady { background: #e8f3ff; color: #2c6df2; border-color: #cfe2ff; }
+.status-badge.ongoing { 
+  background: var(--warning-light); 
+  color: var(--warning-color); 
+  border-color: var(--warning-color);
+}
+.status-badge.done { 
+  background: var(--success-light); 
+  color: var(--success-color); 
+  border-color: var(--success-color);
+}
+.status-badge.steady { 
+  background: var(--info-light); 
+  color: var(--info-color); 
+  border-color: var(--info-color);
+}
 
 .meta-list { 
   list-style: none; 
@@ -541,37 +607,63 @@ export default {
 .meta-list li { 
   display: flex; 
   align-items: center; 
-  padding: 2px 0; /* 减少内边距 */
-  font-size: 12px; 
-  color: #4f5153;
-  line-height: 1.3;
+  padding: var(--space-1) 0; /* 减少内边距 */
+  font-size: var(--text-xs); 
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
 }
-.meta-label { color: #8b8d91; }
-.meta-value { color: #343a40; }
+.meta-label { 
+  color: var(--text-tertiary);
+  font-weight: var(--font-medium);
+}
+.meta-value { 
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
 
 .pagination {
   margin-top: auto; /* 自动推到底部 */
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   flex-shrink: 0; /* 防止分页按钮被压缩 */
-  padding: 20px 0;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
+  padding: var(--space-5) 0;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
   margin-bottom: 0; /* 确保贴底 */
 }
 .pager, .page-num {
   height: 32px;
   min-width: 32px;
-  padding: 0 8px;
-  border: 1px solid #e0e0e0;
-  background: #fff;
-  border-radius: 6px;
+  padding: 0 var(--space-2);
+  border: 2px solid var(--border-primary);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
   cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
 }
-.page-num.active { background: #5b6bff; color: #fff; border-color: #5b6bff; }
-.pager:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pager:hover, .page-num:hover {
+  background: var(--bg-tertiary);
+  transform: translateY(-1px);
+}
+
+.page-num.active { 
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--text-inverse);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.pager:disabled { 
+  opacity: 0.5; 
+  cursor: not-allowed;
+  transform: none;
+}
 
 @media (max-width: 1400px) {
   .grid { 
