@@ -187,6 +187,9 @@ export default {
       if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
         this.userMenuOpen = false
       }
+      if (!event.target.closest('.dropdown')) {
+        this.statusOpen = false
+      }
     },
     toggleUserMenu() {
       this.userMenuOpen = !this.userMenuOpen
@@ -411,6 +414,9 @@ export default {
   border-radius: 8px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.08);
   z-index: 10;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 .dropdown-item {
   padding: 10px 12px;
