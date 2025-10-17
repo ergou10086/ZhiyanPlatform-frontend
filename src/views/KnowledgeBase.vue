@@ -30,7 +30,7 @@
           @click="viewProjectKnowledge(project)"
         >
           <div class="card-media" :class="`gradient-${(index % 6) + 1}`">
-            <span>{{ project.category }}</span>
+            <!-- 预留照片位置 -->
           </div>
           <div class="card-body">
             <div class="card-title-row">
@@ -73,72 +73,69 @@ export default {
   data() {
     return {
       sidebarOpen: false,
-      // 用户加入的项目列表
-      joinedProjects: [
+      // 用户参与的项目列表（包括创建的和加入的）
+      joinedProjects: []
+    }
+  },
+  mounted() {
+    this.loadUserProjects()
+  },
+  methods: {
+    loadUserProjects() {
+      // 从localStorage加载用户创建的项目
+      const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+      
+      // 默认的参与项目（模拟用户加入的其他项目）
+      const defaultJoinedProjects = [
         {
-          id: 1,
+          id: 101,
           title: '多模态医学影像数据平台',
           category: '医疗健康',
           status: '稳健中',
           teamSize: 8,
           dataAssets: 'MRI, CT, PET扫描',
           direction: '肿瘤检测算法',
-          aiCore: '深度学习模型'
+          aiCore: '深度学习模型',
+          isJoined: true
         },
         {
-          id: 2,
+          id: 102,
           title: '气候变化预测模型研究',
           category: '环境气候',
           status: '进行中',
           teamSize: 12,
           dataAssets: '气象站数据',
           direction: '气候建模',
-          aiCore: '神经网络预测'
+          aiCore: '神经网络预测',
+          isJoined: true
         },
         {
-          id: 3,
+          id: 103,
           title: '基因组数据分析平台',
           category: '生物信息',
           status: '已完成',
           teamSize: 6,
           dataAssets: '基因序列数据',
           direction: '基因变异分析',
-          aiCore: '机器学习算法'
-        },
-        {
-          id: 4,
-          title: '脑科学神经网络研究',
-          category: '科研探索',
-          status: '稳健中',
-          teamSize: 10,
-          dataAssets: '脑电信号数据',
-          direction: '模式识别',
-          aiCore: '卷积神经网络'
-        },
-        {
-          id: 5,
-          title: '新型材料发现研究平台',
-          category: '材料科学',
-          status: '进行中',
-          teamSize: 15,
-          dataAssets: '材料属性数据',
-          direction: '材料设计',
-          aiCore: '强化学习'
-        },
-        {
-          id: 6,
-          title: '深空天体观测数据分析',
-          category: '天文学',
-          status: '稳健中',
-          teamSize: 7,
-          dataAssets: '天文观测数据',
-          direction: '天体分类',
-          aiCore: '图像识别算法'
+          aiCore: '机器学习算法',
+          isJoined: true
         }
       ]
-    }
-  },
-  methods: {
+      
+      // 标记用户创建的项目
+      const markedCreatedProjects = createdProjects.map(project => ({
+        ...project,
+        isJoined: true
+      }))
+      
+      // 合并用户创建的项目和参与的项目
+      this.joinedProjects = [...markedCreatedProjects, ...defaultJoinedProjects]
+      
+      console.log('用户创建的项目数量:', markedCreatedProjects.length)
+      console.log('默认参与项目数量:', defaultJoinedProjects.length)
+      console.log('知识库总项目数量:', this.joinedProjects.length)
+      console.log('知识库项目列表:', this.joinedProjects)
+    },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
     },
@@ -146,14 +143,16 @@ export default {
       this.sidebarOpen = false
     },
     viewProjectKnowledge(project) {
-      // 跳转到项目知识库分类界面（图3）
+      // 跳转到项目知识库分类界面
       this.$router.push(`/project-knowledge/${project.id}`)
     },
     statusClass(status) {
       const statusMap = {
         '稳健中': 'stable',
         '进行中': 'progress',
-        '已完成': 'completed'
+        '已完成': 'completed',
+        'ONGOING': 'progress',
+        'COMPLETED': 'completed'
       }
       return statusMap[status] || 'stable'
     }
@@ -164,51 +163,62 @@ export default {
 <style scoped>
 .knowledge-base-container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .top-header {
-  background: white;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
   height: 64px;
-  padding: 0 24px;
+  padding: 0 var(--space-6);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .menu-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
-  border-radius: 6px;
-  color: #666;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.menu-btn:hover { background-color: #f8f9fa; }
+.menu-btn:hover { 
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: scale(1.05);
+}
 
 .page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
 }
 
 .main-content {
   flex: 1;
-  padding: 20px 24px 28px;
+  padding: var(--space-5) var(--space-6);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 40px - 28px);
+  height: calc(100vh - 64px);
 }
 
 /* 主页内容样式 */
@@ -277,10 +287,38 @@ export default {
 .activity-text { color: #374151; font-size: 14px; }
 .activity-meta { color: #9ca3af; font-size: 12px; margin-top: 4px; }
 
-.section-card { background: #fff; border: 1px solid #eef0f2; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-.section-title { font-size: 16px; font-weight: 600; color: #333; }
-.section-title.small { font-size: 14px; }
-.section-subtitle { color: #9ca3af; font-size: 12px; margin-top: 6px; }
+.section-card { 
+  background: var(--bg-primary); 
+  border: 1px solid var(--border-primary); 
+  border-radius: var(--radius-xl); 
+  padding: var(--space-4); 
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+}
+
+.section-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.section-title { 
+  font-size: var(--text-xl); 
+  font-weight: var(--font-semibold); 
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+  background: linear-gradient(135deg, var(--text-primary), var(--primary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-title.small { font-size: var(--text-sm); }
+.section-subtitle { 
+  color: var(--text-tertiary); 
+  font-size: var(--text-sm); 
+  margin-top: var(--space-1);
+}
 
 .add-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .add-card { border: 1px solid #eef0f2; border-radius: 12px; padding: 14px; background: #fff; }
@@ -317,47 +355,65 @@ export default {
 .pager.small, .page-num.small { height: 28px; min-width: 28px; padding: 0 10px; border: 1px solid #e0e0e0; background: #fff; border-radius: 6px; cursor: pointer; font-size: 12px; }
 .page-num.small.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
 
-/* 项目网格样式 - 完全按照项目广场的样式 */
+/* 项目网格样式 - 与项目广场保持一致 */
 .grid {
-  margin-top: 16px;
+  margin-top: var(--space-4);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   align-content: start;
-  padding-bottom: 10px;
+  padding-bottom: var(--space-3);
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all var(--transition-normal);
   height: 280px;
+  position: relative;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--info-color), var(--success-color));
+  transform: scaleX(0);
+  transition: transform var(--transition-normal);
 }
 
 .card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--primary-color);
+}
+
+.card:hover::before {
+  transform: scaleX(1);
 }
 
 .card-media {
-  height: 140px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--text-inverse);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
   position: relative;
   overflow: hidden;
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
@@ -384,7 +440,7 @@ export default {
 }
 
 .card-body { 
-  padding: 16px; 
+  padding: var(--space-3); 
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -393,42 +449,48 @@ export default {
 .card-title-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  gap: 8px;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  gap: var(--space-2);
 }
 
 .card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
   margin: 0;
-  line-height: 1.4;
+  line-height: var(--leading-snug);
   flex: 1;
 }
 
+
 .status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
   white-space: nowrap;
   flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .status-badge.stable {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--info-light);
+  color: var(--info-color);
+  border: 1px solid var(--info-color);
 }
 
 .status-badge.progress {
-  background: #fff3e0;
-  color: #f57c00;
+  background: var(--warning-light);
+  color: var(--warning-color);
+  border: 1px solid var(--warning-color);
 }
 
 .status-badge.completed {
-  background: #e8f5e8;
-  color: #388e3c;
+  background: var(--success-light);
+  color: var(--success-color);
+  border: 1px solid var(--success-color);
 }
 
 .meta-list {
@@ -436,33 +498,39 @@ export default {
   padding: 0;
   margin: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .meta-list li {
   display: flex;
-  margin-bottom: 6px;
-  font-size: 13px;
-  line-height: 1.4;
+  align-items: center;
+  padding: var(--space-1) 0;
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
 }
 
 .meta-label {
-  color: #6b7280;
-  margin-right: 4px;
+  color: var(--text-tertiary);
+  margin-right: var(--space-1);
   flex-shrink: 0;
+  font-weight: var(--font-medium);
 }
 
 .meta-value {
-  color: #374151;
+  color: var(--text-primary);
   flex: 1;
+  font-weight: var(--font-semibold);
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .grid { 
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .grid { 
     grid-template-columns: repeat(2, 1fr);
   }
@@ -471,6 +539,18 @@ export default {
 @media (max-width: 600px) {
   .grid { 
     grid-template-columns: 1fr;
+  }
+  
+  .main-content {
+    padding: var(--space-4) var(--space-4);
+  }
+  
+  .card {
+    height: 260px;
+  }
+  
+  .card-media {
+    height: 100px;
   }
 }
 </style>

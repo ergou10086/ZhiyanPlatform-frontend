@@ -33,7 +33,7 @@
           <span class="nav-text">项目广场</span>
         </div>
         
-        <div class="nav-item" :class="{ active: currentRoute === '/knowledge-base' }" @click="navigateTo('/knowledge-base')">
+        <div class="nav-item" :class="{ active: currentRoute.startsWith('/knowledge-base') }" @click="navigateTo('/knowledge-base')">
           <div class="nav-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9.5 2C8.11929 2 7 3.11929 7 4.5C7 5.88071 8.11929 7 9.5 7H14.5C15.8807 7 17 5.88071 17 4.5C17 3.11929 15.8807 2 14.5 2H9.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
