@@ -11,14 +11,14 @@
             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
+        <button class="back-btn" @click="goToHome" title="返回首页">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <span class="page-title">项目广场</span>
       </div>
       <div class="header-right">
-        <nav class="breadcrumb">
-          <a class="breadcrumb-link" @click.prevent="$router.push('/home')">首页</a>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-current">项目广场</span>
-        </nav>
         <div class="user-area">
           <div class="user-profile" @click="toggleUserMenu">
             <div class="user-avatar">
@@ -85,7 +85,14 @@
       <div class="grid">
         <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
           <div class="card-media" :class="`gradient-${(index % 6) + 1}`">
-            <!-- 暂时不显示任何内容 -->
+            <img v-if="project.image" :src="project.image" :alt="project.title" class="project-image" />
+            <div v-else class="no-image-placeholder">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
           </div>
             <div class="card-body">
               <div class="card-title-row">
@@ -95,19 +102,19 @@
               <ul class="meta-list">
                 <li>
                   <span class="meta-label">团队规模：</span>
-                  <span class="meta-value">{{ project.teamSize }}人</span>
+                  <span class="meta-value">{{ getTeamSize(project) }}人</span>
                 </li>
-                <li>
-                  <span class="meta-label">数据资产：</span>
-                  <span class="meta-value">{{ project.dataAssets }}</span>
+                <li v-if="project.startDate && project.endDate">
+                  <span class="meta-label">项目周期：</span>
+                  <span class="meta-value">{{ formatDateRange(project.startDate, project.endDate) }}</span>
                 </li>
-                <li>
-                  <span class="meta-label">研究方向：</span>
-                  <span class="meta-value">{{ project.direction }}</span>
-                </li>
-                <li>
-                  <span class="meta-label">AI 核心：</span>
-                  <span class="meta-value">{{ project.aiCore }}</span>
+                <li v-if="project.tags && project.tags.length > 0">
+                  <span class="meta-label">标签：</span>
+                  <span class="meta-value">
+                    <span v-for="(tag, index) in project.tags" :key="index" class="tag-item">
+                      {{ tag }}{{ index < project.tags.length - 1 ? '、' : '' }}
+                    </span>
+                  </span>
                 </li>
               </ul>
             </div>
@@ -183,6 +190,9 @@ export default {
     closeSidebar() {
       this.sidebarOpen = false
     },
+    goToHome() {
+      this.$router.push('/home')
+    },
     handleClickOutside(event) {
       if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
         this.userMenuOpen = false
@@ -243,6 +253,29 @@ export default {
       if (status === '已完成') return 'done'
       return 'steady'
     },
+    getTeamSize(project) {
+      // 计算真实的团队成员数量
+      if (project.teamMembers && project.teamMembers.length > 0) {
+        return project.teamMembers.length
+      }
+      // 如果没有团队成员信息，返回默认值
+      return project.teamSize || 1
+    },
+    formatDateRange(startDate, endDate) {
+      if (!startDate || !endDate) return ''
+      
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      
+      const formatDate = (date) => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+      
+      return `${formatDate(start)} 至 ${formatDate(end)}`
+    },
     toggleStatusDropdown() {
       this.statusOpen = !this.statusOpen
     },
@@ -257,7 +290,7 @@ export default {
       this.currentPage = 1
     },
     createNewProject() {
-      this.$router.push('/project-create')
+      this.$router.push({ path: '/project-create', query: { from: 'project-square' } })
     },
     goPrev() {
       if (this.currentPage > 1) this.currentPage--
@@ -304,6 +337,22 @@ export default {
   gap: 16px;
 }
 
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: #666;
+  transition: background-color 0.3s ease;
+  margin-right: 8px;
+}
+
+.back-btn:hover {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
 .menu-btn {
   background: none;
   border: none;
@@ -326,22 +375,6 @@ export default {
 
 .header-right { display: flex; align-items: center; gap: 24px; position: relative; }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.breadcrumb-link {
-  color: #6c757d;
-  cursor: pointer;
-}
-
-.breadcrumb-link:hover { color: #343a40; }
-
-.breadcrumb-sep { color: #adb5bd; }
 
 .user-profile { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: background-color 0.3s ease; }
 .user-profile:hover { background-color: #f8f9fa; }
@@ -509,7 +542,7 @@ export default {
 }
 
 .card-media {
-  height: 120px; /* 减少媒体区域高度 */
+  height: 180px; /* 增大媒体区域高度 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -539,13 +572,33 @@ export default {
   z-index: 1;
 }
 
+.project-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px 8px 0 0;
+}
+
+.no-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  opacity: 0.7;
+}
+
+.no-image-placeholder svg {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .card-media span {
   position: relative;
   z-index: 2;
 }
 
 .card-body { 
-  padding: var(--space-3); /* 减少内边距 */
+  padding: 12px 16px; /* 进一步减少内边距 */
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -607,16 +660,22 @@ export default {
 .meta-list li { 
   display: flex; 
   align-items: center; 
-  padding: var(--space-1) 0; /* 减少内边距 */
+  padding: 2px 0; /* 进一步减少内边距 */
   font-size: var(--text-xs); 
   color: var(--text-secondary);
-  line-height: var(--leading-snug);
+  line-height: 1.2;
 }
 .meta-label { 
   color: var(--text-tertiary);
   font-weight: var(--font-medium);
 }
 .meta-value { 
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.tag-item {
+  display: inline;
   color: var(--text-primary);
   font-weight: var(--font-semibold);
 }
@@ -682,7 +741,7 @@ export default {
   .toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-actions { justify-content: flex-end; }
   .card { height: 260px; } /* 移动端稍微缩小 */
-  .card-media { height: 120px; }
+  .card-media { height: 150px; }
   .card-body { padding: 12px; }
 }
 </style>

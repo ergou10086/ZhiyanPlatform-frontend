@@ -19,13 +19,6 @@
         <span class="page-title">项目详情</span>
       </div>
       <div class="header-right">
-        <nav class="breadcrumb">
-          <a class="breadcrumb-link" @click.prevent="$router.push('/home')">首页</a>
-          <span class="breadcrumb-sep">/</span>
-          <a class="breadcrumb-link" @click.prevent="$router.push('/project-square')">项目广场</a>
-          <span class="breadcrumb-sep">/</span>
-          <span class="breadcrumb-current">项目详情</span>
-        </nav>
         <div class="user-area">
           <div class="user-profile" @click="toggleUserMenu">
             <div class="user-avatar">
@@ -823,26 +816,6 @@ export default {
   position: relative;
 }
 
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.breadcrumb-link {
-  color: #6c757d;
-  cursor: pointer;
-}
-
-.breadcrumb-link:hover {
-  color: #343a40;
-}
-
-.breadcrumb-sep {
-  color: #adb5bd;
-}
 
 .user-profile {
   display: flex;
