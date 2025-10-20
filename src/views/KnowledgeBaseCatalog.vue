@@ -123,46 +123,214 @@
       :accept="fileAccept"
     />
 
-    <!-- 上传对话框 -->
+    <!-- 成果上传对话框 -->
     <div v-if="showUploadDialog" class="upload-dialog-overlay" @click="closeUploadDialog">
       <div class="upload-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>上传{{ currentFileType }}</h3>
+          <div class="dialog-title-section">
+            <span class="file-type-badge" :class="getTypeClass(currentFileType)">{{ currentFileType }}</span>
+            <h3>上传{{ currentFileType }}</h3>
+          </div>
           <button class="close-btn" @click="closeUploadDialog">×</button>
         </div>
         <div class="dialog-content">
-          <div class="file-info" v-if="selectedFile">
-            <p><strong>文件名：</strong>{{ selectedFile.name }}</p>
-            <p><strong>文件大小：</strong>{{ formatFileSize(selectedFile.size) }}</p>
-            <p><strong>文件类型：</strong>{{ selectedFile.type || '未知' }}</p>
+          <!-- 成果名称 -->
+          <div class="form-group">
+            <label>成果名称：</label>
+            <input 
+              v-model="achievementForm.name" 
+              type="text" 
+              placeholder="请输入成果名称"
+              class="form-input"
+            />
           </div>
+          
+          <!-- 成果详细描述 - 多个文本框 -->
+          <div class="form-group">
+            <label>成果详细描述：</label>
+            <div class="description-fields">
+              <div 
+                v-for="(desc, index) in achievementForm.descriptions" 
+                :key="index" 
+                class="description-field"
+              >
+                <textarea 
+                  v-model="desc.content"
+                  :placeholder="`描述 ${index + 1}：请输入详细描述`"
+                  class="form-textarea"
+                  rows="3"
+                ></textarea>
+                <button 
+                  v-if="achievementForm.descriptions.length > 1"
+                  class="remove-desc-btn" 
+                  @click="removeDescription(index)"
+                  title="删除此描述"
+                >
+                  ×
+                </button>
+              </div>
+              <button class="add-desc-btn" @click="addDescription">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                添加描述
+              </button>
+            </div>
+          </div>
+          
+          <!-- 文件上传区域 -->
+          <div class="form-group">
+            <label>上传文件：</label>
+            <div class="file-upload-area">
+              <div class="uploaded-files" v-if="achievementForm.files.length > 0">
+                <div 
+                  v-for="(file, index) in achievementForm.files" 
+                  :key="index" 
+                  class="file-item"
+                >
+                  <div class="file-info">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">{{ file.name }}</span>
+                    <span class="file-size">({{ formatFileSize(file.size) }})</span>
+                  </div>
+                  <button class="remove-file-btn" @click="removeFile(index)" title="删除文件">
+                    ×
+                  </button>
+                </div>
+              </div>
+              <div class="upload-zone" @click="triggerFileSelect">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>点击添加文件</p>
+                <p class="upload-hint">支持多文件上传</p>
+              </div>
+            </div>
+          </div>
+          
           <div class="dialog-actions">
             <button class="btn secondary" @click="closeUploadDialog">取消</button>
-            <button class="btn primary" @click="confirmUpload" :disabled="!selectedFile">确认上传</button>
+            <button 
+              class="btn primary" 
+              @click="confirmUpload" 
+              :disabled="!achievementForm.name.trim() || achievementForm.files.length === 0"
+            >
+              确认上传
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 自定义类型对话框 -->
+    <!-- 自定义类型上传对话框（与成果上传一致，增加类型名称） -->
     <div v-if="showCustomDialog" class="upload-dialog-overlay" @click="closeCustomDialog">
       <div class="upload-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>创建自定义类型</h3>
+          <div class="dialog-title-section">
+            <span class="file-type-badge doc">{{ customUploadForm.typeName || '自定义' }}</span>
+            <h3>创建自定义类型并上传</h3>
+          </div>
           <button class="close-btn" @click="closeCustomDialog">×</button>
         </div>
         <div class="dialog-content">
+          <!-- 类型名称（新增，置于最上方） -->
           <div class="form-group">
             <label>类型名称：</label>
-            <input v-model="customTypeName" type="text" placeholder="请输入类型名称" />
+            <input 
+              v-model="customUploadForm.typeName" 
+              type="text" 
+              placeholder="请输入类型名称"
+              class="form-input"
+            />
           </div>
+
+          <!-- 成果名称 -->
           <div class="form-group">
-            <label>类型描述：</label>
-            <textarea v-model="customTypeDesc" placeholder="请输入类型描述"></textarea>
+            <label>成果名称：</label>
+            <input 
+              v-model="customUploadForm.name" 
+              type="text" 
+              placeholder="请输入成果名称"
+              class="form-input"
+            />
           </div>
+
+          <!-- 成果详细描述 - 多个文本框 -->
+          <div class="form-group">
+            <label>成果详细描述：</label>
+            <div class="description-fields">
+              <div 
+                v-for="(desc, index) in customUploadForm.descriptions" 
+                :key="index" 
+                class="description-field"
+              >
+                <textarea 
+                  v-model="desc.content"
+                  :placeholder="`描述 ${index + 1}：请输入详细描述`"
+                  class="form-textarea"
+                  rows="3"
+                ></textarea>
+                <button 
+                  v-if="customUploadForm.descriptions.length > 1"
+                  class="remove-desc-btn" 
+                  @click="removeCustomDescription(index)"
+                  title="删除此描述"
+                >
+                  ×
+                </button>
+              </div>
+              <button class="add-desc-btn" @click="addCustomDescription">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                添加描述
+              </button>
+            </div>
+          </div>
+
+          <!-- 文件上传区域 -->
+          <div class="form-group">
+            <label>上传文件：</label>
+            <div class="file-upload-area">
+              <div class="uploaded-files" v-if="customUploadForm.files.length > 0">
+                <div 
+                  v-for="(file, index) in customUploadForm.files" 
+                  :key="index" 
+                  class="file-item"
+                >
+                  <div class="file-info">
+                    <span class="file-icon">📄</span>
+                    <span class="file-name">{{ file.name }}</span>
+                    <span class="file-size">({{ formatFileSize(file.size) }})</span>
+                  </div>
+                  <button class="remove-file-btn" @click="removeCustomFile(index)" title="删除文件">
+                    ×
+                  </button>
+                </div>
+              </div>
+              <div class="upload-zone" @click="triggerCustomFileSelect">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>点击添加文件</p>
+                <p class="upload-hint">支持多文件上传</p>
+              </div>
+            </div>
+          </div>
+
           <div class="dialog-actions">
             <button class="btn secondary" @click="closeCustomDialog">取消</button>
-            <button class="btn primary" @click="confirmCustomType" :disabled="!customTypeName">确认创建</button>
+            <button 
+              class="btn primary" 
+              @click="confirmCustomType" 
+              :disabled="!customUploadForm.typeName.trim() || !customUploadForm.name.trim() || customUploadForm.files.length === 0"
+            >
+              确认创建
+            </button>
           </div>
         </div>
       </div>
@@ -261,7 +429,24 @@ export default {
       showViewDialog: false,
       viewingFile: null,
       fileContent: '',
-      fileContentType: 'text'
+      fileContentType: 'text',
+      // 新增：成果上传表单数据
+      achievementForm: {
+        name: '',
+        descriptions: [
+          { content: '' }
+        ],
+        files: []
+      },
+      // 新增：自定义类型上传表单
+      customUploadForm: {
+        typeName: '',
+        name: '',
+        descriptions: [
+          { content: '' }
+        ],
+        files: []
+      }
     }
   },
   computed: {
@@ -318,7 +503,9 @@ export default {
     uploadFile(type) {
       this.currentFileType = type
       this.fileAccept = this.getFileAccept(type)
-      this.$refs.fileInput.click()
+      // 重置表单数据
+      this.resetAchievementForm()
+      this.showUploadDialog = true
     },
     
     getFileAccept(type) {
@@ -333,33 +520,86 @@ export default {
     },
     
     handleFileSelect(event) {
-      const file = event.target.files[0]
-      if (file) {
-        this.selectedFile = file
-        this.showUploadDialog = true
+      const files = Array.from(event.target.files)
+      if (files.length > 0) {
+        // 根据当前显示的弹窗决定添加到哪个表单
+        if (this.showCustomDialog) {
+          // 自定义类型弹窗
+          files.forEach(file => {
+            this.customUploadForm.files.push({
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              file: file
+            })
+          })
+        } else if (this.showUploadDialog) {
+          // 普通上传弹窗
+          files.forEach(file => {
+            this.achievementForm.files.push({
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              file: file
+            })
+          })
+        }
+        // 清空文件输入
+        this.$refs.fileInput.value = ''
+      }
+    },
+    
+    triggerFileSelect() {
+      this.$refs.fileInput.click()
+    },
+    
+    removeFile(index) {
+      this.achievementForm.files.splice(index, 1)
+    },
+    
+    addDescription() {
+      this.achievementForm.descriptions.push({ content: '' })
+    },
+    
+    removeDescription(index) {
+      if (this.achievementForm.descriptions.length > 1) {
+        this.achievementForm.descriptions.splice(index, 1)
+      }
+    },
+    
+    resetAchievementForm() {
+      this.achievementForm = {
+        name: '',
+        descriptions: [
+          { content: '' }
+        ],
+        files: []
       }
     },
     
     confirmUpload() {
-      if (this.selectedFile) {
-        // 模拟上传文件
-        const newFile = {
-          id: Date.now(),
-          name: this.selectedFile.name,
-          type: this.currentFileType,
-          uploader: '当前用户',
-          time: new Date().toLocaleString('zh-CN'),
-          typeCls: this.getTypeClass(this.currentFileType),
-          file: this.selectedFile
-        }
-        
-        this.uploadedFiles.push(newFile)
-        this.$emit('file-uploaded', newFile)
+      if (this.achievementForm.name.trim() && this.achievementForm.files.length > 0) {
+        // 为每个文件创建成果记录
+        this.achievementForm.files.forEach((fileData, index) => {
+          const newFile = {
+            id: Date.now() + index,
+            name: this.achievementForm.name + (this.achievementForm.files.length > 1 ? `_${index + 1}` : ''),
+            type: this.currentFileType,
+            uploader: '当前用户',
+            time: new Date().toLocaleString('zh-CN'),
+            typeCls: this.getTypeClass(this.currentFileType),
+            file: fileData.file,
+            descriptions: this.achievementForm.descriptions.filter(desc => desc.content.trim()).map(desc => desc.content),
+            originalFileName: fileData.name
+          }
+          
+          this.uploadedFiles.push(newFile)
+          this.$emit('file-uploaded', newFile)
+        })
         
         // 重置状态
-        this.selectedFile = null
+        this.resetAchievementForm()
         this.showUploadDialog = false
-        this.$refs.fileInput.value = ''
         
         // 跳转到最后一页显示新上传的文件
         this.goToLastPage()
@@ -367,7 +607,7 @@ export default {
         // 自动保存到本地存储
         this.saveToLocalStorage()
         
-        alert(`文件"${newFile.name}"上传成功！已添加到成果档案中。`)
+        alert(`成果"${this.achievementForm.name}"上传成功！已添加到成果档案中。`)
       }
     },
     
@@ -395,26 +635,75 @@ export default {
     
     closeUploadDialog() {
       this.showUploadDialog = false
-      this.selectedFile = null
+      this.resetAchievementForm()
       this.$refs.fileInput.value = ''
     },
     
     createCustomType() {
+      // 打开自定义上传弹窗并重置表单
+      this.resetCustomForm()
       this.showCustomDialog = true
     },
     
+    triggerCustomFileSelect() {
+      // 复用隐藏的文件输入
+      this.$refs.fileInput.click()
+    },
+    
+    removeCustomFile(index) {
+      this.customUploadForm.files.splice(index, 1)
+    },
+    
+    addCustomDescription() {
+      this.customUploadForm.descriptions.push({ content: '' })
+    },
+    
+    removeCustomDescription(index) {
+      if (this.customUploadForm.descriptions.length > 1) {
+        this.customUploadForm.descriptions.splice(index, 1)
+      }
+    },
+    
+    resetCustomForm() {
+      this.customUploadForm = {
+        typeName: '',
+        name: '',
+        descriptions: [
+          { content: '' }
+        ],
+        files: []
+      }
+    },
+    
     confirmCustomType() {
-      if (this.customTypeName) {
-        // 模拟创建自定义类型
-        alert(`自定义类型"${this.customTypeName}"创建成功！`)
+      if (this.customUploadForm.typeName.trim() && this.customUploadForm.name.trim() && this.customUploadForm.files.length > 0) {
+        const typeDisplay = this.customUploadForm.typeName.trim()
+        this.customUploadForm.files.forEach((fileData, index) => {
+          const newFile = {
+            id: Date.now() + index,
+            name: this.customUploadForm.name + (this.customUploadForm.files.length > 1 ? `_${index + 1}` : ''),
+            type: typeDisplay,
+            uploader: '当前用户',
+            time: new Date().toLocaleString('zh-CN'),
+            typeCls: 'doc',
+            file: fileData.file,
+            descriptions: this.customUploadForm.descriptions.filter(d => d.content.trim()).map(d => d.content),
+            originalFileName: fileData.name
+          }
+          this.uploadedFiles.push(newFile)
+          this.$emit('file-uploaded', newFile)
+        })
+        this.saveToLocalStorage()
         this.closeCustomDialog()
+        this.goToLastPage()
+        alert(`自定义类型"${typeDisplay}"的成果已上传！`)
       }
     },
     
     closeCustomDialog() {
       this.showCustomDialog = false
-      this.customTypeName = ''
-      this.customTypeDesc = ''
+      this.resetCustomForm()
+      this.$refs.fileInput.value = ''
     },
     
     viewFile(file) {
@@ -614,9 +903,9 @@ export default {
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
+  max-width: 600px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
 }
 
@@ -626,6 +915,42 @@ export default {
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e9ecef;
+}
+
+.dialog-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.file-type-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.file-type-badge.doc {
+  background: #3b82f6;
+}
+
+.file-type-badge.patent {
+  background: #f59e0b;
+}
+
+.file-type-badge.dataset {
+  background: #10b981;
+}
+
+.file-type-badge.model {
+  background: #8b5cf6;
+}
+
+.file-type-badge.report {
+  background: #fbbf24;
 }
 
 .dialog-header h3 {
@@ -693,6 +1018,215 @@ export default {
 .form-group textarea {
   height: 80px;
   resize: vertical;
+}
+
+/* 新增样式 */
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* 描述字段样式 */
+.description-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.description-field {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.description-field .form-textarea {
+  flex: 1;
+}
+
+.remove-desc-btn {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 18px;
+  font-weight: bold;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.remove-desc-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+.add-desc-btn {
+  background: #f8f9fa;
+  border: 1px dashed #6c757d;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 14px;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.add-desc-btn:hover {
+  background: #e3f2fd;
+  color: #1976d2;
+  border-color: #1976d2;
+}
+
+/* 文件上传区域样式 */
+.file-upload-area {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8f9fa;
+}
+
+.uploaded-files {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.file-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-size {
+  font-size: 12px;
+  color: #6c757d;
+  flex-shrink: 0;
+}
+
+.remove-file-btn {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6c757d;
+  font-size: 16px;
+  font-weight: bold;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.remove-file-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+.upload-zone {
+  border: 2px dashed #6c757d;
+  border-radius: 8px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.upload-zone:hover {
+  border-color: #4f46e5;
+  background: #f8f9ff;
+}
+
+.upload-zone svg {
+  color: #6c757d;
+  margin-bottom: 12px;
+}
+
+.upload-zone:hover svg {
+  color: #4f46e5;
+}
+
+.upload-zone p {
+  margin: 8px 0 0 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.upload-hint {
+  font-size: 12px !important;
+  color: #6c757d !important;
 }
 
 .dialog-actions {

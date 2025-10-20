@@ -433,8 +433,8 @@ export default {
             due_date: task.due_date || task.dueDate, // 添加数据库字段名
             priority: this.getPriorityDisplay(task.priority || 'MEDIUM'), // 转换为中文显示
             priority_value: task.priority || 'MEDIUM', // 保留数据库值
-            status: this.getStatusDisplay(task.status || 'IN_PROGRESS'), // 转换为中文状态显示
-            status_value: task.status || 'IN_PROGRESS', // 保留数据库值
+            status: this.getStatusDisplay(task.status_value || task.status || 'IN_PROGRESS'), // 优先使用status_value，转换为中文状态显示
+            status_value: task.status_value || task.status || 'IN_PROGRESS', // 保留数据库值
             assignee_id: task.assignee_id || [], // 添加负责人ID字段
             created_by: task.created_by || 1, // 添加创建人字段
             created_by_name: this.getUserNameById(task.created_by || 1) // 添加创建人姓名
@@ -444,8 +444,19 @@ export default {
           if (this.tasks.length > 0) {
             console.log('第一个任务的优先级:', this.tasks[0].priority)
             console.log('第一个任务的状态:', this.tasks[0].status)
+            console.log('第一个任务的状态值:', this.tasks[0].status_value)
             console.log('优先级类名:', this.priorityClass(this.tasks[0].priority))
             console.log('状态类名:', this.statusClass(this.tasks[0].status))
+            
+            // 调试：显示所有任务的原始状态和转换后状态
+            console.log('所有任务状态转换详情:')
+            this.tasks.forEach((task, index) => {
+              console.log(`任务 ${index + 1}: ${task.title}`)
+              console.log(`  原始状态: ${foundProject.tasks[index]?.status}`)
+              console.log(`  原始状态值: ${foundProject.tasks[index]?.status_value}`)
+              console.log(`  转换后状态: ${task.status}`)
+              console.log(`  转换后状态值: ${task.status_value}`)
+            })
           }
           
           // 加载团队成员数据
@@ -533,6 +544,11 @@ export default {
         savedProjects[projectIndex].tasks = this.tasks
         savedProjects[projectIndex].status = this.project.status
         localStorage.setItem('projects', JSON.stringify(savedProjects))
+        
+        console.log('项目数据已保存到localStorage')
+        console.log('保存的任务数据:', this.tasks.map(t => ({ title: t.title, status: t.status, status_value: t.status_value })))
+      } else {
+        console.log('未找到项目，无法保存数据')
       }
     },
     // 项目操作按钮功能
@@ -714,6 +730,18 @@ export default {
       // 保存数据
       this.saveProjectData()
       console.log(`任务"${task.title}"状态已更改为: ${newStatus}`)
+      console.log(`任务状态值: ${task.status}, 状态值: ${task.status_value}`)
+      
+      // 调试：显示当前所有任务的状态
+      console.log('当前所有任务状态:', this.tasks.map(t => ({ title: t.title, status: t.status, status_value: t.status_value })))
+      
+      // 触发全局事件，通知其他页面状态已更新
+      this.$root.$emit('taskStatusChanged', {
+        projectId: this.project.id,
+        taskId: task.id,
+        newStatus: newStatus,
+        statusValue: task.status_value
+      })
     },
     assignTask(task) {
       // 接取任务

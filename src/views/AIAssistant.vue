@@ -18,8 +18,14 @@
         </button>
         <span class="page-title">AI 实验分析助手</span>
       </div>
-      <div class="header-right">
-      </div>
+        <div class="header-right">
+          <button class="sync-status-btn" @click="syncTaskStatusChanges" title="同步任务状态">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M23 4V10H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
     </div>
 
     <!-- 主要内容区域 -->
@@ -555,6 +561,7 @@ export default {
       this.loadProjectTasks(this.currentProject.id)
 
       console.log('任务状态同步完成，当前任务数量:', this.tasks.length)
+      console.log('当前任务状态详情:', this.tasks.map(t => ({ title: t.title, status: t.status, statusText: this.getStatusText(t.status) })))
     },
     loadProjectTasks(projectId) {
       // 根据项目ID加载对应的任务数据
@@ -694,10 +701,12 @@ export default {
         'PENDING': 'pending',
         '进行中': 'in-progress',
         'IN_PROGRESS': 'in-progress',
-        '已完成': 'completed',
+        '完成': 'completed',
         'COMPLETED': 'completed',
-        '已暂停': 'paused',
-        'PAUSED': 'paused'
+        '暂停': 'paused',
+        'PAUSED': 'paused',
+        '已完成': 'completed',
+        '已暂停': 'paused'
       }
       return statusMap[status] || 'pending'
     },
@@ -878,8 +887,8 @@ export default {
       const statusMap = {
         'pending': '待接取',
         'in-progress': '进行中',
-        'completed': '已完成',
-        'paused': '已暂停'
+        'completed': '完成',
+        'paused': '暂停'
       }
       return statusMap[status] || status
     },
@@ -966,11 +975,24 @@ export default {
     window.addEventListener('focus', () => {
       this.syncTaskStatusChanges()
     })
+    
+    // 监听任务状态变化事件
+    this.$root.$on('taskStatusChanged', (data) => {
+      console.log('收到任务状态变化通知:', data)
+      // 如果变化的是当前项目的任务，立即同步
+      if (data.projectId === this.currentProject.id) {
+        console.log('当前项目任务状态发生变化，立即同步')
+        this.syncTaskStatusChanges()
+      }
+    })
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
     window.removeEventListener('focus', this.syncTaskStatusChanges)
+    
+    // 清理全局事件监听器
+    this.$root.$off('taskStatusChanged')
 
     // 清理定时器
     if (this.syncTimer) {
@@ -1049,6 +1071,25 @@ export default {
   display: flex;
   align-items: center;
   gap: var(--space-6);
+}
+
+.sync-status-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sync-status-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: scale(1.05);
 }
 
 /* 项目进度样式 */
