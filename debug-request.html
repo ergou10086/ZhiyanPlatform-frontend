@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>请求调试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 请求调试工具</h1>
+        <p>调试前端请求问题</p>
+        
+        <button onclick="testDirectRequest()">1. 直接请求测试</button>
+        <button onclick="testAxiosRequest()">2. Axios请求测试</button>
+        <button onclick="testFetchRequest()">3. Fetch请求测试</button>
+        <button onclick="clearResults()">清除结果</button>
+        
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        function log(message, type = 'info') {
+            const result = document.getElementById('result');
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}\n`;
+            
+            if (result.style.display === 'none') {
+                result.style.display = 'block';
+                result.textContent = logMessage;
+            } else {
+                result.textContent += logMessage;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('result').style.display = 'none';
+        }
+
+        async function testDirectRequest() {
+            log('开始直接请求测试...');
+            
+            try {
+                const response = await fetch('http://localhost:8091/zhiyan/auth/send-verfcode', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        type: 'REGISTER'
+                    })
+                });
+                
+                const data = await response.json();
+                log(`直接请求结果:\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                log(`直接请求失败: ${error.message}`);
+            }
+        }
+
+        async function testAxiosRequest() {
+            log('开始Axios请求测试...');
+            
+            try {
+                const response = await axios.post('http://localhost:8091/zhiyan/auth/send-verfcode', {
+                    email: 'test@example.com',
+                    type: 'REGISTER'
+                });
+                
+                log(`Axios请求结果:\n状态码: ${response.status}\n响应: ${JSON.stringify(response.data, null, 2)}`);
+            } catch (error) {
+                log(`Axios请求失败: ${error.message}`);
+                if (error.response) {
+                    log(`错误响应: ${JSON.stringify(error.response.data, null, 2)}`);
+                }
+            }
+        }
+
+        async function testFetchRequest() {
+            log('开始Fetch请求测试...');
+            
+            try {
+                const response = await fetch('http://localhost:8091/zhiyan/auth/check-email?email=test@example.com', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                log(`Fetch请求结果:\n状态码: ${response.status}\n响应: ${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                log(`Fetch请求失败: ${error.message}`);
+            }
+        }
+
+        // 页面加载时自动开始测试
+        window.onload = function() {
+            log('请求调试工具已启动');
+            log('当前页面: ' + window.location.href);
+            log('开始自动测试...');
+            
+            setTimeout(() => testDirectRequest(), 1000);
+            setTimeout(() => testAxiosRequest(), 2000);
+            setTimeout(() => testFetchRequest(), 3000);
+        };
+    </script>
+</body>
+</html>
