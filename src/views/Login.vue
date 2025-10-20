@@ -79,6 +79,8 @@
 <script>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
+import { authAPI } from '@/api/auth'
+import { saveLoginData, formatApiError, isValidEmail } from '@/utils/auth'
 
 export default {
   name: 'Login',
@@ -151,19 +153,66 @@ export default {
       if (this.submitLocked) return
       this.submitLocked = true
       setTimeout(() => { this.submitLocked = false }, 1000)
+      
+      // 表单验证
+      if (!this.loginForm.email) {
+        alert('请输入邮箱地址')
+        return
+      }
+      
+      if (!this.loginForm.password) {
+        alert('请输入密码')
+        return
+      }
+      
+      if (!isValidEmail(this.loginForm.email)) {
+        alert('请输入正确的邮箱格式')
+        return
+      }
+      
       this.loading = true
       try {
-        // 这里添加登录逻辑
-        console.log('登录信息:', this.loginForm)
+        // 调用登录API
+        const response = await authAPI.login({
+          email: this.loginForm.email,
+          password: this.loginForm.password,
+          rememberMe: this.loginForm.rememberMe
+        })
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // 登录成功后跳转到首页
-        this.$router.push('/home')
+        if (response.code === 200 && response.data) {
+          // 保存登录信息
+          const loginData = {
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken,
+            rememberMeToken: response.data.rememberMeToken,
+            userInfo: response.data.user
+          }
+          
+          console.log('登录成功，保存数据:', loginData)
+          saveLoginData(loginData)
+          
+          // 验证数据是否保存成功
+          const savedToken = localStorage.getItem('access_token')
+          const savedUserInfo = localStorage.getItem('user_info')
+          console.log('数据保存验证:', {
+            token: !!savedToken,
+            userInfo: !!savedUserInfo,
+            tokenValue: savedToken,
+            userInfoValue: savedUserInfo
+          })
+          
+          // 显示成功消息
+          alert('登录成功！')
+          
+          // 使用replace而不是push，避免历史记录问题
+          this.$router.replace('/home')
+        } else {
+          alert(response.msg || '登录失败，请检查邮箱和密码')
+        }
       } catch (error) {
         console.error('登录失败:', error)
-        alert('登录失败，请检查用户名和密码')
+        const errorMessage = formatApiError(error)
+        alert(errorMessage)
       } finally {
         this.loading = false
       }

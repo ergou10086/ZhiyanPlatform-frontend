@@ -22,7 +22,11 @@
             v-model="registerForm.email"
             placeholder="请输入邮箱地址"
             required
+            @blur="checkEmailStatus"
           />
+          <div v-if="emailStatus" class="email-status" :class="emailStatus.type">
+            {{ emailStatus.message }}
+          </div>
         </div>
         
         <div class="form-group">
@@ -32,10 +36,12 @@
               type="text"
               id="code"
               v-model="registerForm.code"
-              placeholder="请输入验证码"
+              placeholder="请输入6位验证码"
               maxlength="6"
+              pattern="[0-9]{6}"
               required
               class="code-input"
+              @input="formatCodeInput"
             />
             <button 
               type="button" 
@@ -118,6 +124,8 @@
 <script>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
+import { authAPI } from '@/api/auth'
+import { formatApiError, isValidEmail, validatePassword, saveLoginData } from '@/utils/auth'
 
 export default {
   name: 'Register',
@@ -130,6 +138,7 @@ export default {
       loading: false,
       countdown: 0,
       submitLocked: false,
+      emailStatus: null,
       registerForm: {
         email: '',
         code: '',
@@ -148,26 +157,35 @@ export default {
         return
       }
       
-      // 验证邮箱格式
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(this.registerForm.email)) {
+      if (!isValidEmail(this.registerForm.email)) {
         alert('请输入正确的邮箱格式')
         return
       }
       
       this.loading = true
       try {
-        // 这里添加发送验证码逻辑
-        console.log('发送验证码到邮箱:', this.registerForm.email)
+        // 直接发送注册验证码，让后端处理邮箱检查
+        const response = await authAPI.sendVerificationCode({
+          email: this.registerForm.email,
+          type: 'REGISTER' // 注册类型，使用大写
+        })
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        alert('验证码已发送到您的邮箱')
-        this.startCountdown()
+        if (response.code === 200) {
+          alert('验证码已发送到您的邮箱，请查收（测试模式下验证码会显示在后端控制台）')
+          this.startCountdown()
+        } else {
+          // 如果后端返回邮箱已注册的错误，提示用户
+          if (response.msg && response.msg.includes('该邮箱已被注册')) {
+            alert('该邮箱已被注册，请使用其他邮箱或直接登录')
+            this.$router.push('/login')
+          } else {
+            alert(response.msg || '发送失败，请重试')
+          }
+        }
       } catch (error) {
         console.error('发送验证码失败:', error)
-        alert('发送失败，请重试')
+        const errorMessage = formatApiError(error)
+        alert(errorMessage)
       } finally {
         this.loading = false
       }
@@ -176,30 +194,107 @@ export default {
       if (this.submitLocked) return
       this.submitLocked = true
       setTimeout(() => { this.submitLocked = false }, 1000)
+      
+      // 表单验证
+      if (!this.registerForm.email) {
+        alert('请输入邮箱地址')
+        return
+      }
+      
+      if (!this.registerForm.code) {
+        alert('请输入验证码')
+        return
+      }
+      
+      if (!this.registerForm.password) {
+        alert('请输入密码')
+        return
+      }
+      
+      if (!this.registerForm.name) {
+        alert('请输入昵称')
+        return
+      }
+      
+      if (!isValidEmail(this.registerForm.email)) {
+        alert('请输入正确的邮箱格式')
+        return
+      }
+      
       if (this.registerForm.password !== this.registerForm.confirmPassword) {
         alert('两次输入的密码不一致')
         return
       }
       
-      if (this.registerForm.password.length < 6 || this.registerForm.password.length > 16) {
-        alert('密码长度必须在6-16位之间')
+      const passwordValidation = validatePassword(this.registerForm.password)
+      if (!passwordValidation.isValid) {
+        alert(passwordValidation.message)
+        return
+      }
+      
+      if (!this.registerForm.agreement) {
+        alert('请同意用户协议和隐私政策')
+        return
+      }
+      
+      // 验证验证码格式
+      if (!/^\d{6}$/.test(this.registerForm.code)) {
+        alert('请输入6位数字验证码')
         return
       }
       
       this.loading = true
       try {
-        // 这里添加注册逻辑
-        console.log('注册信息:', this.registerForm)
+        // 调用注册API
+        const response = await authAPI.register({
+          email: this.registerForm.email,
+          verificationCode: this.registerForm.code,
+          password: this.registerForm.password,
+          confirmPassword: this.registerForm.confirmPassword,
+          name: this.registerForm.name,
+          institution: this.registerForm.organization || ''
+        })
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        // 注册成功后跳转到登录页面
-        alert('注册成功！请登录')
-        this.$router.push('/login')
+        if (response.code === 200) {
+          // 注册成功后自动登录
+          if (response.data && response.data.accessToken) {
+            const loginData = {
+              accessToken: response.data.accessToken,
+              refreshToken: response.data.refreshToken,
+              rememberMeToken: response.data.rememberMeToken,
+              userInfo: {
+                id: response.data.userId,
+                email: response.data.email,
+                name: response.data.name,
+                title: response.data.title,
+                institution: response.data.institution
+              }
+            }
+            saveLoginData(loginData)
+            alert('注册成功！已自动登录')
+            this.$router.push('/home')
+          } else {
+            alert('注册成功！请使用您的账号登录')
+            this.$router.push('/login')
+          }
+          
+          // 清除表单数据
+          this.registerForm = {
+            email: '',
+            code: '',
+            password: '',
+            confirmPassword: '',
+            name: '',
+            organization: '',
+            agreement: false
+          }
+        } else {
+          alert(response.msg || '注册失败，请重试')
+        }
       } catch (error) {
         console.error('注册失败:', error)
-        alert('注册失败，请重试')
+        const errorMessage = formatApiError(error)
+        alert(errorMessage)
       } finally {
         this.loading = false
       }
@@ -213,8 +308,51 @@ export default {
         }
       }, 1000)
     },
+    formatCodeInput(event) {
+      // 只允许输入数字
+      let value = event.target.value.replace(/[^0-9]/g, '')
+      // 限制6位
+      if (value.length > 6) {
+        value = value.substring(0, 6)
+      }
+      this.registerForm.code = value
+      event.target.value = value
+    },
     goToLogin() {
       this.$router.push('/login')
+    },
+    async checkEmailStatus() {
+      if (!this.registerForm.email || !isValidEmail(this.registerForm.email)) {
+        this.emailStatus = null
+        return
+      }
+
+      try {
+        const response = await authAPI.checkEmail(this.registerForm.email)
+        if (response.code === 200) {
+          if (response.data === true) {
+            this.emailStatus = {
+              type: 'error',
+              message: '该邮箱已被注册，请使用其他邮箱或直接登录'
+            }
+          } else {
+            this.emailStatus = {
+              type: 'success',
+              message: '邮箱可用，可以注册'
+            }
+          }
+        } else {
+          this.emailStatus = {
+            type: 'warning',
+            message: '无法检查邮箱状态，请稍后重试'
+          }
+        }
+      } catch (error) {
+        this.emailStatus = {
+          type: 'warning',
+          message: '网络错误，无法检查邮箱状态'
+        }
+      }
     }
   }
 }
@@ -452,6 +590,32 @@ export default {
   transform: none;
 }
 
+
+.email-status {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.email-status.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.email-status.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.email-status.warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
 
 @media (max-width: 480px) {
   .register-box {
