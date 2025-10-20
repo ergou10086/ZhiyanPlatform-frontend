@@ -113,6 +113,11 @@
         <button type="submit" class="register-btn" :disabled="loading">
           {{ loading ? '注册中...' : '立即注册' }}
         </button>
+        
+        <!-- 临时测试按钮 -->
+        <button type="button" @click="testAPI" class="test-btn" style="margin-top: 10px; background: #ff6b6b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">
+          测试API调用
+        </button>
       </form>
       </div>
     </div>
@@ -191,27 +196,38 @@ export default {
       }
     },
     async handleRegister() {
-      if (this.submitLocked) return
+      console.log('=== 开始处理注册 ===')
+      console.log('表单数据:', this.registerForm)
+      
+      if (this.submitLocked) {
+        console.log('提交被锁定，跳过')
+        return
+      }
       this.submitLocked = true
       setTimeout(() => { this.submitLocked = false }, 1000)
       
       // 表单验证
+      console.log('开始表单验证...')
       if (!this.registerForm.email) {
+        console.log('邮箱为空，停止处理')
         alert('请输入邮箱地址')
         return
       }
       
       if (!this.registerForm.code) {
+        console.log('验证码为空，停止处理')
         alert('请输入验证码')
         return
       }
       
       if (!this.registerForm.password) {
+        console.log('密码为空，停止处理')
         alert('请输入密码')
         return
       }
       
       if (!this.registerForm.name) {
+        console.log('昵称为空，停止处理')
         alert('请输入昵称')
         return
       }
@@ -245,15 +261,30 @@ export default {
       
       this.loading = true
       try {
-        // 调用注册API
-        const response = await authAPI.register({
+        // 准备注册数据
+        const registerData = {
           email: this.registerForm.email,
           verificationCode: this.registerForm.code,
           password: this.registerForm.password,
           confirmPassword: this.registerForm.confirmPassword,
           name: this.registerForm.name,
           institution: this.registerForm.organization || ''
-        })
+        }
+        
+        console.log('准备发送注册请求，数据:', registerData)
+        console.log('数据类型:', typeof registerData)
+        console.log('数据JSON:', JSON.stringify(registerData))
+        
+        // 调用注册API
+        console.log('开始调用注册API...')
+        let response
+        try {
+          response = await authAPI.register(registerData)
+          console.log('注册API响应:', response)
+        } catch (error) {
+          console.error('注册API调用失败:', error)
+          throw error
+        }
         
         if (response.code === 200) {
           // 注册成功后自动登录
@@ -321,9 +352,64 @@ export default {
     goToLogin() {
       this.$router.push('/login')
     },
+    async testAPI() {
+      console.log('=== 开始测试API调用 ===')
+      try {
+        const testData = {
+          email: 'test@example.com',
+          verificationCode: '123456',
+          password: 'test123',
+          confirmPassword: 'test123',
+          name: '测试用户',
+          institution: '测试机构'
+        }
+        
+        console.log('测试数据:', testData)
+        console.log('测试数据JSON:', JSON.stringify(testData))
+        console.log('开始调用注册API...')
+        
+        // 使用fetch API测试
+        const response = await fetch('http://localhost:8091/zhiyan/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify(testData)
+        })
+        
+        console.log('响应状态:', response.status)
+        console.log('响应头:', response.headers)
+        
+        const responseData = await response.text()
+        console.log('响应数据:', responseData)
+        
+        if (response.ok) {
+          alert('API调用成功！请查看控制台')
+        } else {
+          alert(`API调用失败！状态码: ${response.status}`)
+        }
+      } catch (error) {
+        console.error('API调用失败:', error)
+        console.error('错误类型:', error.name)
+        console.error('错误消息:', error.message)
+        console.error('错误堆栈:', error.stack)
+        console.error('完整错误对象:', error)
+        
+        alert(`API调用失败！错误: ${error.message}`)
+      }
+    },
     async checkEmailStatus() {
-      if (!this.registerForm.email || !isValidEmail(this.registerForm.email)) {
+      if (!this.registerForm.email) {
         this.emailStatus = null
+        return
+      }
+
+      if (!isValidEmail(this.registerForm.email)) {
+        this.emailStatus = {
+          type: 'error',
+          message: '请输入正确的邮箱格式'
+        }
         return
       }
 
@@ -342,12 +428,22 @@ export default {
             }
           }
         } else {
-          this.emailStatus = {
-            type: 'warning',
-            message: '无法检查邮箱状态，请稍后重试'
+          // 后端在邮箱已注册时会返回非200并附带提示
+          const msg = response.msg || '无法检查邮箱状态，请稍后重试'
+          if (msg.includes('已被注册')) {
+            this.emailStatus = {
+              type: 'error',
+              message: '该邮箱已被注册，请使用其他邮箱或直接登录'
+            }
+          } else {
+            this.emailStatus = {
+              type: 'warning',
+              message: msg
+            }
           }
         }
       } catch (error) {
+        console.error('检查邮箱状态失败:', error)
         this.emailStatus = {
           type: 'warning',
           message: '网络错误，无法检查邮箱状态'
