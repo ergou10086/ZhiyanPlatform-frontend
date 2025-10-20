@@ -83,6 +83,11 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile
+  },
+  {
+    path: '/test-api',
+    name: 'TestAPI',
+    component: () => import('../views/TestAPI.vue')
   }
 ]
 
@@ -90,6 +95,58 @@ const router = new VueRouter({
   mode: 'history',
   base: process.env.BASE_URL,
   routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('access_token')
+  const userInfo = localStorage.getItem('user_info')
+  const isAuthenticated = !!(token && userInfo)
+  
+  // 需要认证的页面
+  const authRequiredPages = ['/home', '/profile', '/project-square', '/project-create', '/knowledge-base', '/ai-assistant']
+  
+  console.log('路由守卫检查:', {
+    to: to.path,
+    from: from.path,
+    isAuthenticated,
+    token: !!token,
+    userInfo: !!userInfo,
+    tokenValue: token ? token.substring(0, 20) + '...' : null,
+    userInfoValue: userInfo ? JSON.parse(userInfo).name : null
+  })
+  
+  // 防止重定向循环 - 更严格的检查
+  if (to.path === from.path) {
+    console.log('相同路径，跳过重定向')
+    next()
+    return
+  }
+  
+  // 如果是从home到login的重定向，直接允许
+  if (from.path === '/home' && to.path === '/login') {
+    console.log('从home到login的重定向，直接允许')
+    next()
+    return
+  }
+  
+  if (authRequiredPages.includes(to.path)) {
+    if (!isAuthenticated) {
+      console.log('未认证，重定向到登录页')
+      // 使用replace避免历史记录问题
+      next({ path: '/login', replace: true })
+    } else {
+      console.log('已认证，允许访问')
+      next()
+    }
+  } else if (to.path === '/login' && isAuthenticated) {
+    console.log('已登录用户访问登录页，重定向到首页')
+    // 使用replace避免历史记录问题
+    next({ path: '/home', replace: true })
+  } else {
+    console.log('无需认证，允许访问')
+    next()
+  }
 })
 
 export default router

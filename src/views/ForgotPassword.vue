@@ -32,10 +32,12 @@
               type="text"
               id="code"
               v-model="resetForm.code"
-              placeholder="请输入验证码"
+              placeholder="请输入6位验证码"
               maxlength="6"
+              pattern="[0-9]{6}"
               required
               class="code-input"
+              @input="formatCodeInput"
             />
             <button 
               type="button" 
@@ -85,6 +87,8 @@
 <script>
 import Header from '@/components/Header.vue'
 import Footer from '@/components/Footer.vue'
+import { authAPI } from '@/api/auth'
+import { formatApiError, isValidEmail, validatePassword } from '@/utils/auth'
 
 export default {
   name: 'ForgotPassword',
@@ -112,26 +116,29 @@ export default {
         return
       }
       
-      // 验证邮箱格式
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(this.resetForm.email)) {
+      if (!isValidEmail(this.resetForm.email)) {
         alert('请输入正确的邮箱格式')
         return
       }
       
       this.loading = true
       try {
-        // 这里添加发送验证码逻辑
-        console.log('发送验证码到邮箱:', this.resetForm.email)
+        // 直接调用发送验证码API，让后端处理邮箱检查
+        const response = await authAPI.sendVerificationCode({
+          email: this.resetForm.email,
+          type: 'RESET_PASSWORD' // 重置密码类型，使用大写
+        })
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        alert('验证码已发送到您的邮箱')
-        this.startCountdown()
+        if (response.code === 200) {
+          alert('验证码已发送到您的邮箱，请查收（测试模式下验证码会显示在后端控制台）')
+          this.startCountdown()
+        } else {
+          alert(response.msg || '发送失败，请重试')
+        }
       } catch (error) {
         console.error('发送验证码失败:', error)
-        alert('发送失败，请重试')
+        const errorMessage = formatApiError(error)
+        alert(errorMessage)
       } finally {
         this.loading = false
       }
@@ -140,7 +147,8 @@ export default {
       if (this.submitLocked) return
       this.submitLocked = true
       setTimeout(() => { this.submitLocked = false }, 1000)
-      // 验证表单
+      
+      // 表单验证
       if (!this.resetForm.email) {
         alert('请输入邮箱地址')
         return
@@ -151,8 +159,19 @@ export default {
         return
       }
       
+      // 验证验证码格式
+      if (!/^\d{6}$/.test(this.resetForm.code)) {
+        alert('请输入6位数字验证码')
+        return
+      }
+      
       if (!this.resetForm.newPassword) {
         alert('请输入新密码')
+        return
+      }
+      
+      if (!isValidEmail(this.resetForm.email)) {
+        alert('请输入正确的邮箱格式')
         return
       }
       
@@ -161,24 +180,33 @@ export default {
         return
       }
       
-      if (this.resetForm.newPassword.length < 6) {
-        alert('密码长度不能少于6位')
+      const passwordValidation = validatePassword(this.resetForm.newPassword)
+      if (!passwordValidation.isValid) {
+        alert(passwordValidation.message)
         return
       }
       
       this.loading = true
       try {
-        // 这里添加重置密码逻辑
-        console.log('重置密码请求:', this.resetForm)
+        // 调用重置密码API
+        const response = await authAPI.resetPassword({
+          email: this.resetForm.email,
+          verificationCode: this.resetForm.code,
+          newPassword: this.resetForm.newPassword,
+          confirmPassword: this.resetForm.confirmPassword
+        })
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        alert('密码重置成功！请使用新密码登录')
-        this.$router.push('/login')
+        if (response.code === 200) {
+          alert('密码重置成功！请使用新密码登录')
+          // 跳转回登录界面
+          this.$router.push('/login')
+        } else {
+          alert(response.msg || '密码重置失败，请重试')
+        }
       } catch (error) {
         console.error('密码重置失败:', error)
-        alert('密码重置失败，请重试')
+        const errorMessage = formatApiError(error)
+        alert(errorMessage)
       } finally {
         this.loading = false
       }
@@ -191,6 +219,16 @@ export default {
           clearInterval(timer)
         }
       }, 1000)
+    },
+    formatCodeInput(event) {
+      // 只允许输入数字
+      let value = event.target.value.replace(/[^0-9]/g, '')
+      // 限制6位
+      if (value.length > 6) {
+        value = value.substring(0, 6)
+      }
+      this.resetForm.code = value
+      event.target.value = value
     },
     goToLogin() {
       this.$router.push('/login')

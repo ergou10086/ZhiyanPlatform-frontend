@@ -128,6 +128,7 @@
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
+import { authAPI } from '@/api/auth'
 
 export default {
   name: 'Home',
@@ -196,12 +197,51 @@ export default {
       this.userMenuOpen = false
       this.$router.push('/profile')
     },
-    logout() {
+    async logout() {
       console.log('退出登录')
       this.userMenuOpen = false
-      // 这里可以添加退出登录的逻辑
+      
+      try {
+        // 获取当前token
+        const token = localStorage.getItem('access_token')
+        if (token) {
+          // 调用后端登出接口
+          await authAPI.logout(token)
+          console.log('后端登出成功')
+        }
+      } catch (error) {
+        console.error('后端登出失败:', error)
+        // 即使后端登出失败，也要清除前端数据
+      }
+      
+      // 清除前端认证数据
+      this.clearAuthData()
+      console.log('前端数据已清除')
+      
+      // 显示成功消息
       alert('退出登录成功！')
-      this.$router.push('/login')
+      
+      // 使用setTimeout确保数据清除完成后再跳转
+      setTimeout(() => {
+        console.log('准备跳转到登录页面')
+        window.location.href = '/login'
+      }, 100)
+    },
+    clearAuthData() {
+      // 清除所有认证相关的本地存储
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('remember_me_token')
+      localStorage.removeItem('user_info')
+      localStorage.removeItem('userAvatar')
+      localStorage.removeItem('globalUserInfo')
+      
+      // 清除组件状态
+      this.userAvatar = null
+      this.globalUserInfo = {
+        nickname: '',
+        avatar: ''
+      }
     },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
