@@ -81,6 +81,11 @@
     </div>
     
     <Footer />
+    
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
@@ -106,7 +111,9 @@ export default {
         code: '',
         newPassword: '',
         confirmPassword: ''
-      }
+      },
+      showToast: false,
+      toastMessage: ''
     }
   },
   methods: {
@@ -197,9 +204,12 @@ export default {
         })
         
         if (response.code === 200) {
-          alert('密码重置成功！请使用新密码登录')
-          // 跳转回登录界面
-          this.$router.push('/login')
+          this.showSuccessToast('密码重置成功！请使用新密码登录')
+          
+          // 延迟跳转到登录页面，让用户看到提示
+          setTimeout(() => {
+            this.$router.push('/login')
+          }, 1000)
         } else {
           alert(response.msg || '密码重置失败，请重试')
         }
@@ -232,6 +242,16 @@ export default {
     },
     goToLogin() {
       this.$router.push('/login')
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
     }
   }
 }
@@ -555,6 +575,42 @@ export default {
   
   .send-code-btn {
     width: 100%;
+  }
+}
+
+/* Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 10000;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
   }
 }
 </style>

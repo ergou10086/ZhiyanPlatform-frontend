@@ -113,16 +113,16 @@
         <button type="submit" class="register-btn" :disabled="loading">
           {{ loading ? '注册中...' : '立即注册' }}
         </button>
-        
-        <!-- 临时测试按钮 -->
-        <button type="button" @click="testAPI" class="test-btn" style="margin-top: 10px; background: #ff6b6b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">
-          测试API调用
-        </button>
       </form>
       </div>
     </div>
     
     <Footer />
+    
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
@@ -152,7 +152,9 @@ export default {
         name: '',
         organization: '',
         agreement: false
-      }
+      },
+      showToast: false,
+      toastMessage: ''
     }
   },
   methods: {
@@ -302,13 +304,21 @@ export default {
               }
             }
             saveLoginData(loginData)
-            alert('注册成功！已自动登录')
+            this.showSuccessToast('注册成功！已自动登录')
             // 触发用户信息更新事件
             this.$root.$emit('userInfoUpdated')
-            this.$router.push('/home')
+            
+            // 延迟跳转到首页，让用户看到Toast提示
+            setTimeout(() => {
+              this.$router.push('/home')
+            }, 1000)
           } else {
-            alert('注册成功！请使用您的账号登录')
-            this.$router.push('/login')
+            this.showSuccessToast('注册成功！请使用您的账号登录')
+            
+            // 延迟跳转到登录页面，让用户看到Toast提示
+            setTimeout(() => {
+              this.$router.push('/login')
+            }, 1000)
           }
           
           // 清除表单数据
@@ -354,52 +364,15 @@ export default {
     goToLogin() {
       this.$router.push('/login')
     },
-    async testAPI() {
-      console.log('=== 开始测试API调用 ===')
-      try {
-        const testData = {
-          email: 'test@example.com',
-          verificationCode: '123456',
-          password: 'test123',
-          confirmPassword: 'test123',
-          name: '测试用户',
-          institution: '测试机构'
-        }
-        
-        console.log('测试数据:', testData)
-        console.log('测试数据JSON:', JSON.stringify(testData))
-        console.log('开始调用注册API...')
-        
-        // 使用fetch API测试
-        const response = await fetch('http://localhost:8091/zhiyan/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify(testData)
-        })
-        
-        console.log('响应状态:', response.status)
-        console.log('响应头:', response.headers)
-        
-        const responseData = await response.text()
-        console.log('响应数据:', responseData)
-        
-        if (response.ok) {
-          alert('API调用成功！请查看控制台')
-        } else {
-          alert(`API调用失败！状态码: ${response.status}`)
-        }
-      } catch (error) {
-        console.error('API调用失败:', error)
-        console.error('错误类型:', error.name)
-        console.error('错误消息:', error.message)
-        console.error('错误堆栈:', error.stack)
-        console.error('完整错误对象:', error)
-        
-        alert(`API调用失败！错误: ${error.message}`)
-      }
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
     },
     async checkEmailStatus() {
       if (!this.registerForm.email) {
@@ -459,7 +432,6 @@ export default {
 <style scoped>
 .register-container {
   min-height: 100vh;
-  height: 100vh;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   background-image: url('@/assets/image/background_login.jpg');
   background-size: cover;
@@ -471,6 +443,7 @@ export default {
   margin: 0;
   padding: 0;
   position: relative;
+  justify-content: space-between;
 }
 
 
@@ -479,7 +452,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-10) var(--space-5);
+  padding: var(--space-5);
   position: relative;
   z-index: 2;
 }
@@ -732,6 +705,47 @@ export default {
   
   .send-code-btn {
     width: 100%;
+  }
+}
+
+/* 确保Footer紧贴底部 */
+.register-container > .footer {
+  margin-top: auto;
+}
+
+/* Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 10000;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
   }
 }
 </style>

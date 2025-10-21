@@ -270,6 +270,27 @@
         {{ isSubmitting ? '发布中...' : '发布项目' }}
       </button>
     </div>
+    
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
+    
+    <!-- 错误提示Modal -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>提示</h3>
+          <button class="modal-close" @click="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          {{ modalMessage }}
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-confirm" @click="closeModal">确定</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -297,7 +318,11 @@ export default {
         endDate: '',
         tags: [],
         tasks: [],
-      }
+      },
+      showToast: false,
+      toastMessage: '',
+      showModal: false,
+      modalMessage: ''
     }
   },
   computed: {
@@ -342,6 +367,24 @@ export default {
       } else {
         this.$router.push('/project-square')
       }
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
+    },
+    showErrorModal(message) {
+      this.modalMessage = message
+      this.showModal = true
+    },
+    closeModal() {
+      this.showModal = false
+      this.modalMessage = ''
     },
     triggerImageUpload() {
       // 尝试多种方式触发文件选择
@@ -629,16 +672,18 @@ export default {
         }
         
         // 显示成功消息
-        alert('项目发布成功！')
+        this.showSuccessToast('项目发布成功！')
         
-        // 跳转到项目广场
-        this.$router.push('/project-square')
+        // 延迟跳转到项目广场，让用户看到Toast提示
+        setTimeout(() => {
+          this.$router.push('/project-square')
+        }, 1000)
       } catch (error) {
         console.error('发布项目失败:', error)
         console.error('错误详情:', error.message)
         console.error('表单数据:', this.formData)
         console.error('项目图片:', this.projectImage)
-        alert(`发布项目失败，请重试。错误信息: ${error.message}`)
+        this.showErrorModal(`发布项目失败，请重试。错误信息: ${error.message}`)
       } finally {
         this.isSubmitting = false
       }
@@ -1369,5 +1414,129 @@ export default {
   .preview-section {
     padding: 20px;
   }
+}
+
+/* Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 10000;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+/* Modal样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #666;
+}
+
+.modal-body {
+  padding: 0 24px 20px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  padding: 16px 24px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.modal-btn-confirm:hover {
+  background: #0056b3;
 }
 </style>
