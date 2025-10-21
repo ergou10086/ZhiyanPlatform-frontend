@@ -337,6 +337,11 @@
         </div>
       </div>
     </div>
+
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
     </div>
   </div>
 </template>
@@ -352,6 +357,8 @@ export default {
       selectedTaskType: '',
       statusDropdownOpen: false,
       taskModalOpen: false,
+      showToast: false,
+      toastMessage: '',
       newTask: {
         title: '',
         description: '',
@@ -786,8 +793,28 @@ export default {
     },
     logout() {
       this.userMenuOpen = false
-      alert('退出登录成功！')
-      this.$router.push('/login')
+      
+      // 清除所有认证信息
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('remember_me_token')
+      localStorage.removeItem('user_info')
+      localStorage.removeItem('userAvatar')
+      localStorage.removeItem('globalUserInfo')
+      
+      // 清除所有以userData_开头的用户数据
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('userData_')) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      this.showSuccessToast('退出登录成功！')
+      
+      // 延迟跳转到登录页面，让用户看到提示
+      setTimeout(() => {
+        this.$router.push('/login')
+      }, 1000)
     },
     statusClass(status) {
       if (status === '待接取') return '待接取'
@@ -810,6 +837,16 @@ export default {
     selectTaskType(type) {
       this.selectedTaskType = type
       this.taskTypeOpen = false
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
     }
   }
 }
@@ -1867,6 +1904,42 @@ export default {
   
   .section-actions {
     justify-content: flex-start;
+  }
+}
+
+/* 成功提示Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
   }
 }
 </style>

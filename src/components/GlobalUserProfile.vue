@@ -10,7 +10,7 @@
           </svg>
         </div>
       </div>
-      <span class="username">{{ globalUserInfo.nickname || '张伟' }}</span>
+      <span class="username">{{ globalUserInfo.nickname || '游客' }}</span>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate': userMenuOpen }">
         <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
@@ -25,7 +25,15 @@
         </svg>
         个人信息
       </div>
-      <div class="menu-item" @click="logout">
+      <div v-if="!isLoggedIn" class="menu-item" @click="goToLogin">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M15 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="10,17 15,12 10,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        登录账号
+      </div>
+      <div v-if="isLoggedIn" class="menu-item" @click="logout">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -34,10 +42,17 @@
         退出登录
       </div>
     </div>
+
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
 <script>
+import { clearAuthData } from '@/utils/auth'
+
 export default {
   name: 'GlobalUserProfile',
   props: {
@@ -49,10 +64,13 @@ export default {
   data() {
     return {
       userMenuOpen: false,
+      isLoggedIn: false,
       globalUserInfo: {
-        nickname: '张伟',
+        nickname: '游客',
         avatar: ''
-      }
+      },
+      showToast: false,
+      toastMessage: ''
     }
   },
   mounted() {
@@ -70,9 +88,12 @@ export default {
   },
   methods: {
     loadGlobalUserInfo() {
-      // 从localStorage加载用户信息
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
       const savedUserInfo = localStorage.getItem('user_info')
-      if (savedUserInfo) {
+      this.isLoggedIn = !!(token && savedUserInfo)
+      
+      if (this.isLoggedIn && savedUserInfo) {
         try {
           const userData = JSON.parse(savedUserInfo)
           this.globalUserInfo = {
@@ -82,14 +103,16 @@ export default {
           console.log('GlobalUserProfile加载用户信息:', this.globalUserInfo)
         } catch (error) {
           console.error('解析用户信息失败:', error)
+          this.isLoggedIn = false
           this.globalUserInfo = {
-            nickname: '用户',
+            nickname: '游客',
             avatar: ''
           }
         }
       } else {
+        this.isLoggedIn = false
         this.globalUserInfo = {
-          nickname: '用户',
+          nickname: '游客',
           avatar: ''
         }
       }
@@ -115,10 +138,33 @@ export default {
         this.$router.push('/profile')
       }
     },
+    goToLogin() {
+      this.userMenuOpen = false
+      this.$router.push('/login')
+    },
     logout() {
       this.userMenuOpen = false
-      alert('退出登录成功！')
-      this.$router.push('/login')
+      
+      // 清除所有认证信息
+      clearAuthData()
+      
+      // 显示成功提示
+      this.showSuccessToast('退出登录成功！')
+      
+      // 延迟跳转到登录页面，让用户看到提示
+      setTimeout(() => {
+        this.$router.push('/login')
+      }, 1000)
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
     }
   }
 }
@@ -243,5 +289,41 @@ export default {
 .rotate {
   transform: rotate(180deg);
   transition: transform 0.3s ease;
+}
+
+/* 成功提示Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
 }
 </style>

@@ -20,7 +20,7 @@ Vue.use(VueRouter)
 const routes = [
   {
     path: '/',
-    redirect: '/login'
+    redirect: '/home'
   },
   {
     path: '/login',
@@ -67,7 +67,6 @@ const routes = [
     name: 'KnowledgeBase',
     component: KnowledgeBase,
     children: [
-      { path: '', redirect: 'home' },
       { path: 'home', component: { render: h => h('div') } },
       { path: 'catalog', component: KnowledgeBaseCatalog },
       { path: 'cabinet', component: KnowledgeBaseCabinet },
@@ -98,50 +97,74 @@ router.beforeEach((to, from, next) => {
   const userInfo = localStorage.getItem('user_info')
   const isAuthenticated = !!(token && userInfo)
   
-  // 需要认证的页面
-  const authRequiredPages = ['/home', '/profile', '/project-square', '/project-create', '/knowledge-base', '/ai-assistant']
-  
   console.log('路由守卫检查:', {
     to: to.path,
     from: from.path,
     isAuthenticated,
     token: !!token,
-    userInfo: !!userInfo,
-    tokenValue: token ? token.substring(0, 20) + '...' : null,
-    userInfoValue: userInfo ? JSON.parse(userInfo).name : null
+    userInfo: !!userInfo
   })
   
-  // 防止重定向循环 - 更严格的检查
+  // 防止重定向循环
   if (to.path === from.path) {
     console.log('相同路径，跳过重定向')
     next()
     return
   }
   
-  // 如果是从home到login的重定向，直接允许
-  if (from.path === '/home' && to.path === '/login') {
-    console.log('从home到login的重定向，直接允许')
+  // 登录页面 - 允许所有用户访问
+  if (to.path === '/login') {
+    if (isAuthenticated) {
+      console.log('已登录用户访问登录页，重定向到首页')
+      next({ path: '/home', replace: true })
+    } else {
+      console.log('游客访问登录页，允许访问')
+      next()
+    }
+    return
+  }
+  
+  // 注册和忘记密码页面 - 允许所有用户访问
+  if (to.path === '/register' || to.path === '/forgot-password') {
+    console.log('注册/忘记密码页面，允许访问')
     next()
     return
   }
   
-  if (authRequiredPages.includes(to.path)) {
+  // 游客可以访问的页面
+  const guestAllowedPages = ['/home', '/project-square', '/profile']
+  if (guestAllowedPages.includes(to.path)) {
+    console.log('游客可访问页面，允许访问')
+    next()
+    return
+  }
+  
+  // 需要认证的页面
+  const authRequiredPages = [
+    '/project-create',
+    '/ai-assistant',
+    '/knowledge-base',
+    '/project-detail',
+    '/project-knowledge'
+  ]
+  
+  const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))
+  
+  if (needsAuth) {
     if (!isAuthenticated) {
-      console.log('未认证，重定向到登录页')
+      console.log('需要认证的页面，重定向到登录页')
       // 使用replace避免历史记录问题
       next({ path: '/login', replace: true })
     } else {
       console.log('已认证，允许访问')
       next()
     }
-  } else if (to.path === '/login' && isAuthenticated) {
-    console.log('已登录用户访问登录页，重定向到首页')
-    // 使用replace避免历史记录问题
-    next({ path: '/home', replace: true })
-  } else {
-    console.log('无需认证，允许访问')
-    next()
+    return
   }
+  
+  // 其他页面默认允许访问
+  console.log('其他页面，允许访问')
+  next()
 })
 
 export default router

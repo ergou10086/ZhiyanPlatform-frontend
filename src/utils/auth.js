@@ -67,6 +67,15 @@ export function clearAuthData() {
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('remember_me_token')
   localStorage.removeItem('user_info')
+  localStorage.removeItem('userAvatar')
+  localStorage.removeItem('globalUserInfo')
+  
+  // 清除所有以userData_开头的用户数据
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith('userData_')) {
+      localStorage.removeItem(key)
+    }
+  })
 }
 
 /**

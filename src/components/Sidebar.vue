@@ -56,6 +56,27 @@
         </div>
       </nav>
     </div>
+
+    <!-- 自定义弹窗 -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>需要登录</h3>
+          <button @click="closeModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>{{ modalMessage }}</p>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeModal" class="modal-btn modal-btn-cancel">取消</button>
+          <button @click="goToLogin" class="modal-btn modal-btn-confirm">去登录</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -66,6 +87,12 @@ export default {
     isOpen: {
       type: Boolean,
       default: false
+    }
+  },
+  data() {
+    return {
+      showModal: false,
+      modalMessage: ''
     }
   },
   computed: {
@@ -84,8 +111,41 @@ export default {
         return
       }
       
+      // 检查需要认证的页面
+      const authRequiredPages = ['/knowledge-base', '/ai-assistant', '/project-create']
+      if (authRequiredPages.includes(route)) {
+        const token = localStorage.getItem('access_token')
+        const userInfo = localStorage.getItem('user_info')
+        const isAuthenticated = !!(token && userInfo)
+        
+        if (!isAuthenticated) {
+          this.showLoginModal(this.getLoginMessage(route))
+          this.closeSidebar()
+          return
+        }
+      }
+      
       this.$router.push(route)
       this.closeSidebar()
+    },
+    showLoginModal(message) {
+      this.modalMessage = message
+      this.showModal = true
+    },
+    closeModal() {
+      this.showModal = false
+      this.modalMessage = ''
+    },
+    goToLogin() {
+      this.$router.push('/login')
+    },
+    getLoginMessage(route) {
+      const messages = {
+        '/knowledge-base': '请先登录才能访问知识库',
+        '/ai-assistant': '请先登录才能访问AI助手',
+        '/project-create': '请先登录才能创建项目'
+      }
+      return messages[route] || '请先登录才能访问此功能'
     }
   }
 }
@@ -246,5 +306,104 @@ export default {
   .nav-text {
     font-size: var(--text-sm);
   }
+}
+
+/* 自定义弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-body {
+  padding: 20px 24px;
+}
+
+.modal-body p {
+  margin: 0;
+  font-size: 16px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.modal-btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.modal-btn-confirm {
+  background: #3b82f6;
+  color: white;
+}
+
+.modal-btn-confirm:hover {
+  background: #2563eb;
 }
 </style>

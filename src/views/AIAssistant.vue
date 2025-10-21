@@ -18,7 +18,7 @@
         </button>
         <span class="page-title">AI 实验分析助手</span>
       </div>
-        <div class="header-right">
+      <div class="header-right">
           <button class="sync-status-btn" @click="syncTaskStatusChanges" title="同步任务状态">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M23 4V10H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -50,9 +50,9 @@
           <div class="project-switcher">
             <button class="switch-btn" @click="toggleProjectDropdown">
               <span class="current-project">{{ currentProject.title }}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
             </button>
             <div v-if="showProjectDropdown" class="project-dropdown">
               <div class="dropdown-header">选择项目</div>
@@ -66,7 +66,7 @@
                 <div class="project-info">
                   <div class="project-name">{{ project.title }}</div>
                   <div class="project-lead">{{ project.lead }}</div>
-                </div>
+        </div>
                 <div class="project-progress-small">
                   <div class="progress-bar-small">
                     <div class="progress-fill-small" :style="{ width: project.progress + '%' }"></div>
@@ -76,8 +76,8 @@
               </div>
             </div>
           </div>
-        </div>
       </div>
+    </div>
 
       <!-- 任务管理区域 -->
       <div class="task-management">

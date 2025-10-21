@@ -101,7 +101,7 @@
           <div class="info-item">
             <div class="intro-header">
               <h3 class="info-label">个人简介</h3>
-              <button v-if="!editingIntro" @click="editIntro" class="edit-btn">
+              <button v-if="!editingIntro && isLoggedIn" @click="editIntro" class="edit-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -125,7 +125,49 @@
             <p v-else class="info-value intro-content">{{ userInfo.introduction }}</p>
           </div>
         </div>
+
+        <!-- 游客登录提示卡片 -->
+        <div v-if="!isLoggedIn" class="info-card login-prompt-card">
+          <div class="info-item">
+            <h3 class="info-label">登录账号</h3>
+            <p class="info-value">请登录您的账号以查看完整个人信息</p>
+            <button @click="goToLogin" class="login-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="10,17 15,12 10,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              立即登录
+            </button>
+          </div>
+        </div>
+
+        <!-- 自定义弹窗 -->
+        <div v-if="showModal" class="modal-overlay" @click="closeModal">
+          <div class="modal-content" @click.stop>
+            <div class="modal-header">
+              <h3>需要登录</h3>
+              <button @click="closeModal" class="modal-close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <p>{{ modalMessage }}</p>
+            </div>
+            <div class="modal-footer">
+              <button @click="closeModal" class="modal-btn modal-btn-cancel">取消</button>
+              <button @click="goToLogin" class="modal-btn modal-btn-confirm">去登录</button>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
     </div>
 
     <!-- 隐藏的文件上传输入 -->
@@ -156,6 +198,9 @@ export default {
       editingIntro: false,
       tempNickname: '',
       tempIntro: '',
+      isLoggedIn: false,
+      showModal: false,
+      modalMessage: '',
       userInfo: {
         id: null,
         username: '',
@@ -182,35 +227,44 @@ export default {
   },
   methods: {
     loadUserInfo() {
-      // 从localStorage获取用户信息
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
       const savedUserInfo = localStorage.getItem('user_info')
-      if (savedUserInfo) {
+      this.isLoggedIn = !!(token && savedUserInfo)
+      
+      if (this.isLoggedIn && savedUserInfo) {
         try {
           const userData = JSON.parse(savedUserInfo)
           this.userInfo = {
             id: userData.id || userData.userId,
             username: userData.username || userData.name || '',
             email: userData.email || '',
-        nickname: userData.nickname || userData.name || '未设置昵称',
-        avatar: userData.avatar || '',
-        organization: userData.organization || userData.institution || '未设置机构',
-        introduction: userData.introduction || '这个人很懒，什么都没有留下...',
+            nickname: userData.nickname || userData.name || '未设置昵称',
+            avatar: userData.avatar || '',
+            organization: userData.organization || userData.institution || '未设置机构',
+            introduction: userData.introduction || '这个人很懒，什么都没有留下...',
             role: userData.role || 'MEMBER',
             status: userData.status || 'ACTIVE'
           }
           console.log('加载用户信息:', this.userInfo)
         } catch (error) {
           console.error('解析用户信息失败:', error)
-          // 如果解析失败，使用默认值
-          this.userInfo.nickname = '用户'
-          this.userInfo.email = '未设置邮箱'
+          this.isLoggedIn = false
         }
       } else {
-        // 如果没有用户信息，使用默认值
-        this.userInfo.nickname = '用户'
-        this.userInfo.email = '未设置邮箱'
-        this.userInfo.organization = '未设置机构'
-        this.userInfo.introduction = '这个人很懒，什么都没有留下...'
+        // 游客模式
+        this.isLoggedIn = false
+        this.userInfo = {
+          id: null,
+          username: '',
+          email: '',
+          nickname: '游客',
+          avatar: '',
+          organization: '',
+          introduction: '您还未登录，请登录后查看个人信息',
+          role: 'GUEST',
+          status: 'GUEST'
+        }
       }
     },
     loadUserAvatar() {
@@ -233,6 +287,23 @@ export default {
     goToHome() {
       this.$router.push('/home')
     },
+    goToLogin() {
+      this.$router.push('/login')
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
+    },
+    closeModal() {
+      this.showModal = false
+      this.modalMessage = ''
+    },
     toggleUserMenu() {
       this.userMenuOpen = !this.userMenuOpen
     },
@@ -242,11 +313,36 @@ export default {
     },
     logout() {
       this.userMenuOpen = false
-      alert('退出登录成功！')
-      this.$router.push('/login')
+      
+      // 清除所有认证信息
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('remember_me_token')
+      localStorage.removeItem('user_info')
+      localStorage.removeItem('userAvatar')
+      localStorage.removeItem('globalUserInfo')
+      
+      // 清除所有以userData_开头的用户数据
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('userData_')) {
+          localStorage.removeItem(key)
+        }
+      })
+      
+      this.showSuccessToast('退出登录成功！')
+      
+      // 延迟跳转到登录页面，让用户看到提示
+      setTimeout(() => {
+        this.$router.push('/login')
+      }, 1000)
     },
     // 头像相关方法
     triggerAvatarUpload() {
+      if (!this.isLoggedIn) {
+        this.modalMessage = '请先登录才能修改头像'
+        this.showModal = true
+        return
+      }
       this.$refs.avatarUpload.click()
     },
     handleAvatarUpload(event) {
@@ -279,6 +375,11 @@ export default {
     },
     // 昵称编辑方法
     editNickname() {
+      if (!this.isLoggedIn) {
+        this.modalMessage = '请先登录才能修改昵称'
+        this.showModal = true
+        return
+      }
       this.editingNickname = true
       this.tempNickname = this.userInfo.nickname
       this.$nextTick(() => {
@@ -802,6 +903,183 @@ export default {
 .intro-content {
   line-height: 1.6;
   white-space: pre-wrap;
+}
+
+.login-prompt-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.login-prompt-card .info-label {
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.login-prompt-card .info-value {
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 16px;
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-btn:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 自定义弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 400px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-body {
+  padding: 20px 24px;
+}
+
+.modal-body p {
+  margin: 0;
+  font-size: 16px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
+}
+
+.modal-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.modal-btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.modal-btn-confirm {
+  background: #3b82f6;
+  color: white;
+}
+
+.modal-btn-confirm:hover {
+  background: #2563eb;
+}
+
+.login-btn svg {
+  color: #667eea;
+}
+
+/* 成功提示Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
 }
 </style>
 

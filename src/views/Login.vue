@@ -73,6 +73,11 @@
     </div>
     
     <Footer />
+
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
@@ -98,7 +103,9 @@ export default {
         password: '',
         rememberMe: false,
         autoLogin: false
-      }
+      },
+      showToast: false,
+      toastMessage: ''
     }
   },
   watch: {
@@ -202,13 +209,15 @@ export default {
           })
           
           // 显示成功消息
-          alert('登录成功！')
+          this.showSuccessToast('登录成功！')
           
           // 触发用户信息更新事件
           this.$root.$emit('userInfoUpdated')
           
-          // 使用replace而不是push，避免历史记录问题
-          this.$router.replace('/home')
+          // 延迟跳转到首页，让用户看到Toast提示
+          setTimeout(() => {
+            this.$router.replace('/home')
+          }, 1000)
         } else {
           alert(response.msg || '登录失败，请检查邮箱和密码')
         }
@@ -225,6 +234,16 @@ export default {
     },
     goToForgotPassword() {
       this.$router.push('/forgot-password')
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
     }
   }
 }
@@ -508,6 +527,42 @@ export default {
     flex-direction: column;
     gap: var(--space-3);
     text-align: center;
+  }
+}
+
+/* 成功提示Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
   }
 }
 </style>
