@@ -370,10 +370,15 @@ export default {
     },
     getCurrentUserName() {
       // 从localStorage获取当前用户信息
-      const globalUserInfo = localStorage.getItem('globalUserInfo')
-      if (globalUserInfo) {
-        const userInfo = JSON.parse(globalUserInfo)
-        return userInfo.nickname || userInfo.name || '用户'
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userInfo = JSON.parse(savedUserInfo)
+          return userInfo.nickname || userInfo.name || '用户'
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          return '用户'
+        }
       }
       return '用户'
     },

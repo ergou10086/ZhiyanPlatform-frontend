@@ -30,7 +30,7 @@
                 </svg>
               </div>
             </div>
-            <span class="username">张伟</span>
+            <span class="username">{{ getCurrentUserName() }}</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate': userMenuOpen }">
               <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -179,9 +179,12 @@ export default {
     this.loadUserAvatar()
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
+    // 监听用户信息更新事件
+    this.$root.$on('userInfoUpdated', this.loadUserAvatar)
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
+    this.$root.$off('userInfoUpdated', this.loadUserAvatar)
   },
   methods: {
     toggleSidebar() {
@@ -205,8 +208,37 @@ export default {
       this.userMenuOpen = !this.userMenuOpen
     },
     loadUserAvatar() {
+      // 优先从user_info获取头像
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userData = JSON.parse(savedUserInfo)
+          if (userData.avatar) {
+            this.userAvatar = userData.avatar
+            return
+          }
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+        }
+      }
+      
+      // 如果user_info中没有头像，则从userAvatar获取
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
+    },
+    getCurrentUserName() {
+      // 从localStorage获取当前用户信息
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userInfo = JSON.parse(savedUserInfo)
+          return userInfo.nickname || userInfo.name || '用户'
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          return '用户'
+        }
+      }
+      return '用户'
     },
     loadProjects() {
       // 从localStorage加载项目数据

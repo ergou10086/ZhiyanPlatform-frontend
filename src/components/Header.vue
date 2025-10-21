@@ -12,15 +12,57 @@
         </div>
       </div>
       <div class="header-right">
-        <span class="account-label">账户管理</span>
+        <div class="user-info">
+          <span class="user-name">{{ userNickname }}</span>
+          <span class="account-label">账户管理</span>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script>
+import { EventBus, EVENTS } from '@/utils/eventBus'
+
 export default {
-  name: 'Header'
+  name: 'Header',
+  data() {
+    return {
+      userNickname: '用户'
+    }
+  },
+  mounted() {
+    this.loadUserInfo()
+    // 监听用户信息更新事件
+    EventBus.$on(EVENTS.LOGIN_SUCCESS, this.loadUserInfo)
+    EventBus.$on(EVENTS.USER_INFO_UPDATED, this.loadUserInfo)
+    // 监听Vue全局事件
+    this.$root.$on('userInfoUpdated', this.loadUserInfo)
+  },
+  beforeDestroy() {
+    // 清理事件监听器
+    EventBus.$off(EVENTS.LOGIN_SUCCESS, this.loadUserInfo)
+    EventBus.$off(EVENTS.USER_INFO_UPDATED, this.loadUserInfo)
+    this.$root.$off('userInfoUpdated', this.loadUserInfo)
+  },
+  methods: {
+    loadUserInfo() {
+      // 从localStorage获取用户信息
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userData = JSON.parse(savedUserInfo)
+          this.userNickname = userData.nickname || userData.name || '用户'
+          console.log('Header加载用户昵称:', this.userNickname)
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          this.userNickname = '用户'
+        }
+      } else {
+        this.userNickname = '用户'
+      }
+    }
+  }
 }
 </script>
 
@@ -72,6 +114,23 @@ export default {
 .header-right {
   display: flex;
   align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.user-name {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+  padding: var(--space-2) var(--space-3);
+  background: var(--primary-color);
+  color: white;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--primary-color);
 }
 
 .account-label {

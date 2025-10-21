@@ -303,6 +303,8 @@ export default {
             }
             saveLoginData(loginData)
             alert('注册成功！已自动登录')
+            // 触发用户信息更新事件
+            this.$root.$emit('userInfoUpdated')
             this.$router.push('/home')
           } else {
             alert('注册成功！请使用您的账号登录')

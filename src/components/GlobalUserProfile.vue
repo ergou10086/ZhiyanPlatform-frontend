@@ -70,15 +70,33 @@ export default {
   },
   methods: {
     loadGlobalUserInfo() {
-      // 从localStorage加载全局用户信息
-      const savedUserInfo = localStorage.getItem('globalUserInfo')
+      // 从localStorage加载用户信息
+      const savedUserInfo = localStorage.getItem('user_info')
       if (savedUserInfo) {
-        this.globalUserInfo = JSON.parse(savedUserInfo)
+        try {
+          const userData = JSON.parse(savedUserInfo)
+          this.globalUserInfo = {
+            nickname: userData.nickname || userData.name || '用户',
+            avatar: userData.avatar || ''
+          }
+          console.log('GlobalUserProfile加载用户信息:', this.globalUserInfo)
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          this.globalUserInfo = {
+            nickname: '用户',
+            avatar: ''
+          }
+        }
+      } else {
+        this.globalUserInfo = {
+          nickname: '用户',
+          avatar: ''
+        }
       }
     },
     handleStorageChange(event) {
-      // 监听localStorage中globalUserInfo的变化
-      if (event.key === 'globalUserInfo') {
+      // 监听localStorage中user_info的变化
+      if (event.key === 'user_info') {
         this.loadGlobalUserInfo()
       }
     },

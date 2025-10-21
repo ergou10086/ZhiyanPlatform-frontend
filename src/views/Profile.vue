@@ -88,20 +88,11 @@
           </div>
         </div>
 
-        <!-- 职位信息卡片 -->
+        <!-- 机构信息卡片 -->
         <div class="info-card">
           <div class="info-item">
-            <h3 class="info-label">职位信息</h3>
-            <div class="job-details">
-              <div class="job-item">
-                <span class="job-label">职称/职位:</span>
-                <span class="job-value">{{ userInfo.position }}</span>
-              </div>
-              <div class="job-item">
-                <span class="job-label">所属机构:</span>
-                <span class="job-value">{{ userInfo.organization }}</span>
-              </div>
-            </div>
+            <h3 class="info-label">所属机构</h3>
+            <p class="info-value">{{ userInfo.organization }}</p>
           </div>
         </div>
 
@@ -166,27 +157,62 @@ export default {
       tempNickname: '',
       tempIntro: '',
       userInfo: {
-        id: 1, // 添加用户ID
-        username: 'limingxuan', // 添加用户名字段
-        email: 'limingxuan@example.com',
-        nickname: '李明轩',
+        id: null,
+        username: '',
+        email: '',
+        nickname: '',
         avatar: '',
-        position: '高级前端工程师',
-        organization: '腾讯科技有限公司',
-        introduction: '资深前端开发工程师,拥有8年以上 Web应用开发经验。专注于Vue.js 和 React 生态系统,擅长构建高性能、可扩展的用户界面。热爱技术分享,定期在技术社区发表文章。目前就职于一家知名互联网公司,担任前端技术负责人。',
-        role: 'MEMBER', // 添加角色字段
-        status: 'ACTIVE' // 添加状态字段
+        organization: '',
+        introduction: '',
+        role: '',
+        status: ''
       }
     }
   },
   mounted() {
+    this.loadUserInfo()
     this.loadUserAvatar()
     document.addEventListener('click', this.handleClickOutside)
+    // 监听用户信息更新事件
+    this.$root.$on('userInfoUpdated', this.loadUserInfo)
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
+    this.$root.$off('userInfoUpdated', this.loadUserInfo)
   },
   methods: {
+    loadUserInfo() {
+      // 从localStorage获取用户信息
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userData = JSON.parse(savedUserInfo)
+          this.userInfo = {
+            id: userData.id || userData.userId,
+            username: userData.username || userData.name || '',
+            email: userData.email || '',
+        nickname: userData.nickname || userData.name || '未设置昵称',
+        avatar: userData.avatar || '',
+        organization: userData.organization || userData.institution || '未设置机构',
+        introduction: userData.introduction || '这个人很懒，什么都没有留下...',
+            role: userData.role || 'MEMBER',
+            status: userData.status || 'ACTIVE'
+          }
+          console.log('加载用户信息:', this.userInfo)
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          // 如果解析失败，使用默认值
+          this.userInfo.nickname = '用户'
+          this.userInfo.email = '未设置邮箱'
+        }
+      } else {
+        // 如果没有用户信息，使用默认值
+        this.userInfo.nickname = '用户'
+        this.userInfo.email = '未设置邮箱'
+        this.userInfo.organization = '未设置机构'
+        this.userInfo.introduction = '这个人很懒，什么都没有留下...'
+      }
+    },
     loadUserAvatar() {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) {
@@ -231,10 +257,20 @@ export default {
           this.userInfo.avatar = e.target.result
           this.userAvatar = e.target.result
           localStorage.setItem('userAvatar', e.target.result)
-          // 同时保存到全局用户信息
-          localStorage.setItem('globalUserInfo', JSON.stringify(this.userInfo))
-          // 同时保存到用户数据中，供登录页面使用
-          localStorage.setItem('userData_' + this.userInfo.email, JSON.stringify(this.userInfo))
+          
+          // 更新user_info中的头像信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              userData.avatar = e.target.result
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('头像已更新到user_info:', userData.avatar)
+            } catch (error) {
+              console.error('更新user_info头像失败:', error)
+            }
+          }
+          
           // 触发全局更新事件
           this.$root.$emit('userInfoUpdated')
         }
@@ -266,10 +302,20 @@ export default {
         if (confirm(`确定要将昵称修改为"${trimmedNickname}"吗？`)) {
           this.userInfo.nickname = trimmedNickname
           this.editingNickname = false
-          // 保存到localStorage，实现全局同步
-          localStorage.setItem('globalUserInfo', JSON.stringify(this.userInfo))
-          // 同时保存到用户数据中，供登录页面使用
-          localStorage.setItem('userData_' + this.userInfo.email, JSON.stringify(this.userInfo))
+          
+          // 更新user_info中的昵称信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              userData.nickname = trimmedNickname
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('昵称已更新到user_info:', userData.nickname)
+            } catch (error) {
+              console.error('更新user_info昵称失败:', error)
+            }
+          }
+          
           // 触发全局更新事件
           this.$root.$emit('userInfoUpdated')
           console.log('昵称已更新:', trimmedNickname)
@@ -670,29 +716,6 @@ export default {
   line-height: 1.5;
 }
 
-.job-details {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.job-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.job-label {
-  font-size: 14px;
-  color: #6c757d;
-  min-width: 80px;
-}
-
-.job-value {
-  font-size: 14px;
-  color: #2c3e50;
-}
 
 .intro-header {
   display: flex;

@@ -84,11 +84,6 @@ const routes = [
     name: 'Profile',
     component: Profile
   },
-  {
-    path: '/test-api',
-    name: 'TestAPI',
-    component: () => import('../views/TestAPI.vue')
-  }
 ]
 
 const router = new VueRouter({

@@ -204,6 +204,9 @@ export default {
           // 显示成功消息
           alert('登录成功！')
           
+          // 触发用户信息更新事件
+          this.$root.$emit('userInfoUpdated')
+          
           // 使用replace而不是push，避免历史记录问题
           this.$router.replace('/home')
         } else {
