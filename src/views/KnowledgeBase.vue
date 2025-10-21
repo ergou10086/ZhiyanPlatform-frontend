@@ -57,19 +57,23 @@
             <ul class="meta-list">
               <li>
                 <span class="meta-label">团队规模：</span>
-                <span class="meta-value">{{ project.teamSize }}人</span>
+                <span class="meta-value">{{ getTeamSize(project) }}人</span>
               </li>
-              <li>
-                <span class="meta-label">数据资产：</span>
-                <span class="meta-value">{{ project.dataAssets }}</span>
+              <li v-if="project.startDate && project.endDate">
+                <span class="meta-label">项目周期：</span>
+                <span class="meta-value">{{ formatDateRange(project.startDate, project.endDate) }}</span>
               </li>
-              <li>
-                <span class="meta-label">研究方向：</span>
-                <span class="meta-value">{{ project.direction }}</span>
+              <li v-else-if="project.period">
+                <span class="meta-label">项目周期：</span>
+                <span class="meta-value">{{ project.period }}</span>
               </li>
-              <li>
-                <span class="meta-label">AI 核心：</span>
-                <span class="meta-value">{{ project.aiCore }}</span>
+              <li v-if="project.tags && project.tags.length > 0">
+                <span class="meta-label">标签：</span>
+                <span class="meta-value">
+                  <span v-for="(tag, index) in project.tags" :key="index" class="tag-item">
+                    {{ tag }}{{ index < project.tags.length - 1 ? '、' : '' }}
+                  </span>
+                </span>
               </li>
             </ul>
           </div>
@@ -110,9 +114,9 @@ export default {
           category: '医疗健康',
           status: '稳健中',
           teamSize: 8,
-          dataAssets: 'MRI, CT, PET扫描',
-          direction: '肿瘤检测算法',
-          aiCore: '深度学习模型',
+          startDate: '2025-01-15',
+          endDate: '2025-12-31',
+          tags: ['医学影像', '深度学习', '肿瘤检测'],
           isJoined: true
         },
         {
@@ -121,27 +125,32 @@ export default {
           category: '环境气候',
           status: '进行中',
           teamSize: 12,
-          dataAssets: '气象站数据',
-          direction: '气候建模',
-          aiCore: '神经网络预测',
+          startDate: '2025-02-01',
+          endDate: '2025-11-30',
+          tags: ['气候变化', 'LSTM', '时序预测'],
           isJoined: true
         },
         {
           id: 103,
           title: '基因组数据分析平台',
           category: '生物信息',
-          status: '已完成',
+          status: '进行中',
           teamSize: 6,
-          dataAssets: '基因序列数据',
-          direction: '基因变异分析',
-          aiCore: '机器学习算法',
+          startDate: '2025-01-01',
+          endDate: '2025-10-31',
+          tags: ['基因组', '图神经网络', '生物信息'],
           isJoined: true
         }
       ]
       
-      // 标记用户创建的项目
+      // 标记用户创建的项目，并添加项目周期和标签
       const markedCreatedProjects = createdProjects.map(project => ({
         ...project,
+        status: project.status || '进行中',
+        teamSize: this.getTeamSize(project),
+        startDate: project.startDate || project.createdAt,
+        endDate: project.endDate || project.updatedAt,
+        tags: project.tags || [],
         isJoined: true
       }))
       
@@ -152,14 +161,33 @@ export default {
       console.log('默认参与项目数量:', defaultJoinedProjects.length)
       console.log('知识库总项目数量:', this.joinedProjects.length)
       console.log('知识库项目列表:', this.joinedProjects)
-      
-      // 调试：检查项目图片
-      console.log('项目图片调试信息:')
-      this.joinedProjects.forEach((project, index) => {
-        console.log(`项目 ${index + 1}: ${project.title}`)
-        console.log(`  图片URL: ${project.image || '无图片'}`)
-        console.log(`  项目ID: ${project.id}`)
-      })
+    },
+    
+    // 获取团队规模
+    getTeamSize(project) {
+      if (project.teamSize) return project.teamSize
+      if (project.team && Array.isArray(project.team)) return project.team.length
+      return 1 // 默认1人
+    },
+    
+    // 格式化日期范围
+    formatDateRange(startDate, endDate) {
+      if (!startDate || !endDate) return '未设置'
+      const start = new Date(startDate).toLocaleDateString('zh-CN')
+      const end = new Date(endDate).toLocaleDateString('zh-CN')
+      return `${start} 至 ${end}`
+    },
+    
+    // 状态样式类
+    statusClass(status) {
+      const statusMap = {
+        '进行中': 'status-active',
+        '稳健中': 'status-stable',
+        '已完成': 'status-completed',
+        '暂停': 'status-paused',
+        '计划中': 'status-planned'
+      }
+      return statusMap[status] || 'status-default'
     },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
@@ -213,7 +241,7 @@ export default {
 .header-left {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3); /* 调整为项目广场相同的卡片间距 */
 }
 
 .back-btn {
@@ -403,7 +431,7 @@ export default {
   margin-top: var(--space-4);
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-4);
+  gap: var(--space-3); /* 调整为项目广场相同的卡片间距 */
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -420,7 +448,7 @@ export default {
   flex-direction: column;
   cursor: pointer;
   transition: all var(--transition-normal);
-  height: 280px;
+  height: 280px; /* 调整为项目广场相同的卡片高度 */
   position: relative;
 }
 
@@ -447,7 +475,7 @@ export default {
 }
 
 .card-media {
-  height: 120px;
+  height: 180px; /* 调整为项目广场相同的图片高度 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -503,7 +531,7 @@ export default {
 }
 
 .card-body { 
-  padding: var(--space-3); 
+  padding: var(--space-3); /* 调整为项目广场相同的内边距 */
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -587,6 +615,16 @@ export default {
   font-weight: var(--font-semibold);
 }
 
+.tag-item {
+  display: inline-block;
+  background: #f3f4f6;
+  color: #374151;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-right: 4px;
+}
+
 @media (max-width: 1400px) {
   .grid { 
     grid-template-columns: repeat(3, 1fr);
@@ -609,11 +647,11 @@ export default {
   }
   
   .card {
-    height: 260px;
+    height: 260px; /* 移动端调整为合适的卡片高度 */
   }
   
   .card-media {
-    height: 100px;
+    height: 140px; /* 移动端调整为合适的图片高度 */
   }
 }
 </style>

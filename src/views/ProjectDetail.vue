@@ -314,8 +314,11 @@
               <input 
                 v-model="newTask.dueDate" 
                 type="date" 
+                :min="today"
                 class="form-input"
+                @change="validateNewTaskDueDate"
               />
+              <div v-if="newTask.dateError" class="error-message">{{ newTask.dateError }}</div>
             </div>
             
             <div class="form-field">
@@ -364,7 +367,8 @@ export default {
         description: '',
         dueDate: '',
         priority: '中',
-        status: '待接取'
+        status: '待接取',
+        dateError: ''
       },
       project: null,
       tasks: [],
@@ -382,6 +386,11 @@ export default {
       // 判断当前用户是否是项目负责人
       const currentUserName = this.getCurrentUserName()
       return this.project && this.project.manager === currentUserName
+    },
+    // 获取今天的日期，格式为 YYYY-MM-DD
+    today() {
+      const today = new Date()
+      return today.toISOString().split('T')[0]
     }
   },
   mounted() {
@@ -585,6 +594,15 @@ export default {
         this.$router.push('/project-square')
       }
     },
+    // 验证新建任务截止日期
+    validateNewTaskDueDate() {
+      this.newTask.dateError = ''
+      if (this.newTask.dueDate && new Date(this.newTask.dueDate) < new Date(this.today)) {
+        this.newTask.dateError = '任务截止日期不能早于今天'
+        return false
+      }
+      return true
+    },
     // 任务操作功能
     createTask() {
       this.taskModalOpen = true
@@ -593,7 +611,9 @@ export default {
         title: '',
         description: '',
         dueDate: '',
-        priority: '中'
+        priority: '中',
+        status: '待接取',
+        dateError: ''
       }
     },
     closeTaskModal() {
@@ -602,6 +622,12 @@ export default {
     saveNewTask() {
       if (!this.newTask.title.trim()) {
         alert('请输入任务标题')
+        return
+      }
+      
+      // 验证截止日期不能早于今天
+      if (this.newTask.dueDate && new Date(this.newTask.dueDate) < new Date(this.today)) {
+        alert('任务截止日期不能早于今天')
         return
       }
       
@@ -1941,5 +1967,13 @@ export default {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+
+/* 错误消息样式 */
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
 }
 </style>

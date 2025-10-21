@@ -89,6 +89,7 @@
             </div>
           </div>
 
+
           <!-- 最近活动（仅主页显示） -->
           <div v-if="activeTab==='home'" class="card">
             <div class="card-header">
@@ -211,6 +212,7 @@ export default {
         console.log('localStorage中没有项目数据')
       }
     },
+    
     
     handleFileUploaded(file) {
       // 处理文件上传，更新最近活动
@@ -528,6 +530,7 @@ export default {
   flex-direction: column;
   gap: 20px;
 }
+
 
 .kb-header {
   margin-bottom: 24px;

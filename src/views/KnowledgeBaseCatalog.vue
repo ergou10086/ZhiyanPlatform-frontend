@@ -150,36 +150,119 @@
             />
           </div>
           
-          <!-- 成果详细描述 - 多个文本框 -->
+          <!-- 成果详细描述 - 根据类型显示不同的字段 -->
           <div class="form-group">
             <label>成果详细描述：</label>
             <div class="description-fields">
-              <div 
-                v-for="(desc, index) in achievementForm.descriptions" 
-                :key="index" 
-                class="description-field"
-              >
-                <textarea 
-                  v-model="desc.content"
-                  :placeholder="`描述 ${index + 1}：请输入详细描述`"
-                  class="form-textarea"
-                  rows="3"
-                ></textarea>
-                <button 
-                  v-if="achievementForm.descriptions.length > 1"
-                  class="remove-desc-btn" 
-                  @click="removeDescription(index)"
-                  title="删除此描述"
-                >
-                  ×
-                </button>
-              </div>
-              <button class="add-desc-btn" @click="addDescription">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                添加描述
-              </button>
+              <!-- 论文类型 -->
+              <template v-if="currentFileType === '论文'">
+                <div class="description-row">
+                  <div class="description-label">论文名：</div>
+                  <input 
+                    v-model="achievementForm.paperName" 
+                    type="text" 
+                    placeholder="请输入论文名"
+                    class="form-input"
+                  />
+                </div>
+                <div class="description-row">
+                  <div class="description-label">论文标识：</div>
+                  <input 
+                    v-model="achievementForm.paperId" 
+                    type="text" 
+                    placeholder="请输入论文标识"
+                    class="form-input"
+                  />
+                </div>
+              </template>
+              
+              <!-- 专利类型 -->
+              <template v-else-if="currentFileType === '专利'">
+                <div class="description-row">
+                  <div class="description-label">专利名：</div>
+                  <input 
+                    v-model="achievementForm.patentName" 
+                    type="text" 
+                    placeholder="请输入专利名"
+                    class="form-input"
+                  />
+                </div>
+                <div class="description-row">
+                  <div class="description-label">专利标识：</div>
+                  <input 
+                    v-model="achievementForm.patentId" 
+                    type="text" 
+                    placeholder="请输入专利标识"
+                    class="form-input"
+                  />
+                </div>
+              </template>
+              
+              <!-- 数据集类型 -->
+              <template v-else-if="currentFileType === '数据集'">
+                <div class="description-row">
+                  <div class="description-label">数据集名：</div>
+                  <input 
+                    v-model="achievementForm.datasetName" 
+                    type="text" 
+                    placeholder="请输入数据集名"
+                    class="form-input"
+                  />
+                </div>
+                <div class="description-row">
+                  <div class="description-label">数据集标识：</div>
+                  <input 
+                    v-model="achievementForm.datasetId" 
+                    type="text" 
+                    placeholder="请输入数据集标识"
+                    class="form-input"
+                  />
+                </div>
+              </template>
+              
+              <!-- 模型文件类型 -->
+              <template v-else-if="currentFileType === '模型文件'">
+                <div class="description-row">
+                  <div class="description-label">模型名：</div>
+                  <input 
+                    v-model="achievementForm.modelName" 
+                    type="text" 
+                    placeholder="请输入模型名"
+                    class="form-input"
+                  />
+                </div>
+                <div class="description-row">
+                  <div class="description-label">模型标识：</div>
+                  <input 
+                    v-model="achievementForm.modelId" 
+                    type="text" 
+                    placeholder="请输入模型标识"
+                    class="form-input"
+                  />
+                </div>
+              </template>
+              
+              <!-- 实验报告类型 -->
+              <template v-else-if="currentFileType === '实验报告'">
+                <div class="description-row">
+                  <div class="description-label">报告名：</div>
+                  <input 
+                    v-model="achievementForm.reportName" 
+                    type="text" 
+                    placeholder="请输入报告名"
+                    class="form-input"
+                  />
+                </div>
+                <div class="description-row">
+                  <div class="description-label">报告标识：</div>
+                  <input 
+                    v-model="achievementForm.reportId" 
+                    type="text" 
+                    placeholder="请输入报告标识"
+                    class="form-input"
+                  />
+                </div>
+              </template>
             </div>
           </div>
           
@@ -262,7 +345,7 @@
             />
           </div>
 
-          <!-- 成果详细描述 - 多个文本框 -->
+          <!-- 成果详细描述 - 自定义两列输入框 -->
           <div class="form-group">
             <label>成果详细描述：</label>
             <div class="description-fields">
@@ -271,20 +354,28 @@
                 :key="index" 
                 class="description-field"
               >
-                <textarea 
-                  v-model="desc.content"
-                  :placeholder="`描述 ${index + 1}：请输入详细描述`"
-                  class="form-textarea"
-                  rows="3"
-                ></textarea>
-                <button 
-                  v-if="customUploadForm.descriptions.length > 1"
-                  class="remove-desc-btn" 
-                  @click="removeCustomDescription(index)"
-                  title="删除此描述"
-                >
-                  ×
-                </button>
+                <div class="description-row">
+                  <input 
+                    v-model="desc.leftField"
+                    type="text" 
+                    placeholder=""
+                    class="form-input form-input-small"
+                  />
+                  <input 
+                    v-model="desc.rightField"
+                    type="text" 
+                    placeholder=""
+                    class="form-input form-input-large"
+                  />
+                  <button 
+                    v-if="customUploadForm.descriptions.length > 1"
+                    class="remove-desc-btn" 
+                    @click="removeCustomDescription(index)"
+                    title="删除此行"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
               <button class="add-desc-btn" @click="addCustomDescription">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -440,6 +531,49 @@
                   </button>
                 </div>
               </div>
+              
+              <!-- 成果详细描述 -->
+              <div v-if="viewingFile && getAchievementDescription(viewingFile)" class="achievement-description">
+                <div class="detail-label">成果详细描述：</div>
+                <div class="description-content">
+                  <div v-if="viewingFile.paperName || viewingFile.paperId" class="description-item">
+                    <span v-if="viewingFile.paperName" class="desc-label">论文名：</span>
+                    <span v-if="viewingFile.paperName" class="desc-value">{{ viewingFile.paperName }}</span>
+                    <span v-if="viewingFile.paperId" class="desc-label">论文标识：</span>
+                    <span v-if="viewingFile.paperId" class="desc-value">{{ viewingFile.paperId }}</span>
+                  </div>
+                  <div v-if="viewingFile.patentName || viewingFile.patentId" class="description-item">
+                    <span v-if="viewingFile.patentName" class="desc-label">专利名：</span>
+                    <span v-if="viewingFile.patentName" class="desc-value">{{ viewingFile.patentName }}</span>
+                    <span v-if="viewingFile.patentId" class="desc-label">专利标识：</span>
+                    <span v-if="viewingFile.patentId" class="desc-value">{{ viewingFile.patentId }}</span>
+                  </div>
+                  <div v-if="viewingFile.datasetName || viewingFile.datasetId" class="description-item">
+                    <span v-if="viewingFile.datasetName" class="desc-label">数据集名：</span>
+                    <span v-if="viewingFile.datasetName" class="desc-value">{{ viewingFile.datasetName }}</span>
+                    <span v-if="viewingFile.datasetId" class="desc-label">数据集标识：</span>
+                    <span v-if="viewingFile.datasetId" class="desc-value">{{ viewingFile.datasetId }}</span>
+                  </div>
+                  <div v-if="viewingFile.modelName || viewingFile.modelId" class="description-item">
+                    <span v-if="viewingFile.modelName" class="desc-label">模型名：</span>
+                    <span v-if="viewingFile.modelName" class="desc-value">{{ viewingFile.modelName }}</span>
+                    <span v-if="viewingFile.modelId" class="desc-label">模型标识：</span>
+                    <span v-if="viewingFile.modelId" class="desc-value">{{ viewingFile.modelId }}</span>
+                  </div>
+                  <div v-if="viewingFile.reportName || viewingFile.reportId" class="description-item">
+                    <span v-if="viewingFile.reportName" class="desc-label">报告名：</span>
+                    <span v-if="viewingFile.reportName" class="desc-value">{{ viewingFile.reportName }}</span>
+                    <span v-if="viewingFile.reportId" class="desc-label">报告标识：</span>
+                    <span v-if="viewingFile.reportId" class="desc-value">{{ viewingFile.reportId }}</span>
+                  </div>
+                  <div v-if="viewingFile.descriptions && viewingFile.descriptions.length > 0" class="description-item">
+                    <div v-for="(desc, index) in viewingFile.descriptions" :key="index" class="custom-description">
+                      <span class="desc-value">{{ desc }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <div class="preview-content">
                 <div class="preview-placeholder">
                   <div class="preview-icon">🔍</div>
@@ -499,6 +633,48 @@
                 <div class="detail-item">
                   <span class="detail-label">文件大小：</span>
                   <span class="detail-value">{{ fileContent.size }}</span>
+                </div>
+                
+                <!-- 成果详细描述 -->
+                <div v-if="viewingFile && getAchievementDescription(viewingFile)" class="achievement-description">
+                  <div class="detail-label">成果详细描述：</div>
+                  <div class="description-content">
+                    <div v-if="viewingFile.paperName || viewingFile.paperId" class="description-item">
+                      <span v-if="viewingFile.paperName" class="desc-label">论文名：</span>
+                      <span v-if="viewingFile.paperName" class="desc-value">{{ viewingFile.paperName }}</span>
+                      <span v-if="viewingFile.paperId" class="desc-label">论文标识：</span>
+                      <span v-if="viewingFile.paperId" class="desc-value">{{ viewingFile.paperId }}</span>
+                    </div>
+                    <div v-if="viewingFile.patentName || viewingFile.patentId" class="description-item">
+                      <span v-if="viewingFile.patentName" class="desc-label">专利名：</span>
+                      <span v-if="viewingFile.patentName" class="desc-value">{{ viewingFile.patentName }}</span>
+                      <span v-if="viewingFile.patentId" class="desc-label">专利标识：</span>
+                      <span v-if="viewingFile.patentId" class="desc-value">{{ viewingFile.patentId }}</span>
+                    </div>
+                    <div v-if="viewingFile.datasetName || viewingFile.datasetId" class="description-item">
+                      <span v-if="viewingFile.datasetName" class="desc-label">数据集名：</span>
+                      <span v-if="viewingFile.datasetName" class="desc-value">{{ viewingFile.datasetName }}</span>
+                      <span v-if="viewingFile.datasetId" class="desc-label">数据集标识：</span>
+                      <span v-if="viewingFile.datasetId" class="desc-value">{{ viewingFile.datasetId }}</span>
+                    </div>
+                    <div v-if="viewingFile.modelName || viewingFile.modelId" class="description-item">
+                      <span v-if="viewingFile.modelName" class="desc-label">模型名：</span>
+                      <span v-if="viewingFile.modelName" class="desc-value">{{ viewingFile.modelName }}</span>
+                      <span v-if="viewingFile.modelId" class="desc-label">模型标识：</span>
+                      <span v-if="viewingFile.modelId" class="desc-value">{{ viewingFile.modelId }}</span>
+                    </div>
+                    <div v-if="viewingFile.reportName || viewingFile.reportId" class="description-item">
+                      <span v-if="viewingFile.reportName" class="desc-label">报告名：</span>
+                      <span v-if="viewingFile.reportName" class="desc-value">{{ viewingFile.reportName }}</span>
+                      <span v-if="viewingFile.reportId" class="desc-label">报告标识：</span>
+                      <span v-if="viewingFile.reportId" class="desc-value">{{ viewingFile.reportId }}</span>
+                    </div>
+                    <div v-if="viewingFile.descriptions && viewingFile.descriptions.length > 0" class="description-item">
+                      <div v-for="(desc, index) in viewingFile.descriptions" :key="index" class="custom-description">
+                        <span class="desc-value">{{ desc }}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div class="file-preview-notice">
@@ -675,22 +851,25 @@ export default {
       this.achievementForm.files.splice(index, 1)
     },
     
-    addDescription() {
-      this.achievementForm.descriptions.push({ content: '' })
-    },
-    
-    removeDescription(index) {
-      if (this.achievementForm.descriptions.length > 1) {
-        this.achievementForm.descriptions.splice(index, 1)
-      }
-    },
     
     resetAchievementForm() {
       this.achievementForm = {
         name: '',
-        descriptions: [
-          { content: '' }
-        ],
+        // 论文字段
+        paperName: '',
+        paperId: '',
+        // 专利字段
+        patentName: '',
+        patentId: '',
+        // 数据集字段
+        datasetName: '',
+        datasetId: '',
+        // 模型文件字段
+        modelName: '',
+        modelId: '',
+        // 实验报告字段
+        reportName: '',
+        reportId: '',
         files: []
       }
     },
@@ -722,7 +901,27 @@ export default {
             uploader: '当前用户',
             time: new Date().toLocaleString('zh-CN'),
             typeCls: this.getTypeClass(this.currentFileType),
-            descriptions: this.achievementForm.descriptions.filter(desc => desc.content.trim()).map(desc => desc.content),
+            // 根据类型保存相应的字段
+            ...(this.currentFileType === '论文' && {
+              paperName: this.achievementForm.paperName,
+              paperId: this.achievementForm.paperId
+            }),
+            ...(this.currentFileType === '专利' && {
+              patentName: this.achievementForm.patentName,
+              patentId: this.achievementForm.patentId
+            }),
+            ...(this.currentFileType === '数据集' && {
+              datasetName: this.achievementForm.datasetName,
+              datasetId: this.achievementForm.datasetId
+            }),
+            ...(this.currentFileType === '模型文件' && {
+              modelName: this.achievementForm.modelName,
+              modelId: this.achievementForm.modelId
+            }),
+            ...(this.currentFileType === '实验报告' && {
+              reportName: this.achievementForm.reportName,
+              reportId: this.achievementForm.reportId
+            }),
             files: filesWithBuffer,
             fileCount: this.achievementForm.files.length
           }
@@ -792,7 +991,7 @@ export default {
     },
     
     addCustomDescription() {
-      this.customUploadForm.descriptions.push({ content: '' })
+      this.customUploadForm.descriptions.push({ leftField: '', rightField: '' })
     },
     
     removeCustomDescription(index) {
@@ -806,34 +1005,71 @@ export default {
         typeName: '',
         name: '',
         descriptions: [
-          { content: '' }
+          { leftField: '', rightField: '' }
         ],
         files: []
       }
     },
     
-    confirmCustomType() {
+    async confirmCustomType() {
       if (this.customUploadForm.typeName.trim() && this.customUploadForm.name.trim() && this.customUploadForm.files.length > 0) {
-        const typeDisplay = this.customUploadForm.typeName.trim()
-        this.customUploadForm.files.forEach((fileData, index) => {
-          const newFile = {
-            id: Date.now() + index,
-            name: this.customUploadForm.name + (this.customUploadForm.files.length > 1 ? `_${index + 1}` : ''),
+        try {
+          const typeDisplay = this.customUploadForm.typeName.trim()
+          
+          // 转换文件为 ArrayBuffer 以便保存到 localStorage
+          const filesWithBuffer = await Promise.all(
+            this.customUploadForm.files.map(async (fileData, index) => {
+              const arrayBuffer = await fileData.file.arrayBuffer()
+              const originalFileName = fileData.name
+              const fileExtension = this.getFileExtension(originalFileName)
+              
+              return {
+                id: Date.now() + index,
+                name: this.customUploadForm.name + (this.customUploadForm.files.length > 1 ? `_${index + 1}` : '') + fileExtension,
+                type: fileData.type, // 使用原始文件的 MIME 类型
+                uploader: '当前用户',
+                time: new Date().toLocaleString('zh-CN'),
+                typeCls: this.getTypeClass(typeDisplay),
+                fileBuffer: arrayBuffer, // 保存 ArrayBuffer
+                file: fileData.file, // 保留原始 File 对象用于当前会话
+                descriptions: this.customUploadForm.descriptions.filter(d => d.leftField.trim() || d.rightField.trim()).map(d => `${d.leftField || ''} | ${d.rightField || ''}`),
+                originalFileName: originalFileName,
+                size: fileData.size
+              }
+            })
+          )
+          
+          // 创建一个成果记录，包含所有文件
+          const newAchievement = {
+            id: Date.now(),
+            name: this.customUploadForm.name,
             type: typeDisplay,
             uploader: '当前用户',
             time: new Date().toLocaleString('zh-CN'),
             typeCls: 'doc',
-            file: fileData.file,
-            descriptions: this.customUploadForm.descriptions.filter(d => d.content.trim()).map(d => d.content),
-            originalFileName: fileData.name
+            files: filesWithBuffer,
+            fileCount: this.customUploadForm.files.length,
+            descriptions: this.customUploadForm.descriptions.filter(d => d.leftField.trim() || d.rightField.trim()).map(d => `${d.leftField || ''} | ${d.rightField || ''}`)
           }
-          this.uploadedFiles.push(newFile)
-          this.$emit('file-uploaded', newFile)
-        })
-        this.saveToLocalStorage()
-        this.closeCustomDialog()
-        this.goToLastPage()
-        alert(`自定义类型"${typeDisplay}"的成果已上传！`)
+          
+          this.uploadedFiles.push(newAchievement)
+          this.$emit('file-uploaded', newAchievement)
+          
+          // 重置状态
+          this.resetCustomForm()
+          this.showCustomDialog = false
+          
+          // 跳转到最后一页显示新上传的文件
+          this.goToLastPage()
+          
+          // 自动保存到本地存储
+          this.saveToLocalStorage()
+          
+          alert(`自定义类型"${typeDisplay}"的成果已上传！已添加${this.customUploadForm.files.length}个文件到成果档案中。`)
+        } catch (error) {
+          console.error('自定义类型文件上传失败:', error)
+          alert('文件上传失败，请重试')
+        }
       }
     },
     
@@ -928,8 +1164,26 @@ export default {
     // 本地存储方法
     saveToLocalStorage() {
       try {
+        // 转换 ArrayBuffer 为可序列化的格式
+        const serializedFiles = this.uploadedFiles.map(achievement => {
+          if (achievement.files && Array.isArray(achievement.files)) {
+            const serializedFiles = achievement.files.map(file => {
+              const serializedFile = { ...file }
+              if (file.fileBuffer && file.fileBuffer instanceof ArrayBuffer) {
+                // 将 ArrayBuffer 转换为 Uint8Array，然后转换为普通数组
+                serializedFile.fileBuffer = Array.from(new Uint8Array(file.fileBuffer))
+              }
+              // 移除不可序列化的 File 对象
+              delete serializedFile.file
+              return serializedFile
+            })
+            return { ...achievement, files: serializedFiles }
+          }
+          return achievement
+        })
+        
         const dataToSave = {
-          uploadedFiles: this.uploadedFiles,
+          uploadedFiles: serializedFiles,
           currentPage: this.currentPage
         }
         const storageKey = this.projectId ? `knowledgeBaseCatalog_${this.projectId}` : 'knowledgeBaseCatalog'
@@ -947,7 +1201,23 @@ export default {
         if (saved) {
           const data = JSON.parse(saved)
           if (data.uploadedFiles && Array.isArray(data.uploadedFiles)) {
-            this.uploadedFiles = data.uploadedFiles
+            // 转换数组形式的 fileBuffer 回 ArrayBuffer
+            const deserializedFiles = data.uploadedFiles.map(achievement => {
+              if (achievement.files && Array.isArray(achievement.files)) {
+                const deserializedFiles = achievement.files.map(file => {
+                  const deserializedFile = { ...file }
+                  if (file.fileBuffer && Array.isArray(file.fileBuffer)) {
+                    // 将数组转换回 ArrayBuffer
+                    const uint8Array = new Uint8Array(file.fileBuffer)
+                    deserializedFile.fileBuffer = uint8Array.buffer
+                  }
+                  return deserializedFile
+                })
+                return { ...achievement, files: deserializedFiles }
+              }
+              return achievement
+            })
+            this.uploadedFiles = deserializedFiles
             console.log(`成果目录数据已从本地存储加载 (项目ID: ${this.projectId})`)
           }
           if (data.currentPage) {
@@ -977,7 +1247,10 @@ export default {
         if (fileToDownload.fileBuffer) {
           // 使用保存的 ArrayBuffer
           fileData = fileToDownload.fileBuffer
-          console.log('使用 ArrayBuffer 下载文件:', fileToDownload.name)
+          console.log('使用 ArrayBuffer 下载文件:', fileToDownload.name, 'ArrayBuffer 长度:', fileToDownload.fileBuffer.byteLength)
+          
+          // 测试 ArrayBuffer 转换
+          this.testArrayBufferConversion(fileToDownload)
         } else if (fileToDownload.file && fileToDownload.file instanceof File) {
           // 使用原始 File 对象
           fileData = fileToDownload.file
@@ -1005,6 +1278,13 @@ export default {
           URL.revokeObjectURL(url)
           
           alert(`文件"${fileName}"的原始数据已丢失，已下载占位文件。请重新上传该文件以获得完整内容。`)
+          return
+        }
+        
+        // 确保 fileData 是有效的
+        if (!fileData) {
+          console.error('文件数据无效:', fileToDownload)
+          alert('文件数据无效，无法下载')
           return
         }
         
@@ -1277,6 +1557,33 @@ export default {
       }
     },
     
+    // 检查是否有成果详细描述
+    getAchievementDescription(file) {
+      if (!file) return false
+      
+      // 检查各种类型的描述字段
+      return file.paperName || file.paperId ||
+             file.patentName || file.patentId ||
+             file.datasetName || file.datasetId ||
+             file.modelName || file.modelId ||
+             file.reportName || file.reportId ||
+             (file.descriptions && file.descriptions.length > 0)
+    },
+    
+    // 测试 ArrayBuffer 转换
+    testArrayBufferConversion(file) {
+      if (file.fileBuffer) {
+        console.log('原始 ArrayBuffer:', file.fileBuffer)
+        console.log('ArrayBuffer 类型:', typeof file.fileBuffer)
+        console.log('ArrayBuffer 构造函数:', file.fileBuffer.constructor.name)
+        console.log('ArrayBuffer 长度:', file.fileBuffer.byteLength)
+        
+        // 尝试读取前几个字节
+        const uint8Array = new Uint8Array(file.fileBuffer)
+        console.log('前10个字节:', Array.from(uint8Array.slice(0, 10)))
+      }
+    },
+    
     // HTML转义
     escapeHtml(text) {
       const div = document.createElement('div')
@@ -1292,7 +1599,7 @@ export default {
         if (file.fileBuffer) {
           // 使用保存的 ArrayBuffer
           fileData = file.fileBuffer
-          console.log('使用 ArrayBuffer 下载文件:', file.name)
+          console.log('使用 ArrayBuffer 下载文件:', file.name, 'ArrayBuffer 长度:', file.fileBuffer.byteLength)
         } else if (file.file && file.file instanceof File) {
           // 使用原始 File 对象
           fileData = file.file
@@ -1320,6 +1627,13 @@ export default {
           URL.revokeObjectURL(url)
           
           alert(`文件"${fileName}"的原始数据已丢失，已下载占位文件。请重新上传该文件以获得完整内容。`)
+          return
+        }
+        
+        // 确保 fileData 是有效的
+        if (!fileData) {
+          console.error('文件数据无效:', file)
+          alert('文件数据无效，无法下载')
           return
         }
         
@@ -1757,6 +2071,23 @@ export default {
   gap: 12px;
 }
 
+.description-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.description-label {
+  min-width: 80px;
+  font-weight: 500;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.description-row .form-input {
+  flex: 1;
+}
+
 .description-field {
   position: relative;
   display: flex;
@@ -1766,6 +2097,28 @@ export default {
 
 .description-field .form-textarea {
   flex: 1;
+}
+
+.description-field .description-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.description-field .description-row .form-input {
+  flex: 1;
+}
+
+/* 自定义字段尺寸样式 */
+.form-input-small {
+  flex: 0 0 120px !important; /* 左字段固定宽度，较小 */
+  max-width: 120px;
+}
+
+.form-input-large {
+  flex: 1 !important; /* 右字段占据剩余空间，较大 */
+  min-width: 200px;
 }
 
 .remove-desc-btn {
@@ -2589,6 +2942,61 @@ export default {
 .file-preview-notice p {
   margin: 0;
   font-size: 14px;
+}
+
+/* 成果详细描述样式 */
+.achievement-description {
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.achievement-description .detail-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.description-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.description-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.desc-label {
+  font-weight: 500;
+  color: #6c757d;
+  min-width: 80px;
+}
+
+.desc-value {
+  color: #495057;
+  background: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid #dee2e6;
+  flex: 1;
+  min-width: 120px;
+}
+
+.custom-description {
+  margin: 4px 0;
+}
+
+.custom-description .desc-value {
+  background: #e3f2fd;
+  border-color: #bbdefb;
+  color: #1976d2;
 }
 
 .file-view-footer {

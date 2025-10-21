@@ -101,14 +101,18 @@
                 type="date"
                 v-model="formData.startDate"
                 class="form-input date-input"
+                @change="validateStartDate"
               />
               <span class="date-separator">-</span>
               <input
                 type="date"
                 v-model="formData.endDate"
+                :min="today"
                 class="form-input date-input"
+                @change="validateEndDate"
               />
             </div>
+            <div v-if="dateError" class="error-message">{{ dateError }}</div>
           </div>
 
           
@@ -185,8 +189,11 @@
                 <input
                   type="date"
                   v-model="task.dueDate"
+                  :min="today"
                   class="form-input"
+                  @change="validateTaskDueDate(task, index)"
                 />
+                <div v-if="task.dateError" class="error-message">{{ task.dateError }}</div>
               </div>
               <div class="form-field">
                 <label class="form-label">优先级</label>
@@ -228,7 +235,9 @@
           <div class="preview-item">
             <label class="preview-label">项目周期</label>
             <div class="preview-value">
-              {{ getProjectPeriod() || '项目周期: 未设置' }}
+              <div v-if="getProjectPeriod()">{{ getProjectPeriod() }}</div>
+              <div v-else-if="dateError" class="preview-error">{{ dateError }}</div>
+              <div v-else class="preview-placeholder">项目周期: 未设置</div>
             </div>
           </div>
 
@@ -280,6 +289,7 @@ export default {
       newTag: '',
       fromPage: '', // 记录来源页面
       projectImage: null, // 项目图片
+      dateError: '', // 项目周期日期错误信息
       formData: {
         projectName: '',
         projectDescription: '',
@@ -288,6 +298,13 @@ export default {
         tags: [],
         tasks: [],
       }
+    }
+  },
+  computed: {
+    // 获取今天的日期，格式为 YYYY-MM-DD
+    today() {
+      const today = new Date()
+      return today.toISOString().split('T')[0]
     }
   },
   mounted() {
@@ -413,7 +430,8 @@ export default {
         status_value: 'IN_PROGRESS', // 数据库存储英文状态
         assignee_id: [], // 添加负责人ID字段
         created_by: 1, // 添加创建人ID
-        created_by_name: this.getCurrentUserName() // 添加创建人姓名
+        created_by_name: this.getCurrentUserName(), // 添加创建人姓名
+        dateError: '' // 添加任务日期错误信息
       })
     },
     removeTask(index) {
@@ -439,6 +457,42 @@ export default {
         return `${this.formData.startDate} - ${this.formData.endDate}`
       }
       return null
+    },
+    // 验证项目开始日期
+    validateStartDate() {
+      this.dateError = ''
+      if (this.formData.startDate && this.formData.endDate) {
+        if (new Date(this.formData.startDate) > new Date(this.formData.endDate)) {
+          this.dateError = '项目开始日期不能晚于结束日期'
+          return false
+        }
+      }
+      // 开始日期可以随便选择，不进行限制
+      return true
+    },
+    // 验证项目结束日期
+    validateEndDate() {
+      this.dateError = ''
+      if (this.formData.startDate && this.formData.endDate) {
+        if (new Date(this.formData.startDate) > new Date(this.formData.endDate)) {
+          this.dateError = '项目结束日期不能早于开始日期'
+          return false
+        }
+      }
+      if (this.formData.endDate && new Date(this.formData.endDate) < new Date(this.today)) {
+        this.dateError = '项目结束日期不能早于今天'
+        return false
+      }
+      return true
+    },
+    // 验证任务截止日期
+    validateTaskDueDate(task, index) {
+      task.dateError = ''
+      if (task.dueDate && new Date(task.dueDate) < new Date(this.today)) {
+        task.dateError = '任务截止日期不能早于今天'
+        return false
+      }
+      return true
     },
     async saveDraft() {
       try {
@@ -480,6 +534,23 @@ export default {
           alert('项目结束日期必须晚于开始日期')
           this.isSubmitting = false
           return
+        }
+        
+        // 验证项目结束日期不能早于今天
+        if (new Date(this.formData.endDate) < new Date(this.today)) {
+          alert('项目结束日期不能早于今天')
+          this.isSubmitting = false
+          return
+        }
+        
+        // 验证任务截止日期不能早于今天
+        for (let i = 0; i < this.formData.tasks.length; i++) {
+          const task = this.formData.tasks[i]
+          if (task.dueDate && new Date(task.dueDate) < new Date(this.today)) {
+            alert(`任务 ${i + 1} 的截止日期不能早于今天`)
+            this.isSubmitting = false
+            return
+          }
         }
         
         
@@ -902,6 +973,13 @@ export default {
   font-weight: 500;
 }
 
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
 .tag-input-container {
   display: flex;
   gap: 8px;
@@ -1044,6 +1122,12 @@ export default {
 .preview-placeholder {
   font-size: 13px;
   color: #adb5bd;
+  font-style: italic;
+}
+
+.preview-error {
+  font-size: 13px;
+  color: #dc3545;
   font-style: italic;
 }
 
