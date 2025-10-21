@@ -188,20 +188,27 @@ export default {
       this.activeTab = tab
     },
     loadProjectName() {
-      // 根据项目ID获取项目名称
-      const projects = [
-        { id: 1, title: '多模态医学影像数据平台' },
-        { id: 2, title: '气候变化预测模型研究' },
-        { id: 3, title: '基因组数据分析平台' },
-        { id: 4, title: '脑科学神经网络研究' },
-        { id: 5, title: '新型材料发现研究平台' },
-        { id: 6, title: '深空天体观测数据分析' }
-      ]
-      const project = projects.find(p => p.id === parseInt(this.projectId))
-      if (project) {
-        this.projectName = project.title
+      // 从localStorage获取项目数据
+      const savedProjects = localStorage.getItem('projects')
+      if (savedProjects) {
+        try {
+          const projects = JSON.parse(savedProjects)
+          const project = projects.find(p => p.id === parseInt(this.projectId))
+          if (project) {
+            // 优先使用name字段，如果没有则使用title字段
+            this.projectName = project.name || project.title || '未知项目'
+            console.log('找到项目:', this.projectName)
+          } else {
+            this.projectName = '未知项目'
+            console.log('未找到项目，ID:', this.projectId)
+          }
+        } catch (error) {
+          console.error('解析项目数据失败:', error)
+          this.projectName = '未知项目'
+        }
       } else {
         this.projectName = '未知项目'
+        console.log('localStorage中没有项目数据')
       }
     },
     
@@ -479,13 +486,16 @@ export default {
 }
 
 .content-layout.leftbar { 
-  display: grid; 
-  grid-template-columns: 220px 1fr; 
-  gap: 16px; 
-  align-items: start; 
+  display: block; /* 改为块级布局，因为侧边栏现在是固定的 */
   height: calc(100vh - 64px - 40px - 28px);
 }
-.left-options { position: sticky; top: 20px; }
+.left-options { 
+  position: fixed; 
+  top: 80px; 
+  left: 20px; 
+  width: 200px; 
+  z-index: 100;
+}
 .options-card { 
   background: #fff; 
   border: 1px solid #eef0f2; 
@@ -505,6 +515,11 @@ export default {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 64px - 40px - 28px);
+  margin-left: 240px; /* 为固定侧边栏留出空间 */
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  overflow-y: auto;
 }
 
 /* 主页内容样式 */
@@ -660,7 +675,15 @@ export default {
 
 @media (max-width: 900px) {
   .content-layout.leftbar { grid-template-columns: 1fr; }
-  .left-options { position: static; }
+  .left-options { 
+    position: static; 
+    width: 100%;
+    margin-bottom: 20px;
+  }
+  .content-right { 
+    margin-left: 0; 
+    padding: 16px;
+  }
   .options-card { height: auto; }
   .stats-grid { grid-template-columns: 1fr; }
 }
