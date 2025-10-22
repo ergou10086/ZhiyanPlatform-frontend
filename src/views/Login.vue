@@ -50,10 +50,6 @@
             <input type="checkbox" v-model="loginForm.rememberMe" />
             记住我
           </label>
-          <label class="checkbox-option">
-            <input type="checkbox" v-model="loginForm.autoLogin" />
-            自动登录
-          </label>
         </div>
         
         <div class="form-links">
@@ -101,8 +97,7 @@ export default {
       loginForm: {
         email: '',
         password: '',
-        rememberMe: false,
-        autoLogin: false
+        rememberMe: false
       },
       showToast: false,
       toastMessage: ''
