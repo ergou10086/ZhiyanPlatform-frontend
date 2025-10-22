@@ -174,6 +174,7 @@
 
       <!-- AI对话区域 -->
       <div class="ai-chat-section">
+        <div class="ai-dialog-title">AI对话框</div>
         <div class="chat-container">
           <div 
             v-for="message in chatMessages" 
@@ -1543,6 +1544,16 @@ export default {
   position: relative;
 }
 
+.ai-dialog-title {
+  position: absolute;
+  top: 20px;
+  left: 40px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  z-index: 10;
+}
+
 .chat-container {
   display: flex;
   flex-direction: column;
@@ -1551,6 +1562,7 @@ export default {
   overflow-y: auto;
   padding-right: 8px;
   padding-bottom: 80px;
+  padding-top: 50px;
 }
 
 /* 自定义滚动条样式 */
