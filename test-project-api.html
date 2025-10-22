@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目API测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 项目API测试工具</h1>
+        <p class="subtitle">快速测试项目创建接口</p>
+        
+        <div class="form-group">
+            <label for="token">访问令牌 (Access Token) *</label>
+            <input type="text" id="token" placeholder="请先登录获取Token，或从浏览器 localStorage 中复制">
+        </div>
+        
+        <div class="form-group">
+            <label for="projectName">项目名称 *</label>
+            <input type="text" id="projectName" value="测试项目" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="projectDesc">项目描述</label>
+            <textarea id="projectDesc">这是一个测试项目，用于验证API功能</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="startDate">开始日期 *</label>
+            <input type="date" id="startDate" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="endDate">结束日期 *</label>
+            <input type="date" id="endDate" required>
+        </div>
+        
+        <button onclick="testCreateProject()">创建项目</button>
+        <button onclick="getTokenFromStorage()">从本地获取Token</button>
+        <button onclick="clearResult()">清除结果</button>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script>
+        // 设置默认日期
+        const today = new Date();
+        const nextMonth = new Date(today);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        
+        document.getElementById('startDate').value = today.toISOString().split('T')[0];
+        document.getElementById('endDate').value = nextMonth.toISOString().split('T')[0];
+        
+        // 从 localStorage 获取 Token
+        function getTokenFromStorage() {
+            const token = localStorage.getItem('access_token');
+            const resultDiv = document.getElementById('result');
+            
+            if (token) {
+                document.getElementById('token').value = token;
+                resultDiv.className = 'success';
+                resultDiv.textContent = '✅ 已从 localStorage 获取 Token\n\nToken: ' + token.substring(0, 50) + '...';
+            } else {
+                resultDiv.className = 'warning';
+                resultDiv.textContent = '⚠️ 未找到 Token\n\n请先在主应用中登录，或手动输入 Token';
+            }
+        }
+        
+        // 清除结果
+        function clearResult() {
+            document.getElementById('result').textContent = '';
+            document.getElementById('result').className = '';
+        }
+        
+        // 测试创建项目
+        async function testCreateProject() {
+            const token = document.getElementById('token').value.trim();
+            const projectName = document.getElementById('projectName').value.trim();
+            const projectDesc = document.getElementById('projectDesc').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'info';
+            resultDiv.textContent = '⏳ 正在请求...';
+            
+            // 验证必填项
+            if (!token) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 错误：请输入访问令牌';
+                return;
+            }
+            
+            if (!projectName) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 错误：请输入项目名称';
+                return;
+            }
+            
+            if (!startDate || !endDate) {
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 错误：请选择项目周期';
+                return;
+            }
+            
+            // 构建请求数据
+            const projectData = {
+                name: projectName,
+                description: projectDesc,
+                visibility: 'PRIVATE',
+                startDate: startDate,
+                endDate: endDate,
+                tags: ['测试', 'API'],
+                tasks: [
+                    {
+                        title: '测试任务1',
+                        description: '这是一个测试任务',
+                        dueDate: endDate,
+                        priority: 'HIGH',
+                        status: 'IN_PROGRESS'
+                    }
+                ]
+            };
+            
+            console.log('请求数据:', projectData);
+            
+            try {
+                const response = await fetch('http://localhost:8091/api/projects', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(projectData)
+                });
+                
+                console.log('响应状态:', response.status);
+                console.log('响应头:', response.headers);
+                
+                const data = await response.json();
+                console.log('响应数据:', data);
+                
+                if (response.ok && data.code === 200) {
+                    resultDiv.className = 'success';
+                    resultDiv.textContent = '✅ 项目创建成功！\n\n' + 
+                        '响应数据:\n' + JSON.stringify(data, null, 2);
+                } else if (response.status === 401) {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 认证失败（401）\n\n' +
+                        '可能原因:\n' +
+                        '1. Token 无效或已过期\n' +
+                        '2. Token 格式不正确\n\n' +
+                        '请重新登录获取新的 Token\n\n' +
+                        '响应:\n' + JSON.stringify(data, null, 2);
+                } else if (response.status === 403) {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 权限不足（403）\n\n' +
+                        '可能原因:\n' +
+                        '1. 用户角色不正确\n' +
+                        '2. 缺少必要权限\n\n' +
+                        '响应:\n' + JSON.stringify(data, null, 2);
+                } else if (response.status === 404) {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 接口不存在（404）\n\n' +
+                        '可能原因:\n' +
+                        '1. zhiyan-project 服务未启动\n' +
+                        '2. 接口路径错误\n' +
+                        '3. 网关路由配置错误';
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 请求失败\n\n' +
+                        `状态码: ${response.status}\n\n` +
+                        '响应:\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                console.error('请求错误:', error);
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 网络错误\n\n' +
+                    error.message + '\n\n' +
+                    '可能原因:\n' +
+                    '1. 后端服务未启动（检查端口 8091）\n' +
+                    '2. 网络连接问题\n' +
+                    '3. CORS 配置错误';
+            }
+        }
+        
+        // 页面加载时尝试获取 Token
+        window.onload = function() {
+            const token = localStorage.getItem('access_token');
+            if (token) {
+                document.getElementById('token').value = token;
+                const resultDiv = document.getElementById('result');
+                resultDiv.className = 'info';
+                resultDiv.textContent = 'ℹ️ 已自动加载 Token，可以开始测试';
+            }
+        };
+    </script>
+</body>
+</html>
+

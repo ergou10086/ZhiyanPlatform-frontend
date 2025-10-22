@@ -7,7 +7,12 @@ module.exports = {
         target: 'http://localhost:8091',
         changeOrigin: true,
         secure: false,
-        logLevel: 'debug'
+        ws: true,
+        logLevel: 'debug',
+        // 关键配置：保持路径不变
+        pathRewrite: {
+          '^/zhiyan': '/zhiyan'
+        }
       }
     }
   }

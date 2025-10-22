@@ -30,6 +30,7 @@ api.interceptors.request.use(
     console.log('API请求:', config.method?.toUpperCase(), config.url)
     console.log('请求头:', config.headers)
     console.log('请求数据:', config.data)
+    console.log('请求数据类型:', typeof config.data)
     
     return config
   },

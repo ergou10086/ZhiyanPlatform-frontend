@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录测试 - 直接请求</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录测试 - 直接请求后端</h1>
+    
+    <form id="loginForm">
+        <div class="form-group">
+            <label for="email">邮箱:</label>
+            <input type="email" id="email" value="test@example.com" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password" value="123456" required>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="rememberMe">
+                记住我
+            </label>
+        </div>
+        
+        <button type="submit">登录</button>
+    </form>
+    
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = '正在请求...';
+            resultDiv.className = '';
+            
+            try {
+                console.log('发送登录请求...');
+                console.log('请求数据:', { email, password, rememberMe });
+                
+                const response = await fetch('http://localhost:8091/zhiyan/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        rememberMe: rememberMe
+                    })
+                });
+                
+                console.log('响应状态:', response.status);
+                console.log('响应头:', response.headers);
+                
+                const data = await response.json();
+                console.log('响应数据:', data);
+                
+                if (response.ok && data.code === 200) {
+                    resultDiv.className = 'success';
+                    resultDiv.textContent = '✅ 登录成功！\n\n' + JSON.stringify(data, null, 2);
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 登录失败\n\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                console.error('请求错误:', error);
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 请求错误:\n\n' + error.message + '\n\n请确保后端服务运行在 http://localhost:8091';
+            }
+        });
+    </script>
+</body>
+</html>
+

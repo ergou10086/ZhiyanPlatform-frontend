@@ -5,7 +5,7 @@ const config = {
   api: {
     baseURL: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
-      : '', // 开发环境使用代理，避免CORS问题
+      : 'http://localhost:8091', // 开发环境直接连接后端
     timeout: 10000
   },
   

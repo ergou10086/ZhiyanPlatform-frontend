@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色检查工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .step {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button.success {
+            background-color: #28a745;
+        }
+        button.success:hover {
+            background-color: #218838;
+        }
+        button.danger {
+            background-color: #dc3545;
+        }
+        button.danger:hover {
+            background-color: #c82333;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+        .sql-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 用户角色问题检查工具</h1>
+        <p class="subtitle">快速诊断和修复用户角色问题</p>
+        
+        <div class="step">
+            <h3>步骤1：获取访问令牌</h3>
+            <button onclick="getTokenFromStorage()">从本地存储获取Token</button>
+            <p style="margin: 10px 0; font-size: 13px; color: #666;">
+                Token: <span id="tokenDisplay">未获取</span>
+            </p>
+        </div>
+        
+        <div class="step">
+            <h3>步骤2：检查系统角色是否存在</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                ⚠️ 如果角色不存在，请先执行 SQL 脚本初始化
+            </p>
+            <div class="sql-box">
+                <div style="color: #28a745; font-weight: bold;">执行此SQL初始化角色：</div>
+                <pre style="margin: 10px 0;">-- 连接数据库
+USE zhiyan_userauth_db;
+
+-- 创建 MEMBER 角色（普通用户）
+INSERT INTO roles (id, name, description, role_type, is_system_default, created_at)
+VALUES (1, 'MEMBER', '普通用户', 'SYSTEM', 1, NOW())
+ON DUPLICATE KEY UPDATE description = '普通用户';
+
+-- 创建 OWNER 角色（项目所有者）  
+INSERT INTO roles (id, name, description, role_type, is_system_default, created_at)
+VALUES (2, 'OWNER', '项目所有者', 'SYSTEM', 1, NOW())
+ON DUPLICATE KEY UPDATE description = '项目所有者';
+
+-- 为所有没有角色的用户分配 MEMBER 角色
+INSERT INTO user_roles (user_id, role_id, assigned_at)
+SELECT u.id, 1, NOW()
+FROM users u
+WHERE NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id);</pre>
+            </div>
+        </div>
+        
+        <div class="step">
+            <h3>步骤3：验证当前用户的角色</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                查看当前登录用户是否有角色分配
+            </p>
+            <button onclick="checkCurrentUserRoles()">检查我的角色</button>
+        </div>
+        
+        <div class="step">
+            <h3>步骤4：测试新用户注册</h3>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                注册一个新用户，验证是否自动分配角色
+            </p>
+            <button class="success" onclick="window.location.href='/register'">前往注册页面</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script>
+        let currentToken = '';
+        
+        // 从 localStorage 获取 Token
+        function getTokenFromStorage() {
+            const token = localStorage.getItem('access_token');
+            const resultDiv = document.getElementById('result');
+            const tokenDisplay = document.getElementById('tokenDisplay');
+            
+            if (token) {
+                currentToken = token;
+                tokenDisplay.textContent = token.substring(0, 30) + '...';
+                tokenDisplay.style.color = '#28a745';
+                resultDiv.className = 'success';
+                resultDiv.textContent = '✅ 成功获取 Token\n\n' + 
+                    'Token: ' + token.substring(0, 50) + '...\n\n' +
+                    '现在可以进行后续检查了！';
+            } else {
+                resultDiv.className = 'warning';
+                resultDiv.textContent = '⚠️ 未找到 Token\n\n' +
+                    '请先登录，或在主应用中登录后刷新此页面';
+                tokenDisplay.textContent = '未找到';
+                tokenDisplay.style.color = '#dc3545';
+            }
+        }
+        
+        // 检查当前用户的角色
+        async function checkCurrentUserRoles() {
+            if (!currentToken) {
+                const token = localStorage.getItem('access_token');
+                if (token) {
+                    currentToken = token;
+                } else {
+                    alert('请先获取Token');
+                    return;
+                }
+            }
+            
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'info';
+            resultDiv.textContent = '⏳ 正在检查...';
+            
+            try {
+                // 首先解析Token获取用户ID
+                const tokenParts = currentToken.split('.');
+                if (tokenParts.length !== 3) {
+                    throw new Error('Token格式不正确');
+                }
+                
+                const payload = JSON.parse(atob(tokenParts[1]));
+                const userId = payload.userId || payload.user_id || payload.sub;
+                
+                console.log('Token payload:', payload);
+                console.log('User ID:', userId);
+                
+                if (!userId) {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 无法从Token中获取用户ID\n\n' +
+                        'Token payload: ' + JSON.stringify(payload, null, 2);
+                    return;
+                }
+                
+                // 查询用户角色
+                const response = await fetch(`http://localhost:8091/auth/roles/user/${userId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`,
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                console.log('角色查询响应:', data);
+                
+                if (response.ok && data.code === 200) {
+                    const roles = data.data;
+                    if (roles && roles.length > 0) {
+                        resultDiv.className = 'success';
+                        resultDiv.textContent = '✅ 当前用户有角色分配\n\n' +
+                            `用户ID: ${userId}\n` +
+                            `角色: ${Array.isArray(roles) ? roles.join(', ') : JSON.stringify(roles)}\n\n` +
+                            '完整响应:\n' + JSON.stringify(data, null, 2);
+                    } else {
+                        resultDiv.className = 'warning';
+                        resultDiv.textContent = '⚠️ 当前用户没有角色分配\n\n' +
+                            `用户ID: ${userId}\n\n` +
+                            '请执行上面的SQL脚本为用户分配角色\n\n' +
+                            '完整响应:\n' + JSON.stringify(data, null, 2);
+                    }
+                } else if (response.status === 403) {
+                    resultDiv.className = 'warning';
+                    resultDiv.textContent = '⚠️ 权限不足（403）\n\n' +
+                        '此接口需要 DEVELOPER 角色权限\n\n' +
+                        '建议：直接执行上面的SQL脚本检查和分配角色\n\n' +
+                        '或者通过数据库客户端执行：\n' +
+                        'SELECT * FROM user_roles WHERE user_id = ' + userId + ';';
+                } else {
+                    resultDiv.className = 'error';
+                    resultDiv.textContent = '❌ 查询失败\n\n' +
+                        `状态码: ${response.status}\n\n` +
+                        '响应:\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                console.error('检查错误:', error);
+                resultDiv.className = 'error';
+                resultDiv.textContent = '❌ 检查失败\n\n' +
+                    error.message + '\n\n' +
+                    '建议：直接在数据库中执行上面的SQL脚本';
+            }
+        }
+        
+        // 页面加载时尝试获取 Token
+        window.onload = function() {
+            getTokenFromStorage();
+        };
+    </script>
+</body>
+</html>
+
