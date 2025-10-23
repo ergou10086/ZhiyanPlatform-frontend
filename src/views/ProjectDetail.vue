@@ -528,13 +528,19 @@ export default {
           this.project = {
             id: foundProject.id,
             name: foundProject.name || foundProject.title, // 添加数据库字段名
-            title: foundProject.title,
+            title: foundProject.title || foundProject.name,
             description: foundProject.description || foundProject.dataAssets || foundProject.direction || '暂无描述',
+            // 保存日期字段（用于编辑）
+            startDate: foundProject.startDate || foundProject.start_date || '',
+            endDate: foundProject.endDate || foundProject.end_date || '',
+            // 显示周期字段
             period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
               `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
               '2024-01-01 至 2024-12-31',
             status: foundProject.status,
             visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
+            imageUrl: foundProject.imageUrl || foundProject.image || 'https://via.placeholder.com/400x225?text=Project+Image',
+            image: foundProject.image || foundProject.imageUrl,
             manager: this.getCurrentUserName(), // 从用户信息获取负责人
             teamSize: foundProject.teamSize,
             category: foundProject.category,
@@ -543,6 +549,9 @@ export default {
             tasks: foundProject.tasks || [],
             created_by: foundProject.created_by || 1 // 添加创建人字段
           }
+          
+          console.log('加载的项目数据 - ID:', this.project.id, 'startDate:', this.project.startDate, 'endDate:', this.project.endDate)
+          console.log('项目imageUrl:', this.project.imageUrl)
           
           console.log('项目周期:', foundProject.startDate, foundProject.endDate)
           console.log('项目任务:', foundProject.tasks)
@@ -666,31 +675,56 @@ export default {
     saveProjectData() {
       // 保存项目数据到localStorage
       const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-      const projectIndex = savedProjects.findIndex(p => p.id === this.project.id)
+      console.log('查找项目ID:', this.project.id, '类型:', typeof this.project.id)
+      
+      // 使用字符串比较确保ID匹配
+      const projectIndex = savedProjects.findIndex(p => String(p.id) === String(this.project.id))
+      
       if (projectIndex !== -1) {
-        savedProjects[projectIndex].teamMembers = this.teamMembers
-        savedProjects[projectIndex].inviteSlots = this.inviteSlots
-        savedProjects[projectIndex].tasks = this.tasks
-        savedProjects[projectIndex].status = this.project.status
+        // 更新项目的所有字段
+        savedProjects[projectIndex] = {
+          ...savedProjects[projectIndex],
+          id: this.project.id, // 确保ID被保存
+          name: this.project.name,
+          title: this.project.title,
+          description: this.project.description,
+          startDate: this.project.startDate,
+          endDate: this.project.endDate,
+          visibility: this.project.visibility,
+          status: this.project.status,
+          imageUrl: this.project.imageUrl || this.project.image,
+          image: this.project.image || this.project.imageUrl,
+          teamMembers: this.teamMembers,
+          inviteSlots: this.inviteSlots,
+          tasks: this.tasks
+        }
+        
         localStorage.setItem('projects', JSON.stringify(savedProjects))
         
-        console.log('项目数据已保存到localStorage')
+        console.log('项目数据已保存到localStorage，项目ID:', this.project.id)
         console.log('保存的任务数据:', this.tasks.map(t => ({ title: t.title, status: t.status, status_value: t.status_value })))
       } else {
-        console.log('未找到项目，无法保存数据')
+        console.log('未找到项目，无法保存数据。项目ID:', this.project.id)
+        console.log('现有项目ID列表:', savedProjects.map(p => ({ id: p.id, type: typeof p.id })))
       }
     },
     // 项目操作按钮功能
     editProject() {
       // 初始化编辑数据
+      // 确保status是数据库的英文值
+      const statusValue = this.getStatusValue(this.project.status)
+      
       this.editProjectData = {
         name: this.project.name || this.project.title,
         description: this.project.description || '',
         startDate: this.project.startDate || '',
         endDate: this.project.endDate || '',
-        visibility: this.project.visibility || 'PUBLIC',
-        status: this.project.status || 'IN_PROGRESS'
+        visibility: this.project.visibility || 'PRIVATE',
+        status: statusValue || 'IN_PROGRESS',
+        imageUrl: this.project.imageUrl || this.project.image || 'https://via.placeholder.com/400x225?text=Project+Image'
       }
+      
+      console.log('编辑项目数据初始化:', this.editProjectData)
       this.editProjectModalOpen = true
     },
     closeEditProjectModal() {
@@ -707,24 +741,51 @@ export default {
         const { projectAPI } = await import('@/api/project')
         
         console.log('使用项目API模块更新项目...')
+        console.log('项目ID:', this.project.id, '类型:', typeof this.project.id)
+        console.log('更新数据:', this.editProjectData)
+        
         const response = await projectAPI.updateProject(this.project.id, this.editProjectData)
         
         console.log('更新项目API返回结果:', response)
+        console.log('更新后的项目数据:', response.data)
         
         // 检查API返回结果
         if (response.code === 200) {
-          // 更新本地项目数据
-          this.project.name = this.editProjectData.name
-          this.project.title = this.editProjectData.name
-          this.project.description = this.editProjectData.description
-          this.project.startDate = this.editProjectData.startDate
-          this.project.endDate = this.editProjectData.endDate
-          this.project.visibility = this.editProjectData.visibility
-          this.project.status = this.editProjectData.status
-          
-          // 更新项目周期显示
-          if (this.editProjectData.startDate && this.editProjectData.endDate) {
-            this.project.period = `${this.editProjectData.startDate} 至 ${this.editProjectData.endDate}`
+          // 使用后端返回的最新数据更新本地项目
+          if (response.data) {
+            // 更新项目ID（确保使用后端返回的ID）
+            this.project.id = response.data.id
+            this.project.name = response.data.name
+            this.project.title = response.data.name
+            this.project.description = response.data.description
+            this.project.startDate = response.data.startDate
+            this.project.endDate = response.data.endDate
+            this.project.visibility = response.data.visibility
+            this.project.status = response.data.status
+            this.project.imageUrl = response.data.imageUrl
+            this.project.image = response.data.imageUrl
+            
+            // 更新项目周期显示
+            if (response.data.startDate && response.data.endDate) {
+              this.project.period = `${response.data.startDate} 至 ${response.data.endDate}`
+            }
+            
+            console.log('项目更新成功，最新项目ID:', this.project.id)
+            console.log('更新后的项目完整数据:', this.project)
+          } else {
+            // 如果后端没有返回数据，使用编辑表单的数据
+            this.project.name = this.editProjectData.name
+            this.project.title = this.editProjectData.name
+            this.project.description = this.editProjectData.description
+            this.project.startDate = this.editProjectData.startDate
+            this.project.endDate = this.editProjectData.endDate
+            this.project.visibility = this.editProjectData.visibility
+            this.project.status = this.editProjectData.status
+            
+            // 更新项目周期显示
+            if (this.editProjectData.startDate && this.editProjectData.endDate) {
+              this.project.period = `${this.editProjectData.startDate} 至 ${this.editProjectData.endDate}`
+            }
           }
           
           // 保存到localStorage
@@ -958,9 +1019,17 @@ export default {
         '待接取': 'PENDING',
         '进行中': 'IN_PROGRESS',
         '暂停': 'PAUSED',
-        '完成': 'COMPLETED'
+        '完成': 'COMPLETED',
+        '规划中': 'PLANNING',
+        '已暂停': 'PAUSED',
+        '已完成': 'COMPLETED',
+        '已取消': 'CANCELLED'
       }
-      return valueMap[status] || 'PENDING'
+      // 如果已经是英文值，直接返回
+      if (status && status.toUpperCase() === status && status.includes('_')) {
+        return status
+      }
+      return valueMap[status] || status || 'IN_PROGRESS'
     },
     getStatusDisplay(status) {
       // 将数据库的英文状态转换为中文显示

@@ -974,10 +974,12 @@ export default {
         }
         
         console.log('后端返回的项目数据:', response.data)
+        console.log('后端返回的项目ID:', response.data.id, '类型:', typeof response.data.id)
         
         // 使用后端返回的项目数据，并添加前端特有的字段
         const newProject = {
-          ...response.data, // 使用后端返回的项目数据
+          ...response.data, // 使用后端返回的项目数据（包括id）
+          id: response.data.id, // 确保项目ID被正确保存
           // 添加前端显示需要的字段
           title: response.data.name, // 保留title字段用于前端显示
           status: this.getStatusDisplay(response.data.status), // 转换为中文状态显示
