@@ -27,13 +27,36 @@
         <div class="section-subtitle">管理您参与的项目知识文档</div>
       </div>
       
-      <div class="grid">
-        <div 
-          v-for="(project, index) in joinedProjects" 
-          :key="project.id" 
-          class="card"
-          @click="viewProjectKnowledge(project)"
-        >
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <input v-model="searchText" class="search-input" type="text" placeholder="搜索项目名称" />
+        <div class="toolbar-actions">
+          <div class="dropdown" @click.stop="toggleStatusDropdown">
+            <button class="btn secondary">
+              <span>项目状态</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <ul class="dropdown-menu" v-if="statusOpen">
+              <li class="dropdown-item" :class="{ active: selectedStatus === '' }" @click="selectStatus('')">全部</li>
+              <li class="dropdown-item" :class="{ active: selectedStatus === '进行中' }" @click="selectStatus('进行中')">进行中</li>
+              <li class="dropdown-item" :class="{ active: selectedStatus === '稳健中' }" @click="selectStatus('稳健中')">稳健中</li>
+              <li class="dropdown-item" :class="{ active: selectedStatus === '已完成' }" @click="selectStatus('已完成')">已完成</li>
+            </ul>
+          </div>
+          <button class="btn" @click="resetFilters">重置筛选</button>
+        </div>
+      </div>
+      
+      <div class="content-wrapper">
+        <div class="grid">
+          <div 
+            v-for="(project, index) in paginatedProjects" 
+            :key="project.id" 
+            class="card"
+            @click="viewProjectKnowledge(project)"
+          >
           <div class="card-media" :class="`gradient-${(index % 6) + 1}`">
             <img 
               v-if="project.image" 
@@ -77,6 +100,14 @@
               </li>
             </ul>
           </div>
+          </div>
+        </div>
+        
+        <!-- 翻页组件 -->
+        <div class="pagination">
+          <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
+          <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
+          <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
         </div>
       </div>
     </div>
@@ -95,11 +126,44 @@ export default {
     return {
       sidebarOpen: false,
       // 用户参与的项目列表（包括创建的和加入的）
-      joinedProjects: []
+      joinedProjects: [],
+      // 搜索和筛选相关
+      searchText: '',
+      selectedStatus: '',
+      statusOpen: false,
+      // 翻页相关
+      currentPage: 1,
+      pageSize: 8 // 每页显示8个项目（2行，每行4个）
+    }
+  },
+  computed: {
+    // 过滤后的项目列表
+    filteredProjects() {
+      const text = this.searchText.trim().toLowerCase()
+      return this.joinedProjects.filter(project => {
+        const matchText = text ? project.title.toLowerCase().includes(text) : true
+        const matchStatus = this.selectedStatus ? project.status === this.selectedStatus : true
+        return matchText && matchStatus
+      })
+    },
+    // 总页数
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredProjects.length / this.pageSize))
+    },
+    // 当前页的项目列表
+    paginatedProjects() {
+      const start = (this.currentPage - 1) * this.pageSize
+      const result = this.filteredProjects.slice(start, start + this.pageSize)
+      console.log('当前页:', this.currentPage, '每页大小:', this.pageSize, '过滤后项目数:', this.filteredProjects.length, '当前页项目数:', result.length)
+      return result
     }
   },
   mounted() {
     this.loadUserProjects()
+    document.addEventListener('click', this.handleClickOutside)
+  },
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
     loadUserProjects() {
@@ -211,6 +275,35 @@ export default {
         'COMPLETED': 'completed'
       }
       return statusMap[status] || 'stable'
+    },
+    // 搜索和筛选相关方法
+    handleClickOutside(event) {
+      if (!event.target.closest('.dropdown')) {
+        this.statusOpen = false
+      }
+    },
+    toggleStatusDropdown() {
+      this.statusOpen = !this.statusOpen
+    },
+    selectStatus(status) {
+      this.selectedStatus = status
+      this.statusOpen = false
+      this.currentPage = 1 // 重置到第一页
+    },
+    resetFilters() {
+      this.searchText = ''
+      this.selectedStatus = ''
+      this.currentPage = 1
+    },
+    // 翻页相关方法
+    goPrev() {
+      if (this.currentPage > 1) this.currentPage--
+    },
+    goNext() {
+      if (this.currentPage < this.totalPages) this.currentPage++
+    },
+    goPage(page) {
+      this.currentPage = page
     }
   }
 }
@@ -286,10 +379,114 @@ export default {
 
 .main-content {
   flex: 1;
-  padding: var(--space-5) var(--space-6);
+  padding: var(--space-5) var(--space-6) 0;
   display: flex;
   flex-direction: column;
   height: calc(100vh - 64px);
+}
+
+.content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 工具栏样式 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  padding: var(--space-3);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-4);
+}
+
+.search-input {
+  flex: 1;
+  height: 40px;
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 0 var(--space-4);
+  outline: none;
+  font-size: var(--text-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-normal);
+}
+
+.search-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+  position: relative;
+}
+
+.btn {
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-normal);
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn.secondary { 
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+}
+
+.dropdown { 
+  position: relative; 
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 120px;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  z-index: 10;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dropdown-item {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+
+.dropdown-item:hover { 
+  background: #f8f9fa; 
+}
+
+.dropdown-item.active { 
+  color: #5b6bff; 
+  background: #eef1ff; 
 }
 
 /* 主页内容样式 */
@@ -437,6 +634,52 @@ export default {
   overflow-y: auto;
   align-content: start;
   padding-bottom: var(--space-3);
+}
+
+/* 翻页组件样式 */
+.pagination {
+  margin-top: auto; /* 自动推到底部 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0; /* 防止分页按钮被压缩 */
+  padding: var(--space-5) 0;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
+  margin-bottom: 0; /* 确保贴底 */
+}
+
+.pager, .page-num {
+  height: 32px;
+  min-width: 32px;
+  padding: 0 var(--space-2);
+  border: 2px solid var(--border-primary);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.pager:hover, .page-num:hover {
+  background: var(--bg-tertiary);
+  transform: translateY(-1px);
+}
+
+.page-num.active { 
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--text-inverse);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.pager:disabled { 
+  opacity: 0.5; 
+  cursor: not-allowed;
+  transform: none;
 }
 
 .card {
@@ -644,6 +887,15 @@ export default {
   
   .main-content {
     padding: var(--space-4) var(--space-4);
+  }
+  
+  .toolbar { 
+    flex-direction: column; 
+    align-items: stretch; 
+  }
+  
+  .toolbar-actions { 
+    justify-content: flex-end; 
   }
   
   .card {

@@ -108,7 +108,14 @@
           </div>
 
           <!-- 目录面板 -->
-          <KnowledgeBaseCatalog v-else-if="activeTab==='catalog'" :archiveRows="archiveRows" :projectId="projectId" @file-uploaded="handleFileUploaded" />
+          <KnowledgeBaseCatalog 
+            v-else-if="activeTab==='catalog'" 
+            :archiveRows="archiveRows" 
+            :projectId="projectId" 
+            @file-uploaded="handleFileUploaded"
+            @file-deleted="handleFileDeleted"
+            @file-edited="handleFileEdited"
+          />
 
           <!-- 知识柜面板 -->
           <KnowledgeBaseCabinet v-else-if="activeTab==='cabinet'" :projectId="projectId" @document-created="handleDocumentCreated" />
@@ -141,7 +148,9 @@ export default {
       activities: [
         { id: 1, type: 'doc', text: '张伟上传了论文《基于AI的教育个性化推荐系统研究》', time: '2小时前' },
         { id: 2, type: 'update', text: '李梦更新了知识文档《项目管理规范V2.1》', time: '3小时前' },
-        { id: 3, type: 'ai', text: 'AI助手为《深度学习在教育中的应用》生成了摘要和标签', time: '1天前' }
+        { id: 3, type: 'ai', text: 'AI助手为《深度学习在教育中的应用》生成了摘要和标签', time: '1天前' },
+        { id: 4, type: 'edit', text: '编辑了论文的详细描述：基于AI的教育个性化推荐系统研究', time: '2天前' },
+        { id: 5, type: 'delete', text: '删除了数据集：旧版本学生行为数据', time: '3天前' }
       ],
       archiveRows: [
         { id: 1, name: '基于AI的教育个性化推荐系统研究.pdf', type: '论文', uploader: '张伟', time: '2023-11-15 14:30', typeCls: 'doc' },
@@ -237,6 +246,40 @@ export default {
         id: Date.now(),
         type: 'update',
         text: `创建了新文档：${doc.title}`,
+        time: '刚刚'
+      }
+      this.activities.unshift(newActivity)
+      
+      // 自动保存到本地存储
+      this.saveToLocalStorage()
+      
+      // 更新统计数字
+      this.updateStats()
+    },
+    
+    handleFileDeleted(file) {
+      // 处理文件删除，更新最近活动
+      const newActivity = {
+        id: Date.now(),
+        type: 'delete',
+        text: `删除了${file.type}：${file.name}`,
+        time: '刚刚'
+      }
+      this.activities.unshift(newActivity)
+      
+      // 自动保存到本地存储
+      this.saveToLocalStorage()
+      
+      // 更新统计数字
+      this.updateStats()
+    },
+    
+    handleFileEdited(file) {
+      // 处理文件编辑，更新最近活动
+      const newActivity = {
+        id: Date.now(),
+        type: 'edit',
+        text: `编辑了${file.type}的详细描述：${file.name}`,
         time: '刚刚'
       }
       this.activities.unshift(newActivity)
@@ -655,6 +698,8 @@ export default {
 .activity-bullet.doc { background: #1976d2; }
 .activity-bullet.update { background: #388e3c; }
 .activity-bullet.ai { background: #7b1fa2; }
+.activity-bullet.delete { background: #d32f2f; }
+.activity-bullet.edit { background: #f57c00; }
 
 .activity-main {
   flex: 1;
