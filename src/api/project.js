@@ -1,9 +1,9 @@
 import axios from 'axios'
 import config from '@/config'
 
-// 创建axios实例 - 使用项目服务端口8095
+// 创建axios实例 - 使用Vue代理，不指定baseURL
 const api = axios.create({
-  baseURL: config.api.endpoints.project, // 使用项目服务端口
+  baseURL: '', // 使用相对路径，通过Vue代理转发
   timeout: config.api.timeout,
   headers: {
     'Content-Type': 'application/json',
@@ -36,6 +36,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   response => {
     console.log('项目API响应:', response.status, response.data)
+    // 后端返回的response.data就是R对象，包含code、msg、data字段
+    // 直接返回response.data，这样前端就能访问到R对象的完整结构
     return response.data
   },
   error => {
@@ -72,7 +74,7 @@ export const projectAPI = {
    */
   createProject(projectData) {
     console.log('[projectAPI.createProject] 创建项目, 数据:', projectData)
-    return api.post('/api/projects', projectData)
+    return api.post('/zhiyan/api/projects', projectData)
   },
 
   /**
@@ -82,7 +84,7 @@ export const projectAPI = {
    */
   updateProject(projectId, projectData) {
     console.log('[projectAPI.updateProject] 更新项目, ID:', projectId, '数据:', projectData)
-    return api.put(`/api/projects/${projectId}`, projectData)
+    return api.put(`/zhiyan/api/projects/${projectId}`, projectData)
   },
 
   /**
@@ -91,7 +93,7 @@ export const projectAPI = {
    */
   deleteProject(projectId) {
     console.log('[projectAPI.deleteProject] 删除项目, ID:', projectId)
-    return api.delete(`/api/projects/${projectId}`)
+    return api.delete(`/zhiyan/api/projects/${projectId}`)
   },
 
   /**
@@ -100,7 +102,7 @@ export const projectAPI = {
    */
   getProjectById(projectId) {
     console.log('[projectAPI.getProjectById] 获取项目详情, ID:', projectId)
-    return api.get(`/api/projects/${projectId}`)
+    return api.get(`/zhiyan/api/projects/${projectId}`)
   },
 
   /**
@@ -110,7 +112,7 @@ export const projectAPI = {
    */
   getMyCreatedProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyCreatedProjects] 获取我创建的项目')
-    return api.get('/api/projects/my-created', {
+    return api.get('/zhiyan/api/projects/my-created', {
       params: { page, size }
     })
   },
@@ -122,7 +124,7 @@ export const projectAPI = {
    */
   getMyProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyProjects] 获取我参与的项目')
-    return api.get('/api/projects/my-projects', {
+    return api.get('/zhiyan/api/projects/my-projects', {
       params: { page, size }
     })
   },
@@ -134,7 +136,7 @@ export const projectAPI = {
    */
   getPublicActiveProjects(page = 0, size = 10) {
     console.log('[projectAPI.getPublicActiveProjects] 获取公开项目')
-    return api.get('/api/projects/public/active', {
+    return api.get('/zhiyan/api/projects/public/active', {
       params: { page, size }
     })
   },
@@ -147,7 +149,7 @@ export const projectAPI = {
    */
   searchProjects(keyword, page = 0, size = 10) {
     console.log('[projectAPI.searchProjects] 搜索项目, 关键词:', keyword)
-    return api.get('/api/projects/search', {
+    return api.get('/zhiyan/api/projects/search', {
       params: { keyword, page, size }
     })
   },
@@ -159,7 +161,7 @@ export const projectAPI = {
    */
   updateProjectStatus(projectId, status) {
     console.log('[projectAPI.updateProjectStatus] 更新项目状态, ID:', projectId, '状态:', status)
-    return api.patch(`/api/projects/${projectId}/status`, { status })
+    return api.patch(`/zhiyan/api/projects/${projectId}/status`, { status })
   },
 
   /**
@@ -168,7 +170,7 @@ export const projectAPI = {
    */
   archiveProject(projectId) {
     console.log('[projectAPI.archiveProject] 归档项目, ID:', projectId)
-    return api.post(`/api/projects/${projectId}/archive`)
+    return api.post(`/zhiyan/api/projects/${projectId}/archive`)
   },
 
   /**
@@ -176,7 +178,7 @@ export const projectAPI = {
    */
   countMyCreatedProjects() {
     console.log('[projectAPI.countMyCreatedProjects] 统计我创建的项目')
-    return api.get('/api/projects/count/my-created')
+    return api.get('/zhiyan/api/projects/count/my-created')
   },
 
   /**
@@ -184,7 +186,7 @@ export const projectAPI = {
    */
   countMyParticipatedProjects() {
     console.log('[projectAPI.countMyParticipatedProjects] 统计我参与的项目')
-    return api.get('/api/projects/count/my-participated')
+    return api.get('/zhiyan/api/projects/count/my-participated')
   }
 }
 

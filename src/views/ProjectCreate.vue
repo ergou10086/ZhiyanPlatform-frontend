@@ -863,11 +863,24 @@ export default {
         console.log('使用项目API模块创建项目...')
         const response = await projectAPI.createProject(projectData)
         
-        console.log('API返回结果:', response)
+        console.log('projectAPI.createProject返回结果:', response)
+        console.log('返回结果类型:', typeof response)
+        console.log('返回结果是否为null:', response === null)
+        console.log('返回结果是否为undefined:', response === undefined)
+        
+        if (response) {
+          console.log('返回结果code:', response.code)
+          console.log('返回结果msg:', response.msg)
+          console.log('返回结果data:', response.data)
+        }
         
         // 检查API返回结果
-        if (!response || response.code !== 200) {
-          throw new Error(response?.msg || '项目创建失败')
+        if (!response) {
+          throw new Error('API返回空结果')
+        }
+        
+        if (response.code !== 200) {
+          throw new Error(response.msg || '项目创建失败')
         }
         
         return response
@@ -942,8 +955,22 @@ export default {
         
         const response = await this.createProjectAPI(createProjectData)
         
+        console.log('createProjectAPI返回的完整响应:', response)
+        console.log('响应类型:', typeof response)
+        console.log('响应code:', response?.code)
+        console.log('响应msg:', response?.msg)
+        console.log('响应data:', response?.data)
+        
+        if (!response) {
+          throw new Error('API返回空响应')
+        }
+        
         if (response.code !== 200) {
           throw new Error(response.msg || '项目创建失败')
+        }
+        
+        if (!response.data) {
+          throw new Error('API返回数据为空')
         }
         
         console.log('后端返回的项目数据:', response.data)
