@@ -3,8 +3,8 @@
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
-     <!-- 顶部导航栏 -->
-     <div class="top-header">
+    <!-- 顶部导航栏 -->
+    <div class="top-header">
       <div class="header-left">
         <button class="menu-btn" @click="toggleSidebar">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -31,18 +31,18 @@
           <div class="avatar-section">
             <div class="avatar-container" @click="triggerAvatarUpload">
               <img v-if="userInfo.avatar" :src="userInfo.avatar" alt="用户头像" class="avatar-image" />
-              <div v-else class="avatar-placeholder">
+            <div v-else class="avatar-placeholder">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
               <div class="camera-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 4H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-              </div>
+          </div>
             </div>
             <div class="nickname-section">
               <div v-if="editingNickname" class="nickname-edit">
@@ -58,7 +58,7 @@
                   <button @click="saveNickname" class="save-btn-small">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+          </svg>
                   </button>
                   <button @click="cancelEditNickname" class="cancel-btn-small">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -79,7 +79,7 @@
             </div>
           </div>
         </div>
-
+        
         <!-- 邮箱地址卡片 -->
         <div class="info-card">
           <div class="info-item">
@@ -105,10 +105,10 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            </svg>
                 编辑
               </button>
-            </div>
+          </div>
             <div v-if="editingIntro" class="intro-edit">
               <textarea 
                 v-model="tempIntro" 
@@ -132,11 +132,11 @@
             <h3 class="info-label">登录账号</h3>
             <p class="info-value">请登录您的账号以查看完整个人信息</p>
             <button @click="goToLogin" class="login-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M15 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <polyline points="10,17 15,12 10,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <line x1="15" y1="12" x2="3" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            </svg>
               立即登录
             </button>
           </div>
@@ -168,6 +168,31 @@
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
+      </div>
+    
+    <!-- 头像裁切Modal -->
+    <div v-if="showAvatarCropModal" class="avatar-crop-modal-overlay">
+      <div class="avatar-crop-modal-content" @click.stop>
+        <div class="avatar-crop-modal-header">
+          <h3>裁切头像</h3>
+          <p class="avatar-crop-hint">请拖拽选择裁切区域，头像将显示为圆形</p>
+    </div>
+        <div class="avatar-crop-modal-body">
+          <div class="avatar-crop-container">
+            <canvas ref="avatarCropCanvas" class="avatar-crop-canvas"></canvas>
+            <div class="avatar-crop-overlay" ref="avatarCropOverlay">
+              <div class="avatar-crop-selection" ref="avatarCropSelection">
+                <!-- 调整大小的控制点 -->
+                <div class="avatar-resize-handle avatar-resize-handle-se"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="avatar-crop-modal-footer">
+          <button class="btn-cancel" @click="closeAvatarCropModal">重新选择图片</button>
+          <button class="btn-confirm" @click="applyAvatarCrop">完成裁切</button>
+        </div>
+      </div>
     </div>
 
     <!-- 隐藏的文件上传输入 -->
@@ -201,6 +226,13 @@ export default {
       isLoggedIn: false,
       showModal: false,
       modalMessage: '',
+      showAvatarCropModal: false,
+      originalAvatarData: null,
+      avatarCropData: {
+        x: 0,
+        y: 0,
+        size: 0
+      },
       userInfo: {
         id: null,
         username: '',
@@ -333,8 +365,200 @@ export default {
       
       // 延迟跳转到登录页面，让用户看到提示
       setTimeout(() => {
-        this.$router.push('/login')
+      this.$router.push('/login')
       }, 1000)
+    },
+    // 头像裁切相关方法
+    closeAvatarCropModal() {
+      // 如果用户取消裁切，清空文件输入
+      this.$refs.avatarUpload.value = ''
+      this.showAvatarCropModal = false
+      this.originalAvatarData = null
+    },
+    initAvatarCropCanvas() {
+      const canvas = this.$refs.avatarCropCanvas
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        // 设置画布尺寸，保持图片比例
+        const maxSize = 400
+        let { width, height } = img
+        
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height)
+          width *= ratio
+          height *= ratio
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        canvas.style.width = width + 'px'
+        canvas.style.height = height + 'px'
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // 初始化圆形裁切区域
+        const cropSize = Math.min(width, height) * 0.6
+        this.avatarCropData = {
+          x: (width - cropSize) / 2,
+          y: (height - cropSize) / 2,
+          size: cropSize
+        }
+        
+        this.updateAvatarCropSelection()
+        this.setupAvatarCropInteraction()
+      }
+      
+      img.src = this.originalAvatarData
+    },
+    updateAvatarCropSelection() {
+      const selection = this.$refs.avatarCropSelection
+      if (selection) {
+        selection.style.left = this.avatarCropData.x + 'px'
+        selection.style.top = this.avatarCropData.y + 'px'
+        selection.style.width = this.avatarCropData.size + 'px'
+        selection.style.height = this.avatarCropData.size + 'px'
+      }
+    },
+    setupAvatarCropInteraction() {
+      const selection = this.$refs.avatarCropSelection
+      const canvas = this.$refs.avatarCropCanvas
+      
+      if (!selection || !canvas) return
+      
+      let isDragging = false
+      let isResizing = false
+      let startX = 0
+      let startY = 0
+      let startCropX = 0
+      let startCropY = 0
+      let startCropSize = 0
+      
+      const startDrag = (e) => {
+        if (e.target.classList.contains('avatar-resize-handle')) {
+          isResizing = true
+        } else {
+          isDragging = true
+        }
+        
+        const rect = canvas.getBoundingClientRect()
+        startX = e.clientX - rect.left
+        startY = e.clientY - rect.top
+        startCropX = this.avatarCropData.x
+        startCropY = this.avatarCropData.y
+        startCropSize = this.avatarCropData.size
+      }
+      
+      const drag = (e) => {
+        if (!isDragging && !isResizing) return
+        
+        const rect = canvas.getBoundingClientRect()
+        const currentX = e.clientX - rect.left
+        const currentY = e.clientY - rect.top
+        
+        const deltaX = currentX - startX
+        const deltaY = currentY - startY
+        
+        if (isDragging) {
+          // 移动圆形裁切框
+          const newX = Math.max(0, Math.min(canvas.width - this.avatarCropData.size, startCropX + deltaX))
+          const newY = Math.max(0, Math.min(canvas.height - this.avatarCropData.size, startCropY + deltaY))
+          
+          this.avatarCropData.x = newX
+          this.avatarCropData.y = newY
+        } else if (isResizing) {
+          // 调整圆形裁切框大小
+          const deltaSize = deltaX + deltaY
+          const newSize = Math.max(50, Math.min(Math.min(canvas.width, canvas.height), startCropSize + deltaSize))
+          
+          // 保持圆形居中
+          const newX = Math.max(0, Math.min(canvas.width - newSize, startCropX + (startCropSize - newSize) / 2))
+          const newY = Math.max(0, Math.min(canvas.height - newSize, startCropY + (startCropSize - newSize) / 2))
+          
+          this.avatarCropData.x = newX
+          this.avatarCropData.y = newY
+          this.avatarCropData.size = newSize
+        }
+        
+        this.updateAvatarCropSelection()
+      }
+      
+      const endDrag = () => {
+        isDragging = false
+        isResizing = false
+      }
+      
+      selection.addEventListener('mousedown', startDrag)
+      document.addEventListener('mousemove', drag)
+      document.addEventListener('mouseup', endDrag)
+      
+      // 清理事件监听器
+      this.$once('hook:beforeDestroy', () => {
+        selection.removeEventListener('mousedown', startDrag)
+        document.removeEventListener('mousemove', drag)
+        document.removeEventListener('mouseup', endDrag)
+      })
+    },
+    applyAvatarCrop() {
+      if (!this.originalAvatarData) return
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      // 设置圆形头像的尺寸（与页面显示尺寸一致）
+      const avatarSize = 80
+      canvas.width = avatarSize
+      canvas.height = avatarSize
+      
+      // 创建圆形裁切路径
+      ctx.beginPath()
+      ctx.arc(avatarSize / 2, avatarSize / 2, avatarSize / 2, 0, 2 * Math.PI)
+      ctx.clip()
+      
+      // 获取原始图片的实际尺寸
+      const img = new Image()
+      img.onload = () => {
+        // 计算裁切区域在原图中的实际位置和尺寸
+        const canvasWidth = this.$refs.avatarCropCanvas.width
+        const canvasHeight = this.$refs.avatarCropCanvas.height
+        
+        const sourceX = (this.avatarCropData.x / canvasWidth) * img.width
+        const sourceY = (this.avatarCropData.y / canvasHeight) * img.height
+        const sourceSize = (this.avatarCropData.size / canvasWidth) * img.width
+        
+        // 绘制裁切后的图片
+        ctx.drawImage(
+          img,
+          sourceX, sourceY, sourceSize, sourceSize,
+          0, 0, avatarSize, avatarSize
+        )
+        
+        // 转换为DataURL并更新头像
+        const croppedAvatar = canvas.toDataURL('image/jpeg', 0.9)
+        this.userInfo.avatar = croppedAvatar
+        this.userAvatar = croppedAvatar
+        localStorage.setItem('userAvatar', croppedAvatar)
+        
+        // 更新user_info中的头像信息
+        const savedUserInfo = localStorage.getItem('user_info')
+        if (savedUserInfo) {
+          try {
+            const userData = JSON.parse(savedUserInfo)
+            userData.avatar = croppedAvatar
+            localStorage.setItem('user_info', JSON.stringify(userData))
+            console.log('头像已更新到user_info:', userData.avatar)
+          } catch (error) {
+            console.error('更新user_info头像失败:', error)
+          }
+        }
+        
+        // 触发全局更新事件
+        this.$root.$emit('userInfoUpdated')
+        this.closeAvatarCropModal()
+      }
+      img.src = this.originalAvatarData
     },
     // 头像相关方法
     triggerAvatarUpload() {
@@ -348,27 +572,26 @@ export default {
     handleAvatarUpload(event) {
       const file = event.target.files[0]
       if (file) {
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+          this.showErrorModal('请选择图片文件')
+          return
+        }
+        
+        // 检查文件大小 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          this.showErrorModal('图片文件大小不能超过5MB')
+          return
+        }
+        
         const reader = new FileReader()
         reader.onload = (e) => {
-          this.userInfo.avatar = e.target.result
-          this.userAvatar = e.target.result
-          localStorage.setItem('userAvatar', e.target.result)
-          
-          // 更新user_info中的头像信息
-          const savedUserInfo = localStorage.getItem('user_info')
-          if (savedUserInfo) {
-            try {
-              const userData = JSON.parse(savedUserInfo)
-              userData.avatar = e.target.result
-              localStorage.setItem('user_info', JSON.stringify(userData))
-              console.log('头像已更新到user_info:', userData.avatar)
-            } catch (error) {
-              console.error('更新user_info头像失败:', error)
-            }
-          }
-          
-          // 触发全局更新事件
-          this.$root.$emit('userInfoUpdated')
+          this.originalAvatarData = e.target.result
+          // 立即显示圆形裁切模态
+          this.showAvatarCropModal = true
+          this.$nextTick(() => {
+            this.initAvatarCropCanvas()
+          })
         }
         reader.readAsDataURL(file)
       }
@@ -1080,6 +1303,153 @@ export default {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+
+/* 头像裁切模态弹窗样式 */
+.avatar-crop-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  pointer-events: all;
+}
+
+.avatar-crop-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.avatar-crop-modal-header {
+  padding: 20px 24px 16px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.avatar-crop-modal-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.avatar-crop-hint {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.avatar-crop-modal-body {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-crop-container {
+  position: relative;
+  display: inline-block;
+}
+
+.avatar-crop-canvas {
+  display: block;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.avatar-crop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.avatar-crop-selection {
+  position: absolute;
+  border: 2px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  cursor: move;
+  pointer-events: all;
+  border-radius: 50%;
+}
+
+.avatar-crop-selection::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 50%;
+}
+
+/* 头像调整大小的控制点 */
+.avatar-resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.avatar-resize-handle-se {
+  bottom: -4px;
+  right: -4px;
+  cursor: se-resize;
+}
+
+.avatar-crop-modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #e8e8e8;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #0056b3;
 }
 </style>
 

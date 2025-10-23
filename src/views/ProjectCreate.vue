@@ -72,7 +72,7 @@
                     <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p class="upload-text">点击上传项目图片</p>
-                  <p class="upload-hint">支持 JPG、PNG 格式，建议尺寸 400x300</p>
+                  <p class="upload-hint">支持 JPG、PNG 格式</p>
                 </div>
                 <div v-else class="image-preview">
                   <img :src="projectImage" alt="项目图片预览" />
@@ -291,6 +291,34 @@
         </div>
       </div>
     </div>
+    
+    <!-- 图片裁切Modal -->
+    <div v-if="showCropModal" class="crop-modal-overlay">
+      <div class="crop-modal-content" @click.stop>
+        <div class="crop-modal-header">
+          <h3>裁切项目图片</h3>
+          <p class="crop-hint">请拖拽选择裁切区域，确保比例与项目广场显示一致</p>
+        </div>
+        <div class="crop-modal-body">
+          <div class="crop-container">
+            <canvas ref="cropCanvas" class="crop-canvas"></canvas>
+            <div class="crop-overlay" ref="cropOverlay">
+              <div class="crop-selection" ref="cropSelection">
+                <!-- 调整大小的控制点 -->
+                <div class="resize-handle resize-handle-nw" data-handle="nw"></div>
+                <div class="resize-handle resize-handle-ne" data-handle="ne"></div>
+                <div class="resize-handle resize-handle-sw" data-handle="sw"></div>
+                <div class="resize-handle resize-handle-se" data-handle="se"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="crop-modal-footer">
+          <button class="btn-cancel" @click="closeCropModal">重新选择图片</button>
+          <button class="btn-confirm" @click="applyCrop">完成裁切</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -322,7 +350,16 @@ export default {
       showToast: false,
       toastMessage: '',
       showModal: false,
-      modalMessage: ''
+      modalMessage: '',
+      showCropModal: false,
+      originalImage: null,
+      originalImageData: null,
+      cropData: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      }
     }
   },
   computed: {
@@ -402,20 +439,25 @@ export default {
       if (file) {
         // 检查文件类型
         if (!file.type.startsWith('image/')) {
-          alert('请选择图片文件')
+          this.showErrorModal('请选择图片文件')
           return
         }
         
         // 检查文件大小 (5MB)
         if (file.size > 5 * 1024 * 1024) {
-          alert('图片文件大小不能超过5MB')
+          this.showErrorModal('图片文件大小不能超过5MB')
           return
         }
         
-        // 创建预览URL
+        // 创建预览URL并立即进入裁切模式
         const reader = new FileReader()
         reader.onload = (e) => {
-          this.projectImage = e.target.result
+          this.originalImageData = e.target.result
+          // 立即显示裁切模态，用户必须完成裁切
+          this.showCropModal = true
+          this.$nextTick(() => {
+            this.initCropCanvas()
+          })
         }
         reader.readAsDataURL(file)
       }
@@ -423,6 +465,233 @@ export default {
     removeImage() {
       this.projectImage = null
       this.$refs.imageInput.value = ''
+    },
+    closeCropModal() {
+      // 如果用户取消裁切，清空文件输入
+      this.$refs.imageInput.value = ''
+      this.showCropModal = false
+      this.originalImage = null
+      this.originalImageData = null
+    },
+    initCropCanvas() {
+      const canvas = this.$refs.cropCanvas
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        // 设置画布尺寸，保持图片比例
+        const maxWidth = 600
+        const maxHeight = 400
+        let { width, height } = img
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width *= ratio
+          height *= ratio
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        canvas.style.width = width + 'px'
+        canvas.style.height = height + 'px'
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // 保存原始图片数据
+        this.originalImage = img
+        
+        // 初始化裁切区域（项目广场比例：约16:9）
+        const cropRatio = 16 / 9
+        const cropWidth = Math.min(width * 0.8, height * cropRatio * 0.8)
+        const cropHeight = cropWidth / cropRatio
+        
+        this.cropData = {
+          x: (width - cropWidth) / 2,
+          y: (height - cropHeight) / 2,
+          width: cropWidth,
+          height: cropHeight
+        }
+        
+        this.updateCropSelection()
+        this.setupCropInteraction()
+      }
+      
+      img.src = this.originalImageData
+    },
+    updateCropSelection() {
+      const selection = this.$refs.cropSelection
+      if (selection) {
+        selection.style.left = this.cropData.x + 'px'
+        selection.style.top = this.cropData.y + 'px'
+        selection.style.width = this.cropData.width + 'px'
+        selection.style.height = this.cropData.height + 'px'
+      }
+    },
+    setupCropInteraction() {
+      const selection = this.$refs.cropSelection
+      const overlay = this.$refs.cropOverlay
+      const canvas = this.$refs.cropCanvas
+      
+      if (!selection || !overlay || !canvas) return
+      
+      let isDragging = false
+      let isResizing = false
+      let resizeHandle = null
+      let startX = 0
+      let startY = 0
+      let startCropX = 0
+      let startCropY = 0
+      let startCropWidth = 0
+      let startCropHeight = 0
+      
+      const cropRatio = 16 / 9
+      
+      const startDrag = (e) => {
+        if (e.target.classList.contains('resize-handle')) {
+          isResizing = true
+          resizeHandle = e.target.dataset.handle
+        } else {
+          isDragging = true
+        }
+        
+        const rect = canvas.getBoundingClientRect()
+        startX = e.clientX - rect.left
+        startY = e.clientY - rect.top
+        startCropX = this.cropData.x
+        startCropY = this.cropData.y
+        startCropWidth = this.cropData.width
+        startCropHeight = this.cropData.height
+      }
+      
+      const drag = (e) => {
+        if (!isDragging && !isResizing) return
+        
+        const rect = canvas.getBoundingClientRect()
+        const currentX = e.clientX - rect.left
+        const currentY = e.clientY - rect.top
+        
+        const deltaX = currentX - startX
+        const deltaY = currentY - startY
+        
+        if (isDragging) {
+          // 移动裁切框
+          const newX = Math.max(0, Math.min(canvas.width - this.cropData.width, startCropX + deltaX))
+          const newY = Math.max(0, Math.min(canvas.height - this.cropData.height, startCropY + deltaY))
+          
+          this.cropData.x = newX
+          this.cropData.y = newY
+        } else if (isResizing) {
+          // 调整裁切框大小
+          let newWidth = startCropWidth
+          let newHeight = startCropHeight
+          let newX = startCropX
+          let newY = startCropY
+          
+          if (resizeHandle === 'se') {
+            // 右下角调整
+            newWidth = Math.max(50, Math.min(canvas.width - startCropX, startCropWidth + deltaX))
+            newHeight = newWidth / cropRatio
+            if (startCropY + newHeight > canvas.height) {
+              newHeight = canvas.height - startCropY
+              newWidth = newHeight * cropRatio
+            }
+          } else if (resizeHandle === 'sw') {
+            // 左下角调整
+            newWidth = Math.max(50, Math.min(startCropX + startCropWidth, startCropWidth - deltaX))
+            newHeight = newWidth / cropRatio
+            newX = startCropX + startCropWidth - newWidth
+            if (newX < 0) {
+              newX = 0
+              newWidth = startCropX + startCropWidth
+              newHeight = newWidth / cropRatio
+            }
+          } else if (resizeHandle === 'ne') {
+            // 右上角调整
+            newWidth = Math.max(50, Math.min(canvas.width - startCropX, startCropWidth + deltaX))
+            newHeight = newWidth / cropRatio
+            newY = startCropY + startCropHeight - newHeight
+            if (newY < 0) {
+              newY = 0
+              newHeight = startCropY + startCropHeight
+              newWidth = newHeight * cropRatio
+            }
+          } else if (resizeHandle === 'nw') {
+            // 左上角调整
+            newWidth = Math.max(50, Math.min(startCropX + startCropWidth, startCropWidth - deltaX))
+            newHeight = newWidth / cropRatio
+            newX = startCropX + startCropWidth - newWidth
+            newY = startCropY + startCropHeight - newHeight
+            if (newX < 0) {
+              newX = 0
+              newWidth = startCropX + startCropWidth
+              newHeight = newWidth / cropRatio
+              newY = startCropY + startCropHeight - newHeight
+            }
+            if (newY < 0) {
+              newY = 0
+              newHeight = startCropY + startCropHeight
+              newWidth = newHeight * cropRatio
+              newX = startCropX + startCropWidth - newWidth
+            }
+          }
+          
+          this.cropData.x = newX
+          this.cropData.y = newY
+          this.cropData.width = newWidth
+          this.cropData.height = newHeight
+        }
+        
+        this.updateCropSelection()
+      }
+      
+      const endDrag = () => {
+        isDragging = false
+        isResizing = false
+        resizeHandle = null
+      }
+      
+      selection.addEventListener('mousedown', startDrag)
+      document.addEventListener('mousemove', drag)
+      document.addEventListener('mouseup', endDrag)
+      
+      // 清理事件监听器
+      this.$once('hook:beforeDestroy', () => {
+        selection.removeEventListener('mousedown', startDrag)
+        document.removeEventListener('mousemove', drag)
+        document.removeEventListener('mouseup', endDrag)
+      })
+    },
+    applyCrop() {
+      if (!this.originalImage) return
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      // 设置裁切后的画布尺寸（项目广场比例）
+      const targetRatio = 16 / 9
+      const targetWidth = 400
+      const targetHeight = targetWidth / targetRatio
+      
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+      
+      // 计算裁切区域在原图中的位置和尺寸
+      const sourceX = (this.cropData.x / this.$refs.cropCanvas.width) * this.originalImage.width
+      const sourceY = (this.cropData.y / this.$refs.cropCanvas.height) * this.originalImage.height
+      const sourceWidth = (this.cropData.width / this.$refs.cropCanvas.width) * this.originalImage.width
+      const sourceHeight = (this.cropData.height / this.$refs.cropCanvas.height) * this.originalImage.height
+      
+      // 绘制裁切后的图片
+      ctx.drawImage(
+        this.originalImage,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, targetWidth, targetHeight
+      )
+      
+      // 转换为DataURL并更新项目图片
+      this.projectImage = canvas.toDataURL('image/jpeg', 0.9)
+      this.closeCropModal()
     },
     loadUserAvatar() {
       const savedAvatar = localStorage.getItem('userAvatar')
@@ -607,7 +876,7 @@ export default {
           id: Date.now(), // 使用时间戳作为唯一ID
           name: this.formData.projectName, // 修改为与数据库一致的字段名
           title: this.formData.projectName, // 保留title字段用于前端显示
-          status: 'ONGOING', // 修改为与数据库枚举一致
+          status: '进行中', // 前端直接显示中文状态
           visibility: 'PRIVATE', // 添加可见性字段
           teamSize: this.formData.tasks.length || 1,
           dataAssets: this.formData.projectDescription || '暂无描述',
@@ -1450,6 +1719,172 @@ export default {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+
+/* 图片裁切模态弹窗样式 */
+.crop-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  /* 不允许点击背景关闭 */
+  pointer-events: all;
+}
+
+.crop-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+.crop-modal-header {
+  padding: 20px 24px 16px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.crop-modal-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.crop-hint {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.crop-modal-body {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.crop-container {
+  position: relative;
+  display: inline-block;
+}
+
+.crop-canvas {
+  display: block;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.crop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crop-selection {
+  position: absolute;
+  border: 2px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  cursor: move;
+  pointer-events: all;
+  border-radius: 4px;
+}
+
+.crop-selection::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+/* 调整大小的控制点 */
+.resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.resize-handle-nw {
+  top: -4px;
+  left: -4px;
+  cursor: nw-resize;
+}
+
+.resize-handle-ne {
+  top: -4px;
+  right: -4px;
+  cursor: ne-resize;
+}
+
+.resize-handle-sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: sw-resize;
+}
+
+.resize-handle-se {
+  bottom: -4px;
+  right: -4px;
+  cursor: se-resize;
+}
+
+.crop-modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #e8e8e8;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #0056b3;
 }
 
 /* Modal样式 */
