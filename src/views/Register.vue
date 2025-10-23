@@ -288,7 +288,8 @@ export default {
         console.log('邮箱检查响应:', emailCheckResponse)
         
         // 如果邮箱已被注册，弹窗提示用户
-        if (emailCheckResponse.code === 200 && emailCheckResponse.data === true) {
+        // 注意：后端返回data=true表示邮箱可用，data=false表示邮箱已注册
+        if (emailCheckResponse.code === 200 && emailCheckResponse.data === false) {
           this.showErrorModal('该邮箱已被注册，请使用其他邮箱或直接登录')
           return
         }
@@ -309,12 +310,27 @@ export default {
         
         // 调用注册API
         console.log('开始调用注册API...')
+        console.log('注册数据详情:', {
+          email: registerData.email,
+          verificationCode: registerData.verificationCode,
+          password: registerData.password ? '***已设置***' : '未设置',
+          confirmPassword: registerData.confirmPassword ? '***已设置***' : '未设置',
+          name: registerData.name,
+          institution: registerData.institution
+        })
+        
         let response
         try {
           response = await authAPI.register(registerData)
           console.log('注册API响应:', response)
+          console.log('响应状态码:', response.code)
+          console.log('响应消息:', response.msg)
+          console.log('响应数据:', response.data)
         } catch (error) {
           console.error('注册API调用失败:', error)
+          console.error('错误详情:', error.response)
+          console.error('错误状态码:', error.response?.status)
+          console.error('错误数据:', error.response?.data)
           throw error
         }
         
