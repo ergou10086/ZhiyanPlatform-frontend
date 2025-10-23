@@ -282,9 +282,16 @@ export default {
       
       this.loading = true
       try {
-        // 暂时移除邮箱检查，直接进行注册
-        // const emailCheckResponse = await authAPI.checkEmail(this.registerForm.email)
-        // console.log('邮箱检查响应:', emailCheckResponse)
+        // 先检查邮箱是否已被注册
+        console.log('检查邮箱是否已被注册:', this.registerForm.email)
+        const emailCheckResponse = await authAPI.checkEmail(this.registerForm.email)
+        console.log('邮箱检查响应:', emailCheckResponse)
+        
+        // 如果邮箱已被注册，弹窗提示用户
+        if (emailCheckResponse.code === 200 && emailCheckResponse.data === true) {
+          this.showErrorModal('该邮箱已被注册，请使用其他邮箱或直接登录')
+          return
+        }
         
         // 准备注册数据
         const registerData = {
