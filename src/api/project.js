@@ -1,9 +1,9 @@
 import axios from 'axios'
 import config from '@/config'
 
-// 创建axios实例
+// 创建axios实例 - 使用项目服务端口8092
 const api = axios.create({
-  baseURL: config.api.baseURL,
+  baseURL: config.api.endpoints.project, // 使用项目服务端口
   timeout: config.api.timeout,
   headers: {
     'Content-Type': 'application/json',

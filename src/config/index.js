@@ -3,10 +3,22 @@
 const config = {
   // API配置
   api: {
+    // 默认API基础URL
     baseURL: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
-      : 'http://localhost:8091', // 开发环境直接连接后端
-    timeout: 10000
+      : 'http://localhost:8091', // 默认端口8091
+    timeout: 10000,
+    // 多端口配置
+    endpoints: {
+      // 认证服务 (8091)
+      auth: process.env.NODE_ENV === 'production' 
+        ? 'https://your-production-api.com' 
+        : 'http://localhost:8091',
+      // 项目服务 (8092)
+      project: process.env.NODE_ENV === 'production' 
+        ? 'https://your-production-api.com' 
+        : 'http://localhost:8092'
+    }
   },
   
   // 应用配置
