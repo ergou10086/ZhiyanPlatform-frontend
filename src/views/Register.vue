@@ -22,11 +22,7 @@
             v-model="registerForm.email"
             placeholder="请输入邮箱地址"
             required
-            @blur="checkEmailStatus"
           />
-          <div v-if="emailStatus" class="email-status" :class="emailStatus.type">
-            {{ emailStatus.message }}
-          </div>
         </div>
         
         <div class="form-group">
@@ -123,6 +119,21 @@
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
     </div>
+    
+    <!-- 通用模态弹窗 -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>提示</h3>
+        </div>
+        <div class="modal-body">
+          <p>{{ modalMessage }}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-confirm" @click="closeModal">确定</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -143,7 +154,6 @@ export default {
       loading: false,
       countdown: 0,
       submitLocked: false,
-      emailStatus: null,
       registerForm: {
         email: '',
         code: '',
@@ -154,18 +164,20 @@ export default {
         agreement: false
       },
       showToast: false,
-      toastMessage: ''
+      toastMessage: '',
+      showModal: false,
+      modalMessage: ''
     }
   },
   methods: {
     async sendCode() {
       if (!this.registerForm.email) {
-        alert('请先输入邮箱地址')
+        this.showErrorModal('请先输入邮箱地址')
         return
       }
       
       if (!isValidEmail(this.registerForm.email)) {
-        alert('请输入正确的邮箱格式')
+        this.showErrorModal('请输入正确的邮箱格式')
         return
       }
       
@@ -178,21 +190,28 @@ export default {
         })
         
         if (response.code === 200) {
-          alert('验证码已发送到您的邮箱，请查收（测试模式下验证码会显示在后端控制台）')
+          this.showSuccessToast('验证码已发送到您的邮箱，请查收（测试模式下验证码会显示在后端控制台）')
           this.startCountdown()
         } else {
           // 如果后端返回邮箱已注册的错误，提示用户
           if (response.msg && response.msg.includes('该邮箱已被注册')) {
-            alert('该邮箱已被注册，请使用其他邮箱或直接登录')
-            this.$router.push('/login')
+            this.showErrorModal('该邮箱已被注册，请使用其他邮箱或直接登录')
           } else {
-            alert(response.msg || '发送失败，请重试')
+            this.showErrorModal(response.msg || '发送失败，请重试')
           }
         }
       } catch (error) {
-        console.error('发送验证码失败:', error)
-        const errorMessage = formatApiError(error)
-        alert(errorMessage)
+          console.error('发送验证码失败:', error)
+          const errorMessage = formatApiError(error)
+          
+          // 检查是否是邮箱已注册的错误
+          if (errorMessage.includes('已被注册') || errorMessage.includes('已存在') || 
+              errorMessage.includes('已注册') || errorMessage.includes('exists') || 
+              errorMessage.includes('registered')) {
+            this.showErrorModal('该邮箱已被注册，请使用其他邮箱或直接登录')
+          } else {
+            this.showErrorModal(errorMessage)
+          }
       } finally {
         this.loading = false
       }
@@ -212,57 +231,68 @@ export default {
       console.log('开始表单验证...')
       if (!this.registerForm.email) {
         console.log('邮箱为空，停止处理')
-        alert('请输入邮箱地址')
+        this.showErrorModal('请输入邮箱地址')
         return
       }
       
       if (!this.registerForm.code) {
         console.log('验证码为空，停止处理')
-        alert('请输入验证码')
+        this.showErrorModal('请输入验证码')
         return
       }
       
       if (!this.registerForm.password) {
         console.log('密码为空，停止处理')
-        alert('请输入密码')
+        this.showErrorModal('请输入密码')
         return
       }
       
       if (!this.registerForm.name) {
         console.log('昵称为空，停止处理')
-        alert('请输入昵称')
+        this.showErrorModal('请输入昵称')
         return
       }
       
       if (!isValidEmail(this.registerForm.email)) {
-        alert('请输入正确的邮箱格式')
+        this.showErrorModal('请输入正确的邮箱格式')
         return
       }
       
       if (this.registerForm.password !== this.registerForm.confirmPassword) {
-        alert('两次输入的密码不一致')
+        this.showErrorModal('两次输入的密码不一致')
         return
       }
       
       const passwordValidation = validatePassword(this.registerForm.password)
       if (!passwordValidation.isValid) {
-        alert(passwordValidation.message)
+        this.showErrorModal(passwordValidation.message)
         return
       }
       
       if (!this.registerForm.agreement) {
-        alert('请同意用户协议和隐私政策')
+        this.showErrorModal('请同意用户协议和隐私政策')
         return
       }
       
       // 验证验证码格式
       if (!/^\d{6}$/.test(this.registerForm.code)) {
-        alert('请输入6位数字验证码')
+        this.showErrorModal('请输入6位数字验证码')
         return
       }
       
       this.loading = true
       try {
+        // 先检查邮箱是否已被注册
+        console.log('检查邮箱是否已被注册:', this.registerForm.email)
+        const emailCheckResponse = await authAPI.checkEmail(this.registerForm.email)
+        console.log('邮箱检查响应:', emailCheckResponse)
+        
+        // 如果邮箱已被注册，弹窗提示用户
+        if (emailCheckResponse.code === 200 && emailCheckResponse.data === true) {
+          this.showErrorModal('该邮箱已被注册，请使用其他邮箱或直接登录')
+          return
+        }
+        
         // 准备注册数据
         const registerData = {
           email: this.registerForm.email,
@@ -332,12 +362,12 @@ export default {
             agreement: false
           }
         } else {
-          alert(response.msg || '注册失败，请重试')
+          this.showErrorModal(response.msg || '注册失败，请重试')
         }
       } catch (error) {
         console.error('注册失败:', error)
         const errorMessage = formatApiError(error)
-        alert(errorMessage)
+        this.showErrorModal(errorMessage)
       } finally {
         this.loading = false
       }
@@ -374,57 +404,14 @@ export default {
         this.toastMessage = ''
       }, 1000)
     },
-    async checkEmailStatus() {
-      if (!this.registerForm.email) {
-        this.emailStatus = null
-        return
-      }
-
-      if (!isValidEmail(this.registerForm.email)) {
-        this.emailStatus = {
-          type: 'error',
-          message: '请输入正确的邮箱格式'
-        }
-        return
-      }
-
-      try {
-        const response = await authAPI.checkEmail(this.registerForm.email)
-        if (response.code === 200) {
-          if (response.data === true) {
-            this.emailStatus = {
-              type: 'error',
-              message: '该邮箱已被注册，请使用其他邮箱或直接登录'
-            }
-          } else {
-            this.emailStatus = {
-              type: 'success',
-              message: '邮箱可用，可以注册'
-            }
-          }
-        } else {
-          // 后端在邮箱已注册时会返回非200并附带提示
-          const msg = response.msg || '无法检查邮箱状态，请稍后重试'
-          if (msg.includes('已被注册')) {
-            this.emailStatus = {
-              type: 'error',
-              message: '该邮箱已被注册，请使用其他邮箱或直接登录'
-            }
-          } else {
-            this.emailStatus = {
-              type: 'warning',
-              message: msg
-            }
-          }
-        }
-      } catch (error) {
-        console.error('检查邮箱状态失败:', error)
-        this.emailStatus = {
-          type: 'warning',
-          message: '网络错误，无法检查邮箱状态'
-        }
-      }
-    }
+    showErrorModal(message) {
+      this.modalMessage = message
+      this.showModal = true
+    },
+    closeModal() {
+      this.showModal = false
+      this.modalMessage = ''
+    },
   }
 }
 </script>
@@ -662,31 +649,6 @@ export default {
 }
 
 
-.email-status {
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.email-status.success {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.email-status.error {
-  background-color: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
-}
-
-.email-status.warning {
-  background-color: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
 
 @media (max-width: 480px) {
   .register-box {
@@ -747,5 +709,101 @@ export default {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+
+/* 模态弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 20px 24px 16px;
+  text-align: center;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-body {
+  padding: 0 24px 20px;
+  text-align: center;
+}
+
+.modal-body p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #e8e8e8;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #0056b3;
 }
 </style>
