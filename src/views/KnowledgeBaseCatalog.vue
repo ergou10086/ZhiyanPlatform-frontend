@@ -61,6 +61,38 @@
 
     <div class="section-card">
       <div class="section-title small">已有成果档案</div>
+      
+      <!-- 搜索框 -->
+      <div class="search-section">
+        <div class="search-container">
+          <input 
+            v-model="searchText" 
+            type="text" 
+            placeholder="搜索成果名称、类型或上传者..." 
+            class="search-input"
+            @input="onSearchInput"
+          />
+          <div class="search-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <button 
+            v-if="searchText" 
+            @click="clearSearch" 
+            class="clear-search-btn"
+            title="清除搜索"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div v-if="searchText" class="search-results-info">
+          找到 {{ filteredFiles.length }} 个结果
+        </div>
+      </div>
+      
       <div class="table-wrap">
         <table class="doc-table">
           <thead>
@@ -123,9 +155,10 @@
     <input 
       ref="fileInput" 
       type="file" 
+      multiple
       style="display: none" 
       @change="handleFileSelect"
-      :accept="fileAccept"
+      :accept="showViewDialog ? '*' : fileAccept"
     />
 
     <!-- 成果上传对话框 -->
@@ -134,13 +167,13 @@
         <div class="dialog-header">
           <div class="dialog-title-section">
             <span class="file-type-badge" :class="getTypeClass(currentFileType)">{{ currentFileType }}</span>
-            <h3>上传{{ currentFileType }}</h3>
+            <h3>{{ isAddingToExisting ? '添加文件到现有成果' : '上传' + currentFileType }}</h3>
           </div>
           <button class="close-btn" @click="closeUploadDialog">×</button>
         </div>
         <div class="dialog-content">
           <!-- 成果名称 -->
-          <div class="form-group">
+          <div v-if="!isAddingToExisting" class="form-group">
             <label>成果名称：</label>
             <input 
               v-model="achievementForm.name" 
@@ -148,6 +181,14 @@
               placeholder="请输入成果名称"
               class="form-input"
             />
+          </div>
+          
+          <!-- 为现有成果添加文件时的提示 -->
+          <div v-if="isAddingToExisting" class="form-group">
+            <div class="existing-achievement-info">
+              <span class="info-label">正在为成果添加文件：</span>
+              <span class="achievement-name">{{ getTargetAchievementName() }}</span>
+            </div>
           </div>
           
           <!-- 成果详细描述 - 根据类型显示不同的字段 -->
@@ -1078,6 +1119,11 @@ export default {
       currentPage: 1,
       pageSize: 5,
       totalItems: 0,
+      // 搜索相关
+      searchText: '',
+      // 添加文件到现有成果相关
+      isAddingToExisting: false,
+      targetAchievementId: null,
       showViewDialog: false,
       viewingFile: null,
       fileContent: '',
@@ -1142,23 +1188,62 @@ export default {
       return [...this.archiveRows, ...this.uploadedFiles]
     },
     
+    // 搜索过滤后的数据
+    filteredFiles() {
+      if (!this.searchText.trim()) {
+        return this.allFiles
+      }
+      
+      const searchTerm = this.searchText.toLowerCase().trim()
+      return this.allFiles.filter(file => {
+        // 搜索成果名称
+        const nameMatch = file.name && file.name.toLowerCase().includes(searchTerm)
+        // 搜索类型
+        const typeMatch = file.type && file.type.toLowerCase().includes(searchTerm)
+        // 搜索上传者
+        const uploaderMatch = file.uploader && file.uploader.toLowerCase().includes(searchTerm)
+        // 搜索详细描述字段（根据类型）
+        let detailMatch = false
+        if (file.type === '论文') {
+          detailMatch = (file.paperAuthors && file.paperAuthors.toLowerCase().includes(searchTerm)) ||
+                       (file.paperTitle && file.paperTitle.toLowerCase().includes(searchTerm)) ||
+                       (file.journalName && file.journalName.toLowerCase().includes(searchTerm))
+        } else if (file.type === '专利') {
+          detailMatch = (file.patentNumber && file.patentNumber.toLowerCase().includes(searchTerm)) ||
+                       (file.patentName && file.patentName.toLowerCase().includes(searchTerm)) ||
+                       (file.inventors && file.inventors.toLowerCase().includes(searchTerm))
+        } else if (file.type === '数据集') {
+          detailMatch = (file.datasetName && file.datasetName.toLowerCase().includes(searchTerm)) ||
+                       (file.datasetFormat && file.datasetFormat.toLowerCase().includes(searchTerm))
+        } else if (file.type === '模型文件') {
+          detailMatch = (file.modelName && file.modelName.toLowerCase().includes(searchTerm)) ||
+                       (file.modelFramework && file.modelFramework.toLowerCase().includes(searchTerm))
+        } else if (file.type === '实验报告') {
+          detailMatch = (file.reportName && file.reportName.toLowerCase().includes(searchTerm)) ||
+                       (file.reportType && file.reportType.toLowerCase().includes(searchTerm))
+        }
+        
+        return nameMatch || typeMatch || uploaderMatch || detailMatch
+      })
+    },
+    
     // 分页后的数据
     paginatedFiles() {
       const start = (this.currentPage - 1) * this.pageSize
       const end = start + this.pageSize
-      return this.allFiles.slice(start, end)
+      return this.filteredFiles.slice(start, end)
     },
     
     // 总页数
     totalPages() {
-      return Math.ceil(this.allFiles.length / this.pageSize)
+      return Math.ceil(this.filteredFiles.length / this.pageSize)
     },
     
     // 分页信息
     paginationInfo() {
       const start = (this.currentPage - 1) * this.pageSize + 1
-      const end = Math.min(this.currentPage * this.pageSize, this.allFiles.length)
-      return `显示第 ${start} 到 ${end} 项，共 ${this.allFiles.length} 项`
+      const end = Math.min(this.currentPage * this.pageSize, this.filteredFiles.length)
+      return `显示第 ${start} 到 ${end} 项，共 ${this.filteredFiles.length} 项`
     },
     
     // 可见的页码
@@ -1206,11 +1291,21 @@ export default {
       return acceptMap[type] || '*'
     },
     
-    handleFileSelect(event) {
+    async handleFileSelect(event) {
       const files = Array.from(event.target.files)
       if (files.length > 0) {
-        // 根据当前显示的弹窗决定添加到哪个表单
-        if (this.showCustomDialog) {
+        console.log('文件选择事件:', {
+          filesCount: files.length,
+          isAddingToExisting: this.isAddingToExisting,
+          showViewDialog: this.showViewDialog,
+          viewingFile: this.viewingFile ? this.viewingFile.id : null
+        })
+        
+        // 检查是否为现有成果添加文件
+        if (this.isAddingToExisting && this.targetAchievementId) {
+          console.log('为现有成果添加文件，直接处理')
+          await this.addFilesToExistingAchievement(files)
+        } else if (this.showCustomDialog) {
           // 自定义类型弹窗
           files.forEach(file => {
             this.customUploadForm.files.push({
@@ -1282,7 +1377,7 @@ export default {
     },
     
     async confirmUpload() {
-      if (this.achievementForm.name.trim() && this.achievementForm.files.length > 0) {
+      if ((this.isAddingToExisting || this.achievementForm.name.trim()) && this.achievementForm.files.length > 0) {
         try {
           // 转换文件为 ArrayBuffer 以便保存到 localStorage
           const filesWithBuffer = await Promise.all(
@@ -1300,7 +1395,44 @@ export default {
             })
           )
           
-          // 创建一个成果记录，包含所有文件
+          // 检查是否为现有成果添加文件
+          console.log('检查添加文件状态:', {
+            isAddingToExisting: this.isAddingToExisting,
+            targetAchievementId: this.targetAchievementId,
+            uploadedFilesCount: this.uploadedFiles.length
+          })
+          
+          if (this.isAddingToExisting && this.targetAchievementId) {
+            // 为现有成果添加文件
+            const targetIndex = this.uploadedFiles.findIndex(item => item.id === this.targetAchievementId)
+            console.log('查找目标成果:', { targetIndex, targetId: this.targetAchievementId })
+            
+            if (targetIndex !== -1) {
+              // 将新文件添加到现有成果的文件列表中
+              this.uploadedFiles[targetIndex].files.push(...filesWithBuffer)
+              this.uploadedFiles[targetIndex].fileCount = this.uploadedFiles[targetIndex].files.length
+              
+              // 更新成果时间
+              this.uploadedFiles[targetIndex].time = new Date().toLocaleString('zh-CN')
+              
+              // 触发文件编辑事件（因为成果被修改了）
+              this.$emit('file-edited', this.uploadedFiles[targetIndex])
+              
+              // 重置状态
+              this.resetAchievementForm()
+              this.isAddingToExisting = false
+              this.targetAchievementId = null
+              this.showUploadDialog = false
+              
+              // 自动保存到本地存储
+              this.saveToLocalStorage()
+              
+              alert(`已成功添加${this.achievementForm.files.length}个文件到成果"${this.uploadedFiles[targetIndex].name}"中！`)
+              return
+            }
+          }
+          
+          // 创建新成果记录
           const newAchievement = {
             id: Date.now(),
             name: this.achievementForm.name,
@@ -1352,6 +1484,8 @@ export default {
           
           // 重置状态
           this.resetAchievementForm()
+          this.isAddingToExisting = false
+          this.targetAchievementId = null
           this.showUploadDialog = false
           
           // 跳转到最后一页显示新上传的文件
@@ -1379,6 +1513,26 @@ export default {
       this.currentPage = this.totalPages
     },
     
+    // 搜索相关方法
+    onSearchInput() {
+      // 搜索时重置到第一页
+      this.currentPage = 1
+    },
+    
+    clearSearch() {
+      this.searchText = ''
+      this.currentPage = 1
+    },
+    
+    // 获取目标成果名称
+    getTargetAchievementName() {
+      if (this.targetAchievementId) {
+        const targetAchievement = this.uploadedFiles.find(item => item.id === this.targetAchievementId)
+        return targetAchievement ? targetAchievement.name : '未知成果'
+      }
+      return '未知成果'
+    },
+    
     getTypeClass(type) {
       const classMap = {
         '论文': 'doc',
@@ -1393,6 +1547,8 @@ export default {
     closeUploadDialog() {
       this.showUploadDialog = false
       this.resetAchievementForm()
+      this.isAddingToExisting = false
+      this.targetAchievementId = null
       this.$refs.fileInput.value = ''
     },
     
@@ -1702,6 +1858,9 @@ export default {
       // 持久化保存
       this.saveToLocalStorage()
       
+      // 触发编辑事件，通知父组件
+      this.$emit('file-edited', this.viewingFile)
+      
       // 切回只读模式
       this.isEditingDescription = false
       this.$message && this.$message.success && this.$message.success('成果详细描述已更新')
@@ -1715,11 +1874,86 @@ export default {
     
     // 显示添加文件对话框
     showAddFileDialog() {
-      // 这里可以打开一个简化的文件上传对话框
-      // 暂时使用现有的上传对话框，但预选当前成果类型
-      this.currentFileType = this.viewingFile.type
-      this.showUploadDialog = true
-      this.closeViewDialog()
+      // 设置添加文件到现有成果的状态
+      this.isAddingToExisting = true
+      this.targetAchievementId = this.viewingFile.id
+      console.log('准备为现有成果添加文件:', {
+        achievementId: this.viewingFile.id,
+        achievementName: this.viewingFile.name,
+        isAddingToExisting: this.isAddingToExisting
+      })
+      
+      // 直接触发文件选择，为当前成果添加文件
+      this.$refs.fileInput.click()
+    },
+    
+    // 为现有成果添加文件
+    async addFilesToExistingAchievement(files) {
+      try {
+        console.log('为现有成果添加文件:', {
+          achievementId: this.viewingFile.id,
+          achievementName: this.viewingFile.name,
+          filesCount: files.length
+        })
+        
+        // 转换文件为 ArrayBuffer 以便保存到 localStorage
+        const filesWithBuffer = await Promise.all(
+          files.map(async (file, index) => {
+            const arrayBuffer = await file.arrayBuffer()
+            return {
+              id: Date.now() + index,
+              name: file.name,
+              originalFileName: file.name,
+              size: file.size,
+              type: file.type,
+              fileBuffer: arrayBuffer,
+              file: file
+            }
+          })
+        )
+        
+        // 查找目标成果在 uploadedFiles 中的索引
+        const targetIndex = this.uploadedFiles.findIndex(item => item.id === this.viewingFile.id)
+        console.log('查找目标成果索引:', { targetIndex, targetId: this.viewingFile.id })
+        
+        if (targetIndex !== -1) {
+          // 将新文件添加到现有成果的文件列表中
+          this.uploadedFiles[targetIndex].files.push(...filesWithBuffer)
+          this.uploadedFiles[targetIndex].fileCount = this.uploadedFiles[targetIndex].files.length
+          
+          // 更新成果时间
+          this.uploadedFiles[targetIndex].time = new Date().toLocaleString('zh-CN')
+          
+          // 更新当前查看的成果信息
+          this.viewingFile = this.uploadedFiles[targetIndex]
+          
+          // 触发文件编辑事件（因为成果被修改了）
+          this.$emit('file-edited', this.uploadedFiles[targetIndex])
+          
+          // 自动保存到本地存储
+          this.saveToLocalStorage()
+          
+          // 重置状态
+          this.isAddingToExisting = false
+          this.targetAchievementId = null
+          
+          alert(`已成功添加${files.length}个文件到成果"${this.uploadedFiles[targetIndex].name}"中！`)
+        } else {
+          console.error('未找到目标成果:', this.viewingFile.id)
+          alert('添加文件失败：未找到目标成果')
+          
+          // 重置状态
+          this.isAddingToExisting = false
+          this.targetAchievementId = null
+        }
+      } catch (error) {
+        console.error('添加文件到现有成果失败:', error)
+        alert('添加文件失败，请重试')
+        
+        // 重置状态
+        this.isAddingToExisting = false
+        this.targetAchievementId = null
+      }
     },
     
     // 本地存储方法
@@ -1884,6 +2118,9 @@ export default {
         // 从上传的文件列表中删除
         const uploadedIndex = this.uploadedFiles.findIndex(f => f.id === file.id)
         if (uploadedIndex !== -1) {
+          // 触发删除事件，通知父组件
+          this.$emit('file-deleted', file)
+          
           this.uploadedFiles.splice(uploadedIndex, 1)
           // 保存到本地存储
           this.saveToLocalStorage()
@@ -2236,6 +2473,97 @@ export default {
 .section-title { font-size: 16px; font-weight: 600; color: #333; }
 .section-title.small { font-size: 14px; }
 .section-subtitle { color: #9ca3af; font-size: 12px; margin-top: 6px; }
+
+/* 搜索框样式 */
+.search-section {
+  margin-bottom: 16px;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 400px;
+}
+
+.search-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 40px 0 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+  background: #fff;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  right: 40px;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 12px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.search-results-info {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+/* 现有成果信息样式 */
+.existing-achievement-info {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-label {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.achievement-name {
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  background: #e0f2fe;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
 
 .add-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .add-card { border: 1px solid #eef0f2; border-radius: 12px; padding: 14px; background: #fff; }
