@@ -410,10 +410,9 @@
               <label class="form-label">项目状态</label>
               <select v-model="editProjectData.status" class="form-select">
                 <option value="PLANNING">规划中</option>
-                <option value="IN_PROGRESS">进行中</option>
+                <option value="ONGOING">进行中</option>
                 <option value="COMPLETED">已完成</option>
-                <option value="PAUSED">已暂停</option>
-                <option value="CANCELLED">已取消</option>
+                <option value="ARCHIVED">已归档</option>
               </select>
             </div>
           </div>
@@ -464,7 +463,7 @@ export default {
         startDate: '',
         endDate: '',
         visibility: 'PUBLIC',
-        status: 'IN_PROGRESS'
+        status: 'ONGOING'
       },
       project: null,
       tasks: [],
@@ -533,7 +532,7 @@ export default {
             period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
               `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
               '2024-01-01 至 2024-12-31',
-            status: foundProject.status,
+            status: this.getStatusValue(foundProject.status), // 转换为枚举值
             visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
             imageUrl: foundProject.imageUrl || foundProject.image || 'https://via.placeholder.com/400x225?text=Project+Image',
             image: foundProject.image || foundProject.imageUrl,
@@ -716,7 +715,7 @@ export default {
         startDate: this.project.startDate || '',
         endDate: this.project.endDate || '',
         visibility: this.project.visibility || 'PRIVATE',
-        status: statusValue || 'IN_PROGRESS',
+        status: statusValue || 'ONGOING',
         imageUrl: this.project.imageUrl || this.project.image || 'https://via.placeholder.com/400x225?text=Project+Image'
       }
       
@@ -1048,24 +1047,6 @@ export default {
       // 暂时返回默认值
       return '用户' + userId
     },
-    getStatusValue(status) {
-      // 将中文状态转换为数据库的英文值
-      const valueMap = {
-        '待接取': 'PENDING',
-        '进行中': 'IN_PROGRESS',
-        '暂停': 'PAUSED',
-        '完成': 'COMPLETED',
-        '规划中': 'PLANNING',
-        '已暂停': 'PAUSED',
-        '已完成': 'COMPLETED',
-        '已取消': 'CANCELLED'
-      }
-      // 如果已经是英文值，直接返回
-      if (status && status.toUpperCase() === status && status.includes('_')) {
-        return status
-      }
-      return valueMap[status] || status || 'IN_PROGRESS'
-    },
     getStatusDisplay(status) {
       // 将数据库的英文状态转换为中文显示
       const statusMap = {
@@ -1080,6 +1061,28 @@ export default {
         'CANCELLED': '已取消'
       }
       return statusMap[status] || status || '未知'
+    },
+    getStatusValue(status) {
+      // 将中文状态转换为数据库的英文枚举值
+      // 如果已经是枚举值，直接返回
+      if (status && status.toUpperCase() === status && !status.includes('中') && !status.includes('完') && !status.includes('档')) {
+        return status
+      }
+      
+      const reverseMap = {
+        // 项目状态映射
+        '规划中': 'PLANNING',
+        '进行中': 'ONGOING',
+        '已完成': 'COMPLETED',
+        '已归档': 'ARCHIVED',
+        // 兼容任务状态和旧状态
+        '待接取': 'PENDING',
+        '暂停': 'PAUSED',
+        '已暂停': 'PAUSED',
+        '已取消': 'CANCELLED',
+        '完成': 'COMPLETED'
+      }
+      return reverseMap[status] || status || 'ONGOING'
     },
     toggleTaskStatusDropdown(task) {
       // 关闭其他任务的状态菜单
@@ -1119,7 +1122,7 @@ export default {
       task.assignee_name = currentUser
       task.assignee_id = 1 // 假设当前用户ID为1
       task.status = '进行中'
-      task.status_value = 'IN_PROGRESS'
+      task.status_value = 'ONGOING'
       
       // 保存到localStorage
       this.saveProjectData()
