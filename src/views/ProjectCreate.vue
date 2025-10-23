@@ -711,6 +711,17 @@ export default {
       }
       return '用户'
     },
+    getStatusDisplay(status) {
+      // 将数据库的英文状态转换为中文显示
+      const statusMap = {
+        'PLANNING': '规划中',
+        'IN_PROGRESS': '进行中',
+        'PAUSED': '已暂停',
+        'COMPLETED': '已完成',
+        'CANCELLED': '已取消'
+      }
+      return statusMap[status] || status || '进行中'
+    },
     getPriorityValue(priority) {
       // 将中文优先级转换为数据库的英文值
       const valueMap = {
@@ -816,6 +827,55 @@ export default {
         alert('保存草稿失败，请重试')
       }
     },
+    async createProjectAPI(projectData) {
+      try {
+        const token = localStorage.getItem('access_token')
+        if (!token) {
+          throw new Error('用户未登录，请先登录')
+        }
+        
+        console.log('调用创建项目API，token:', token ? '已获取' : '未获取')
+        console.log('Token内容:', token.substring(0, 50) + '...')
+        
+        // 检查Token格式
+        if (!token.startsWith('eyJ')) {
+          throw new Error('Token格式不正确，请重新登录')
+        }
+        
+        // 检查Token是否过期（简单检查）
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          const now = Math.floor(Date.now() / 1000)
+          if (payload.exp && payload.exp < now) {
+            throw new Error('Token已过期，请重新登录')
+          }
+          console.log('Token用户信息:', payload)
+        } catch (e) {
+          console.warn('Token解析失败:', e.message)
+        }
+        
+        // 先测试Token是否有效 - 使用一个简单的认证检查接口
+        console.log('测试Token有效性...')
+        
+        // 使用项目API模块进行调用
+        const { projectAPI } = await import('@/api/project')
+        
+        console.log('使用项目API模块创建项目...')
+        const response = await projectAPI.createProject(projectData)
+        
+        console.log('API返回结果:', response)
+        
+        // 检查API返回结果
+        if (!response || response.code !== 200) {
+          throw new Error(response?.msg || '项目创建失败')
+        }
+        
+        return response
+      } catch (error) {
+        console.error('创建项目API调用失败:', error)
+        throw error
+      }
+    },
     async publishProject() {
       if (this.isSubmitting) return
       
@@ -868,28 +928,38 @@ export default {
         
         console.log('表单数据:', this.formData)
         
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 调用后端API创建项目
+        const createProjectData = {
+          name: this.formData.projectName,
+          description: this.formData.projectDescription,
+          visibility: 'PRIVATE',
+          imageUrl: this.projectImage || 'https://via.placeholder.com/400x225?text=Project+Image', // 添加必需的imageUrl字段
+          startDate: this.formData.startDate,
+          endDate: this.formData.endDate
+        }
         
-        // 创建新项目对象
+        console.log('发送到后端的项目数据:', createProjectData)
+        
+        const response = await this.createProjectAPI(createProjectData)
+        
+        if (response.code !== 200) {
+          throw new Error(response.msg || '项目创建失败')
+        }
+        
+        console.log('后端返回的项目数据:', response.data)
+        
+        // 使用后端返回的项目数据，并添加前端特有的字段
         const newProject = {
-          id: Date.now(), // 使用时间戳作为唯一ID
-          name: this.formData.projectName, // 修改为与数据库一致的字段名
-          title: this.formData.projectName, // 保留title字段用于前端显示
-          status: '进行中', // 前端直接显示中文状态
-          visibility: 'PRIVATE', // 添加可见性字段
+          ...response.data, // 使用后端返回的项目数据
+          // 添加前端显示需要的字段
+          title: response.data.name, // 保留title字段用于前端显示
+          status: this.getStatusDisplay(response.data.status), // 转换为中文状态显示
           teamSize: this.formData.tasks.length || 1,
           dataAssets: this.formData.projectDescription || '暂无描述',
           direction: this.formData.projectDescription || '暂无描述',
           aiCore: '待定',
           category: '其他', // 默认分类
-          // 保存完整的项目信息
-          description: this.formData.projectDescription,
-          start_date: this.formData.startDate, // 修改为与数据库一致的字段名
-          startDate: this.formData.startDate, // 保留驼峰命名用于前端
-          end_date: this.formData.endDate, // 修改为与数据库一致的字段名
-          endDate: this.formData.endDate, // 保留驼峰命名用于前端
-          created_by: 1, // 添加创建人ID
+          // 添加前端特有的字段
           tags: this.formData.tags,
           image: this.projectImage, // 添加项目图片
           tasks: this.formData.tasks.map(task => ({

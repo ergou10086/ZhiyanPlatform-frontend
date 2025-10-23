@@ -82,7 +82,7 @@
               </div>
               <div class="meta-item">
                 <span class="meta-label">当前状态：</span>
-                <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+                <span class="status-badge" :class="statusClass(project.status)">{{ getStatusDisplay(project.status) }}</span>
               </div>
               <div class="meta-item">
                 <span class="meta-label">负责人：</span>
@@ -116,21 +116,25 @@
                 </svg>
               </button>
               <ul class="dropdown-menu" v-if="statusDropdownOpen">
-                <li class="dropdown-item" :class="{ active: project.status === '进行中' }" @click="changeStatus('进行中')">
+                <li class="dropdown-item" :class="{ active: project.status === 'PLANNING' }" @click="changeStatus('PLANNING')">
+                  <span class="status-indicator" style="background-color: #6c757d;"></span>
+                  规划中
+                </li>
+                <li class="dropdown-item" :class="{ active: project.status === 'IN_PROGRESS' }" @click="changeStatus('IN_PROGRESS')">
                   <span class="status-indicator" style="background-color: #28a745;"></span>
                   进行中
                 </li>
-                <li class="dropdown-item" :class="{ active: project.status === '已完成' }" @click="changeStatus('已完成')">
+                <li class="dropdown-item" :class="{ active: project.status === 'PAUSED' }" @click="changeStatus('PAUSED')">
+                  <span class="status-indicator" style="background-color: #ffc107;"></span>
+                  已暂停
+                </li>
+                <li class="dropdown-item" :class="{ active: project.status === 'COMPLETED' }" @click="changeStatus('COMPLETED')">
                   <span class="status-indicator" style="background-color: #007bff;"></span>
                   已完成
                 </li>
-                <li class="dropdown-item" :class="{ active: project.status === '稳健中' }" @click="changeStatus('稳健中')">
-                  <span class="status-indicator" style="background-color: #ffc107;"></span>
-                  稳健中
-                </li>
-                <li class="dropdown-item" :class="{ active: project.status === '暂停' }" @click="changeStatus('暂停')">
-                  <span class="status-indicator" style="background-color: #6c757d;"></span>
-                  暂停
+                <li class="dropdown-item" :class="{ active: project.status === 'CANCELLED' }" @click="changeStatus('CANCELLED')">
+                  <span class="status-indicator" style="background-color: #dc3545;"></span>
+                  已取消
                 </li>
               </ul>
             </div>
@@ -341,6 +345,93 @@
       </div>
     </div>
 
+    <!-- 编辑项目模态框 -->
+    <div v-if="editProjectModalOpen" class="modal-overlay" @click="closeEditProjectModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">编辑项目</h3>
+          <button class="modal-close" @click="closeEditProjectModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">项目名称</label>
+            <input 
+              v-model="editProjectData.name" 
+              type="text" 
+              class="form-input" 
+              placeholder="请输入项目名称"
+              maxlength="100"
+            />
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label">项目描述</label>
+            <textarea 
+              v-model="editProjectData.description" 
+              class="form-textarea" 
+              placeholder="请输入项目描述"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">开始日期</label>
+              <input 
+                v-model="editProjectData.startDate" 
+                type="date" 
+                class="form-input"
+              />
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label">结束日期</label>
+              <input 
+                v-model="editProjectData.endDate" 
+                type="date" 
+                class="form-input"
+              />
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">可见性</label>
+              <select v-model="editProjectData.visibility" class="form-select">
+                <option value="PUBLIC">公开</option>
+                <option value="PRIVATE">私有</option>
+                <option value="TEAM">团队</option>
+              </select>
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label">项目状态</label>
+              <select v-model="editProjectData.status" class="form-select">
+                <option value="PLANNING">规划中</option>
+                <option value="IN_PROGRESS">进行中</option>
+                <option value="COMPLETED">已完成</option>
+                <option value="PAUSED">已暂停</option>
+                <option value="CANCELLED">已取消</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" @click="closeEditProjectModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveProjectUpdate" class="btn btn-primary" :disabled="!editProjectData.name.trim()">
+            保存更改
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
@@ -360,6 +451,7 @@ export default {
       selectedTaskType: '',
       statusDropdownOpen: false,
       taskModalOpen: false,
+      editProjectModalOpen: false,
       showToast: false,
       toastMessage: '',
       newTask: {
@@ -369,6 +461,14 @@ export default {
         priority: '中',
         status: '待接取',
         dateError: ''
+      },
+      editProjectData: {
+        name: '',
+        description: '',
+        startDate: '',
+        endDate: '',
+        visibility: 'PUBLIC',
+        status: 'IN_PROGRESS'
       },
       project: null,
       tasks: [],
@@ -406,8 +506,8 @@ export default {
   },
   methods: {
     loadProject() {
-      const projectId = parseInt(this.$route.params.id)
-      console.log('正在加载项目ID:', projectId)
+      const projectId = this.$route.params.id
+      console.log('正在加载项目ID:', projectId, '类型:', typeof projectId)
       
       // 从localStorage加载项目数据
       const savedProjects = localStorage.getItem('projects')
@@ -415,7 +515,11 @@ export default {
       
       if (savedProjects) {
         const projects = JSON.parse(savedProjects)
-        const foundProject = projects.find(p => p.id === projectId)
+        console.log('解析后的项目列表:', projects)
+        console.log('项目ID列表:', projects.map(p => ({ id: p.id, type: typeof p.id })))
+        
+        // 使用字符串比较，因为后端返回的是字符串ID
+        const foundProject = projects.find(p => String(p.id) === String(projectId))
         
         if (foundProject) {
           console.log('找到的项目数据:', foundProject)
@@ -486,6 +590,12 @@ export default {
           
         } else {
           console.log('未找到项目，ID:', projectId)
+          console.log('所有项目ID:', projects.map(p => p.id))
+          console.log('ID类型比较:', projects.map(p => ({ 
+            id: p.id, 
+            type: typeof p.id, 
+            matches: String(p.id) === String(projectId) 
+          })))
           this.project = {
             id: projectId,
             title: '项目不存在',
@@ -572,26 +682,121 @@ export default {
     },
     // 项目操作按钮功能
     editProject() {
-      alert('编辑项目功能正在开发中，敬请期待！')
+      // 初始化编辑数据
+      this.editProjectData = {
+        name: this.project.name || this.project.title,
+        description: this.project.description || '',
+        startDate: this.project.startDate || '',
+        endDate: this.project.endDate || '',
+        visibility: this.project.visibility || 'PUBLIC',
+        status: this.project.status || 'IN_PROGRESS'
+      }
+      this.editProjectModalOpen = true
     },
-    changeStatus(newStatus) {
-      // 更改项目状态
-      if (newStatus && newStatus !== this.project.status) {
-        this.project.status = newStatus
-        this.saveProjectData()
-        this.statusDropdownOpen = false
-        console.log('项目状态已更改为:', newStatus)
+    closeEditProjectModal() {
+      this.editProjectModalOpen = false
+    },
+    async saveProjectUpdate() {
+      if (!this.editProjectData.name.trim()) {
+        alert('请输入项目名称')
+        return
+      }
+      
+      try {
+        // 使用项目API模块更新项目
+        const { projectAPI } = await import('@/api/project')
+        
+        console.log('使用项目API模块更新项目...')
+        const response = await projectAPI.updateProject(this.project.id, this.editProjectData)
+        
+        console.log('更新项目API返回结果:', response)
+        
+        // 检查API返回结果
+        if (response.code === 200) {
+          // 更新本地项目数据
+          this.project.name = this.editProjectData.name
+          this.project.title = this.editProjectData.name
+          this.project.description = this.editProjectData.description
+          this.project.startDate = this.editProjectData.startDate
+          this.project.endDate = this.editProjectData.endDate
+          this.project.visibility = this.editProjectData.visibility
+          this.project.status = this.editProjectData.status
+          
+          // 更新项目周期显示
+          if (this.editProjectData.startDate && this.editProjectData.endDate) {
+            this.project.period = `${this.editProjectData.startDate} 至 ${this.editProjectData.endDate}`
+          }
+          
+          // 保存到localStorage
+          this.saveProjectData()
+          
+          this.closeEditProjectModal()
+          this.showSuccessToast('项目更新成功！')
+        } else {
+          alert('更新失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('更新项目失败:', error)
+        alert('更新项目失败，请稍后重试')
       }
     },
-    deleteProject() {
+    async changeStatus(newStatus) {
+      // 更改项目状态
+      if (newStatus && newStatus !== this.project.status) {
+        try {
+          // 使用项目API模块更新项目状态
+          const { projectAPI } = await import('@/api/project')
+          
+          console.log('使用项目API模块更新项目状态...')
+          const response = await projectAPI.updateProjectStatus(this.project.id, newStatus)
+          
+          console.log('更新项目状态API返回结果:', response)
+          
+          // 检查API返回结果
+          if (response.code === 200) {
+            this.project.status = newStatus
+            this.saveProjectData()
+            this.statusDropdownOpen = false
+            this.showSuccessToast('项目状态已更新！')
+            console.log('项目状态已更改为:', newStatus)
+          } else {
+            alert('状态更新失败：' + (response.msg || '未知错误'))
+          }
+        } catch (error) {
+          console.error('更新项目状态失败:', error)
+          alert('更新项目状态失败，请稍后重试')
+        }
+      }
+    },
+    async deleteProject() {
       if (confirm('确定要删除此项目吗？\n\n此操作不可撤销！项目及其所有数据将被永久删除。')) {
-        // 从localStorage中删除项目
-        const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-        const updatedProjects = savedProjects.filter(p => p.id !== this.project.id)
-        localStorage.setItem('projects', JSON.stringify(updatedProjects))
-        
-        alert('项目已删除！')
-        this.$router.push('/project-square')
+        try {
+          // 使用项目API模块删除项目
+          const { projectAPI } = await import('@/api/project')
+          
+          console.log('使用项目API模块删除项目...')
+          const response = await projectAPI.deleteProject(this.project.id)
+          
+          console.log('删除项目API返回结果:', response)
+          
+          // 检查API返回结果
+          if (response.code === 200) {
+            // 从localStorage中删除项目
+            const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+            const updatedProjects = savedProjects.filter(p => p.id !== this.project.id)
+            localStorage.setItem('projects', JSON.stringify(updatedProjects))
+            
+            this.showSuccessToast('项目已删除！')
+            setTimeout(() => {
+              this.$router.push('/project-square')
+            }, 1000)
+          } else {
+            alert('删除失败：' + (response.msg || '未知错误'))
+          }
+        } catch (error) {
+          console.error('删除项目失败:', error)
+          alert('删除项目失败，请稍后重试')
+        }
       }
     },
     // 验证新建任务截止日期
@@ -763,9 +968,11 @@ export default {
         'PENDING': '待接取',
         'IN_PROGRESS': '进行中',
         'PAUSED': '暂停',
-        'COMPLETED': '完成'
+        'COMPLETED': '完成',
+        'PLANNING': '规划中',
+        'CANCELLED': '已取消'
       }
-      return statusMap[status] || '待接取'
+      return statusMap[status] || status || '未知'
     },
     toggleTaskStatusDropdown(task) {
       // 关闭其他任务的状态菜单
@@ -843,11 +1050,13 @@ export default {
       }, 1000)
     },
     statusClass(status) {
-      if (status === '待接取') return '待接取'
-      if (status === '进行中') return '进行中'
-      if (status === '暂停') return '暂停'
-      if (status === '完成') return '完成'
-      return '待接取'
+      // 处理项目状态类名
+      if (status === 'PLANNING' || status === '规划中') return 'planning'
+      if (status === 'IN_PROGRESS' || status === '进行中') return 'ongoing'
+      if (status === 'PAUSED' || status === '暂停') return 'paused'
+      if (status === 'COMPLETED' || status === '完成') return 'completed'
+      if (status === 'CANCELLED' || status === '已取消') return 'cancelled'
+      return 'ongoing'
     },
     priorityClass(priority) {
       if (priority === '高') return '高'
@@ -1084,22 +1293,34 @@ export default {
   border: 1px solid transparent;
 }
 
+.status-badge.planning {
+  background: #f8f9fa;
+  color: #6c757d;
+  border-color: #dee2e6;
+}
+
 .status-badge.ongoing {
+  background: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.status-badge.paused {
   background: #fff3cd;
-  color: #cc9a06;
-  border-color: #ffe69c;
+  color: #856404;
+  border-color: #ffeaa7;
 }
 
-.status-badge.done {
-  background: #e2f7e2;
-  color: #1f7a1f;
-  border-color: #bfeabd;
+.status-badge.completed {
+  background: #d1ecf1;
+  color: #0c5460;
+  border-color: #bee5eb;
 }
 
-.status-badge.steady {
-  background: #e8f3ff;
-  color: #2c6df2;
-  border-color: #cfe2ff;
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
 }
 
 .project-actions {
@@ -1253,7 +1474,7 @@ export default {
 }
 
 .task-content {
-  /* 移除padding-right，因为优先级不再绝对定位 */
+  padding: 0;
 }
 
 .task-title {

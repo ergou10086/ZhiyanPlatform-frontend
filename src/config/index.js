@@ -14,10 +14,10 @@ const config = {
       auth: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
         : 'http://localhost:8091',
-      // 项目服务 (8092)
+      // 项目服务 (8095)
       project: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
-        : 'http://localhost:8092'
+        : 'http://localhost:8095'
     }
   },
   

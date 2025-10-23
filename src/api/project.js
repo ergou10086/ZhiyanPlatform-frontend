@@ -1,7 +1,7 @@
 import axios from 'axios'
 import config from '@/config'
 
-// 创建axios实例 - 使用项目服务端口8092
+// 创建axios实例 - 使用项目服务端口8095
 const api = axios.create({
   baseURL: config.api.endpoints.project, // 使用项目服务端口
   timeout: config.api.timeout,
@@ -159,9 +159,7 @@ export const projectAPI = {
    */
   updateProjectStatus(projectId, status) {
     console.log('[projectAPI.updateProjectStatus] 更新项目状态, ID:', projectId, '状态:', status)
-    return api.patch(`/api/projects/${projectId}/status`, null, {
-      params: { status }
-    })
+    return api.patch(`/api/projects/${projectId}/status`, { status })
   },
 
   /**
