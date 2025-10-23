@@ -104,36 +104,6 @@
               </svg>
               编辑项目
             </button>
-            <div class="dropdown" @click.stop="toggleStatusDropdown">
-              <button class="btn primary">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 3H5C4.46957 3 3.96086 3.21071 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H19C19.5304 21 20.0391 20.7893 20.4142 20.4142C20.7893 20.0391 21 19.5304 21 19V16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M8 15L15 8L19 12L8 23V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                更改状态
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-              <ul class="dropdown-menu" v-if="statusDropdownOpen">
-                <li class="dropdown-item" :class="{ active: project.status === 'PLANNING' }" @click="changeStatus('PLANNING')">
-                  <span class="status-indicator" style="background-color: #6c757d;"></span>
-                  规划中
-                </li>
-                <li class="dropdown-item" :class="{ active: project.status === 'ONGOING' }" @click="changeStatus('ONGOING')">
-                  <span class="status-indicator" style="background-color: #28a745;"></span>
-                  进行中
-                </li>
-                <li class="dropdown-item" :class="{ active: project.status === 'COMPLETED' }" @click="changeStatus('COMPLETED')">
-                  <span class="status-indicator" style="background-color: #007bff;"></span>
-                  已完成
-                </li>
-                <li class="dropdown-item" :class="{ active: project.status === 'ARCHIVED' }" @click="changeStatus('ARCHIVED')">
-                  <span class="status-indicator" style="background-color: #dc3545;"></span>
-                  已归档
-                </li>
-              </ul>
-            </div>
             <button class="btn btn-danger" @click="deleteProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -490,7 +460,7 @@ export default {
   },
   mounted() {
     this.loadUserAvatar()
-    this.loadProject()
+    this.loadProject() // loadProject方法会自动调用loadProjectTasks
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', this.loadUserAvatar)
@@ -500,6 +470,117 @@ export default {
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
   },
   methods: {
+    /**
+     * 从后端API加载项目任务数据
+     */
+    async loadProjectTasks() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        console.warn('项目ID不存在，无法加载任务')
+        return
+      }
+
+      try {
+        console.log('[loadProjectTasks] 开始从后端加载任务数据，项目ID:', projectId)
+        
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        // 调用后端API获取任务列表
+        const response = await taskAPI.getProjectTasks(projectId, 0, 100) // 获取前100个任务
+        
+        console.log('[loadProjectTasks] API返回结果:', response)
+        
+        // 检查返回结果
+        if (response && response.code === 200 && response.data) {
+          const tasksData = response.data
+          console.log('[loadProjectTasks] 任务数据:', tasksData)
+          
+          // 处理分页数据
+          let taskList = []
+          if (tasksData.content && Array.isArray(tasksData.content)) {
+            // 后端返回的是分页对象
+            taskList = tasksData.content
+          } else if (Array.isArray(tasksData)) {
+            // 后端返回的是数组
+            taskList = tasksData
+          }
+          
+          console.log('[loadProjectTasks] 解析的任务列表:', taskList)
+          
+          // 转换任务数据格式，优先使用后端返回的创建人信息，如果没有则使用本地用户信息
+          const currentUserId = this.getCurrentUserId()
+          const currentUserName = this.getCurrentUserName()
+          
+          this.tasks = taskList.map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description || '',
+            date: task.dueDate || task.due_date || '',
+            due_date: task.dueDate || task.due_date,
+            dueDate: task.dueDate || task.due_date,
+            priority: this.getPriorityDisplay(task.priority || 'MEDIUM'),
+            priority_value: task.priority || 'MEDIUM',
+            status: this.getStatusDisplay(task.status || 'PENDING'),
+            status_value: task.status || 'PENDING',
+            assignee_id: task.assigneeIds || task.assignee_id || [],
+            assignee_name: task.assigneeNames ? task.assigneeNames.join(', ') : '',
+            created_by: task.creatorId || task.createdBy || task.created_by || currentUserId,
+            // 如果后端返回的创建人是"未知用户"（auth服务不可用），使用本地用户信息
+            created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
+            showStatusMenu: false // 初始化状态菜单为关闭
+          }))
+          
+          console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
+          
+          // 同步更新到localStorage
+          this.saveProjectData()
+          
+        } else {
+          console.warn('[loadProjectTasks] API返回数据格式异常:', response)
+          // 如果API返回失败，尝试从localStorage加载
+          this.loadTasksFromLocalStorage()
+        }
+      } catch (error) {
+        console.error('[loadProjectTasks] 加载任务失败:', error)
+        // 发生错误时，尝试从localStorage加载
+        this.loadTasksFromLocalStorage()
+      }
+    },
+    
+    /**
+     * 从localStorage加载任务数据（作为后备方案）
+     */
+    loadTasksFromLocalStorage() {
+      const projectId = this.$route.params.id
+      const savedProjects = localStorage.getItem('projects')
+      
+      if (savedProjects) {
+        const projects = JSON.parse(savedProjects)
+        const foundProject = projects.find(p => String(p.id) === String(projectId))
+        
+        if (foundProject && foundProject.tasks) {
+          console.log('[loadTasksFromLocalStorage] 从localStorage加载任务:', foundProject.tasks)
+          
+          this.tasks = (foundProject.tasks || []).map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            date: task.due_date || task.dueDate || task.date || '',
+            due_date: task.due_date || task.dueDate,
+            priority: this.getPriorityDisplay(task.priority || 'MEDIUM'),
+            priority_value: task.priority || 'MEDIUM',
+            status: this.getStatusDisplay(task.status_value || task.status || 'ONGOING'),
+            status_value: task.status_value || task.status || 'ONGOING',
+            assignee_id: task.assignee_id || [],
+            created_by: task.created_by || 1,
+            created_by_name: this.getUserNameById(task.created_by || 1),
+            showStatusMenu: false
+          }))
+        }
+      }
+    },
+    
     loadProject() {
       const projectId = this.$route.params.id
       console.log('正在加载项目ID:', projectId, '类型:', typeof projectId)
@@ -551,40 +632,8 @@ export default {
           console.log('项目周期:', foundProject.startDate, foundProject.endDate)
           console.log('项目任务:', foundProject.tasks)
           
-          // 加载项目任务数据，转换数据格式
-          this.tasks = (foundProject.tasks || []).map(task => ({
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            date: task.due_date || task.dueDate || task.date || '',
-            due_date: task.due_date || task.dueDate, // 添加数据库字段名
-            priority: this.getPriorityDisplay(task.priority || 'MEDIUM'), // 转换为中文显示
-            priority_value: task.priority || 'MEDIUM', // 保留数据库值
-            status: this.getStatusDisplay(task.status_value || task.status || 'ONGOING'), // 优先使用status_value，转换为中文状态显示
-            status_value: task.status_value || task.status || 'ONGOING', // 保留数据库值
-            assignee_id: task.assignee_id || [], // 添加负责人ID字段
-            created_by: task.created_by || 1, // 添加创建人字段
-            created_by_name: this.getUserNameById(task.created_by || 1) // 添加创建人姓名
-          }))
-          
-          console.log('转换后的任务数据:', this.tasks)
-          if (this.tasks.length > 0) {
-            console.log('第一个任务的优先级:', this.tasks[0].priority)
-            console.log('第一个任务的状态:', this.tasks[0].status)
-            console.log('第一个任务的状态值:', this.tasks[0].status_value)
-            console.log('优先级类名:', this.priorityClass(this.tasks[0].priority))
-            console.log('状态类名:', this.statusClass(this.tasks[0].status))
-            
-            // 调试：显示所有任务的原始状态和转换后状态
-            console.log('所有任务状态转换详情:')
-            this.tasks.forEach((task, index) => {
-              console.log(`任务 ${index + 1}: ${task.title}`)
-              console.log(`  原始状态: ${foundProject.tasks[index]?.status}`)
-              console.log(`  原始状态值: ${foundProject.tasks[index]?.status_value}`)
-              console.log(`  转换后状态: ${task.status}`)
-              console.log(`  转换后状态值: ${task.status_value}`)
-            })
-          }
+          // 注意：任务数据现在通过loadProjectTasks方法从后端API加载
+          // 这里不再从localStorage加载任务，以确保数据是最新的
           
           // 加载团队成员数据
           this.teamMembers = foundProject.teamMembers || [
@@ -624,6 +673,9 @@ export default {
       // 加载完成
       this.isLoading = false
       console.log('项目加载完成，project:', this.project)
+      
+      // 加载项目任务数据
+      this.loadProjectTasks()
     },
     goBack() {
       this.$router.go(-1)
@@ -919,7 +971,7 @@ export default {
     closeTaskModal() {
       this.taskModalOpen = false
     },
-    saveNewTask() {
+    async saveNewTask() {
       if (!this.newTask.title.trim()) {
         alert('请输入任务标题')
         return
@@ -931,26 +983,40 @@ export default {
         return
       }
       
-      const task = {
-        id: Date.now(),
-        title: this.newTask.title.trim(),
-        description: this.newTask.description.trim(),
-        date: this.newTask.dueDate || '',
-        due_date: this.newTask.dueDate, // 添加数据库字段名
-        dueDate: this.newTask.dueDate, // 保留前端字段名
-        priority: this.getPriorityDisplay(this.getPriorityValue(this.newTask.priority)), // 显示中文
-        priority_value: this.getPriorityValue(this.newTask.priority), // 保存数据库值
-        status: '待接取', // 新任务默认为待接取状态
-        status_value: 'PENDING', // 数据库状态值
-        assignee_id: [], // 添加负责人ID字段
-        created_by: 1, // 添加创建人字段
-        created_by_name: this.getCurrentUserName() // 添加创建人姓名
+      try {
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        // 构建任务数据（使用后端需要的格式）
+        const taskData = {
+          projectId: this.project.id,
+          title: this.newTask.title.trim(),
+          description: this.newTask.description.trim(),
+          priority: this.getPriorityValue(this.newTask.priority), // 转换为英文枚举值
+          dueDate: this.newTask.dueDate || null,
+          assigneeIds: [] // 新任务默认没有执行者
+        }
+        
+        console.log('[saveNewTask] 创建任务，数据:', taskData)
+        
+        // 调用后端API创建任务
+        const response = await taskAPI.createTask(taskData)
+        
+        console.log('[saveNewTask] API返回结果:', response)
+        
+        if (response && response.code === 200) {
+          // 创建成功，重新加载任务列表
+          await this.loadProjectTasks()
+          
+          this.closeTaskModal()
+          this.showSuccessToast('任务创建成功！')
+        } else {
+          alert('创建任务失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[saveNewTask] 创建任务失败:', error)
+        alert('创建任务失败，请稍后重试')
       }
-      
-      this.tasks.push(task)
-      this.saveProjectData()
-      this.closeTaskModal()
-      alert('任务创建成功！')
     },
     editTask(task) {
       const newTitle = prompt('编辑任务标题:', task.title)
@@ -968,11 +1034,36 @@ export default {
         alert('任务更新成功！')
       }
     },
-    deleteTask(taskId) {
-      if (confirm('确定要删除此任务吗？')) {
-        this.tasks = this.tasks.filter(t => t.id !== taskId)
-        this.saveProjectData()
-        alert('任务已删除！')
+    async deleteTask(taskId) {
+      if (!confirm('确定要删除此任务吗？')) {
+        return
+      }
+      
+      try {
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        console.log('[deleteTask] 删除任务，任务ID:', taskId)
+        
+        // 调用后端API删除任务
+        const response = await taskAPI.deleteTask(taskId)
+        
+        console.log('[deleteTask] API返回结果:', response)
+        
+        if (response && response.code === 200) {
+          // 删除成功，从本地任务列表中移除
+          this.tasks = this.tasks.filter(t => t.id !== taskId)
+          
+          // 保存到localStorage
+          this.saveProjectData()
+          
+          this.showSuccessToast('任务已删除！')
+        } else {
+          alert('删除任务失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[deleteTask] 删除任务失败:', error)
+        alert('删除任务失败，请稍后重试')
       }
     },
     handleClickOutside(event) {
@@ -1006,13 +1097,27 @@ export default {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
     },
-    getCurrentUserName() {
-      // 从localStorage获取当前用户信息
+    getCurrentUserId() {
+      // 从localStorage获取当前用户ID
       const savedUserInfo = localStorage.getItem('user_info')
       if (savedUserInfo) {
         try {
           const userInfo = JSON.parse(savedUserInfo)
-          return userInfo.nickname || userInfo.name || '用户'
+          return userInfo.id || null
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          return null
+        }
+      }
+      return null
+    },
+    getCurrentUserName() {
+      // 从localStorage获取当前用户姓名
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userInfo = JSON.parse(savedUserInfo)
+          return userInfo.name || userInfo.nickname || '用户'
         } catch (error) {
           console.error('解析用户信息失败:', error)
           return '用户'
@@ -1094,27 +1199,54 @@ export default {
       // 切换当前任务的状态菜单
       this.$set(task, 'showStatusMenu', !task.showStatusMenu)
     },
-    changeTaskStatus(task, newStatus) {
-      // 更新任务状态
-      task.status = newStatus
-      task.status_value = this.getStatusValue(newStatus)
-      // 关闭状态菜单
-      this.$set(task, 'showStatusMenu', false)
-      // 保存数据
-      this.saveProjectData()
-      console.log(`任务"${task.title}"状态已更改为: ${newStatus}`)
-      console.log(`任务状态值: ${task.status}, 状态值: ${task.status_value}`)
-      
-      // 调试：显示当前所有任务的状态
-      console.log('当前所有任务状态:', this.tasks.map(t => ({ title: t.title, status: t.status, status_value: t.status_value })))
-      
-      // 触发全局事件，通知其他页面状态已更新
-      this.$root.$emit('taskStatusChanged', {
-        projectId: this.project.id,
-        taskId: task.id,
-        newStatus: newStatus,
-        statusValue: task.status_value
-      })
+    async changeTaskStatus(task, newStatus) {
+      try {
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        // 将中文状态转换为后端枚举值
+        const statusValue = this.getStatusValue(newStatus)
+        
+        console.log(`[changeTaskStatus] 更新任务状态，任务ID: ${task.id}, 新状态: ${newStatus} (${statusValue})`)
+        
+        // 调用后端API更新任务状态
+        const response = await taskAPI.updateTaskStatus(task.id, statusValue)
+        
+        console.log('[changeTaskStatus] API返回结果:', response)
+        
+        if (response && response.code === 200) {
+          // 更新本地任务状态
+          task.status = newStatus
+          task.status_value = statusValue
+          
+          // 关闭状态菜单
+          this.$set(task, 'showStatusMenu', false)
+          
+          // 保存到localStorage
+          this.saveProjectData()
+          
+          this.showSuccessToast('任务状态已更新！')
+          
+          console.log(`任务"${task.title}"状态已更改为: ${newStatus} (${statusValue})`)
+          
+          // 触发全局事件，通知其他页面状态已更新
+          this.$root.$emit('taskStatusChanged', {
+            projectId: this.project.id,
+            taskId: task.id,
+            newStatus: newStatus,
+            statusValue: statusValue
+          })
+        } else {
+          alert('更新任务状态失败：' + (response.msg || '未知错误'))
+          // 关闭状态菜单
+          this.$set(task, 'showStatusMenu', false)
+        }
+      } catch (error) {
+        console.error('[changeTaskStatus] 更新任务状态失败:', error)
+        alert('更新任务状态失败，请稍后重试')
+        // 关闭状态菜单
+        this.$set(task, 'showStatusMenu', false)
+      }
     },
     assignTask(task) {
       // 接取任务

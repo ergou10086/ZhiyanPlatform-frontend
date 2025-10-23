@@ -130,3 +130,30 @@ export function validatePassword(password) {
   
   return result
 }
+
+/**
+ * 获取当前用户ID
+ * @returns {number|null} 用户ID或null
+ */
+export function getCurrentUserId() {
+  const userInfo = getCurrentUser()
+  return userInfo && userInfo.id ? userInfo.id : null
+}
+
+/**
+ * 获取当前用户姓名
+ * @returns {string} 用户姓名，如果未登录返回'用户'
+ */
+export function getCurrentUserName() {
+  const userInfo = getCurrentUser()
+  return userInfo && userInfo.name ? userInfo.name : '用户'
+}
+
+/**
+ * 获取当前用户头像URL
+ * @returns {string|null} 用户头像URL或null
+ */
+export function getCurrentUserAvatar() {
+  const userInfo = getCurrentUser()
+  return userInfo && userInfo.avatarUrl ? userInfo.avatarUrl : null
+}

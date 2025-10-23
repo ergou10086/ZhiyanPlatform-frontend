@@ -756,13 +756,27 @@ export default {
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
     },
-    getCurrentUserName() {
-      // 从localStorage获取当前用户信息
+    getCurrentUserId() {
+      // 从localStorage获取当前用户ID
       const savedUserInfo = localStorage.getItem('user_info')
       if (savedUserInfo) {
         try {
           const userInfo = JSON.parse(savedUserInfo)
-          return userInfo.nickname || userInfo.name || '用户'
+          return userInfo.id || null
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          return null
+        }
+      }
+      return null
+    },
+    getCurrentUserName() {
+      // 从localStorage获取当前用户姓名
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userInfo = JSON.parse(savedUserInfo)
+          return userInfo.name || userInfo.nickname || '用户'
         } catch (error) {
           console.error('解析用户信息失败:', error)
           return '用户'
@@ -793,6 +807,15 @@ export default {
       }
       return valueMap[priority] || 'MEDIUM'
     },
+    getPriorityDisplay(priority) {
+      // 将数据库的英文优先级转换为中文显示
+      const displayMap = {
+        'HIGH': '高',
+        'MEDIUM': '中',
+        'LOW': '低'
+      }
+      return displayMap[priority] || '中'
+    },
     addTag() {
       if (this.newTag.trim() && !this.formData.tags.includes(this.newTag.trim())) {
         this.formData.tags.push(this.newTag.trim())
@@ -803,6 +826,9 @@ export default {
       this.formData.tags.splice(index, 1)
     },
     addTask() {
+      const currentUserId = this.getCurrentUserId()
+      const currentUserName = this.getCurrentUserName()
+      
       this.formData.tasks.push({
         id: Date.now(),
         title: '',
@@ -814,8 +840,8 @@ export default {
         status: '进行中', // 前端显示中文状态
         status_value: 'ONGOING', // 数据库存储英文状态
         assignee_id: [], // 添加负责人ID字段
-        created_by: 1, // 添加创建人ID
-        created_by_name: this.getCurrentUserName(), // 添加创建人姓名
+        created_by: currentUserId || 1, // 使用当前用户ID
+        created_by_name: currentUserName, // 使用当前用户姓名
         dateError: '' // 添加任务日期错误信息
       })
     },
@@ -1038,6 +1064,43 @@ export default {
         console.log('后端返回的项目数据:', response.data)
         console.log('后端返回的项目ID:', response.data.id, '类型:', typeof response.data.id)
         
+        // 创建任务（如果有的话）
+        let createdTasks = []
+        if (this.formData.tasks && this.formData.tasks.length > 0) {
+          console.log('开始创建项目任务, 任务数量:', this.formData.tasks.length)
+          
+          try {
+            // 使用任务API模块批量创建任务
+            const { taskAPI } = await import('@/api/task')
+            
+            const taskResult = await taskAPI.createTasksBatch(response.data.id, this.formData.tasks)
+            
+            console.log('任务创建结果:', taskResult)
+            console.log(`成功: ${taskResult.success}, 失败: ${taskResult.failed}, 总计: ${taskResult.total}`)
+            
+            if (taskResult.failed > 0) {
+              console.warn('部分任务创建失败:', taskResult.errors)
+              // 显示警告，但不中断流程
+              alert(`项目创建成功！但有 ${taskResult.failed} 个任务创建失败，请稍后在项目详情页手动添加。`)
+            }
+            
+            // 使用后端返回的任务数据
+            // 如果创建人是"未知用户"，替换为当前用户名
+            const currentUserName = this.getCurrentUserName()
+            createdTasks = taskResult.results.map(r => {
+              const taskData = r.data
+              if (taskData.creatorName === '未知用户') {
+                taskData.creatorName = currentUserName
+              }
+              return taskData
+            })
+          } catch (error) {
+            console.error('创建任务失败:', error)
+            // 任务创建失败不影响项目创建，只显示警告
+            alert('项目创建成功！但任务创建失败，请稍后在项目详情页手动添加任务。')
+          }
+        }
+        
         // 使用后端返回的项目数据，并添加前端特有的字段
         const newProject = {
           ...response.data, // 使用后端返回的项目数据（包括id）
@@ -1045,7 +1108,7 @@ export default {
           // 添加前端显示需要的字段
           title: response.data.name, // 保留title字段用于前端显示
           status: this.getStatusDisplay(response.data.status), // 转换为中文状态显示
-          teamSize: this.formData.tasks.length || 1,
+          teamSize: createdTasks.length || 1,
           dataAssets: this.formData.projectDescription || '暂无描述',
           direction: this.formData.projectDescription || '暂无描述',
           aiCore: '待定',
@@ -1053,9 +1116,23 @@ export default {
           // 添加前端特有的字段
           tags: this.formData.tags,
           image: this.projectImage, // 添加项目图片
-          tasks: this.formData.tasks.map(task => ({
+          // 使用后端返回的任务数据（如果有的话）
+          tasks: createdTasks.length > 0 ? createdTasks.map(task => ({
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            dueDate: task.dueDate,
+            due_date: task.dueDate,
+            priority: this.getPriorityDisplay(task.priority),
+            priority_value: task.priority,
+            status: this.getStatusDisplay(task.status),
+            status_value: task.status,
+            assignee_id: task.assigneeIds || [],
+            created_by: task.creatorId,
+            created_by_name: this.getCurrentUserName()
+          })) : this.formData.tasks.map(task => ({
             ...task,
-            priority_value: this.getPriorityValue(task.priority), // 确保保存英文值到数据库
+            priority_value: this.getPriorityValue(task.priority),
             due_date: task.dueDate || task.due_date
           })),
           // 添加默认团队成员信息
