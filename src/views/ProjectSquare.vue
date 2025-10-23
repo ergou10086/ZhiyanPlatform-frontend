@@ -82,15 +82,40 @@
       </div>
 
       <div class="content-wrapper">
-      <div class="grid">
-        <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
-          <div class="card-media" :class="`gradient-${(project.id % 6) + 1}`">
-            <img v-if="project.image" :src="project.image" :alt="project.title" class="project-image" />
-          </div>
+        <!-- 加载状态 -->
+        <div v-if="isLoading" class="loading-container">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">正在加载项目数据...</p>
+        </div>
+        
+        <!-- 空状态 -->
+        <div v-else-if="projects.length === 0" class="empty-state">
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="#ccc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3 class="empty-title">暂无公开项目</h3>
+          <p class="empty-description">目前还没有公开的项目，快去创建第一个项目吧！</p>
+          <button class="btn primary" @click="createNewProject">新建项目</button>
+        </div>
+        
+        <!-- 项目列表 -->
+        <div v-else class="grid">
+          <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
+            <div class="card-media" :class="`gradient-${(project.id % 6) + 1}`">
+              <img v-if="project.image" :src="project.image" :alt="project.title" class="project-image" />
+            </div>
             <div class="card-body">
               <div class="card-title-row">
                 <h3 class="card-title">{{ project.title }}</h3>
-                <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+                <div class="badge-group">
+                  <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </span>
+                  <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+                </div>
               </div>
               <ul class="meta-list">
                 <li>
@@ -170,7 +195,10 @@ export default {
       userAvatar: null,
       projects: [],
       showModal: false,
-      modalMessage: ''
+      modalMessage: '',
+      isLoading: true, // 添加加载状态
+      showToast: false,
+      toastMessage: ''
     }
   },
   computed: {
@@ -183,7 +211,9 @@ export default {
       return this.projects.filter(p => {
         const matchText = text ? p.title.toLowerCase().includes(text) : true
         const matchStatus = this.selectedStatus ? p.status === this.selectedStatus : true
-        return matchText && matchStatus
+        // 只显示公开项目
+        const isPublic = p.visibility === 'PUBLIC'
+        return matchText && matchStatus && isPublic
       })
     },
     totalPages() {
@@ -261,32 +291,139 @@ export default {
       }
       return '用户'
     },
-    loadProjects() {
-      // 从localStorage加载项目数据
+    async loadProjects() {
+      this.isLoading = true
+      
+      try {
+        console.log('====== 开始加载项目广场数据 ======')
+        
+        // 从后端API加载公开项目
+        const { projectAPI } = await import('@/api/project')
+        
+        console.log('调用后端API获取公开活跃项目...')
+        const response = await projectAPI.getPublicActiveProjects(0, 100) // 获取前100个公开项目
+        
+        console.log('API响应:', response)
+        console.log('响应code:', response?.code)
+        console.log('响应data类型:', typeof response?.data)
+        
+        if (response && response.code === 200) {
+          console.log('成功获取公开项目数据')
+          
+          // 处理后端返回的分页数据
+          let backendProjects = []
+          if (response.data && response.data.content) {
+            // Spring Data Page对象
+            backendProjects = response.data.content
+            console.log('从Page对象获取项目列表，数量:', backendProjects.length)
+          } else if (Array.isArray(response.data)) {
+            // 直接返回数组
+            backendProjects = response.data
+            console.log('直接获取项目数组，数量:', backendProjects.length)
+          } else {
+            console.warn('未知的数据格式:', response.data)
+            backendProjects = []
+          }
+          
+          // 转换后端数据格式为前端格式，并过滤掉私有项目
+          this.projects = backendProjects
+            .map(project => ({
+              id: project.id,
+              name: project.name,
+              title: project.name, // 前端显示用title
+              description: project.description || '暂无描述',
+              status: this.getStatusDisplay(project.status),
+              visibility: project.visibility,
+              teamSize: project.teamSize || 1,
+              dataAssets: project.description || '暂无描述',
+              direction: project.description || '暂无描述',
+              aiCore: '待定',
+              category: project.category || '其他',
+              tags: project.tags || [],
+              image: project.imageUrl || null,
+              imageUrl: project.imageUrl || null,
+              startDate: project.startDate,
+              endDate: project.endDate,
+              start_date: project.startDate,
+              end_date: project.endDate,
+              created_by: project.creatorId,
+              creatorId: project.creatorId,
+              createdAt: project.createdAt,
+              updatedAt: project.updatedAt
+            }))
+            .filter(project => {
+              // 只保留公开项目，记录被过滤的私有项目
+              if (project.visibility !== 'PUBLIC') {
+                console.warn('过滤掉非公开项目:', project.id, project.name, '可见性:', project.visibility)
+                return false
+              }
+              return true
+            })
+          
+          console.log('转换后的项目数量:', this.projects.length)
+          if (this.projects.length > 0) {
+            console.log('项目数据示例:', this.projects[0])
+            console.log('所有项目的可见性:', this.projects.map(p => ({ id: p.id, name: p.name, visibility: p.visibility })))
+          }
+          
+          // 只保存后端数据到localStorage（覆盖旧数据）
+          // 这样可以确保显示的都是数据库中真实存在的公开项目
+          localStorage.setItem('projects', JSON.stringify(this.projects))
+          
+          console.log('====== 项目加载完成，显示', this.projects.length, '个公开项目 ======')
+        } else {
+          console.error('获取公开项目失败，code:', response?.code, 'msg:', response?.msg)
+          // 失败时从localStorage加载
+          this.loadProjectsFromLocalStorage()
+        }
+      } catch (error) {
+        console.error('====== 加载项目失败 ======')
+        console.error('错误类型:', error.constructor.name)
+        console.error('错误信息:', error.message)
+        console.error('错误详情:', error)
+        
+        // 发生错误时从localStorage加载
+        this.loadProjectsFromLocalStorage()
+      } finally {
+        this.isLoading = false
+      }
+    },
+    
+    loadProjectsFromLocalStorage() {
+      console.log('从localStorage加载项目数据...')
       const savedProjects = localStorage.getItem('projects')
       if (savedProjects) {
-        this.projects = JSON.parse(savedProjects)
-        console.log('加载的项目数量:', this.projects.length)
-        console.log('第一个项目的标签:', this.projects[0]?.tags)
+        const allProjects = JSON.parse(savedProjects)
+        // 只保留公开项目
+        this.projects = allProjects.filter(project => {
+          if (project.visibility !== 'PUBLIC') {
+            console.warn('从localStorage过滤掉非公开项目:', project.id, project.name || project.title, '可见性:', project.visibility)
+            return false
+          }
+          return true
+        })
+        console.log('从localStorage加载的项目数量:', allProjects.length, '过滤后公开项目数量:', this.projects.length)
       } else {
-        // 如果没有保存的项目，使用默认数据
-        this.projects = [
-          { id: 1, name: '多模态医学影像数据平台', title: '多模态医学影像数据平台', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 8, dataAssets: 'MRI, CT, PET扫描', direction: '肿瘤检测算法', aiCore: '深度学习模型', category: '医疗健康', tags: ['医学影像', '深度学习', '肿瘤检测'], created_by: 1, start_date: '2024-01-01', end_date: '2024-12-31' },
-          { id: 2, name: '气候变化预测模型研究', title: '气候变化预测模型研究', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 6, dataAssets: '卫星遥感, 气象站', direction: 'LSTM时序预测', aiCore: '时序网络', category: '环境气候', tags: ['气候变化', 'LSTM', '时序预测'], created_by: 1, start_date: '2024-02-01', end_date: '2024-11-30' },
-          { id: 3, name: '基因组数据分析平台', title: '基因组数据分析平台', status: 'COMPLETED', visibility: 'PRIVATE', teamSize: 10, dataAssets: 'DNA测序, 蛋白组结构', direction: '可解释性建模', aiCore: '图神经网络', category: '生物信息', tags: ['基因组', '图神经网络', '生物信息'], created_by: 1, start_date: '2023-06-01', end_date: '2024-03-31' },
-          { id: 4, name: '脑科学神经网络研究', title: '脑科学神经网络研究', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 7, dataAssets: 'fMRI, EEG数据集', direction: '神经网络可视化', aiCore: '深度学习模型', category: '科研探索', tags: ['脑科学', '神经网络', '可视化'], created_by: 1, start_date: '2024-01-15', end_date: '2024-12-15' },
-          { id: 5, name: '新型材料发现研究平台', title: '新型材料发现研究平台', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 9, dataAssets: '分子结构, 光谱数据', direction: '材料性质预测', aiCore: '图模型', category: '材料科学', tags: ['材料科学', '图模型', '性质预测'], created_by: 1, start_date: '2024-03-01', end_date: '2024-12-31' },
-          { id: 6, name: '深空天体观测数据分析', title: '深空天体观测数据分析', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 5, dataAssets: '天体光谱, 动辄数据', direction: '天体识别算法', aiCore: '卷积网络', category: '天文学', tags: ['天体观测', '卷积网络', '天体识别'], created_by: 1, start_date: '2024-02-15', end_date: '2024-11-15' },
-          { id: 7, name: '卫星遥感图像分割', title: '卫星遥感图像分割', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 12, dataAssets: '遥感影像库', direction: '语义分割', aiCore: 'Transformer', category: '环境气候', tags: ['遥感', '图像分割', 'Transformer'], created_by: 1, start_date: '2024-01-20', end_date: '2024-10-20' },
-          { id: 8, name: '智慧城市交通预测', title: '智慧城市交通预测', status: 'COMPLETED', visibility: 'PRIVATE', teamSize: 11, dataAssets: '路网探针, 车流数据', direction: '交通预测', aiCore: '图时空网络', category: '智慧城市', tags: ['智慧城市', '交通预测', '图网络'], created_by: 1, start_date: '2023-09-01', end_date: '2024-02-29' },
-          { id: 9, name: '金融风险评估系统', title: '金融风险评估系统', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 6, dataAssets: '交易数据, 市场指标', direction: '风险预测模型', aiCore: '机器学习', category: '金融科技', tags: ['金融科技', '风险评估', '机器学习'], created_by: 1, start_date: '2024-03-15', end_date: '2024-12-15' },
-          { id: 10, name: '教育智能推荐平台', title: '教育智能推荐平台', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 8, dataAssets: '学习行为, 课程数据', direction: '个性化推荐', aiCore: '协同过滤', category: '教育科技', tags: ['教育科技', '推荐系统', '协同过滤'], created_by: 1, start_date: '2024-02-01', end_date: '2024-11-30' },
-          { id: 11, name: '农业智能监测系统', title: '农业智能监测系统', status: 'ONGOING', visibility: 'PRIVATE', teamSize: 5, dataAssets: '土壤数据, 气象信息', direction: '作物生长预测', aiCore: '时序分析', category: '农业科技', tags: ['农业科技', '智能监测', '时序分析'], created_by: 1, start_date: '2024-04-01', end_date: '2024-12-31' },
-          { id: 12, name: '智能制造质量检测', title: '智能制造质量检测', status: 'COMPLETED', visibility: 'PRIVATE', teamSize: 9, dataAssets: '产品图像, 质量指标', direction: '缺陷检测算法', aiCore: '计算机视觉', category: '工业4.0', tags: ['智能制造', '质量检测', '计算机视觉'], created_by: 1, start_date: '2023-12-01', end_date: '2024-05-31' }
-        ]
-        // 保存默认数据到localStorage
-        localStorage.setItem('projects', JSON.stringify(this.projects))
+        console.log('localStorage中没有项目数据，使用空数组')
+        this.projects = []
       }
+    },
+    
+    getStatusDisplay(status) {
+      // 将数据库的英文状态转换为中文显示
+      const statusMap = {
+        'PLANNING': '规划中',
+        'ONGOING': '进行中',
+        'COMPLETED': '已完成',
+        'ARCHIVED': '已归档',
+        // 兼容旧数据
+        'IN_PROGRESS': '进行中',
+        'PAUSED': '已暂停',
+        'CANCELLED': '已取消',
+        'DONE': '已完成',
+        'STEADY': '稳健中'
+      }
+      return statusMap[status] || status || '进行中'
     },
     setUserAvatar(url) {
       this.userAvatar = url
@@ -721,6 +858,37 @@ export default {
   flex: 1;
 }
 
+.badge-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.visibility-badge.visibility-public {
+  background: #e7f5ff;
+  color: #1971c2;
+  border-color: #a5d8ff;
+}
+
+.visibility-badge.visibility-public svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+}
+
 .status-badge {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
@@ -843,6 +1011,67 @@ export default {
   .card { height: 260px; } /* 移动端稍微缩小 */
   .card-media { height: 150px; }
   .card-body { padding: 12px; }
+}
+
+/* 加载状态样式 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 60px 20px;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-state svg {
+  margin-bottom: 24px;
+  opacity: 0.3;
+}
+
+.empty-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 12px 0;
+}
+
+.empty-description {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 0 0 32px 0;
+  max-width: 400px;
 }
 
 /* 自定义弹窗样式 */

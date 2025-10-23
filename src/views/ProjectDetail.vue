@@ -120,21 +120,17 @@
                   <span class="status-indicator" style="background-color: #6c757d;"></span>
                   规划中
                 </li>
-                <li class="dropdown-item" :class="{ active: project.status === 'IN_PROGRESS' }" @click="changeStatus('IN_PROGRESS')">
+                <li class="dropdown-item" :class="{ active: project.status === 'ONGOING' }" @click="changeStatus('ONGOING')">
                   <span class="status-indicator" style="background-color: #28a745;"></span>
                   进行中
-                </li>
-                <li class="dropdown-item" :class="{ active: project.status === 'PAUSED' }" @click="changeStatus('PAUSED')">
-                  <span class="status-indicator" style="background-color: #ffc107;"></span>
-                  已暂停
                 </li>
                 <li class="dropdown-item" :class="{ active: project.status === 'COMPLETED' }" @click="changeStatus('COMPLETED')">
                   <span class="status-indicator" style="background-color: #007bff;"></span>
                   已完成
                 </li>
-                <li class="dropdown-item" :class="{ active: project.status === 'CANCELLED' }" @click="changeStatus('CANCELLED')">
+                <li class="dropdown-item" :class="{ active: project.status === 'ARCHIVED' }" @click="changeStatus('ARCHIVED')">
                   <span class="status-indicator" style="background-color: #dc3545;"></span>
-                  已取消
+                  已归档
                 </li>
               </ul>
             </div>
@@ -565,8 +561,8 @@ export default {
             due_date: task.due_date || task.dueDate, // 添加数据库字段名
             priority: this.getPriorityDisplay(task.priority || 'MEDIUM'), // 转换为中文显示
             priority_value: task.priority || 'MEDIUM', // 保留数据库值
-            status: this.getStatusDisplay(task.status_value || task.status || 'IN_PROGRESS'), // 优先使用status_value，转换为中文状态显示
-            status_value: task.status_value || task.status || 'IN_PROGRESS', // 保留数据库值
+            status: this.getStatusDisplay(task.status_value || task.status || 'ONGOING'), // 优先使用status_value，转换为中文状态显示
+            status_value: task.status_value || task.status || 'ONGOING', // 保留数据库值
             assignee_id: task.assignee_id || [], // 添加负责人ID字段
             created_by: task.created_by || 1, // 添加创建人字段
             created_by_name: this.getUserNameById(task.created_by || 1) // 添加创建人姓名
@@ -835,29 +831,68 @@ export default {
           // 使用项目API模块删除项目
           const { projectAPI } = await import('@/api/project')
           
-          console.log('使用项目API模块删除项目...')
+          console.log('====== 开始删除项目 ======')
+          console.log('项目ID:', this.project.id, '类型:', typeof this.project.id)
+          console.log('项目名称:', this.project.name || this.project.title)
+          
           const response = await projectAPI.deleteProject(this.project.id)
           
           console.log('删除项目API返回结果:', response)
+          console.log('返回code:', response?.code)
+          console.log('返回msg:', response?.msg)
           
           // 检查API返回结果
-          if (response.code === 200) {
+          if (response && response.code === 200) {
+            console.log('项目删除成功，准备清理本地数据')
+            
             // 从localStorage中删除项目
             const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-            const updatedProjects = savedProjects.filter(p => p.id !== this.project.id)
+            console.log('删除前的项目列表:', savedProjects.map(p => ({ id: p.id, name: p.name || p.title })))
+            
+            // 使用字符串比较确保正确匹配
+            const updatedProjects = savedProjects.filter(p => String(p.id) !== String(this.project.id))
+            console.log('删除后的项目列表:', updatedProjects.map(p => ({ id: p.id, name: p.name || p.title })))
+            
             localStorage.setItem('projects', JSON.stringify(updatedProjects))
             
-            this.showSuccessToast('项目已删除！')
+            this.showSuccessToast('项目删除成功！')
+            console.log('====== 项目删除完成，即将跳转 ======')
+            
+            // 延迟跳转，让用户看到成功提示
             setTimeout(() => {
               this.$router.push('/project-square')
-            }, 1000)
+            }, 1500)
           } else {
-            alert('删除失败：' + (response.msg || '未知错误'))
+            const errorMsg = response?.msg || '未知错误'
+            console.error('删除失败，错误信息:', errorMsg)
+            alert('删除失败：' + errorMsg)
           }
         } catch (error) {
-          console.error('删除项目失败:', error)
-          alert('删除项目失败，请稍后重试')
+          console.error('====== 删除项目异常 ======')
+          console.error('错误类型:', error.constructor.name)
+          console.error('错误信息:', error.message)
+          console.error('错误详情:', error)
+          
+          // 处理不同类型的错误
+          let errorMessage = '删除项目失败，请稍后重试'
+          
+          if (error.response) {
+            // 服务器返回错误响应
+            console.error('服务器错误响应:', error.response.status, error.response.data)
+            errorMessage = error.response.data?.msg || `服务器错误 (${error.response.status})`
+          } else if (error.request) {
+            // 请求已发送但没有收到响应
+            console.error('网络错误，未收到响应')
+            errorMessage = '网络连接失败，请检查网络连接'
+          } else if (error.msg) {
+            // 后端返回的错误信息
+            errorMessage = error.msg
+          }
+          
+          alert(errorMessage)
         }
+      } else {
+        console.log('用户取消删除项目')
       }
     },
     // 验证新建任务截止日期
@@ -1034,11 +1069,14 @@ export default {
     getStatusDisplay(status) {
       // 将数据库的英文状态转换为中文显示
       const statusMap = {
+        'PLANNING': '规划中',
+        'ONGOING': '进行中',
+        'COMPLETED': '已完成',
+        'ARCHIVED': '已归档',
+        // 兼容旧数据和任务状态
         'PENDING': '待接取',
         'IN_PROGRESS': '进行中',
         'PAUSED': '暂停',
-        'COMPLETED': '完成',
-        'PLANNING': '规划中',
         'CANCELLED': '已取消'
       }
       return statusMap[status] || status || '未知'

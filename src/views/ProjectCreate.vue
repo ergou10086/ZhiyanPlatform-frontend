@@ -95,6 +95,44 @@
           </div>
 
           <div class="form-field">
+            <label class="form-label">项目可见性</label>
+            <div class="visibility-options">
+              <div 
+                class="visibility-option" 
+                :class="{ 'active': formData.visibility === 'PUBLIC' }"
+                @click="formData.visibility = 'PUBLIC'"
+              >
+                <div class="option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="option-content">
+                  <div class="option-title">公开</div>
+                  <div class="option-desc">项目对所有用户可见</div>
+                </div>
+              </div>
+              <div 
+                class="visibility-option" 
+                :class="{ 'active': formData.visibility === 'PRIVATE' }"
+                @click="formData.visibility = 'PRIVATE'"
+              >
+                <div class="option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="option-content">
+                  <div class="option-title">私有</div>
+                  <div class="option-desc">项目仅对成员可见</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
             <label class="form-label">项目周期</label>
             <div class="date-range">
               <input
@@ -225,6 +263,26 @@
           </div>
 
           <div class="preview-item">
+            <label class="preview-label">项目可见性</label>
+            <div class="preview-value">
+              <span v-if="formData.visibility === 'PUBLIC'" class="visibility-badge visibility-public">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                公开
+              </span>
+              <span v-else class="visibility-badge visibility-private">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                私有
+              </span>
+            </div>
+          </div>
+
+          <div class="preview-item">
             <label class="preview-label">自定义标签</label>
             <div class="preview-tags">
               <span v-if="formData.tags.length === 0" class="preview-placeholder">标签将在此显示</span>
@@ -342,6 +400,7 @@ export default {
       formData: {
         projectName: '',
         projectDescription: '',
+        visibility: 'PRIVATE', // 默认为私有
         startDate: '',
         endDate: '',
         tags: [],
@@ -715,9 +774,12 @@ export default {
       // 将数据库的英文状态转换为中文显示
       const statusMap = {
         'PLANNING': '规划中',
+        'ONGOING': '进行中',
+        'COMPLETED': '已完成',
+        'ARCHIVED': '已归档',
+        // 兼容旧数据
         'IN_PROGRESS': '进行中',
         'PAUSED': '已暂停',
-        'COMPLETED': '已完成',
         'CANCELLED': '已取消'
       }
       return statusMap[status] || status || '进行中'
@@ -750,7 +812,7 @@ export default {
         priority: '中', // 前端显示中文
         priority_value: 'MEDIUM', // 数据库存储英文
         status: '进行中', // 前端显示中文状态
-        status_value: 'IN_PROGRESS', // 数据库存储英文状态
+        status_value: 'ONGOING', // 数据库存储英文状态
         assignee_id: [], // 添加负责人ID字段
         created_by: 1, // 添加创建人ID
         created_by_name: this.getCurrentUserName(), // 添加创建人姓名
@@ -945,7 +1007,7 @@ export default {
         const createProjectData = {
           name: this.formData.projectName,
           description: this.formData.projectDescription,
-          visibility: 'PRIVATE',
+          visibility: this.formData.visibility, // 使用用户选择的可见性
           imageUrl: this.projectImage || 'https://via.placeholder.com/400x225?text=Project+Image', // 添加必需的imageUrl字段
           startDate: this.formData.startDate,
           endDate: this.formData.endDate
@@ -1454,6 +1516,100 @@ export default {
   justify-content: center;
 }
 
+/* 可见性选择器样式 */
+.visibility-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.visibility-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.visibility-option:hover {
+  border-color: #5b6bff;
+  background: #f8f9ff;
+}
+
+.visibility-option.active {
+  border-color: #5b6bff;
+  background: #f0f2ff;
+  box-shadow: 0 0 0 3px rgba(91, 107, 255, 0.1);
+}
+
+.option-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #f8f9fa;
+  color: #666;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.visibility-option.active .option-icon {
+  background: #5b6bff;
+  color: white;
+}
+
+.option-content {
+  flex: 1;
+}
+
+.option-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+/* 预览区域的可见性徽章样式 */
+.visibility-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.visibility-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.visibility-public {
+  background: #e7f5ff;
+  color: #1971c2;
+  border: 1px solid #a5d8ff;
+}
+
+.visibility-private {
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
 .task-item {
   border: 1px solid #e9ecef;
   border-radius: 8px;
@@ -1765,6 +1921,10 @@ export default {
   }
   
   .task-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .visibility-options {
     grid-template-columns: 1fr;
   }
   
