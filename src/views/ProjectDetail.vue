@@ -398,6 +398,77 @@
       </div>
     </div>
 
+    <!-- 邀请成员弹窗 -->
+    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click="closeInviteMemberModal">
+      <div class="modal-content invite-modal" @click.stop>
+        <div class="modal-header">
+          <h3>邀请成员</h3>
+          <button @click="closeInviteMemberModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="invite-form">
+            <div class="form-field">
+              <label class="form-label">搜索用户</label>
+              <div class="search-container">
+                <input
+                  type="text"
+                  v-model="inviteSearchQuery"
+                  class="form-input"
+                  placeholder="请输入用户id进行邀请"
+                  @input="searchUsers"
+                />
+                <button @click="searchUsers" class="search-btn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 搜索结果 -->
+          <div v-if="searchResults.length > 0" class="search-results">
+            <h4>搜索结果</h4>
+            <div class="user-list">
+              <div v-for="user in searchResults" :key="user.id" class="user-item">
+                <div class="user-info">
+                  <div class="user-avatar">
+                    <img v-if="user.avatar" :src="user.avatar" :alt="user.name" />
+                    <div v-else class="avatar-placeholder">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="user-details">
+                    <div class="user-name">{{ user.name }}</div>
+                    <div class="user-email">{{ user.email }}</div>
+                  </div>
+                </div>
+                <button @click="addUserToProject(user)" class="invite-btn">
+                  添加
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 无搜索结果提示 -->
+          <div v-if="inviteSearchQuery && searchResults.length === 0 && !isSearching" class="no-results">
+            <p>未找到匹配的用户</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeInviteMemberModal" class="btn btn-secondary">取消</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
@@ -440,7 +511,12 @@ export default {
       tasks: [],
       teamMembers: [],
       inviteSlots: [],
-      isLoading: true
+      isLoading: true,
+      // 邀请成员弹窗相关
+      inviteMemberModalOpen: false,
+      inviteSearchQuery: '',
+      searchResults: [],
+      isSearching: false
     }
   },
   computed: {
@@ -698,16 +774,88 @@ export default {
       }
     },
     inviteMember() {
-      const role = prompt('请输入邀请的角色:')
-      if (role && role.trim()) {
-        const newInvite = {
-          id: Date.now(),
-          role: role.trim()
-        }
-        this.inviteSlots.push(newInvite)
-        this.saveProjectData()
-        alert('邀请已发送！')
+      this.inviteMemberModalOpen = true
+      this.resetInviteForm()
+    },
+    closeInviteMemberModal() {
+      this.inviteMemberModalOpen = false
+      this.resetInviteForm()
+    },
+    resetInviteForm() {
+      this.inviteSearchQuery = ''
+      this.searchResults = []
+      this.isSearching = false
+    },
+    searchUsers() {
+      if (!this.inviteSearchQuery.trim()) {
+        this.searchResults = []
+        return
       }
+      
+      this.isSearching = true
+      
+      // 通过用户ID搜索用户 - 在实际应用中这里应该调用API
+      setTimeout(() => {
+        // 模拟搜索结果，根据用户ID进行搜索
+        const searchId = this.inviteSearchQuery.trim()
+        this.searchResults = [
+          {
+            id: 1,
+            name: '张三',
+            email: 'zhangsan@example.com',
+            avatar: null
+          },
+          {
+            id: 2,
+            name: '李四',
+            email: 'lisi@example.com',
+            avatar: null
+          },
+          {
+            id: 3,
+            name: '王五',
+            email: 'wangwu@example.com',
+            avatar: null
+          },
+          {
+            id: 4,
+            name: '赵六',
+            email: 'zhaoliu@example.com',
+            avatar: null
+          },
+          {
+            id: 5,
+            name: '钱七',
+            email: 'qianqi@example.com',
+            avatar: null
+          }
+        ].filter(user => 
+          user.id.toString() === searchId
+        )
+        this.isSearching = false
+      }, 500)
+    },
+    addUserToProject(user) {
+      // 检查用户是否已经是团队成员
+      const isAlreadyMember = this.teamMembers.some(member => member.id === user.id)
+      if (isAlreadyMember) {
+        alert('该用户已经是团队成员')
+        return
+      }
+      
+      // 直接添加用户到项目
+      const newMember = {
+        id: user.id,
+        name: user.name,
+        role: '团队成员',
+        avatar: user.avatar
+      }
+      
+      this.teamMembers.push(newMember)
+      this.saveProjectData()
+      
+      this.showSuccessToast(`${user.name} 已添加到项目`)
+      this.closeInviteMemberModal()
     },
     removeTeamMember(memberId) {
       if (confirm('确定要移除此成员吗？')) {
@@ -2345,6 +2493,263 @@ export default {
 .remove-member-btn:hover {
   background: #f8d7da;
   color: #721c24;
+}
+
+/* 邀请成员弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.invite-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.modal-body {
+  padding: 20px 24px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.invite-form {
+  margin-bottom: 20px;
+}
+
+.form-field {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.search-container {
+  display: flex;
+  gap: 8px;
+}
+
+.search-container .form-input {
+  flex: 1;
+}
+
+.search-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.search-btn:hover {
+  background: #2563eb;
+}
+
+.search-results {
+  margin-top: 20px;
+}
+
+.search-results h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.user-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.user-item:hover {
+  background: #f9fafb;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  color: #9ca3af;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.invite-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.invite-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.invite-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.no-results {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
 }
 
 .loading-container {

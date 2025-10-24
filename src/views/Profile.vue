@@ -68,7 +68,10 @@
                 </div>
               </div>
               <div v-else class="nickname-display-container">
-                <span class="nickname-display">{{ userInfo.nickname }}</span>
+                <div class="nickname-info">
+                  <span class="nickname-display">{{ userInfo.nickname }}</span>
+                  <span v-if="userInfo.id" class="user-id-display">ID: {{ userInfo.id }}</span>
+                </div>
                 <button @click="editNickname" class="edit-nickname-btn">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -938,11 +941,29 @@ export default {
   padding-left: 32px; /* 微调左内边距来达到最佳视觉平衡 */
 }
 
+.nickname-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 .nickname-display {
   font-size: 20px;
   font-weight: 600;
   color: #2c3e50;
   padding: 8px 16px;
+  display: inline-block;
+}
+
+.user-id-display {
+  font-size: 14px;
+  font-weight: 400;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  padding: 4px 12px;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
   display: inline-block;
 }
 
