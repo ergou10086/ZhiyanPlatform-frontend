@@ -85,8 +85,8 @@
                 <span class="status-badge" :class="statusClass(project.status)">{{ getStatusDisplay(project.status) }}</span>
               </div>
               <div class="meta-item">
-                <span class="meta-label">负责人：</span>
-                <span class="meta-value">{{ project.manager }}</span>
+                <span class="meta-label">创建者：</span>
+                <span class="meta-value">{{ project.creatorName || project.manager || '未知用户' }}</span>
               </div>
               <div class="meta-item" v-if="project.tags && project.tags.length > 0">
                 <span class="meta-label">项目标签：</span>
@@ -173,7 +173,8 @@
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
                 <span class="task-date" v-if="task.date">{{ task.date }}</span>
-                <span class="task-creator">创建人: {{ task.created_by_name }}</span>
+                <!-- 暂时隐藏创建人信息，避免后端批量查询用户失败 -->
+                <!-- <span class="task-creator">创建人: {{ task.created_by_name }}</span> -->
                 <span v-if="task.assignee_name" class="task-assignee">
                   负责人: {{ task.assignee_name }}
                 </span>
@@ -618,6 +619,7 @@ export default {
             imageUrl: foundProject.imageUrl || foundProject.image || 'https://via.placeholder.com/400x225?text=Project+Image',
             image: foundProject.image || foundProject.imageUrl,
             manager: this.getCurrentUserName(), // 从用户信息获取负责人
+            creatorName: foundProject.creatorName || '未知用户', // 添加创建者名称
             teamSize: foundProject.teamSize,
             category: foundProject.category,
             aiCore: foundProject.aiCore,

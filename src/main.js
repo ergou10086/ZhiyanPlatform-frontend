@@ -15,8 +15,31 @@ Vue.component('Button', Button)
 Vue.component('Card', Card)
 Vue.component('Input', Input)
 
-// 简单的状态管理
-Vue.prototype.$auth = authStore
+// 创建简单的状态管理包装器
+const authState = {
+  ...authStore.state
+}
+
+const authWrapper = {
+  state: authState,
+  dispatch(action, payload) {
+    if (authStore.actions[action]) {
+      // 模拟 Vuex 的 context 对象
+      const context = {
+        state: authState,
+        commit: (mutation, data) => {
+          if (authStore.mutations[mutation]) {
+            authStore.mutations[mutation](authState, data)
+          }
+        }
+      }
+      return authStore.actions[action](context, payload)
+    }
+  },
+  getters: authStore.getters
+}
+
+Vue.prototype.$auth = authWrapper
 
 new Vue({
   router,

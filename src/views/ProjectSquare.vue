@@ -119,6 +119,10 @@
               </div>
               <ul class="meta-list">
                 <li>
+                  <span class="meta-label">创建者：</span>
+                  <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
+                </li>
+                <li>
                   <span class="meta-label">团队规模：</span>
                   <span class="meta-value">{{ getTeamSize(project) }}人</span>
                 </li>
@@ -348,6 +352,7 @@ export default {
               end_date: project.endDate,
               created_by: project.creatorId,
               creatorId: project.creatorId,
+              creatorName: project.creatorName || '神秘用户', // 添加创建者名称
               createdAt: project.createdAt,
               updatedAt: project.updatedAt
             }))
