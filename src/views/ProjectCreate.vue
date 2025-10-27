@@ -1028,11 +1028,15 @@ export default {
 .project-create-container {
   min-height: 100vh;
   background-color: #f8f9fa;
-  display: flex;
-  flex-direction: column;
+  display: block;
+  position: relative;
 }
 
 .top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: white;
   border-bottom: 1px solid #e9ecef;
   height: 64px;
@@ -1041,6 +1045,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 .header-left {
@@ -1232,11 +1237,11 @@ export default {
 
 .main-content {
   flex: 1;
+  margin: 64px auto 0; /* 为固定页眉留出顶部空间，水平居中 */
   display: flex;
   gap: 24px;
   padding: 24px;
   max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -1256,7 +1261,7 @@ export default {
   padding: 20px;
   height: fit-content;
   position: sticky;
-  top: 24px;
+  top: 88px; /* 页眉高度64px + 顶部间距24px */
 }
 
 .form-group {
