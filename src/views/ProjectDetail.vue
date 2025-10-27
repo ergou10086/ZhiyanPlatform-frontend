@@ -153,8 +153,8 @@
         
         <!-- 任务网格 -->
         <div v-else class="task-grid">
-          <div v-for="task in filteredTasks" :key="task.id" class="task-card">
-            <div class="task-header">
+          <div v-for="task in filteredTasks" :key="task.id" class="task-card" @click="openTaskDetailModal(task)">
+            <div class="task-header" @click.stop>
             <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
               <div class="task-actions" v-if="isProjectManager">
                 <div class="task-status-dropdown">
@@ -184,7 +184,7 @@
                 </button>
               </div>
             </div>
-            <div class="task-content">
+            <div class="task-content" @click.stop>
               <h3 class="task-title">{{ task.title }}</h3>
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
@@ -195,7 +195,7 @@
                 </span>
               </div>
             </div>
-            <div v-if="task.status === '待接取'" class="task-assign-section">
+            <div v-if="task.status === '待接取'" class="task-assign-section" @click.stop>
               <button @click="assignTask(task)" class="assign-btn">接取任务</button>
           </div>
           </div>
@@ -330,8 +330,8 @@
         
         <div class="modal-footer">
           <button type="button" @click="closeTaskModal" class="btn btn-secondary">取消</button>
-          <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim()">
-            创建任务
+          <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim() || isCreatingTask">
+            {{ isCreatingTask ? '创建中...' : '创建任务' }}
           </button>
         </div>
       </div>
@@ -437,8 +437,8 @@
         
         <div class="modal-body">
           <div class="task-list-container">
-            <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item">
-              <div class="task-item-header">
+            <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item" @click="openTaskDetailModal(task)">
+              <div class="task-item-header" @click.stop>
                 <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
                 <div class="task-actions" v-if="isProjectManager">
                   <div class="task-status-dropdown">
@@ -468,7 +468,7 @@
                   </button>
                 </div>
               </div>
-              <div class="task-item-content">
+              <div class="task-item-content" @click.stop>
                 <h4 class="task-item-title">{{ task.title }}</h4>
                 <p class="task-item-description">{{ task.description }}</p>
                 <div class="task-item-meta">
@@ -479,11 +479,135 @@
                   </span>
                 </div>
               </div>
-              <div v-if="task.status === '待接取'" class="task-item-assign">
+              <div v-if="task.status === '待接取'" class="task-item-assign" @click.stop>
                 <button @click="assignTask(task)" class="assign-btn">接取任务</button>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑任务模态框 -->
+    <div v-if="editTaskModalOpen" class="modal-overlay" @click="closeEditTaskModal">
+      <div class="modal-content task-modal" @click.stop>
+        <div class="modal-header">
+          <h3>编辑任务</h3>
+          <button class="modal-close" @click="closeEditTaskModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">任务标题</label>
+            <input
+              type="text"
+              v-model="editTaskData.title" 
+              class="form-input"
+              placeholder="请输入任务标题"
+            />
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label">任务描述</label>
+            <textarea
+              v-model="editTaskData.description"
+              class="form-textarea"
+              placeholder="请输入任务描述"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">截止日期</label>
+              <input
+                type="date"
+                v-model="editTaskData.dueDate"
+                :min="today"
+                class="form-input"
+                @change="validateEditTaskDueDate"
+              />
+              <div v-if="editTaskData.dateError" class="error-message">{{ editTaskData.dateError }}</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">优先级</label>
+              <select v-model="editTaskData.priority" class="form-select">
+                <option value="高">高</option>
+                <option value="中">中</option>
+                <option value="低">低</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" @click="closeEditTaskModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveEditTask" class="btn btn-primary" :disabled="!editTaskData.title.trim()">
+            保存更改
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务详情弹窗 -->
+    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
+      <div class="modal-content task-detail-modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">任务详情</h3>
+          <button class="modal-close" @click="closeTaskDetailModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body task-detail-body">
+          <div class="task-detail-section">
+            <label class="task-detail-label">任务标题</label>
+            <div class="task-detail-value">{{ selectedTask.title }}</div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">任务描述</label>
+            <div class="task-detail-value task-description-scroll">{{ selectedTask.description || '暂无描述' }}</div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">优先级</label>
+            <div class="task-detail-value">
+              <span class="task-priority-badge" :class="priorityClass(selectedTask.priority)">{{ selectedTask.priority }}</span>
+            </div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">状态</label>
+            <div class="task-detail-value">
+              <span class="task-status-badge" :class="statusClass(selectedTask.status)">{{ selectedTask.status }}</span>
+            </div>
+          </div>
+          
+          <div class="task-detail-section" v-if="selectedTask.date">
+            <label class="task-detail-label">截止日期</label>
+            <div class="task-detail-value">{{ selectedTask.date }}</div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">创建人</label>
+            <div class="task-detail-value">{{ selectedTask.created_by_name || '未知' }}</div>
+          </div>
+          
+          <div class="task-detail-section" v-if="selectedTask.assignee_name">
+            <label class="task-detail-label">负责人</label>
+            <div class="task-detail-value">{{ selectedTask.assignee_name }}</div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
       </div>
     </div>
@@ -531,7 +655,18 @@ export default {
       teamMembers: [],
       inviteSlots: [],
       isLoading: true,
-      taskListModalOpen: false
+      taskListModalOpen: false,
+      isCreatingTask: false, // 防止重复点击创建任务
+      taskDetailModalOpen: false, // 任务详情弹窗
+      selectedTask: null, // 当前选中的任务
+      editTaskModalOpen: false, // 编辑任务弹窗
+      editTaskData: {
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: '中',
+        taskId: null
+      }
     }
   },
   computed: {
@@ -585,6 +720,14 @@ export default {
     },
     closeTaskListModal() {
       this.taskListModalOpen = false
+    },
+    openTaskDetailModal(task) {
+      this.selectedTask = task
+      this.taskDetailModalOpen = true
+    },
+    closeTaskDetailModal() {
+      this.taskDetailModalOpen = false
+      this.selectedTask = null
     },
     goToTaskList() {
       // 跳转到任务列表页面
@@ -1093,6 +1236,12 @@ export default {
       this.taskModalOpen = false
     },
     async saveNewTask() {
+      // 防止重复点击
+      if (this.isCreatingTask) {
+        console.log('[saveNewTask] 任务正在创建中，忽略重复点击')
+        return
+      }
+      
       if (!this.newTask.title.trim()) {
         alert('请输入任务标题')
         return
@@ -1103,6 +1252,9 @@ export default {
         alert('任务截止日期不能早于今天')
         return
       }
+      
+      // 设置创建中状态
+      this.isCreatingTask = true
       
       try {
         // 导入任务API
@@ -1137,23 +1289,87 @@ export default {
       } catch (error) {
         console.error('[saveNewTask] 创建任务失败:', error)
         alert('创建任务失败，请稍后重试')
+      } finally {
+        // 1秒后才能再次点击
+        setTimeout(() => {
+          this.isCreatingTask = false
+        }, 1000)
       }
     },
     editTask(task) {
-      const newTitle = prompt('编辑任务标题:', task.title)
-      if (newTitle !== null) {
-        const newDescription = prompt('编辑任务描述:', task.description)
-        const newDate = prompt('编辑截止日期:', task.date)
-        const newPriority = prompt('编辑优先级 (高/中/低):', task.priority)
-        
-        task.title = newTitle.trim()
-        task.description = newDescription ? newDescription.trim() : task.description
-        task.date = newDate || task.date
-        task.priority = newPriority || task.priority
-        
-        this.saveProjectData()
-        alert('任务更新成功！')
+      // 设置编辑数据
+      this.editTaskData = {
+        title: task.title,
+        description: task.description || '',
+        dueDate: task.date || task.dueDate || '',
+        priority: task.priority,
+        taskId: task.id
       }
+      // 打开编辑弹窗
+      this.editTaskModalOpen = true
+    },
+    closeEditTaskModal() {
+      this.editTaskModalOpen = false
+      this.editTaskData = {
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: '中',
+        taskId: null
+      }
+    },
+    async saveEditTask() {
+      if (!this.editTaskData.title.trim()) {
+        alert('请输入任务标题')
+        return
+      }
+      
+      // 验证截止日期不能早于今天
+      if (this.editTaskData.dueDate && new Date(this.editTaskData.dueDate) < new Date(this.today)) {
+        alert('任务截止日期不能早于今天')
+        return
+      }
+      
+      try {
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        // 构建更新数据
+        const updateData = {
+          title: this.editTaskData.title.trim(),
+          description: this.editTaskData.description.trim(),
+          priority: this.getPriorityValue(this.editTaskData.priority),
+          dueDate: this.editTaskData.dueDate || null
+        }
+        
+        console.log('[saveEditTask] 更新任务，ID:', this.editTaskData.taskId, '数据:', updateData)
+        
+        // 调用后端API更新任务
+        const response = await taskAPI.updateTask(this.editTaskData.taskId, updateData)
+        
+        console.log('[saveEditTask] API返回结果:', response)
+        
+        if (response && response.code === 200) {
+          // 更新成功，重新加载任务列表
+          await this.loadProjectTasks()
+          
+          this.closeEditTaskModal()
+          this.showSuccessToast('任务更新成功！')
+        } else {
+          alert('更新任务失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[saveEditTask] 更新任务失败:', error)
+        alert('更新任务失败，请稍后重试')
+      }
+    },
+    validateEditTaskDueDate() {
+      this.editTaskData.dateError = ''
+      if (this.editTaskData.dueDate && new Date(this.editTaskData.dueDate) < new Date(this.today)) {
+        this.editTaskData.dateError = '任务截止日期不能早于今天'
+        return false
+      }
+      return true
     },
     async deleteTask(taskId) {
       if (!confirm('确定要删除此任务吗？')) {
@@ -1940,11 +2156,14 @@ export default {
   gap: 16px;
   transition: all 0.2s ease;
   min-height: 60px;
+  cursor: pointer;
 }
 
 .task-list-item:hover {
   background: #e9ecef;
   border-color: #5b6bff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(91, 107, 255, 0.1);
 }
 
 .task-item-header {
@@ -2019,6 +2238,64 @@ export default {
   transform: translateY(-1px);
 }
 
+/* 任务详情弹窗样式 */
+.task-detail-modal {
+  max-width: 800px;
+  max-height: 80vh;
+  width: 90%;
+}
+
+.task-detail-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.task-detail-section {
+  margin-bottom: 20px;
+}
+
+.task-detail-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.task-detail-value {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.task-description-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.task-priority-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .task-card {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
@@ -2028,6 +2305,15 @@ export default {
   min-height: 120px;
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-card:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.15);
 }
 
 .task-priority {
