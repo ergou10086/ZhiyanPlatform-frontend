@@ -200,17 +200,25 @@ export default {
     loadProjectName() {
       // 从localStorage获取项目数据
       const savedProjects = localStorage.getItem('projects')
+      console.log('项目知识库 - 正在加载项目ID:', this.projectId, '类型:', typeof this.projectId)
+      console.log('localStorage中的项目数据:', savedProjects)
+      
       if (savedProjects) {
         try {
           const projects = JSON.parse(savedProjects)
-          const project = projects.find(p => p.id === parseInt(this.projectId))
+          console.log('解析后的项目列表:', projects)
+          console.log('项目ID列表:', projects.map(p => ({ id: p.id, type: typeof p.id })))
+          
+          // 使用字符串比较，因为后端返回的是字符串ID
+          const project = projects.find(p => String(p.id) === String(this.projectId))
+          
           if (project) {
             // 优先使用name字段，如果没有则使用title字段
             this.projectName = project.name || project.title || '未知项目'
-            console.log('找到项目:', this.projectName)
+            console.log('找到项目:', this.projectName, '项目数据:', project)
           } else {
             this.projectName = '未知项目'
-            console.log('未找到项目，ID:', this.projectId)
+            console.log('未找到项目，ID:', this.projectId, '可用项目ID:', projects.map(p => p.id))
           }
         } catch (error) {
           console.error('解析项目数据失败:', error)
