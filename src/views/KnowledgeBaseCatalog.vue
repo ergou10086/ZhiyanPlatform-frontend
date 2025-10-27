@@ -14,7 +14,7 @@
             <span class="add-name">论文</span>
           </div>
           <div class="add-desc">上传学术论文成果</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('论文')">上传论文</a>
+          <button class="add-btn" @click="uploadFile('论文')">上传论文</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -22,7 +22,7 @@
             <span class="add-name">专利</span>
           </div>
           <div class="add-desc">记录专利信息</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('专利')">上传专利</a>
+          <button class="add-btn" @click="uploadFile('专利')">上传专利</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -30,7 +30,7 @@
             <span class="add-name">数据集</span>
           </div>
           <div class="add-desc">上传研究数据集</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('数据集')">上传数据集</a>
+          <button class="add-btn" @click="uploadFile('数据集')">上传数据集</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -38,7 +38,7 @@
             <span class="add-name">模型文件</span>
           </div>
           <div class="add-desc">存储已训练模型</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('模型文件')">上传模型</a>
+          <button class="add-btn" @click="uploadFile('模型文件')">上传模型</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -46,7 +46,7 @@
             <span class="add-name">实验报告</span>
           </div>
           <div class="add-desc">上传实验报告文档</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('实验报告')">上传报告</a>
+          <button class="add-btn" @click="uploadFile('实验报告')">上传报告</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -54,7 +54,7 @@
             <span class="add-name">自定义项目</span>
           </div>
           <div class="add-desc">创建自定义成果类型</div>
-          <a class="add-link" href="#" @click.prevent="createCustomType">新建类型</a>
+          <button class="add-btn" @click="createCustomType">新建类型</button>
         </div>
       </div>
     </div>
@@ -2664,8 +2664,30 @@ export default {
 .add-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .add-name { color: #374151; font-weight: 600; }
 .add-desc { color: #9ca3af; font-size: 12px; margin-bottom: 8px; }
-.add-link { color: #4f46e5; font-size: 12px; text-decoration: none; }
-.add-link:hover { text-decoration: underline; }
+.add-btn {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: #5b6bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.add-btn:hover {
+  background: #4a5bff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.3);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(91, 107, 255, 0.2);
+}
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .dot-blue { background: #3b82f6; }
 .dot-orange { background: #f59e0b; }

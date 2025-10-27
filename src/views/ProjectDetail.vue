@@ -92,8 +92,8 @@
                 <span class="meta-label">项目标签：</span>
                 <div class="tags-container">
                   <span v-for="(tag, index) in project.tags" :key="index" class="tag">{{ tag }}</span>
-                </div>
-              </div>
+            </div>
+          </div>
             </div>
           </div>
           <div class="project-actions" v-if="isProjectManager">
@@ -136,10 +136,26 @@
             <button v-if="isProjectManager" class="btn primary" @click="createTask">新建任务</button>
           </div>
         </div>
-        <div class="task-grid">
-          <div v-for="task in filteredTasks" :key="task.id" class="task-card">
-            <div class="task-header">
-              <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
+        <!-- 空状态提示 -->
+        <div v-if="filteredTasks.length === 0" class="task-empty-state">
+          <div class="empty-state-content">
+            <div class="empty-state-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 class="empty-state-title">暂无任务</h3>
+            <p class="empty-state-message">
+              点击右侧<span class="highlight-text">"新建任务"</span>按钮来创建第一个任务
+            </p>
+          </div>
+        </div>
+        
+        <!-- 任务网格 -->
+        <div v-else class="task-grid">
+          <div v-for="task in filteredTasks" :key="task.id" class="task-card" @click="openTaskDetailModal(task)">
+            <div class="task-header" @click.stop>
+            <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
               <div class="task-actions" v-if="isProjectManager">
                 <div class="task-status-dropdown">
                   <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
@@ -168,7 +184,7 @@
                 </button>
               </div>
             </div>
-            <div class="task-content">
+            <div class="task-content" @click.stop>
               <h3 class="task-title">{{ task.title }}</h3>
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
@@ -179,10 +195,20 @@
                 </span>
               </div>
             </div>
-            <div v-if="task.status === '待接取'" class="task-assign-section">
+            <div v-if="task.status === '待接取'" class="task-assign-section" @click.stop>
               <button @click="assignTask(task)" class="assign-btn">接取任务</button>
-            </div>
           </div>
+          </div>
+        </div>
+        
+        <!-- 更多按钮放在任务网格下面 -->
+        <div v-if="allTasks.length > 5" class="more-button-container">
+          <button class="more-button" @click="openTaskListModal">
+            <span class="more-text">更多</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -193,7 +219,7 @@
           <div class="section-actions" v-if="isProjectManager">
             <button class="btn secondary" @click="addTeamMember">添加成员</button>
             <button class="btn primary" @click="inviteMember">邀请成员</button>
-          </div>
+        </div>
         </div>
         
         
@@ -304,8 +330,8 @@
         
         <div class="modal-footer">
           <button type="button" @click="closeTaskModal" class="btn btn-secondary">取消</button>
-          <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim()">
-            创建任务
+          <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim() || isCreatingTask">
+            {{ isCreatingTask ? '创建中...' : '创建任务' }}
           </button>
         </div>
       </div>
@@ -397,73 +423,191 @@
       </div>
     </div>
 
-    <!-- 邀请成员弹窗 -->
-    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click="closeInviteMemberModal">
-      <div class="modal-content invite-modal" @click.stop>
+    <!-- 任务列表弹窗 -->
+    <div v-if="taskListModalOpen" class="modal-overlay" @click="closeTaskListModal">
+      <div class="modal-content task-list-modal" @click.stop>
         <div class="modal-header">
-          <h3>邀请成员</h3>
-          <button @click="closeInviteMemberModal" class="modal-close">
+          <h3 class="modal-title">所有任务</h3>
+          <button class="modal-close" @click="closeTaskListModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
+        
         <div class="modal-body">
-          <div class="invite-form">
-            <div class="form-field">
-              <label class="form-label">搜索用户</label>
-              <div class="search-container">
-                <input
-                  type="text"
-                  v-model="inviteSearchQuery"
-                  class="form-input"
-                  placeholder="请输入用户id进行邀请"
-                  @input="searchUsers"
-                />
-                <button @click="searchUsers" class="search-btn">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 搜索结果 -->
-          <div v-if="searchResults.length > 0" class="search-results">
-            <h4>搜索结果</h4>
-            <div class="user-list">
-              <div v-for="user in searchResults" :key="user.id" class="user-item">
-                <div class="user-info">
-                  <div class="user-avatar">
-                    <img v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                    <div v-else class="avatar-placeholder">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <div class="task-list-container">
+            <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item" @click="openTaskDetailModal(task)">
+              <div class="task-item-header" @click.stop>
+                <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
+                <div class="task-actions" v-if="isProjectManager">
+                  <div class="task-status-dropdown">
+                    <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
+                      {{ task.status }}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
+                    </button>
+                    <div class="task-status-menu" v-if="task.showStatusMenu">
+                      <button @click="changeTaskStatus(task, '待接取')" class="status-option" :class="{ active: task.status === '待接取' }">待接取</button>
+                      <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
+                      <button @click="changeTaskStatus(task, '暂停')" class="status-option" :class="{ active: task.status === '暂停' }">暂停</button>
+                      <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                     </div>
                   </div>
-                  <div class="user-details">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email }}</div>
-                  </div>
+                  <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
                 </div>
-                <button @click="addUserToProject(user)" class="invite-btn">
-                  添加
-                </button>
+              </div>
+              <div class="task-item-content" @click.stop>
+                <h4 class="task-item-title">{{ task.title }}</h4>
+                <p class="task-item-description">{{ task.description }}</p>
+                <div class="task-item-meta">
+                  <span class="task-date" v-if="task.date">{{ task.date }}</span>
+                  <span class="task-creator">创建人: {{ task.created_by_name }}</span>
+                  <span v-if="task.assignee_name" class="task-assignee">
+                    负责人: {{ task.assignee_name }}
+                  </span>
+                </div>
+              </div>
+              <div v-if="task.status === '待接取'" class="task-item-assign" @click.stop>
+                <button @click="assignTask(task)" class="assign-btn">接取任务</button>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 编辑任务模态框 -->
+    <div v-if="editTaskModalOpen" class="modal-overlay" @click="closeEditTaskModal">
+      <div class="modal-content task-modal" @click.stop>
+        <div class="modal-header">
+          <h3>编辑任务</h3>
+          <button class="modal-close" @click="closeEditTaskModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">任务标题</label>
+            <input
+              type="text"
+              v-model="editTaskData.title" 
+              class="form-input"
+              placeholder="请输入任务标题"
+            />
+          </div>
           
-          <!-- 无搜索结果提示 -->
-          <div v-if="inviteSearchQuery && searchResults.length === 0 && !isSearching" class="no-results">
-            <p>未找到匹配的用户</p>
+          <div class="form-field">
+            <label class="form-label">任务描述</label>
+            <textarea
+              v-model="editTaskData.description"
+              class="form-textarea"
+              placeholder="请输入任务描述"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">截止日期</label>
+              <input
+                type="date"
+                v-model="editTaskData.dueDate"
+                :min="today"
+                class="form-input"
+                @change="validateEditTaskDueDate"
+              />
+              <div v-if="editTaskData.dateError" class="error-message">{{ editTaskData.dateError }}</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">优先级</label>
+              <select v-model="editTaskData.priority" class="form-select">
+                <option value="高">高</option>
+                <option value="中">中</option>
+                <option value="低">低</option>
+              </select>
+            </div>
           </div>
         </div>
+        
         <div class="modal-footer">
-          <button @click="closeInviteMemberModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="closeEditTaskModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveEditTask" class="btn btn-primary" :disabled="!editTaskData.title.trim()">
+            保存更改
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 任务详情弹窗 -->
+    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
+      <div class="modal-content task-detail-modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">任务详情</h3>
+          <button class="modal-close" @click="closeTaskDetailModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body task-detail-body">
+          <div class="task-detail-section">
+            <label class="task-detail-label">任务标题</label>
+            <div class="task-detail-value">{{ selectedTask.title }}</div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">任务描述</label>
+            <div class="task-detail-value task-description-scroll">{{ selectedTask.description || '暂无描述' }}</div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">优先级</label>
+            <div class="task-detail-value">
+              <span class="task-priority-badge" :class="priorityClass(selectedTask.priority)">{{ selectedTask.priority }}</span>
+            </div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">状态</label>
+            <div class="task-detail-value">
+              <span class="task-status-badge" :class="statusClass(selectedTask.status)">{{ selectedTask.status }}</span>
+            </div>
+          </div>
+          
+          <div class="task-detail-section" v-if="selectedTask.date">
+            <label class="task-detail-label">截止日期</label>
+            <div class="task-detail-value">{{ selectedTask.date }}</div>
+          </div>
+          
+          <div class="task-detail-section">
+            <label class="task-detail-label">创建人</label>
+            <div class="task-detail-value">{{ selectedTask.created_by_name || '未知' }}</div>
+          </div>
+          
+          <div class="task-detail-section" v-if="selectedTask.assignee_name">
+            <label class="task-detail-label">负责人</label>
+            <div class="task-detail-value">{{ selectedTask.assignee_name }}</div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
       </div>
     </div>
@@ -471,7 +615,7 @@
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
-    </div>
+      </div>
     </div>
   </div>
 </template>
@@ -511,17 +655,42 @@ export default {
       teamMembers: [],
       inviteSlots: [],
       isLoading: true,
-      // 邀请成员弹窗相关
-      inviteMemberModalOpen: false,
-      inviteSearchQuery: '',
-      searchResults: [],
-      isSearching: false
+      taskListModalOpen: false,
+      isCreatingTask: false, // 防止重复点击创建任务
+      taskDetailModalOpen: false, // 任务详情弹窗
+      selectedTask: null, // 当前选中的任务
+      editTaskModalOpen: false, // 编辑任务弹窗
+      editTaskData: {
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: '中',
+        taskId: null
+      }
     }
   },
   computed: {
     filteredTasks() {
-      if (!this.selectedTaskType) return this.tasks
-      return this.tasks.filter(task => task.priority === this.selectedTaskType)
+      let tasks = this.tasks
+      if (this.selectedTaskType) {
+        tasks = tasks.filter(task => task.priority === this.selectedTaskType)
+      }
+      // 按创建时间排序，返回最新的5个任务
+      return tasks
+        .sort((a, b) => new Date(b.created_at || b.id) - new Date(a.created_at || a.id))
+        .slice(0, 5)
+    },
+    allTasks() {
+      // 返回所有任务（用于判断是否显示更多按钮）
+      return this.tasks
+    },
+    allFilteredTasks() {
+      // 返回所有任务（用于弹窗显示）
+      let tasks = this.tasks
+      if (this.selectedTaskType) {
+        tasks = tasks.filter(task => task.priority === this.selectedTaskType)
+      }
+      return tasks
     },
     isProjectManager() {
       // 判断当前用户是否是项目负责人
@@ -546,6 +715,25 @@ export default {
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
   },
   methods: {
+    openTaskListModal() {
+      this.taskListModalOpen = true
+    },
+    closeTaskListModal() {
+      this.taskListModalOpen = false
+    },
+    openTaskDetailModal(task) {
+      this.selectedTask = task
+      this.taskDetailModalOpen = true
+    },
+    closeTaskDetailModal() {
+      this.taskDetailModalOpen = false
+      this.selectedTask = null
+    },
+    goToTaskList() {
+      // 跳转到任务列表页面
+      console.log('手动跳转到任务列表页面，项目ID:', this.$route.params.id)
+      this.$router.push(`/project/${this.$route.params.id}/tasks`)
+    },
     /**
      * 从后端API加载项目任务数据
      */
@@ -726,13 +914,13 @@ export default {
             matches: String(p.id) === String(projectId) 
           })))
           this.project = {
-            id: projectId,
-            title: '项目不存在',
-            description: '抱歉，未找到指定的项目',
-            period: '未知',
-            status: '未知',
-            manager: '未知'
-          }
+        id: projectId,
+        title: '项目不存在',
+        description: '抱歉，未找到指定的项目',
+        period: '未知',
+        status: '未知',
+        manager: '未知'
+      }
         }
       } else {
         console.log('localStorage中没有项目数据')
@@ -772,88 +960,16 @@ export default {
       }
     },
     inviteMember() {
-      this.inviteMemberModalOpen = true
-      this.resetInviteForm()
-    },
-    closeInviteMemberModal() {
-      this.inviteMemberModalOpen = false
-      this.resetInviteForm()
-    },
-    resetInviteForm() {
-      this.inviteSearchQuery = ''
-      this.searchResults = []
-      this.isSearching = false
-    },
-    searchUsers() {
-      if (!this.inviteSearchQuery.trim()) {
-        this.searchResults = []
-        return
+      const role = prompt('请输入邀请的角色:')
+      if (role && role.trim()) {
+        const newInvite = {
+          id: Date.now(),
+          role: role.trim()
+        }
+        this.inviteSlots.push(newInvite)
+        this.saveProjectData()
+        alert('邀请已发送！')
       }
-      
-      this.isSearching = true
-      
-      // 通过用户ID搜索用户 - 在实际应用中这里应该调用API
-      setTimeout(() => {
-        // 模拟搜索结果，根据用户ID进行搜索
-        const searchId = this.inviteSearchQuery.trim()
-        this.searchResults = [
-          {
-            id: 1,
-            name: '张三',
-            email: 'zhangsan@example.com',
-            avatar: null
-          },
-          {
-            id: 2,
-            name: '李四',
-            email: 'lisi@example.com',
-            avatar: null
-          },
-          {
-            id: 3,
-            name: '王五',
-            email: 'wangwu@example.com',
-            avatar: null
-          },
-          {
-            id: 4,
-            name: '赵六',
-            email: 'zhaoliu@example.com',
-            avatar: null
-          },
-          {
-            id: 5,
-            name: '钱七',
-            email: 'qianqi@example.com',
-            avatar: null
-          }
-        ].filter(user => 
-          user.id.toString() === searchId
-        )
-        this.isSearching = false
-      }, 500)
-    },
-    addUserToProject(user) {
-      // 检查用户是否已经是团队成员
-      const isAlreadyMember = this.teamMembers.some(member => member.id === user.id)
-      if (isAlreadyMember) {
-        alert('该用户已经是团队成员')
-        return
-      }
-      
-      // 直接添加用户到项目
-      const newMember = {
-        id: user.id,
-        name: user.name,
-        role: '团队成员',
-        avatar: user.avatar
-      }
-      
-      this.teamMembers.push(newMember)
-      this.saveProjectData()
-      
-      this.showSuccessToast(`${user.name} 已添加到项目`)
-      this.closeInviteMemberModal()
     },
     removeTeamMember(memberId) {
       if (confirm('确定要移除此成员吗？')) {
@@ -1120,6 +1236,12 @@ export default {
       this.taskModalOpen = false
     },
     async saveNewTask() {
+      // 防止重复点击
+      if (this.isCreatingTask) {
+        console.log('[saveNewTask] 任务正在创建中，忽略重复点击')
+        return
+      }
+      
       if (!this.newTask.title.trim()) {
         alert('请输入任务标题')
         return
@@ -1130,6 +1252,9 @@ export default {
         alert('任务截止日期不能早于今天')
         return
       }
+      
+      // 设置创建中状态
+      this.isCreatingTask = true
       
       try {
         // 导入任务API
@@ -1164,23 +1289,87 @@ export default {
       } catch (error) {
         console.error('[saveNewTask] 创建任务失败:', error)
         alert('创建任务失败，请稍后重试')
+      } finally {
+        // 1秒后才能再次点击
+        setTimeout(() => {
+          this.isCreatingTask = false
+        }, 1000)
       }
     },
     editTask(task) {
-      const newTitle = prompt('编辑任务标题:', task.title)
-      if (newTitle !== null) {
-        const newDescription = prompt('编辑任务描述:', task.description)
-        const newDate = prompt('编辑截止日期:', task.date)
-        const newPriority = prompt('编辑优先级 (高/中/低):', task.priority)
-        
-        task.title = newTitle.trim()
-        task.description = newDescription ? newDescription.trim() : task.description
-        task.date = newDate || task.date
-        task.priority = newPriority || task.priority
-        
-        this.saveProjectData()
-        alert('任务更新成功！')
+      // 设置编辑数据
+      this.editTaskData = {
+        title: task.title,
+        description: task.description || '',
+        dueDate: task.date || task.dueDate || '',
+        priority: task.priority,
+        taskId: task.id
       }
+      // 打开编辑弹窗
+      this.editTaskModalOpen = true
+    },
+    closeEditTaskModal() {
+      this.editTaskModalOpen = false
+      this.editTaskData = {
+        title: '',
+        description: '',
+        dueDate: '',
+        priority: '中',
+        taskId: null
+      }
+    },
+    async saveEditTask() {
+      if (!this.editTaskData.title.trim()) {
+        alert('请输入任务标题')
+        return
+      }
+      
+      // 验证截止日期不能早于今天
+      if (this.editTaskData.dueDate && new Date(this.editTaskData.dueDate) < new Date(this.today)) {
+        alert('任务截止日期不能早于今天')
+        return
+      }
+      
+      try {
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        // 构建更新数据
+        const updateData = {
+          title: this.editTaskData.title.trim(),
+          description: this.editTaskData.description.trim(),
+          priority: this.getPriorityValue(this.editTaskData.priority),
+          dueDate: this.editTaskData.dueDate || null
+        }
+        
+        console.log('[saveEditTask] 更新任务，ID:', this.editTaskData.taskId, '数据:', updateData)
+        
+        // 调用后端API更新任务
+        const response = await taskAPI.updateTask(this.editTaskData.taskId, updateData)
+        
+        console.log('[saveEditTask] API返回结果:', response)
+        
+        if (response && response.code === 200) {
+          // 更新成功，重新加载任务列表
+          await this.loadProjectTasks()
+          
+          this.closeEditTaskModal()
+          this.showSuccessToast('任务更新成功！')
+        } else {
+          alert('更新任务失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[saveEditTask] 更新任务失败:', error)
+        alert('更新任务失败，请稍后重试')
+      }
+    },
+    validateEditTaskDueDate() {
+      this.editTaskData.dateError = ''
+      if (this.editTaskData.dueDate && new Date(this.editTaskData.dueDate) < new Date(this.today)) {
+        this.editTaskData.dateError = '任务截止日期不能早于今天'
+        return false
+      }
+      return true
     },
     async deleteTask(taskId) {
       if (!confirm('确定要删除此任务吗？')) {
@@ -1436,7 +1625,7 @@ export default {
       
       // 延迟跳转到登录页面，让用户看到提示
       setTimeout(() => {
-        this.$router.push('/login')
+      this.$router.push('/login')
       }, 1000)
     },
     statusClass(status) {
@@ -1818,17 +2007,313 @@ export default {
 
 .task-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 400px));
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  justify-content: stretch;
+}
+
+/* 空状态样式 */
+.task-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: #f8f9fa;
+  border: 2px dashed #e9ecef;
+  border-radius: 12px;
+  padding: 40px 20px;
+}
+
+.empty-state-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.empty-state-icon {
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #495057;
+  margin: 0 0 8px 0;
+}
+
+.empty-state-message {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.highlight-text {
+  color: #5b6bff;
+  font-weight: 600;
+}
+
+/* 响应式设计 */
+@media (max-width: 1400px) {
+  .task-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .task-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .task-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .task-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .task-empty-state {
+    min-height: 150px;
+    padding: 30px 15px;
+  }
+  
+  .empty-state-title {
+    font-size: 16px;
+  }
+  
+  .empty-state-message {
+    font-size: 13px;
+  }
+}
+
+/* 更多按钮样式 */
+.more-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.more-button {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5b6bff;
+}
+
+.more-button:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.15);
+}
+
+.more-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #5b6bff;
+}
+
+.more-button svg {
+  color: #5b6bff;
+}
+
+
+/* 任务列表弹窗样式 */
+.task-list-modal {
+  max-width: 99vw !important;
+  max-height: 80vh;
+  width: 1800px !important;
+}
+
+.task-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.task-list-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
   gap: 16px;
-  justify-content: start;
+  transition: all 0.2s ease;
+  min-height: 60px;
+  cursor: pointer;
+}
+
+.task-list-item:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(91, 107, 255, 0.1);
+}
+
+.task-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 300px;
+  max-width: 300px;
+}
+
+.task-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.task-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  min-width: 300px;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-item-description {
+  font-size: 13px;
+  color: #6c757d;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-item-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: #6c757d;
+  min-width: 250px;
+  max-width: 250px;
+  flex-shrink: 0;
+}
+
+.task-item-assign {
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.task-item-assign .assign-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-item-assign .assign-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+/* 任务详情弹窗样式 */
+.task-detail-modal {
+  max-width: 800px;
+  max-height: 80vh;
+  width: 90%;
+}
+
+.task-detail-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.task-detail-section {
+  margin-bottom: 20px;
+}
+
+.task-detail-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.task-detail-value {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.task-description-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.task-priority-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .task-card {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   position: relative;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-card:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.15);
 }
 
 .task-priority {
@@ -1865,29 +2350,44 @@ export default {
 
 .task-content {
   padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .task-title {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
   color: #333;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 16em;
 }
 
 .task-description {
-  font-size: 14px;
+  font-size: 12px;
   color: #6c757d;
-  margin: 0 0 12px 0;
-  line-height: 1.5;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 16em;
 }
 
 .task-meta {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
-  font-size: 12px;
+  gap: 2px;
+  margin-top: auto;
+  font-size: 11px;
   color: #6c757d;
+  flex-shrink: 0;
 }
 
 .task-creator {
@@ -2491,263 +2991,6 @@ export default {
 .remove-member-btn:hover {
   background: #f8d7da;
   color: #721c24;
-}
-
-/* 邀请成员弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.invite-modal {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 600px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: #6b7280;
-  transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.modal-body {
-  padding: 20px 24px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.invite-form {
-  margin-bottom: 20px;
-}
-
-.form-field {
-  margin-bottom: 16px;
-}
-
-.form-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 6px;
-}
-
-.form-input, .form-select, .form-textarea {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
-  transition: border-color 0.2s ease;
-}
-
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  outline: none;
-  border-color: #3b82f6;
-}
-
-.search-container {
-  display: flex;
-  gap: 8px;
-}
-
-.search-container .form-input {
-  flex: 1;
-}
-
-.search-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.search-btn:hover {
-  background: #2563eb;
-}
-
-.search-results {
-  margin-top: 20px;
-}
-
-.search-results h4 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #374151;
-}
-
-.user-list {
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.user-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  transition: background-color 0.2s ease;
-}
-
-.user-item:hover {
-  background: #f9fafb;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  background-color: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  color: #9ca3af;
-}
-
-.user-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.user-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #111827;
-  margin-bottom: 2px;
-}
-
-.user-email {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.invite-btn {
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.invite-btn:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.invite-btn:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
-.no-results {
-  text-align: center;
-  padding: 20px;
-  color: #6b7280;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px 20px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-primary:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
 }
 
 .loading-container {
