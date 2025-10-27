@@ -1187,10 +1187,23 @@ export default {
         }, 1000)
       } catch (error) {
         console.error('发布项目失败:', error)
+        console.error('错误对象:', error)
         console.error('错误详情:', error.message)
+        console.error('错误代码:', error.code)
+        console.error('错误数据:', error.data)
         console.error('表单数据:', this.formData)
         console.error('项目图片:', this.projectImage)
-        this.showErrorModal(`发布项目失败，请重试。错误信息: ${error.message}`)
+        
+        // 构建详细的错误信息
+        let errorMsg = '发布项目失败，请重试。'
+        if (error.message) {
+          errorMsg += `\n错误信息: ${error.message}`
+        }
+        if (error.code) {
+          errorMsg += `\n错误代码: ${error.code}`
+        }
+        
+        this.showErrorModal(errorMsg)
       } finally {
         this.isSubmitting = false
       }

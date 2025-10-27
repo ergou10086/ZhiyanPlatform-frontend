@@ -196,7 +196,6 @@
           </div>
         </div>
         
-        
         <div class="team-grid">
           <div v-for="member in teamMembers" :key="member.id" class="member-card">
             <div class="member-avatar">
@@ -417,7 +416,7 @@
                   type="text"
                   v-model="inviteSearchQuery"
                   class="form-input"
-                  placeholder="请输入用户id进行邀请"
+                  placeholder="请输入用户ID或姓名进行搜索"
                   @input="searchUsers"
                 />
                 <button @click="searchUsers" class="search-btn">
@@ -511,6 +510,7 @@ export default {
       teamMembers: [],
       inviteSlots: [],
       isLoading: true,
+      membersLoadError: null, // 成员加载错误信息
       // 邀请成员弹窗相关
       inviteMemberModalOpen: false,
       inviteSearchQuery: '',
@@ -558,20 +558,20 @@ export default {
 
       try {
         console.log('[loadProjectTasks] 开始从后端加载任务数据，项目ID:', projectId)
-        
+
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        
+
         // 调用后端API获取任务列表
         const response = await taskAPI.getProjectTasks(projectId, 0, 100) // 获取前100个任务
-        
+
         console.log('[loadProjectTasks] API返回结果:', response)
-        
+
         // 检查返回结果
         if (response && response.code === 200 && response.data) {
           const tasksData = response.data
           console.log('[loadProjectTasks] 任务数据:', tasksData)
-          
+
           // 处理分页数据
           let taskList = []
           if (tasksData.content && Array.isArray(tasksData.content)) {
@@ -581,13 +581,13 @@ export default {
             // 后端返回的是数组
             taskList = tasksData
           }
-          
+
           console.log('[loadProjectTasks] 解析的任务列表:', taskList)
-          
+
           // 转换任务数据格式，优先使用后端返回的创建人信息，如果没有则使用本地用户信息
           const currentUserId = this.getCurrentUserId()
           const currentUserName = this.getCurrentUserName()
-          
+
           this.tasks = taskList.map(task => ({
             id: task.id,
             title: task.title,
@@ -606,12 +606,12 @@ export default {
             created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
             showStatusMenu: false // 初始化状态菜单为关闭
           }))
-          
+
           console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
-          
+
           // 同步更新到localStorage
           this.saveProjectData()
-          
+
         } else {
           console.warn('[loadProjectTasks] API返回数据格式异常:', response)
           // 如果API返回失败，尝试从localStorage加载
@@ -623,21 +623,21 @@ export default {
         this.loadTasksFromLocalStorage()
       }
     },
-    
+
     /**
      * 从localStorage加载任务数据（作为后备方案）
      */
     loadTasksFromLocalStorage() {
       const projectId = this.$route.params.id
       const savedProjects = localStorage.getItem('projects')
-      
+
       if (savedProjects) {
         const projects = JSON.parse(savedProjects)
         const foundProject = projects.find(p => String(p.id) === String(projectId))
-        
+
         if (foundProject && foundProject.tasks) {
           console.log('[loadTasksFromLocalStorage] 从localStorage加载任务:', foundProject.tasks)
-          
+
           this.tasks = (foundProject.tasks || []).map(task => ({
             id: task.id,
             title: task.title,
@@ -656,7 +656,7 @@ export default {
         }
       }
     },
-    
+
     loadProject() {
       const projectId = this.$route.params.id
       console.log('正在加载项目ID:', projectId, '类型:', typeof projectId)
@@ -711,10 +711,10 @@ export default {
           // 注意：任务数据现在通过loadProjectTasks方法从后端API加载
           // 这里不再从localStorage加载任务，以确保数据是最新的
           
-          // 加载团队成员数据
-          this.teamMembers = foundProject.teamMembers || [
-            { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
-          ]
+          // ✅ 修复：不再使用localStorage中的成员数据或默认值
+          // 团队成员数据将通过loadProjectMembers方法从后端API加载
+          // 初始化为空数组，避免显示错误的默认成员信息
+          this.teamMembers = []
           this.inviteSlots = foundProject.inviteSlots || []
           
         } else {
@@ -749,26 +749,49 @@ export default {
       // 加载完成
       this.isLoading = false
       console.log('项目加载完成，project:', this.project)
-      
+
       // 加载项目任务数据
       this.loadProjectTasks()
+
+      // 如果项目加载成功，从后端加载成员列表
+      if (this.project && this.project.id) {
+        this.loadProjectMembers()
+      }
     },
     goBack() {
       this.$router.go(-1)
     },
-    addTeamMember() {
-      const name = prompt('请输入成员姓名:')
-      if (name && name.trim()) {
-        const role = prompt('请输入成员角色:')
-        const newMember = {
-          id: Date.now(),
-          name: name.trim(),
-          role: role ? role.trim() : '团队成员',
-          avatar: null
+    async addTeamMember() {
+      // 使用更好的UI提示用户输入
+      const userId = prompt('请输入要添加的用户ID:')
+      if (!userId || !userId.trim()) {
+        return
+      }
+      
+      // 弹出选择角色
+      const roleChoice = confirm('点击"确定"添加为项目拥有者(OWNER)，点击"取消"添加为普通成员(MEMBER)')
+      const roleCode = roleChoice ? 'OWNER' : 'MEMBER'
+      
+      try {
+        // 导入 API
+        const { projectAPI } = await import('@/api/project')
+        
+        // 调用后端API - 使用 assignRole (分配角色接口)
+        const response = await projectAPI.assignRole(this.project.id, {
+          userId: parseInt(userId.trim()),
+          roleCode: roleCode
+        })
+        
+        if (response.code === 200) {
+          this.showSuccessToast(`成员添加成功！角色: ${roleCode === 'OWNER' ? '项目拥有者' : '普通成员'}`)
+          // 刷新成员列表
+          this.loadProjectMembers()
+        } else {
+          alert(`添加失败: ${response.message || response.msg || '未知错误'}`)
         }
-        this.teamMembers.push(newMember)
-        this.saveProjectData()
-        alert('成员添加成功！')
+      } catch (error) {
+        console.error('添加成员失败:', error)
+        alert(`添加失败: ${error.message || error.msg || '网络错误'}`)
       }
     },
     inviteMember() {
@@ -784,7 +807,7 @@ export default {
       this.searchResults = []
       this.isSearching = false
     },
-    searchUsers() {
+    async searchUsers() {
       if (!this.inviteSearchQuery.trim()) {
         this.searchResults = []
         return
@@ -792,73 +815,137 @@ export default {
       
       this.isSearching = true
       
-      // 通过用户ID搜索用户 - 在实际应用中这里应该调用API
-      setTimeout(() => {
-        // 模拟搜索结果，根据用户ID进行搜索
-        const searchId = this.inviteSearchQuery.trim()
-        this.searchResults = [
-          {
-            id: 1,
-            name: '张三',
-            email: 'zhangsan@example.com',
-            avatar: null
-          },
-          {
-            id: 2,
-            name: '李四',
-            email: 'lisi@example.com',
-            avatar: null
-          },
-          {
-            id: 3,
-            name: '王五',
-            email: 'wangwu@example.com',
-            avatar: null
-          },
-          {
-            id: 4,
-            name: '赵六',
-            email: 'zhaoliu@example.com',
-            avatar: null
-          },
-          {
-            id: 5,
-            name: '钱七',
-            email: 'qianqi@example.com',
-            avatar: null
+      try {
+        // 调用项目服务的搜索接口（8095端口），该接口通过Feign调用认证服务
+        const { projectAPI } = await import('@/api/project')
+        const keyword = this.inviteSearchQuery.trim()
+        
+        // 使用项目服务的搜索API
+        const response = await projectAPI.searchUsers(keyword, 0, 10)
+        
+        console.log('搜索用户响应:', response)
+        
+        if (response.code === 200 && response.data) {
+          // 处理分页结果
+          if (response.data.content && Array.isArray(response.data.content)) {
+            this.searchResults = response.data.content
+          } else if (Array.isArray(response.data)) {
+            this.searchResults = response.data
+          } else {
+            this.searchResults = [response.data]
           }
-        ].filter(user => 
-          user.id.toString() === searchId
-        )
+        } else {
+          this.searchResults = []
+        }
+      } catch (error) {
+        console.error('搜索用户失败:', error)
+        this.searchResults = []
+        this.showSuccessToast('搜索失败，请重试')
+      } finally {
         this.isSearching = false
-      }, 500)
+      }
     },
-    addUserToProject(user) {
+    async addUserToProject(user) {
       // 检查用户是否已经是团队成员
-      const isAlreadyMember = this.teamMembers.some(member => member.id === user.id)
+      const isAlreadyMember = this.teamMembers.some(member => member.id === user.id || member.userId === user.id)
       if (isAlreadyMember) {
         alert('该用户已经是团队成员')
         return
       }
       
-      // 直接添加用户到项目
-      const newMember = {
-        id: user.id,
-        name: user.name,
-        role: '团队成员',
-        avatar: user.avatar
+      try {
+        const { projectAPI } = await import('@/api/project')
+        
+        // 调用后端API邀请成员（默认角色为MEMBER）
+        const response = await projectAPI.inviteMember(this.project.id, {
+          userId: user.id,
+          role: 'MEMBER'  // 默认添加为普通成员
+        })
+        
+        if (response.code === 200) {
+          this.showSuccessToast(`${user.name || user.realName || '用户'} 已添加到项目`)
+          this.closeInviteMemberModal()
+          // 刷新成员列表
+          this.loadProjectMembers()
+        } else {
+          alert(`添加失败: ${response.message || response.msg || '未知错误'}`)
+        }
+      } catch (error) {
+        console.error('添加用户失败:', error)
+        alert(`添加失败: ${error.message || error.msg || '网络错误'}`)
+      }
+    },
+    async loadProjectMembers() {
+      // ✅ 优化：先从后端加载成员列表，如果为空再显示默认成员
+      try {
+        // 清除之前的错误信息
+        this.membersLoadError = null
+        
+        const { projectAPI } = await import('@/api/project')
+        
+        const response = await projectAPI.getProjectMembers(this.project.id)
+        
+        if (response.code === 200 && response.data) {
+          // 转换后端数据格式到前端格式
+          const membersFromBackend = response.data.content.map(member => ({
+            id: member.userId,
+            name: member.username || member.nickname || `用户${member.userId}`,
+            role: member.roleCode === 'OWNER' ? '项目拥有者' : '普通成员',
+            avatar: member.avatar || null,
+            joinedAt: member.joinedAt
+          }))
+          
+          // ✅ 判断：如果后端返回的成员列表为空，则显示默认成员（当前用户）
+          if (membersFromBackend.length === 0) {
+            console.log('后端成员列表为空，使用默认成员（当前用户）')
+            this.teamMembers = [
+              { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+            ]
+          } else {
+            // 后端有数据，使用后端数据
+            console.log('使用后端返回的成员列表，共', membersFromBackend.length, '个成员')
+            this.teamMembers = membersFromBackend
+          }
+        } else {
+          // API调用失败，显示默认成员
+          console.log('加载成员失败，使用默认成员')
+          this.membersLoadError = response.message || '加载成员列表失败'
+          this.teamMembers = [
+            { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+          ]
+        }
+      } catch (error) {
+        console.error('加载项目成员失败:', error)
+        // 加载失败时，显示默认成员
+        console.log('加载成员异常，使用默认成员')
+        this.membersLoadError = '加载成员列表失败，显示默认信息'
+        this.teamMembers = [
+          { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+        ]
+      }
+    },
+    async removeTeamMember(memberId) {
+      if (!confirm('确定要移除此成员吗？')) {
+        return
       }
       
-      this.teamMembers.push(newMember)
-      this.saveProjectData()
-      
-      this.showSuccessToast(`${user.name} 已添加到项目`)
-      this.closeInviteMemberModal()
-    },
-    removeTeamMember(memberId) {
-      if (confirm('确定要移除此成员吗？')) {
-        this.teamMembers = this.teamMembers.filter(m => m.id !== memberId)
-        this.saveProjectData()
+      try {
+        // 导入 API
+        const { projectAPI } = await import('@/api/project')
+        
+        // 调用后端API
+        const response = await projectAPI.removeMember(this.project.id, memberId)
+        
+        if (response.code === 200) {
+          this.showSuccessToast('成员已移除！')
+          // 刷新成员列表
+          this.loadProjectMembers()
+        } else {
+          alert(`移除失败: ${response.message || response.msg || '未知错误'}`)
+        }
+      } catch (error) {
+        console.error('移除成员失败:', error)
+        alert(`移除失败: ${error.message || error.msg || '网络错误'}`)
       }
     },
     removeInviteSlot(slotId) {
@@ -1134,7 +1221,7 @@ export default {
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        
+
         // 构建任务数据（使用后端需要的格式）
         const taskData = {
           projectId: this.project.id,
@@ -1144,18 +1231,18 @@ export default {
           dueDate: this.newTask.dueDate || null,
           assigneeIds: [] // 新任务默认没有执行者
         }
-        
+
         console.log('[saveNewTask] 创建任务，数据:', taskData)
-        
+
         // 调用后端API创建任务
         const response = await taskAPI.createTask(taskData)
-        
+
         console.log('[saveNewTask] API返回结果:', response)
-        
+
         if (response && response.code === 200) {
           // 创建成功，重新加载任务列表
           await this.loadProjectTasks()
-          
+
           this.closeTaskModal()
           this.showSuccessToast('任务创建成功！')
         } else {
@@ -1186,25 +1273,25 @@ export default {
       if (!confirm('确定要删除此任务吗？')) {
         return
       }
-      
+
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        
+
         console.log('[deleteTask] 删除任务，任务ID:', taskId)
-        
+
         // 调用后端API删除任务
         const response = await taskAPI.deleteTask(taskId)
-        
+
         console.log('[deleteTask] API返回结果:', response)
-        
+
         if (response && response.code === 200) {
           // 删除成功，从本地任务列表中移除
           this.tasks = this.tasks.filter(t => t.id !== taskId)
-          
+
           // 保存到localStorage
           this.saveProjectData()
-          
+
           this.showSuccessToast('任务已删除！')
         } else {
           alert('删除任务失败：' + (response.msg || '未知错误'))
@@ -1351,32 +1438,32 @@ export default {
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        
+
         // 将中文状态转换为后端枚举值
         const statusValue = this.getStatusValue(newStatus)
-        
+
         console.log(`[changeTaskStatus] 更新任务状态，任务ID: ${task.id}, 新状态: ${newStatus} (${statusValue})`)
-        
+
         // 调用后端API更新任务状态
         const response = await taskAPI.updateTaskStatus(task.id, statusValue)
-        
+
         console.log('[changeTaskStatus] API返回结果:', response)
-        
+
         if (response && response.code === 200) {
           // 更新本地任务状态
           task.status = newStatus
           task.status_value = statusValue
-          
+
           // 关闭状态菜单
           this.$set(task, 'showStatusMenu', false)
-          
+
           // 保存到localStorage
           this.saveProjectData()
-          
+
           this.showSuccessToast('任务状态已更新！')
-          
+
           console.log(`任务"${task.title}"状态已更改为: ${newStatus} (${statusValue})`)
-          
+
           // 触发全局事件，通知其他页面状态已更新
           this.$root.$emit('taskStatusChanged', {
             projectId: this.project.id,
@@ -2799,6 +2886,30 @@ export default {
   .section-actions {
     justify-content: flex-start;
   }
+}
+
+/* 团队成员加载提示样式 */
+.loading-message {
+  padding: 32px;
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.loading-message p {
+  margin: 0;
+}
+
+/* 团队成员错误提示样式 */
+.error-message {
+  padding: 32px;
+  text-align: center;
+  color: #dc3545;
+  font-size: 14px;
+}
+
+.error-message p {
+  margin: 0;
 }
 
 /* 成功提示Toast样式 */

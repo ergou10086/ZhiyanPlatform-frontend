@@ -14,6 +14,17 @@ module.exports = {
           '^/zhiyan': ''
         }
       },
+      '/zhiyan/api/users': {
+        target: 'http://localhost:8095',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug',
+        // 用户搜索API转发到8095端口（项目服务）
+        pathRewrite: {
+          '^/zhiyan': ''
+        }
+      },
       '/zhiyan/api/auth': {
         target: 'http://localhost:8091',
         changeOrigin: true,

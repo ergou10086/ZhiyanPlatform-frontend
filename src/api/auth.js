@@ -148,6 +148,31 @@ export const authAPI = {
     return api.post('/zhiyan/auth/logout', null, {
       headers: { Authorization: `Bearer ${token}` }
     })
+  },
+
+  // 根据姓名搜索用户
+  searchUserByName(name) {
+    return api.get(`/zhiyan/users/name`, {
+      params: { name }
+    })
+  },
+
+  // 根据用户ID获取用户信息
+  getUserById(userId) {
+    return api.get(`/zhiyan/users/${userId}`)
+  },
+
+  /**
+   * 搜索用户（支持关键词搜索，更通用）
+   * @param {String} keyword - 搜索关键词（可以是姓名、邮箱等）
+   * @param {Number} page - 页码，从0开始
+   * @param {Number} size - 每页数量
+   */
+  searchUsers(keyword, page = 0, size = 10) {
+    console.log('[authAPI.searchUsers] 搜索用户, 关键词:', keyword, '页码:', page, '每页:', size)
+    return api.get(`/zhiyan/users/search`, {
+      params: { keyword, page, size }
+    })
   }
 }
 
