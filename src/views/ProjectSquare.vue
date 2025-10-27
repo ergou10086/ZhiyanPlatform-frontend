@@ -119,6 +119,10 @@
               </div>
               <ul class="meta-list">
                 <li>
+                  <span class="meta-label">创建者：</span>
+                  <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
+                </li>
+                <li>
                   <span class="meta-label">团队规模：</span>
                   <span class="meta-value">{{ getTeamSize(project) }}人</span>
                 </li>
@@ -348,6 +352,7 @@ export default {
               end_date: project.endDate,
               created_by: project.creatorId,
               creatorId: project.creatorId,
+              creatorName: project.creatorName || '神秘用户', // 添加创建者名称
               createdAt: project.createdAt,
               updatedAt: project.updatedAt
             }))
@@ -363,7 +368,7 @@ export default {
           console.log('转换后的项目数量:', this.projects.length)
           if (this.projects.length > 0) {
             console.log('项目数据示例:', this.projects[0])
-            console.log('所有项目的可见性:', this.projects.map(p => ({ id: p.id, name: p.name, visibility: p.visibility })))
+            console.log('所有项目的状态:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status, visibility: p.visibility })))
           }
           
           // 只保存后端数据到localStorage（覆盖旧数据）
@@ -394,15 +399,19 @@ export default {
       const savedProjects = localStorage.getItem('projects')
       if (savedProjects) {
         const allProjects = JSON.parse(savedProjects)
-        // 只保留公开项目
+        // 只保留公开项目，并确保状态正确转换
         this.projects = allProjects.filter(project => {
           if (project.visibility !== 'PUBLIC') {
             console.warn('从localStorage过滤掉非公开项目:', project.id, project.name || project.title, '可见性:', project.visibility)
             return false
           }
           return true
-        })
-        console.log('从localStorage加载的项目数量:', allProjects.length, '过滤后公开项目数量:', this.projects.length)
+        }).map(project => ({
+          ...project,
+          status: this.getStatusDisplay(project.status) // 确保状态正确转换
+        }))
+        console.log('从localStorage加载的项目数量:', allProjects.length, '过滤后项目数量:', this.projects.length)
+        console.log('localStorage中所有项目的状态:', allProjects.map(p => ({ id: p.id, title: p.title || p.name, status: p.status, visibility: p.visibility })))
       } else {
         console.log('localStorage中没有项目数据，使用空数组')
         this.projects = []

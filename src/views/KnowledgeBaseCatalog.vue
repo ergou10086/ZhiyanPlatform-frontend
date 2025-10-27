@@ -14,7 +14,7 @@
             <span class="add-name">论文</span>
           </div>
           <div class="add-desc">上传学术论文成果</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('论文')">上传论文</a>
+          <button class="add-btn" @click="uploadFile('论文')">上传论文</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -22,7 +22,7 @@
             <span class="add-name">专利</span>
           </div>
           <div class="add-desc">记录专利信息</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('专利')">上传专利</a>
+          <button class="add-btn" @click="uploadFile('专利')">上传专利</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -30,7 +30,7 @@
             <span class="add-name">数据集</span>
           </div>
           <div class="add-desc">上传研究数据集</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('数据集')">上传数据集</a>
+          <button class="add-btn" @click="uploadFile('数据集')">上传数据集</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -38,7 +38,7 @@
             <span class="add-name">模型文件</span>
           </div>
           <div class="add-desc">存储已训练模型</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('模型文件')">上传模型</a>
+          <button class="add-btn" @click="uploadFile('模型文件')">上传模型</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -46,7 +46,7 @@
             <span class="add-name">实验报告</span>
           </div>
           <div class="add-desc">上传实验报告文档</div>
-          <a class="add-link" href="#" @click.prevent="uploadFile('实验报告')">上传报告</a>
+          <button class="add-btn" @click="uploadFile('实验报告')">上传报告</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -54,7 +54,7 @@
             <span class="add-name">自定义项目</span>
           </div>
           <div class="add-desc">创建自定义成果类型</div>
-          <a class="add-link" href="#" @click.prevent="createCustomType">新建类型</a>
+          <button class="add-btn" @click="createCustomType">新建类型</button>
         </div>
       </div>
     </div>
@@ -615,7 +615,7 @@
             </div>
           </div>
           <button class="close-btn" @click="closeViewDialog">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
@@ -645,12 +645,6 @@
                   </div>
                 </div>
                 <div class="file-actions">
-                  <button class="action-btn view-btn" @click.stop="viewSingleFile(file)" title="查看">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                  </button>
                   <button class="action-btn download-btn" @click.stop="downloadSingleFile(file)" title="下载">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2"/>
@@ -932,7 +926,32 @@
           <div v-else>
             <!-- 文本文件内容 -->
             <div v-if="fileContentType === 'text'" class="text-content">
-              <pre>{{ fileContent }}</pre>
+              <div class="content-header">
+                <h4>文档内容</h4>
+                <div class="content-actions">
+                  <button v-if="!isEditingContent" class="edit-content-btn" @click="toggleContentEdit">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    编辑
+                  </button>
+                  <div v-else class="content-edit-actions">
+                    <button class="save-content-btn" @click="saveContentChanges" :disabled="!hasContentChanges">保存</button>
+                    <button class="cancel-content-btn" @click="cancelContentEdit">取消</button>
+                  </div>
+                </div>
+              </div>
+              <div class="content-body">
+                <pre v-if="!isEditingContent" class="content-display">{{ fileContent }}</pre>
+                <textarea 
+                  v-else 
+                  v-model="editableContent" 
+                  class="content-editor"
+                  @input="markContentChanged"
+                  placeholder="请输入文档内容..."
+                ></textarea>
+              </div>
             </div>
             
             <!-- 图片文件内容 -->
@@ -1132,6 +1151,9 @@ export default {
       
       // 编辑模式
       isEditingDescription: false,
+      isEditingContent: false,
+      editableContent: '',
+      hasContentChanges: false,
       editForm: {
         // 论文字段
         paperAuthors: '',
@@ -1737,6 +1759,9 @@ export default {
       this.fileContentType = 'text'
       this.selectedFileIndex = null
       this.isEditingDescription = false
+      this.isEditingContent = false
+      this.editableContent = ''
+      this.hasContentChanges = false
       this.resetEditForm()
     },
     
@@ -1744,6 +1769,69 @@ export default {
     toggleEditMode() {
       this.isEditingDescription = true
       this.initEditForm()
+    },
+    
+    // 切换内容编辑模式
+    toggleContentEdit() {
+      this.isEditingContent = true
+      this.editableContent = this.fileContent
+      this.hasContentChanges = false
+    },
+    
+    // 标记内容已更改
+    markContentChanged() {
+      this.hasContentChanges = this.editableContent !== this.fileContent
+    },
+    
+    // 保存内容更改
+    saveContentChanges() {
+      if (this.hasContentChanges) {
+        this.fileContent = this.editableContent
+        this.hasContentChanges = false
+        this.isEditingContent = false
+        
+        // 更新本地存储中的文件内容
+        this.updateFileContentInStorage()
+        
+        alert('文档内容已保存！')
+      }
+    },
+    
+    // 取消内容编辑
+    cancelContentEdit() {
+      if (this.hasContentChanges) {
+        if (confirm('您有未保存的更改，确定要取消编辑吗？')) {
+          this.isEditingContent = false
+          this.editableContent = ''
+          this.hasContentChanges = false
+        }
+      } else {
+        this.isEditingContent = false
+        this.editableContent = ''
+        this.hasContentChanges = false
+      }
+    },
+    
+    // 更新本地存储中的文件内容
+    updateFileContentInStorage() {
+      if (this.viewingFile && this.viewingFile.id) {
+        try {
+          const savedFiles = localStorage.getItem('uploadedFiles')
+          if (savedFiles) {
+            const files = JSON.parse(savedFiles)
+            const fileIndex = files.findIndex(f => f.id === this.viewingFile.id)
+            if (fileIndex !== -1) {
+              // 更新文件内容
+              files[fileIndex].content = this.fileContent
+              files[fileIndex].lastModified = new Date().toLocaleString('zh-CN')
+              localStorage.setItem('uploadedFiles', JSON.stringify(files))
+              console.log('文件内容已更新到本地存储')
+            }
+          }
+        } catch (error) {
+          console.error('更新文件内容到本地存储失败:', error)
+        }
+      }
     },
     
     // 初始化编辑表单
@@ -2570,8 +2658,30 @@ export default {
 .add-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
 .add-name { color: #374151; font-weight: 600; }
 .add-desc { color: #9ca3af; font-size: 12px; margin-bottom: 8px; }
-.add-link { color: #4f46e5; font-size: 12px; text-decoration: none; }
-.add-link:hover { text-decoration: underline; }
+.add-btn {
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: #5b6bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.add-btn:hover {
+  background: #4a5bff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.3);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(91, 107, 255, 0.2);
+}
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
 .dot-blue { background: #3b82f6; }
 .dot-orange { background: #f59e0b; }
@@ -2681,8 +2791,8 @@ export default {
 }
 
 .close-btn {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border: none;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 10px;
@@ -2691,6 +2801,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #64748b;
+  font-size: 28px;
   transition: all 0.2s;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -3286,12 +3397,6 @@ export default {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.view-btn:hover {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border-color: #3b82f6;
-  color: #1d4ed8;
-}
-
 .download-btn:hover {
   background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
   border-color: #10b981;
@@ -3647,5 +3752,131 @@ export default {
 
 @media (max-width: 900px) {
   .add-grid { grid-template-columns: 1fr; }
+}
+
+/* 内容编辑相关样式 */
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.content-header h4 {
+  margin: 0;
+  color: #374151;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.content-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.edit-content-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-content-btn:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.content-edit-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-content-btn {
+  padding: 6px 16px;
+  background-color: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-content-btn:hover:not(:disabled) {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.save-content-btn:disabled {
+  background-color: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.cancel-content-btn {
+  padding: 6px 16px;
+  background-color: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-content-btn:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.content-body {
+  margin-top: 16px;
+}
+
+.content-display {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.content-editor {
+  width: 100%;
+  min-height: 300px;
+  padding: 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+  background-color: #ffffff;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+}
+
+.content-editor:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 </style>

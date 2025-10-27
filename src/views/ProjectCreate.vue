@@ -179,71 +179,6 @@
           </div>
         </div>
 
-        <!-- 任务配置 -->
-        <div class="form-group">
-          <div class="section-header">
-            <h3 class="section-title">任务配置</h3>
-            <button type="button" @click="addTask" class="add-task-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              添加新任务
-            </button>
-          </div>
-
-          <div v-for="(task, index) in formData.tasks" :key="task.id" class="task-item">
-            <div class="task-header">
-              <span class="task-title">任务 {{ index + 1 }}</span>
-              <button @click="removeTask(index)" class="delete-task-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            
-            <div class="form-field">
-              <label class="form-label">任务标题</label>
-              <input
-                type="text"
-                v-model="task.title"
-                class="form-input"
-                placeholder="请输入任务标题"
-              />
-            </div>
-
-            <div class="form-field">
-              <label class="form-label">任务描述</label>
-              <textarea
-                v-model="task.description"
-                class="form-textarea"
-                placeholder="请输入任务描述"
-                rows="3"
-              ></textarea>
-            </div>
-
-            <div class="task-row">
-              <div class="form-field">
-                <label class="form-label">截止日期</label>
-                <input
-                  type="date"
-                  v-model="task.dueDate"
-                  :min="today"
-                  class="form-input"
-                  @change="validateTaskDueDate(task, index)"
-                />
-                <div v-if="task.dateError" class="error-message">{{ task.dateError }}</div>
-              </div>
-              <div class="form-field">
-                <label class="form-label">优先级</label>
-                <select v-model="task.priority" class="form-select">
-                  <option value="高">高</option>
-                  <option value="中">中</option>
-                  <option value="低">低</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
 
       </div>
 
@@ -299,21 +234,6 @@
             </div>
           </div>
 
-          <div class="preview-item">
-            <label class="preview-label">任务列表</label>
-            <div class="preview-tasks">
-              <div v-if="formData.tasks.length === 0" class="preview-placeholder">暂无任务</div>
-              <div v-else v-for="(task, index) in formData.tasks" :key="task.id" class="preview-task">
-                <div class="task-name">{{ task.title || '未命名任务' }}</div>
-                <div class="task-meta">
-                  <span class="task-due" v-if="task.dueDate">截止: {{ task.dueDate }}</span>
-                  <span class="task-priority">{{ task.priority || '中' }}</span>
-                  <span class="task-status">{{ task.status || '进行中' }}</span>
-                  <span class="task-creator">创建人: {{ task.created_by_name || this.getCurrentUserName() }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
         </div>
       </div>
@@ -404,7 +324,6 @@ export default {
         startDate: '',
         endDate: '',
         tags: [],
-        tasks: [],
       },
       showToast: false,
       toastMessage: '',
@@ -825,29 +744,6 @@ export default {
     removeTag(index) {
       this.formData.tags.splice(index, 1)
     },
-    addTask() {
-      const currentUserId = this.getCurrentUserId()
-      const currentUserName = this.getCurrentUserName()
-      
-      this.formData.tasks.push({
-        id: Date.now(),
-        title: '',
-        description: '',
-        due_date: '', // 添加数据库字段名
-        dueDate: '', // 保留前端字段名
-        priority: '中', // 前端显示中文
-        priority_value: 'MEDIUM', // 数据库存储英文
-        status: '进行中', // 前端显示中文状态
-        status_value: 'ONGOING', // 数据库存储英文状态
-        assignee_id: [], // 添加负责人ID字段
-        created_by: currentUserId || 1, // 使用当前用户ID
-        created_by_name: currentUserName, // 使用当前用户姓名
-        dateError: '' // 添加任务日期错误信息
-      })
-    },
-    removeTask(index) {
-      this.formData.tasks.splice(index, 1)
-    },
     addPosition() {
       this.formData.positions.push({
         id: Date.now(),
@@ -897,14 +793,6 @@ export default {
       return true
     },
     // 验证任务截止日期
-    validateTaskDueDate(task, index) {
-      task.dateError = ''
-      if (task.dueDate && new Date(task.dueDate) < new Date(this.today)) {
-        task.dateError = '任务截止日期不能早于今天'
-        return false
-      }
-      return true
-    },
     async saveDraft() {
       try {
         // 模拟保存草稿
@@ -1016,15 +904,6 @@ export default {
           return
         }
         
-        // 验证任务截止日期不能早于今天
-        for (let i = 0; i < this.formData.tasks.length; i++) {
-          const task = this.formData.tasks[i]
-          if (task.dueDate && new Date(task.dueDate) < new Date(this.today)) {
-            alert(`任务 ${i + 1} 的截止日期不能早于今天`)
-            this.isSubmitting = false
-            return
-          }
-        }
         
         
         console.log('表单数据:', this.formData)
@@ -1064,42 +943,6 @@ export default {
         console.log('后端返回的项目数据:', response.data)
         console.log('后端返回的项目ID:', response.data.id, '类型:', typeof response.data.id)
         
-        // 创建任务（如果有的话）
-        let createdTasks = []
-        if (this.formData.tasks && this.formData.tasks.length > 0) {
-          console.log('开始创建项目任务, 任务数量:', this.formData.tasks.length)
-          
-          try {
-            // 使用任务API模块批量创建任务
-            const { taskAPI } = await import('@/api/task')
-            
-            const taskResult = await taskAPI.createTasksBatch(response.data.id, this.formData.tasks)
-            
-            console.log('任务创建结果:', taskResult)
-            console.log(`成功: ${taskResult.success}, 失败: ${taskResult.failed}, 总计: ${taskResult.total}`)
-            
-            if (taskResult.failed > 0) {
-              console.warn('部分任务创建失败:', taskResult.errors)
-              // 显示警告，但不中断流程
-              alert(`项目创建成功！但有 ${taskResult.failed} 个任务创建失败，请稍后在项目详情页手动添加。`)
-            }
-            
-            // 使用后端返回的任务数据
-            // 如果创建人是"未知用户"，替换为当前用户名
-            const currentUserName = this.getCurrentUserName()
-            createdTasks = taskResult.results.map(r => {
-              const taskData = r.data
-              if (taskData.creatorName === '未知用户') {
-                taskData.creatorName = currentUserName
-              }
-              return taskData
-            })
-          } catch (error) {
-            console.error('创建任务失败:', error)
-            // 任务创建失败不影响项目创建，只显示警告
-            alert('项目创建成功！但任务创建失败，请稍后在项目详情页手动添加任务。')
-          }
-        }
         
         // 使用后端返回的项目数据，并添加前端特有的字段
         const newProject = {
@@ -1117,24 +960,7 @@ export default {
           tags: this.formData.tags,
           image: this.projectImage, // 添加项目图片
           // 使用后端返回的任务数据（如果有的话）
-          tasks: createdTasks.length > 0 ? createdTasks.map(task => ({
-            id: task.id,
-            title: task.title,
-            description: task.description,
-            dueDate: task.dueDate,
-            due_date: task.dueDate,
-            priority: this.getPriorityDisplay(task.priority),
-            priority_value: task.priority,
-            status: this.getStatusDisplay(task.status),
-            status_value: task.status,
-            assignee_id: task.assigneeIds || [],
-            created_by: task.creatorId,
-            created_by_name: this.getCurrentUserName()
-          })) : this.formData.tasks.map(task => ({
-            ...task,
-            priority_value: this.getPriorityValue(task.priority),
-            due_date: task.dueDate || task.due_date
-          })),
+          tasks: [],
           // 添加默认团队成员信息
           teamMembers: [
             { 
@@ -1152,7 +978,6 @@ export default {
         
         console.log('新项目数据:', newProject)
         console.log('项目周期数据:', this.formData.startDate, this.formData.endDate)
-        console.log('项目任务数据:', this.formData.tasks)
         
         // 从localStorage获取现有项目
         let existingProjects = []
@@ -1216,11 +1041,15 @@ export default {
 .project-create-container {
   min-height: 100vh;
   background-color: #f8f9fa;
-  display: flex;
-  flex-direction: column;
+  display: block;
+  position: relative;
 }
 
 .top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: white;
   border-bottom: 1px solid #e9ecef;
   height: 64px;
@@ -1229,6 +1058,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
 .header-left {
@@ -1420,11 +1250,11 @@ export default {
 
 .main-content {
   flex: 1;
+  margin: 64px auto 0; /* 为固定页眉留出顶部空间，水平居中 */
   display: flex;
   gap: 24px;
   padding: 24px;
   max-width: 1400px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -1444,7 +1274,7 @@ export default {
   padding: 20px;
   height: fit-content;
   position: sticky;
-  top: 24px;
+  top: 88px; /* 页眉高度64px + 顶部间距24px */
 }
 
 .form-group {
@@ -1467,23 +1297,6 @@ export default {
   margin-bottom: 20px;
 }
 
-.add-task-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: #5b6bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.add-task-btn:hover {
-  background: #4c5ce6;
-}
 
 .form-field {
   margin-bottom: 20px;
@@ -1700,50 +1513,6 @@ export default {
   border: 1px solid #ffe0b2;
 }
 
-.task-item {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 16px;
-  background: #fafbfc;
-}
-
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.task-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.delete-task-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: #ff4757;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.delete-task-btn:hover {
-  background: #ff3742;
-}
-
-.task-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
 
 .preview-title {
   font-size: 16px;
@@ -1806,11 +1575,6 @@ export default {
   border: 1px solid #cfe2ff;
 }
 
-.preview-tasks {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
 .preview-positions {
   display: flex;
@@ -1914,38 +1678,6 @@ export default {
   border: 1px solid #e9ecef;
 }
 
-.task-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.task-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 11px;
-  color: #6c757d;
-}
-
-.task-creator {
-  color: #007bff;
-  font-weight: 500;
-}
-
-.task-due {
-  color: #6c757d;
-}
-
-.task-priority {
-  padding: 2px 6px;
-  background: #fff3cd;
-  color: #cc9a06;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 500;
-}
 
 .footer-actions {
   display: flex;
@@ -2010,9 +1742,6 @@ export default {
     padding: 16px;
   }
   
-  .task-row {
-    grid-template-columns: 1fr;
-  }
   
   .visibility-options {
     grid-template-columns: 1fr;

@@ -10,22 +10,23 @@
       <div class="list-pane">
         <div class="toolbar">
           <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
+          <button class="btn secondary small" @click="createNewFolder">+ 新建文件夹</button>
           <input class="search" type="text" placeholder="搜索文档" />
         </div>
-        <div class="group-title">项目管理规范</div>
-        <ul class="doc-list">
-          <li v-for="d in docs" :key="d.id" :class="{ active: d.id===activeId }" @click="activeId=d.id">{{ d.title }}</li>
-        </ul>
-        <div class="group-title">会议纪要</div>
-        <ul class="doc-list">
-          <li>2023-10 月度会议</li>
-          <li>2023-11 月度会议</li>
-        </ul>
-        <div class="group-title">培训资料</div>
-        <ul class="doc-list">
-          <li>新员工入职培训</li>
-          <li>技术分享资料</li>
-        </ul>
+        <div v-for="folder in folders" :key="folder.id" class="folder-section">
+          <div class="group-title" @click="toggleFolder(folder.id)">
+            <span>{{ folder.name }}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
+                 :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <ul v-if="folder.expanded" class="doc-list">
+            <li v-for="doc in getDocsInFolder(folder.id)" :key="doc.id" 
+                :class="{ active: doc.id===activeId }" 
+                @click="activeId=doc.id">{{ doc.title }}</li>
+          </ul>
+        </div>
       </div>
 
       <!-- 右侧编辑区 -->
@@ -34,13 +35,25 @@
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
         </div>
-        <textarea class="editor" v-model="activeDocContent" @input="updateContent"></textarea>
+        <textarea 
+          class="editor" 
+          :class="{ 'readonly': !isEditing }"
+          v-model="activeDocContent" 
+          @input="updateContent"
+          :readonly="!isEditing"
+        ></textarea>
         <div class="editor-footer">
           <button class="btn">版本历史</button>
           <button class="btn">差异对比</button>
           <div class="flex-spacer" />
-          <button class="btn primary" @click="saveDocument" :disabled="!hasUnsavedChanges">
-            {{ hasUnsavedChanges ? '保存*' : '已保存' }}
+          <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing">
+            编辑
+          </button>
+          <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
+            取消
+          </button>
+          <button class="btn primary" @click="saveDocument" :disabled="!isEditing || !hasUnsavedChanges">
+            {{ isEditing && hasUnsavedChanges ? '保存*' : '已保存' }}
           </button>
         </div>
       </div>
@@ -61,9 +74,7 @@
           <div class="form-group">
             <label>文档分类：</label>
             <select v-model="newDocCategory">
-              <option value="项目管理规范">项目管理规范</option>
-              <option value="会议纪要">会议纪要</option>
-              <option value="培训资料">培训资料</option>
+              <option v-for="folder in folders" :key="folder.id" :value="folder.name">{{ folder.name }}</option>
             </select>
           </div>
           <div class="form-group">
@@ -73,6 +84,30 @@
           <div class="dialog-actions">
             <button class="btn secondary" @click="closeNewDocDialog">取消</button>
             <button class="btn primary" @click="confirmNewDoc" :disabled="!newDocTitle">确认创建</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建文件夹对话框 -->
+    <div v-if="showNewFolderDialog" class="upload-dialog-overlay" @click="closeNewFolderDialog">
+      <div class="upload-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>新建文件夹</h3>
+          <button class="close-btn" @click="closeNewFolderDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label>文件夹名称：</label>
+            <input v-model="newFolderName" type="text" placeholder="请输入文件夹名称" />
+          </div>
+          <div class="form-group">
+            <label>文件夹描述：</label>
+            <textarea v-model="newFolderDescription" placeholder="请输入文件夹描述（可选）" rows="3"></textarea>
+          </div>
+          <div class="dialog-actions">
+            <button class="btn secondary" @click="closeNewFolderDialog">取消</button>
+            <button class="btn primary" @click="confirmNewFolder" :disabled="!newFolderName">确认创建</button>
           </div>
         </div>
       </div>
@@ -93,11 +128,20 @@ export default {
     return {
       activeId: 1,
       showNewDocDialog: false,
+      showNewFolderDialog: false,
       newDocTitle: '',
-      newDocCategory: '项目管理规范',
+      newDocCategory: '',
       newDocContent: '',
+      newFolderName: '',
+      newFolderDescription: '',
       hasUnsavedChanges: false,
       autoSaveTimer: null,
+      isEditing: false,
+      folders: [
+        { id: 1, name: '项目管理规范', description: '项目管理和规范相关文档', expanded: true },
+        { id: 2, name: '会议纪要', description: '会议记录和纪要', expanded: true },
+        { id: 3, name: '培训资料', description: '培训和学习资料', expanded: true }
+      ],
       docs: [
         { 
           id: 1, 
@@ -157,22 +201,97 @@ export default {
   methods: {
     createNewDocument() {
       this.showNewDocDialog = true
+      this.newDocCategory = this.folders[0]?.name || ''
     },
     
     closeNewDocDialog() {
       this.showNewDocDialog = false
       this.newDocTitle = ''
-      this.newDocCategory = '项目管理规范'
+      this.newDocCategory = ''
       this.newDocContent = ''
+    },
+
+    createNewFolder() {
+      this.showNewFolderDialog = true
+      this.newFolderName = ''
+      this.newFolderDescription = ''
+    },
+    
+    closeNewFolderDialog() {
+      this.showNewFolderDialog = false
+      this.newFolderName = ''
+      this.newFolderDescription = ''
+    },
+
+    confirmNewFolder() {
+      if (!this.newFolderName.trim()) return
+      
+      const newFolder = {
+        id: Date.now(),
+        name: this.newFolderName.trim(),
+        description: this.newFolderDescription.trim(),
+        expanded: true
+      }
+      
+      this.folders.push(newFolder)
+      this.saveToLocalStorage()
+      this.closeNewFolderDialog()
+    },
+
+    toggleFolder(folderId) {
+      const folder = this.folders.find(f => f.id === folderId)
+      if (folder) {
+        folder.expanded = !folder.expanded
+        this.saveToLocalStorage()
+      }
+    },
+
+    getDocsInFolder(folderId) {
+      return this.docs.filter(doc => doc.folderId === folderId)
+    },
+
+    toggleEditMode() {
+      this.isEditing = true
+      // 进入编辑模式时，如果有内容变化，标记为有未保存更改
+      if (this.activeDocContent !== this.activeDoc.content) {
+        this.hasUnsavedChanges = true
+      }
+    },
+
+    cancelEdit() {
+      // 如果有未保存的更改，询问用户是否确认取消
+      if (this.hasUnsavedChanges) {
+        if (confirm('您有未保存的更改，确定要取消编辑吗？')) {
+          this.isEditing = false
+          this.hasUnsavedChanges = false
+          // 重新加载当前文档内容
+          this.loadCurrentDocContent()
+        }
+      } else {
+        this.isEditing = false
+        this.hasUnsavedChanges = false
+      }
+    },
+
+    loadCurrentDocContent() {
+      // 重新加载当前文档内容，取消未保存的更改
+      const currentDoc = this.docs.find(doc => doc.id === this.activeId)
+      if (currentDoc) {
+        this.activeDocContent = currentDoc.content
+      }
     },
     
     confirmNewDoc() {
       if (this.newDocTitle) {
+        // 找到选中的文件夹ID
+        const selectedFolder = this.folders.find(f => f.name === this.newDocCategory)
+        
         const newDoc = {
           id: Date.now(),
           title: this.newDocTitle,
           updated: new Date().toLocaleString('zh-CN'),
-          content: this.newDocContent || '新建文档内容...'
+          content: this.newDocContent || '新建文档内容...',
+          folderId: selectedFolder?.id || null
         }
         
         this.docs.unshift(newDoc)
@@ -190,30 +309,35 @@ export default {
     },
     
     updateContent() {
-      // 标记有未保存的更改
-      this.hasUnsavedChanges = true
-      
-      // 清除之前的自动保存定时器
-      if (this.autoSaveTimer) {
-        clearTimeout(this.autoSaveTimer)
+      // 只有在编辑模式下才标记有未保存的更改
+      if (this.isEditing) {
+        this.hasUnsavedChanges = true
+        
+        // 清除之前的自动保存定时器
+        if (this.autoSaveTimer) {
+          clearTimeout(this.autoSaveTimer)
+        }
+        
+        // 设置新的自动保存定时器（3秒后自动保存）
+        this.autoSaveTimer = setTimeout(() => {
+          this.autoSave()
+        }, 3000)
       }
-      
-      // 设置新的自动保存定时器（3秒后自动保存）
-      this.autoSaveTimer = setTimeout(() => {
-        this.autoSave()
-      }, 3000)
     },
     
     saveDocument() {
       if (this.activeDoc) {
+        // 更新文档内容
+        this.activeDoc.content = this.activeDocContent
         // 更新文档的保存时间
         this.activeDoc.updated = new Date().toLocaleString('zh-CN')
         
         // 保存到本地存储
         this.saveToLocalStorage()
         
-        // 标记已保存
+        // 标记已保存并退出编辑模式
         this.hasUnsavedChanges = false
+        this.isEditing = false
         
         // 通知父组件文档已保存
         this.$emit('document-saved', this.activeDoc)
@@ -241,6 +365,7 @@ export default {
       try {
         const dataToSave = {
           docs: this.docs,
+          folders: this.folders,
           activeId: this.activeId,
           hasUnsavedChanges: this.hasUnsavedChanges
         }
@@ -262,6 +387,10 @@ export default {
           if (data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
             this.docs = data.docs
             console.log(`知识柜数据已从本地存储加载 (项目ID: ${this.projectId})`)
+          }
+          if (data.folders && Array.isArray(data.folders) && data.folders.length > 0) {
+            this.folders = data.folders
+            console.log(`文件夹数据已从本地存储加载 (项目ID: ${this.projectId})`)
           }
           if (data.activeId) {
             this.activeId = data.activeId
@@ -333,7 +462,34 @@ export default {
   font-size: 12px; 
   max-width: 200px; /* 限制最大宽度 */
 }
-.group-title { color: #6b7280; font-size: 12px; margin: 10px 0 6px; }
+.group-title { 
+  color: #6b7280; 
+  font-size: 12px; 
+  margin: 10px 0 6px; 
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 0 10px;
+}
+
+.group-title:hover {
+  color: #374151;
+}
+
+.folder-icon {
+  transition: transform 0.2s ease;
+  transform: rotate(180deg); /* 默认向上箭头（收起状态） */
+}
+
+.folder-icon.expanded {
+  transform: rotate(0deg); /* 展开时向下箭头 */
+}
+
+.folder-section {
+  margin-bottom: 8px;
+}
 .doc-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
 .doc-list li { padding: 8px 10px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 13px; }
 .doc-list li:hover { background: #f6f7fb; }
@@ -359,6 +515,18 @@ export default {
   font-size: 13px; 
   resize: none; /* 禁用resize，使用flex布局控制高度 */
   min-height: 0; /* 允许flex子元素收缩 */
+  transition: all 0.2s ease;
+}
+
+.editor.readonly {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: default;
+}
+
+.editor:not(.readonly) {
+  background-color: #fff;
+  color: #111827;
 }
 .editor-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-shrink: 0; }
 .flex-spacer { flex: 1; }
@@ -409,12 +577,12 @@ export default {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 32px;
   color: #999;
   cursor: pointer;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
