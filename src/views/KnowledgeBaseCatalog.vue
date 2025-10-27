@@ -615,7 +615,7 @@
             </div>
           </div>
           <button class="close-btn" @click="closeViewDialog">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
@@ -645,12 +645,6 @@
                   </div>
                 </div>
                 <div class="file-actions">
-                  <button class="action-btn view-btn" @click.stop="viewSingleFile(file)" title="查看">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                  </button>
                   <button class="action-btn download-btn" @click.stop="downloadSingleFile(file)" title="下载">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2"/>
@@ -2797,8 +2791,8 @@ export default {
 }
 
 .close-btn {
-  width: 40px;
-  height: 40px;
+  width: 56px;
+  height: 56px;
   border: none;
   background: rgba(255, 255, 255, 0.8);
   border-radius: 10px;
@@ -2807,6 +2801,7 @@ export default {
   align-items: center;
   justify-content: center;
   color: #64748b;
+  font-size: 28px;
   transition: all 0.2s;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -3400,12 +3395,6 @@ export default {
 .action-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.view-btn:hover {
-  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-  border-color: #3b82f6;
-  color: #1d4ed8;
 }
 
 .download-btn:hover {

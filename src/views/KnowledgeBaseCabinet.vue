@@ -577,12 +577,12 @@ export default {
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 32px;
   color: #999;
   cursor: pointer;
   padding: 0;
-  width: 30px;
-  height: 30px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
