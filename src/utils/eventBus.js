@@ -8,5 +8,6 @@ export const EventBus = new Vue()
 export const EVENTS = {
   LOGIN_SUCCESS: 'login-success',
   USER_INFO_UPDATED: 'user-info-updated',
-  LOGOUT: 'logout'
+  LOGOUT: 'logout',
+  ARCHIVE_PANEL_TOGGLE: 'archive-panel-toggle'
 }

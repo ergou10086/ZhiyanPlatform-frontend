@@ -2,7 +2,7 @@
   <div class="ai-assistant-container">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
-    
+
     <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">
@@ -79,50 +79,60 @@
       </div>
     </div>
 
+      <!-- 任务管理和AI对话左右布局 -->
+      <div class="task-and-chat-container">
       <!-- 任务管理区域 -->
       <div class="task-management">
         <div class="task-header">
-          <div class="filter-tabs">
-            <div 
-              class="tab" 
-              :class="{ active: activeFilter === 'all' }"
-              @click="setFilter('all')"
-            >
-              全部状态
-            </div>
-            <div
-              class="tab"
-              :class="{ active: activeFilter === 'published' }"
-              @click="setFilter('published')"
-            >
-              已发布
-            </div>
-            <div 
-              class="tab" 
-              :class="{ active: activeFilter === 'in-progress' }"
-              @click="setFilter('in-progress')"
-            >
-              进行中
-            </div>
-            <div 
-              class="tab" 
-              :class="{ active: activeFilter === 'completed' }"
-              @click="setFilter('completed')"
-            >
-              已完成
-            </div>
-            <div 
-              class="tab" 
-              :class="{ active: activeFilter === 'paused' }"
-              @click="setFilter('paused')"
-            >
-              已暂停
+          <div class="filter-dropdown" @click.stop>
+            <button class="dropdown-button" @click="toggleFilterDropdown">
+              {{ getFilterText() }}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div v-if="filterDropdownOpen" class="dropdown-menu">
+              <div
+                class="dropdown-item"
+                :class="{ active: activeFilter === 'all' }"
+                @click="setFilterAndClose('all')"
+              >
+                全部状态
+              </div>
+              <div
+                class="dropdown-item"
+                :class="{ active: activeFilter === 'published' }"
+                @click="setFilterAndClose('published')"
+              >
+                已发布
+              </div>
+              <div
+                class="dropdown-item"
+                :class="{ active: activeFilter === 'in-progress' }"
+                @click="setFilterAndClose('in-progress')"
+              >
+                进行中
+              </div>
+              <div
+                class="dropdown-item"
+                :class="{ active: activeFilter === 'completed' }"
+                @click="setFilterAndClose('completed')"
+              >
+                已完成
+              </div>
+              <div
+                class="dropdown-item"
+                :class="{ active: activeFilter === 'paused' }"
+                @click="setFilterAndClose('paused')"
+              >
+                已暂停
+              </div>
             </div>
           </div>
           <div class="search-box">
-            <input 
-              type="text" 
-              placeholder="搜索任务..." 
+            <input
+              type="text"
+              placeholder="搜索任务..."
               :value="searchQuery"
               @input="updateSearchQuery"
             />
@@ -132,17 +142,17 @@
             </svg>
           </div>
         </div>
-        
+
         <div class="task-grid">
-          <div 
-            v-for="task in filteredTasks" 
-            :key="task.id" 
+          <div
+            v-for="task in filteredTasks"
+            :key="task.id"
             class="task-card"
             :class="{ 'unpublished': !isTaskPublished(task) }"
           >
             <div class="task-header">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 :checked="task.checked"
                 @change="toggleTaskCheckbox(task.id)"
               />
@@ -176,8 +186,8 @@
       <div class="ai-chat-section">
         <div class="ai-dialog-title">AI对话框</div>
         <div class="chat-container">
-          <div 
-            v-for="message in chatMessages" 
+          <div
+            v-for="message in chatMessages"
             :key="message.id"
             :class="message.type === 'ai' ? 'ai-message' : 'user-message'"
           >
@@ -186,16 +196,17 @@
             </div>
           </div>
         </div>
-        
+
         <div class="user-input-area">
-          <input 
-            type="text" 
-            placeholder="输入您的问题..." 
+          <input
+            type="text"
+            placeholder="输入您的问题..."
             v-model="userMessage"
             @keyup.enter="sendMessage"
           />
           <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim()">发送</button>
         </div>
+      </div>
       </div>
 
       <!-- AI分析建议区域 -->
@@ -286,6 +297,7 @@ export default {
       sidebarOpen: false,
       activeFilter: 'all',
       searchQuery: '',
+      filterDropdownOpen: false,
       userMessage: '',
       chatMessages: [],
       showProjectDropdown: false,
@@ -497,7 +509,7 @@ export default {
   computed: {
     filteredTasks() {
       let filtered = this.tasks
-      
+
       console.log('当前任务列表:', filtered)
       console.log('当前过滤器:', this.activeFilter)
       console.log('任务数量:', filtered.length)
@@ -517,14 +529,14 @@ export default {
       // 按搜索关键词筛选
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(task => 
+        filtered = filtered.filter(task =>
           task.title.toLowerCase().includes(query) ||
           task.description.toLowerCase().includes(query) ||
           task.assignee.toLowerCase().includes(query)
         )
         console.log('搜索后任务数量:', filtered.length)
       }
-      
+
       console.log('最终过滤后的任务列表:', filtered)
       return filtered
     }
@@ -875,6 +887,23 @@ export default {
     setFilter(filter) {
       this.activeFilter = filter
     },
+    toggleFilterDropdown() {
+      this.filterDropdownOpen = !this.filterDropdownOpen
+    },
+    setFilterAndClose(filter) {
+      this.activeFilter = filter
+      this.filterDropdownOpen = false
+    },
+    getFilterText() {
+      const filterTexts = {
+        'all': '全部状态',
+        'published': '已发布',
+        'in-progress': '进行中',
+        'completed': '已完成',
+        'paused': '已暂停'
+      }
+      return filterTexts[this.activeFilter] || '全部状态'
+    },
     updateSearchQuery(event) {
       this.searchQuery = event.target.value
     },
@@ -902,7 +931,7 @@ export default {
         console.log('Message is empty, not sending')
         return
       }
-      
+
       console.log('Adding user message to chat')
       // 添加用户消息
       const userMsg = {
@@ -913,7 +942,7 @@ export default {
       }
       this.chatMessages.push(userMsg)
       console.log('Chat messages after adding user message:', this.chatMessages)
-      
+
       // 模拟AI回复
       setTimeout(() => {
         console.log('Adding AI response')
@@ -930,7 +959,7 @@ export default {
         this.scrollToBottom()
       })
     }, 1000)
-    
+
     // 清空输入框
     this.userMessage = ''
     console.log('Input cleared')
@@ -948,6 +977,7 @@ export default {
     handleClickOutside(event) {
       if (!this.$el.contains(event.target)) {
         this.showProjectDropdown = false
+        this.filterDropdownOpen = false
       }
     }
   },
@@ -976,7 +1006,7 @@ export default {
     window.addEventListener('focus', () => {
       this.syncTaskStatusChanges()
     })
-    
+
     // 监听任务状态变化事件
     this.$root.$on('taskStatusChanged', (data) => {
       console.log('收到任务状态变化通知:', data)
@@ -991,7 +1021,7 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
     window.removeEventListener('focus', this.syncTaskStatusChanges)
-    
+
     // 清理全局事件监听器
     this.$root.$off('taskStatusChanged')
 
@@ -1331,6 +1361,13 @@ export default {
   color: var(--text-secondary);
 }
 
+/* 任务管理和AI对话容器 */
+.task-and-chat-container {
+  display: flex;
+  gap: var(--space-6);
+  align-items: flex-start;
+}
+
 /* 任务管理区域 */
 .task-management {
   background: var(--bg-primary);
@@ -1338,39 +1375,72 @@ export default {
   padding: var(--space-6);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border-primary);
+  flex: 0 0 400px; /* 固定宽度，占据较小面积 */
+  height: 500px; /* 与AI对话框高度一致 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .task-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px; /* 从20px减小到16px */
+  flex-shrink: 0; /* 防止头部被压缩 */
 }
 
-.filter-tabs {
-  display: flex;
-  gap: 8px;
+.filter-dropdown {
+  position: relative;
+  display: inline-block;
 }
 
-.tab {
+.dropdown-button {
   padding: 8px 16px;
-  border-radius: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: white;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.dropdown-button:hover {
+  border-color: var(--primary-color);
   background: #f8f9fa;
 }
 
-.tab.active {
-  background: #007bff;
-  color: white;
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 150px;
+  z-index: 100;
 }
 
-.tab:hover:not(.active) {
-  background: #e9ecef;
-  color: #333;
+.dropdown-item {
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item.active {
+  background-color: var(--primary-light);
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 .search-box {
@@ -1402,14 +1472,16 @@ export default {
 
 .task-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr; /* 单列布局 */
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
 }
 
 .task-card {
   border: 1px solid #e9ecef;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px; /* 从16px减小到12px */
   transition: all 0.3s ease;
   cursor: pointer;
 }
@@ -1422,18 +1494,18 @@ export default {
 .task-card .task-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 8px; /* 从12px减小到8px */
+  margin-bottom: 6px; /* 从8px减小到6px */
 }
 
 .task-card input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 14px; /* 从16px减小到14px */
+  height: 14px; /* 从16px减小到14px */
 }
 
 .task-title {
   flex: 1;
-  font-size: 16px;
+  font-size: 14px; /* 从16px减小到14px */
   font-weight: 600;
   color: #333;
 }
@@ -1466,9 +1538,9 @@ export default {
 }
 
 .task-description {
-  font-size: 14px;
+  font-size: 12px; /* 从14px减小到12px */
   color: #666;
-  margin-bottom: 12px;
+  margin-bottom: 8px; /* 从12px减小到8px */
   line-height: 1.4;
 }
 
@@ -1479,20 +1551,20 @@ export default {
 }
 
 .assignee-avatar {
-  width: 24px;
-  height: 24px;
+  width: 20px; /* 从24px减小到20px */
+  height: 20px; /* 从24px减小到20px */
   border-radius: 50%;
   background: #007bff;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 10px; /* 从12px减小到10px */
   font-weight: 600;
 }
 
 .task-assignee span {
-  font-size: 14px;
+  font-size: 12px; /* 从14px减小到12px */
   color: #333;
 }
 
@@ -1544,6 +1616,7 @@ export default {
   padding: 20px 40px 20px 40px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   height: 500px;
+  flex: 1; /* 占据剩余空间 */
   display: flex;
   flex-direction: column;
   position: relative;
@@ -1808,7 +1881,7 @@ export default {
   .main-content {
     padding: var(--space-4);
   }
-  
+
   .project-overview {
     padding: var(--space-4);
   }
@@ -1826,7 +1899,7 @@ export default {
   .project-title {
     font-size: var(--text-2xl);
   }
-  
+
   .project-progress {
     min-width: 180px;
     align-self: center;
@@ -1851,24 +1924,19 @@ export default {
     gap: var(--space-4);
     align-items: stretch;
   }
-  
-  .filter-tabs {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  
+
   .search-box input {
     width: 100%;
   }
-  
+
   .task-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .suggestions-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .bottom-actions {
     flex-direction: column;
   }
