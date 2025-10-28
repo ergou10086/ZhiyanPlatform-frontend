@@ -45,7 +45,7 @@
     <!-- 任务提醒 -->
     <div class="task-alert-widget" :class="{ 'urgent': upcomingTasks.length > 0 }">
       <h3 class="widget-title">任务提醒</h3>
-      
+
       <!-- 加载状态 -->
       <div v-if="tasksLoading" class="loading-container">
         <div class="loading-spinner"></div>
@@ -78,8 +78,8 @@
 
         <!-- 任务列表 -->
         <div v-if="upcomingTasks.length > 0" class="task-list">
-          <div 
-            v-for="task in upcomingTasks.slice(0, 3)" 
+          <div
+            v-for="task in upcomingTasks.slice(0, 3)"
             :key="task.id"
             class="task-item"
             @click="goToTaskDetail(task)"
@@ -92,7 +92,7 @@
               {{ formatDate(task.dueDate) }}
             </div>
           </div>
-          
+
           <!-- 查看更多 -->
           <div v-if="upcomingTasks.length > 3" class="view-more" @click="viewAllTasks">
             查看全部 {{ upcomingTasks.length }} 个任务 →
@@ -209,7 +209,7 @@ export default {
       try {
         // 获取7天内即将到期的任务（只显示前5个）
         const response = await taskAPI.getMyUpcomingTasks(7, 0, 5)
-        
+
         if (response.code === 200 && response.data) {
           this.upcomingTasks = response.data.content || []
           console.log('[RightSidebar] 成功加载任务:', this.upcomingTasks.length, '个')
@@ -236,15 +236,15 @@ export default {
      */
     formatDate(dateString) {
       if (!dateString) return '未设置'
-      
+
       const date = new Date(dateString)
       const now = new Date()
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
       const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-      
+
       const diffTime = taskDate - today
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
+
       if (diffDays < 0) {
         return `逾期${Math.abs(diffDays)}天`
       } else if (diffDays === 0) {

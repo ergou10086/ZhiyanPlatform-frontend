@@ -19,6 +19,40 @@
         <span class="page-title">项目广场</span>
       </div>
       <div class="header-right">
+        <div class="user-area">
+          <div class="user-profile" @click="toggleUserMenu">
+            <div class="user-avatar">
+              <img v-if="userAvatar" :src="userAvatar" alt="用户头像" />
+              <div v-else class="avatar-placeholder">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <span class="username">{{ getCurrentUserName() }}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate': userMenuOpen }">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="user-menu" v-if="userMenuOpen">
+            <div class="menu-item" @click="goToProfile">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              个人信息
+            </div>
+            <div class="menu-item" @click="logout">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              退出登录
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -53,7 +87,7 @@
           <div class="loading-spinner"></div>
           <p class="loading-text">正在加载项目数据...</p>
         </div>
-
+        
         <!-- 空状态 -->
         <div v-else-if="projects.length === 0" class="empty-state">
           <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -63,7 +97,7 @@
           <p class="empty-description">目前还没有公开的项目，快去创建第一个项目吧！</p>
           <button class="btn primary" @click="createNewProject">新建项目</button>
         </div>
-
+        
         <!-- 项目列表 -->
         <div v-else class="grid">
           <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
@@ -86,7 +120,7 @@
               <ul class="meta-list">
                 <li>
                   <span class="meta-label">创建者：</span>
-                  <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
+                  <span class="meta-value">{{ project.creatorName }}</span>
                 </li>
                 <li>
                   <span class="meta-label">团队规模：</span>
@@ -242,7 +276,7 @@ export default {
           console.error('解析用户信息失败:', error)
         }
       }
-
+      
       // 如果user_info中没有头像，则从userAvatar获取
       const savedAvatar = localStorage.getItem('userAvatar')
       if (savedAvatar) this.userAvatar = savedAvatar
@@ -263,23 +297,23 @@ export default {
     },
     async loadProjects() {
       this.isLoading = true
-
+      
       try {
         console.log('====== 开始加载项目广场数据 ======')
-
+        
         // 从后端API加载公开项目
         const { projectAPI } = await import('@/api/project')
-
+        
         console.log('调用后端API获取公开活跃项目...')
         const response = await projectAPI.getPublicActiveProjects(0, 100) // 获取前100个公开项目
-
+        
         console.log('API响应:', response)
         console.log('响应code:', response?.code)
         console.log('响应data类型:', typeof response?.data)
-
+        
         if (response && response.code === 200) {
           console.log('成功获取公开项目数据')
-
+          
           // 处理后端返回的分页数据
           let backendProjects = []
           if (response.data && response.data.content) {
@@ -294,7 +328,7 @@ export default {
             console.warn('未知的数据格式:', response.data)
             backendProjects = []
           }
-
+          
           // 转换后端数据格式为前端格式，并过滤掉私有项目
           this.projects = backendProjects
             .map(project => ({
@@ -318,7 +352,7 @@ export default {
               end_date: project.endDate,
               created_by: project.creatorId,
               creatorId: project.creatorId,
-              creatorName: project.creatorName || '神秘用户', // 添加创建者名称
+              creatorName: project.creatorName || '未知用户', // 后端已填充创建者名称
               createdAt: project.createdAt,
               updatedAt: project.updatedAt
             }))
@@ -330,17 +364,17 @@ export default {
               }
               return true
             })
-
+          
           console.log('转换后的项目数量:', this.projects.length)
           if (this.projects.length > 0) {
             console.log('项目数据示例:', this.projects[0])
             console.log('所有项目的状态:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status, visibility: p.visibility })))
           }
-
+          
           // 只保存后端数据到localStorage（覆盖旧数据）
           // 这样可以确保显示的都是数据库中真实存在的公开项目
           localStorage.setItem('projects', JSON.stringify(this.projects))
-
+          
           console.log('====== 项目加载完成，显示', this.projects.length, '个公开项目 ======')
         } else {
           console.error('获取公开项目失败，code:', response?.code, 'msg:', response?.msg)
@@ -352,14 +386,14 @@ export default {
         console.error('错误类型:', error.constructor.name)
         console.error('错误信息:', error.message)
         console.error('错误详情:', error)
-
+        
         // 发生错误时从localStorage加载
         this.loadProjectsFromLocalStorage()
       } finally {
         this.isLoading = false
       }
     },
-
+    
     loadProjectsFromLocalStorage() {
       console.log('从localStorage加载项目数据...')
       const savedProjects = localStorage.getItem('projects')
@@ -383,7 +417,7 @@ export default {
         this.projects = []
       }
     },
-
+    
     getStatusDisplay(status) {
       // 将数据库的英文状态转换为中文显示
       const statusMap = {
@@ -410,7 +444,7 @@ export default {
     },
     logout() {
       this.userMenuOpen = false
-
+      
       // 清除所有认证信息
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
@@ -418,16 +452,16 @@ export default {
       localStorage.removeItem('user_info')
       localStorage.removeItem('userAvatar')
       localStorage.removeItem('globalUserInfo')
-
+      
       // 清除所有以userData_开头的用户数据
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('userData_')) {
           localStorage.removeItem(key)
         }
       })
-
+      
       this.showSuccessToast('退出登录成功！')
-
+      
       // 延迟跳转到登录页面，让用户看到提示
       setTimeout(() => {
         this.$router.push('/login')
@@ -448,17 +482,17 @@ export default {
     },
     formatDateRange(startDate, endDate) {
       if (!startDate || !endDate) return ''
-
+      
       const start = new Date(startDate)
       const end = new Date(endDate)
-
+      
       const formatDate = (date) => {
         const year = date.getFullYear()
         const month = String(date.getMonth() + 1).padStart(2, '0')
         const day = String(date.getDate()).padStart(2, '0')
         return `${year}-${month}-${day}`
       }
-
+      
       return `${formatDate(start)} 至 ${formatDate(end)}`
     },
     toggleStatusDropdown() {
@@ -479,7 +513,7 @@ export default {
       const token = localStorage.getItem('access_token')
       const userInfo = localStorage.getItem('user_info')
       const isAuthenticated = !!(token && userInfo)
-
+      
       if (isAuthenticated) {
         this.$router.push({ path: '/project-create', query: { from: 'project-square' } })
       } else {
@@ -500,7 +534,7 @@ export default {
       const token = localStorage.getItem('access_token')
       const userInfo = localStorage.getItem('user_info')
       const isAuthenticated = !!(token && userInfo)
-
+      
       if (isAuthenticated) {
         // 跳转到项目详情页面
         this.$router.push(`/project-detail/${project.id}`)
@@ -523,7 +557,7 @@ export default {
     showSuccessToast(message) {
       this.toastMessage = message
       this.showToast = true
-
+      
       // 1秒后自动隐藏
       setTimeout(() => {
         this.showToast = false
@@ -680,12 +714,12 @@ export default {
   box-shadow: var(--shadow-md);
 }
 
-.btn.secondary {
+.btn.secondary { 
   background: var(--bg-tertiary);
   border-color: var(--border-secondary);
 }
 
-.btn.primary {
+.btn.primary { 
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   border-color: var(--primary-color);
   color: var(--text-inverse);
@@ -812,7 +846,7 @@ export default {
   z-index: 2;
 }
 
-.card-body {
+.card-body { 
   padding: 12px 16px; /* 进一步减少内边距 */
   display: flex;
   flex-direction: column;
@@ -878,44 +912,44 @@ export default {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-.status-badge.ongoing {
-  background: var(--warning-light);
-  color: var(--warning-color);
+.status-badge.ongoing { 
+  background: var(--warning-light); 
+  color: var(--warning-color); 
   border-color: var(--warning-color);
 }
-.status-badge.done {
-  background: var(--success-light);
-  color: var(--success-color);
+.status-badge.done { 
+  background: var(--success-light); 
+  color: var(--success-color); 
   border-color: var(--success-color);
 }
-.status-badge.steady {
-  background: var(--info-light);
-  color: var(--info-color);
+.status-badge.steady { 
+  background: var(--info-light); 
+  color: var(--info-color); 
   border-color: var(--info-color);
 }
 
-.meta-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.meta-list { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
-.meta-list li {
-  display: flex;
-  align-items: center;
+.meta-list li { 
+  display: flex; 
+  align-items: center; 
   padding: 2px 0; /* 进一步减少内边距 */
-  font-size: var(--text-xs);
+  font-size: var(--text-xs); 
   color: var(--text-secondary);
   line-height: 1.2;
 }
-.meta-label {
+.meta-label { 
   color: var(--text-tertiary);
   font-weight: var(--font-medium);
 }
-.meta-value {
+.meta-value { 
   color: var(--text-primary);
   font-weight: var(--font-semibold);
 }
@@ -957,31 +991,31 @@ export default {
   transform: translateY(-1px);
 }
 
-.page-num.active {
+.page-num.active { 
   background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   color: var(--text-inverse);
   border-color: var(--primary-color);
   box-shadow: var(--shadow-sm);
 }
 
-.pager:disabled {
-  opacity: 0.5;
+.pager:disabled { 
+  opacity: 0.5; 
   cursor: not-allowed;
   transform: none;
 }
 
 @media (max-width: 1400px) {
-  .grid {
+  .grid { 
     grid-template-columns: repeat(3, 1fr);
   }
 }
 @media (max-width: 1000px) {
-  .grid {
+  .grid { 
     grid-template-columns: repeat(2, 1fr);
   }
 }
 @media (max-width: 600px) {
-  .grid {
+  .grid { 
     grid-template-columns: 1fr;
   }
   .toolbar { flex-direction: column; align-items: stretch; }

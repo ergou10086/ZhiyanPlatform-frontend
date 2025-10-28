@@ -1064,14 +1064,14 @@ export default {
         await this.performSearch()
       }, 300)
     },
-    
+
     async performSearch() {
       // 生成新的请求ID
       this.searchRequestId++
       const currentRequestId = this.searchRequestId
-      
+
       console.log(`🔍 开始搜索 [请求ID: ${currentRequestId}]`)
-      
+
       this.isSearching = true
       
       try {
