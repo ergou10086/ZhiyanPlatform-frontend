@@ -6,6 +6,7 @@ import Button from './components/Button.vue'
 import Card from './components/Card.vue'
 import Input from './components/Input.vue'
 import authStore from './store/auth'
+import tokenManager from './utils/tokenManager'
 
 Vue.config.productionTip = false
 
@@ -45,6 +46,11 @@ new Vue({
   router,
   render: h => h(App),
   created() {
+    console.log('🚀 应用启动')
+    
+    // 初始化Token管理器（恢复自动刷新定时器）
+    tokenManager.initialize()
+    
     // 初始化认证状态
     this.$auth.dispatch('initAuth')
   }

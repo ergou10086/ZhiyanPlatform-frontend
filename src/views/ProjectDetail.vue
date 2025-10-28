@@ -29,7 +29,7 @@
         <div class="loading-spinner"></div>
         <p>正在加载项目详情...</p>
       </div>
-
+      
       <!-- 项目详情内容 -->
       <div v-if="project">
       <!-- 项目信息卡片 -->
@@ -245,43 +245,43 @@
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">任务标题</label>
-            <input
-              v-model="newTask.title"
-              type="text"
-              class="form-input"
+            <input 
+              v-model="newTask.title" 
+              type="text" 
+              class="form-input" 
               placeholder="请输入任务标题"
               maxlength="50"
             />
           </div>
-
+          
           <div class="form-field">
             <label class="form-label">任务描述</label>
-            <textarea
-              v-model="newTask.description"
-              class="form-textarea"
+            <textarea 
+              v-model="newTask.description" 
+              class="form-textarea" 
               placeholder="请输入任务描述"
               rows="3"
               maxlength="200"
             ></textarea>
           </div>
-
+          
           <div class="form-row">
             <div class="form-field">
               <label class="form-label">截止日期</label>
-              <input
-                v-model="newTask.dueDate"
-                type="date"
+              <input 
+                v-model="newTask.dueDate" 
+                type="date" 
                 :min="today"
                 class="form-input"
                 @change="validateNewTaskDueDate"
               />
               <div v-if="newTask.dateError" class="error-message">{{ newTask.dateError }}</div>
             </div>
-
+            
             <div class="form-field">
               <label class="form-label">优先级</label>
               <select v-model="newTask.priority" class="form-select">
@@ -292,7 +292,7 @@
             </div>
           </div>
         </div>
-
+        
         <div class="modal-footer">
           <button type="button" @click="closeTaskModal" class="btn btn-secondary">取消</button>
           <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim() || isCreatingTask">
@@ -313,50 +313,50 @@
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">项目名称</label>
-            <input
-              v-model="editProjectData.name"
-              type="text"
-              class="form-input"
+            <input 
+              v-model="editProjectData.name" 
+              type="text" 
+              class="form-input" 
               placeholder="请输入项目名称"
               maxlength="100"
             />
           </div>
-
+          
           <div class="form-field">
             <label class="form-label">项目描述</label>
-            <textarea
-              v-model="editProjectData.description"
-              class="form-textarea"
+            <textarea 
+              v-model="editProjectData.description" 
+              class="form-textarea" 
               placeholder="请输入项目描述"
               rows="3"
               maxlength="500"
             ></textarea>
           </div>
-
+          
           <div class="form-row">
             <div class="form-field">
               <label class="form-label">开始日期</label>
-              <input
-                v-model="editProjectData.startDate"
-                type="date"
+              <input 
+                v-model="editProjectData.startDate" 
+                type="date" 
                 class="form-input"
               />
             </div>
-
+            
             <div class="form-field">
               <label class="form-label">结束日期</label>
-              <input
-                v-model="editProjectData.endDate"
-                type="date"
+              <input 
+                v-model="editProjectData.endDate" 
+                type="date" 
                 class="form-input"
               />
             </div>
           </div>
-
+          
           <div class="form-row">
             <div class="form-field">
               <label class="form-label">可见性</label>
@@ -366,7 +366,7 @@
                 <option value="TEAM">团队</option>
               </select>
             </div>
-
+            
             <div class="form-field">
               <label class="form-label">项目状态</label>
               <select v-model="editProjectData.status" class="form-select">
@@ -378,7 +378,7 @@
             </div>
           </div>
         </div>
-
+        
         <div class="modal-footer">
           <button type="button" @click="closeEditProjectModal" class="btn btn-secondary">取消</button>
           <button type="button" @click="saveProjectUpdate" class="btn btn-primary" :disabled="!editProjectData.name.trim()">
@@ -420,7 +420,7 @@
               </div>
             </div>
           </div>
-
+          
           <!-- 搜索结果 -->
           <div v-if="searchResults.length > 0" class="search-results">
             <h4>搜索结果</h4>
@@ -668,12 +668,8 @@ export default {
       statusDropdownOpen: false,
       taskModalOpen: false,
       editProjectModalOpen: false,
-      inviteMemberModalOpen: false,
       showToast: false,
       toastMessage: '',
-      inviteSearchQuery: '',
-      searchResults: [],
-      isSearching: false,
       newTask: {
         title: '',
         description: '',
@@ -701,6 +697,8 @@ export default {
       inviteSearchQuery: '',
       searchResults: [],
       isSearching: false,
+      searchDebounceTimer: null, // 搜索防抖定时器
+      currentSearchKeyword: '', // 当前搜索关键词（用于验证请求）
       taskListModalOpen: false,
       isCreatingTask: false, // 防止重复点击创建任务
       taskDetailModalOpen: false, // 任务详情弹窗
@@ -759,6 +757,11 @@ export default {
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
+    // 清理搜索防抖定时器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+      this.searchDebounceTimer = null
+    }
   },
   methods: {
     openTaskListModal() {
@@ -792,20 +795,20 @@ export default {
 
       try {
         console.log('[loadProjectTasks] 开始从后端加载任务数据，项目ID:', projectId)
-        
+
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        
+
         // 调用后端API获取任务列表
         const response = await taskAPI.getProjectTasks(projectId, 0, 100) // 获取前100个任务
-        
+
         console.log('[loadProjectTasks] API返回结果:', response)
-        
+
         // 检查返回结果
         if (response && response.code === 200 && response.data) {
           const tasksData = response.data
           console.log('[loadProjectTasks] 任务数据:', tasksData)
-          
+
           // 处理分页数据
           let taskList = []
           if (tasksData.content && Array.isArray(tasksData.content)) {
@@ -815,13 +818,13 @@ export default {
             // 后端返回的是数组
             taskList = tasksData
           }
-          
+
           console.log('[loadProjectTasks] 解析的任务列表:', taskList)
-          
+
           // 转换任务数据格式，优先使用后端返回的创建人信息，如果没有则使用本地用户信息
           const currentUserId = this.getCurrentUserId()
           const currentUserName = this.getCurrentUserName()
-          
+
           this.tasks = taskList.map(task => ({
             id: task.id,
             title: task.title,
@@ -1042,23 +1045,45 @@ export default {
       this.isSearching = false
     },
     async searchUsers() {
-      if (!this.inviteSearchQuery.trim()) {
+      // 清除之前的防抖定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+        this.searchDebounceTimer = null
+      }
+      
+      const keyword = this.inviteSearchQuery.trim()
+      
+      // 如果关键词为空，立即清空结果并返回
+      if (!keyword) {
+        this.searchResults = []
+        this.currentSearchKeyword = ''
+        this.isSearching = false
+        return
+      }
+
+      // 关键词太短（少于1个字符），不搜索
+      if (keyword.length < 1) {
         this.searchResults = []
         return
       }
       
+      // 设置防抖定时器：500ms后执行搜索
+      this.searchDebounceTimer = setTimeout(async () => {
+        // 记录当前搜索关键词，用于验证响应
+        this.currentSearchKeyword = keyword
       this.isSearching = true
-      
+
       try {
         // 调用项目服务的搜索接口（8095端口），该接口通过Feign调用认证服务
         const { projectAPI } = await import('@/api/project')
-        const keyword = this.inviteSearchQuery.trim()
 
         // 使用项目服务的搜索API
         const response = await projectAPI.searchUsers(keyword, 0, 10)
 
         console.log('搜索用户响应:', response)
 
+          // ✅ 关键：验证当前关键词是否仍然匹配（避免竞态条件）
+          if (this.currentSearchKeyword === keyword) {
         if (response.code === 200 && response.data) {
           // 处理分页结果
           if (response.data.content && Array.isArray(response.data.content)) {
@@ -1070,14 +1095,25 @@ export default {
           }
         } else {
           this.searchResults = []
+            }
+          } else {
+            // 关键词已改变，忽略这个过期的响应
+            console.log('忽略过期的搜索响应: 请求关键词=', keyword, ', 当前关键词=', this.currentSearchKeyword)
         }
       } catch (error) {
+          // 同样需要验证关键词
+          if (this.currentSearchKeyword === keyword) {
         console.error('搜索用户失败:', error)
         this.searchResults = []
         this.showSuccessToast('搜索失败，请重试')
+          }
       } finally {
+          // 只有当关键词仍然匹配时才更新加载状态
+          if (this.currentSearchKeyword === keyword) {
         this.isSearching = false
       }
+        }
+      }, 500) // 500毫秒防抖延迟
     },
     async addUserToProject(user) {
       // 检查用户是否已经是团队成员
@@ -1086,7 +1122,7 @@ export default {
         alert('该用户已经是团队成员')
         return
       }
-      
+
       try {
         const { projectAPI } = await import('@/api/project')
 
@@ -1120,14 +1156,30 @@ export default {
         const response = await projectAPI.getProjectMembers(this.project.id)
 
         if (response.code === 200 && response.data) {
+          console.log('成员数据响应:', response.data)
+          console.log('成员数据content:', response.data.content)
+          
           // 转换后端数据格式到前端格式
-          const membersFromBackend = response.data.content.map(member => ({
-            id: member.userId,
-            name: member.username || member.nickname || `用户${member.userId}`,
-            role: member.roleCode === 'OWNER' ? '项目拥有者' : '普通成员',
-            avatar: member.avatar || null,
-            joinedAt: member.joinedAt
-          }))
+          const membersFromBackend = response.data.content.map(member => {
+            console.log('处理成员数据:', member)
+            
+            // 使用 username 作为成员名称
+            const memberName = member.username || '未知用户'
+            const memberRole = member.roleCode === 'OWNER' ? '项目拥有者' : 
+                              (member.roleName || '普通成员')
+            
+            console.log(`成员 ${member.userId}: 姓名=${memberName}, 角色=${memberRole}`)
+            
+            return {
+              id: member.userId,
+              name: memberName,
+              role: memberRole,
+              avatar: member.avatar || null,
+              joinedAt: member.joinedAt
+            }
+          })
+
+          console.log('转换后的成员列表:', membersFromBackend)
 
           // ✅ 判断：如果后端返回的成员列表为空，则显示默认成员（当前用户）
           if (membersFromBackend.length === 0) {
@@ -1139,6 +1191,9 @@ export default {
             // 后端有数据，使用后端数据
             console.log('使用后端返回的成员列表，共', membersFromBackend.length, '个成员')
             this.teamMembers = membersFromBackend
+            
+            // 打印最终的成员列表，方便调试
+            console.log('最终成员列表:', this.teamMembers)
           }
         } else {
           // API调用失败，显示默认成员
@@ -1460,7 +1515,7 @@ export default {
       
       // 设置创建中状态
       this.isCreatingTask = true
-
+      
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
@@ -1745,32 +1800,32 @@ export default {
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        
+
         // 将中文状态转换为后端枚举值
         const statusValue = this.getStatusValue(newStatus)
-        
+
         console.log(`[changeTaskStatus] 更新任务状态，任务ID: ${task.id}, 新状态: ${newStatus} (${statusValue})`)
-        
+
         // 调用后端API更新任务状态
         const response = await taskAPI.updateTaskStatus(task.id, statusValue)
-        
+
         console.log('[changeTaskStatus] API返回结果:', response)
-        
+
         if (response && response.code === 200) {
           // 更新本地任务状态
           task.status = newStatus
           task.status_value = statusValue
-          
+
           // 关闭状态菜单
           this.$set(task, 'showStatusMenu', false)
-          
+
           // 保存到localStorage
           this.saveProjectData()
-          
+
           this.showSuccessToast('任务状态已更新！')
-          
+
           console.log(`任务"${task.title}"状态已更改为: ${newStatus} (${statusValue})`)
-          
+
           // 触发全局事件，通知其他页面状态已更新
           this.$root.$emit('taskStatusChanged', {
             projectId: this.project.id,

@@ -1,12 +1,13 @@
 import axios from 'axios'
 import config from '@/config'
+import tokenManager from './tokenManager'
 
 /**
  * 统一的 Axios 实例配置
- * 实现 Token 自动刷新机制
+ * 实现 Token 主动刷新 + 被动刷新的双重机制
  */
 
-// 是否正在刷新 token
+// 是否正在刷新 token（用于被动刷新时的并发控制）
 let isRefreshing = false
 // 待重试的请求队列
 let requestsQueue = []
@@ -27,10 +28,25 @@ export function createAxiosInstance(useProxy = false) {
 
   // ==================== 请求拦截器 ====================
   instance.interceptors.request.use(
-    config => {
+    async config => {
       // 从 localStorage 获取 access_token
       const token = localStorage.getItem('access_token')
-      if (token) {
+      
+      // ==================== 主动刷新检查 ====================
+      // 在发送请求前，检查token是否即将过期
+      if (token && tokenManager.isTokenExpiringSoon()) {
+        console.log('⚠️ Token即将过期，主动刷新')
+        
+        // 如果TokenManager的定时器还没触发，这里手动触发刷新
+        // TokenManager内部有防重复刷新机制
+        await tokenManager.refreshToken()
+        
+        // 刷新后获取新token
+        const newToken = localStorage.getItem('access_token')
+        if (newToken) {
+          config.headers.Authorization = `Bearer ${newToken}`
+        }
+      } else if (token) {
         config.headers.Authorization = `Bearer ${token}`
       }
 
@@ -73,36 +89,19 @@ export function createAxiosInstance(useProxy = false) {
           return Promise.reject(error)
         }
 
-        // ==================== Token 自动刷新 ====================
+        // ==================== 被动刷新 Token（401错误时） ====================
         if (!isRefreshing) {
           isRefreshing = true
 
           try {
-            console.log('🔄 正在刷新 Access Token...')
+            console.log('🔄 收到401错误，执行被动刷新 Access Token...')
 
-            // 调用刷新 token 接口
-            const refreshResponse = await axios.post(
-              `${config.api.baseURL}/zhiyan/auth/refresh`,
-              { refreshToken },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Accept': 'application/json'
-                },
-                withCredentials: true
-              }
-            )
+            // 使用TokenManager刷新（它会自动更新定时器）
+            const success = await tokenManager.refreshToken()
 
-            if (refreshResponse.data && refreshResponse.data.code === 200) {
-              const newAccessToken = refreshResponse.data.data.accessToken
-              const newRefreshToken = refreshResponse.data.data.refreshToken
-
-              // 保存新的 token
-              localStorage.setItem('access_token', newAccessToken)
-              if (newRefreshToken) {
-                localStorage.setItem('refresh_token', newRefreshToken)
-              }
-
+            if (success) {
+              const newAccessToken = localStorage.getItem('access_token')
+              
               console.log('✅ Token 刷新成功')
 
               // 更新原请求的 Authorization header
@@ -118,12 +117,12 @@ export function createAxiosInstance(useProxy = false) {
               throw new Error('刷新 Token 失败')
             }
           } catch (refreshError) {
-            console.error('❌ 刷新 Token 失败:', refreshError)
+            console.error('❌ 被动刷新 Token 失败:', refreshError)
 
             // 清空请求队列
             requestsQueue = []
 
-            // 跳转到登录页
+            // 跳转到登录页（TokenManager内部已处理）
             handleLogout()
 
             return Promise.reject(refreshError)
