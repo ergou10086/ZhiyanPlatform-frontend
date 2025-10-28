@@ -1,8 +1,17 @@
 <template>
   <div class="ai-view">
-    <div class="section-card">
-      <div class="section-title">AI赋能助手</div>
-      <div class="section-subtitle">智能问答与内容生成服务</div>
+    <div class="page-header">
+      <h1 class="page-title">
+        <span class="title-text">AI赋能助手</span>
+        <div class="title-decoration"></div>
+      </h1>
+      <p class="page-subtitle">
+        <svg class="subtitle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        智能问答与内容生成服务，助力您的研究工作
+      </p>
     </div>
 
     <div class="chat-card">
@@ -207,47 +216,218 @@ export default {
 .ai-view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 40px - 28px); /* 减去顶部导航、主内容padding和底部padding */
+  height: calc(100vh - 64px - 40px - 28px);
+  animation: fadeInUp 0.6s ease-out;
 }
 
-.section-card { background: #fff; border: 1px solid #eef0f2; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-.section-title { font-size: 16px; font-weight: 600; color: #333; }
-.section-subtitle { color: #9ca3af; font-size: 12px; margin-top: 6px; }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-header {
+  margin-bottom: 24px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.page-title {
+  position: relative;
+  margin: 0 0 16px 0;
+  display: inline-block;
+}
+
+.title-text {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.title-decoration {
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #5EB6E4 0%, #A7C6ED 50%, transparent 100%);
+  border-radius: 2px;
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.8;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-left: 3px solid #5EB6E4;
+  border-radius: 8px;
+}
+
+.subtitle-icon {
+  flex-shrink: 0;
+  color: #5EB6E4;
+  margin-top: 2px;
+}
+
+.section-card { 
+  background: #fff; 
+  border: 1px solid #e5e7eb; 
+  border-radius: 16px; 
+  padding: 16px; 
+  margin-bottom: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.section-title { 
+  font-size: 16px; 
+  font-weight: 700; 
+  color: #1e293b; 
+}
+.section-subtitle { 
+  color: #6b7280; 
+  font-size: 12px; 
+  margin-top: 6px; 
+}
 
 .chat-card { 
-  background: #fff; 
-  border: 1px solid #eef0f2; 
-  border-radius: 12px; 
-  padding: 12px; 
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
   display: flex; 
   flex-direction: column; 
-  flex: 1; /* 占据剩余空间 */
-  min-height: 0; /* 允许flex子元素收缩 */
+  flex: 1;
+  min-height: 0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+.chat-card:hover {
+  box-shadow: 0 8px 15px -5px rgba(0, 0, 0, 0.15);
 }
 .chat-window { 
   flex: 1; 
-  padding: 10px; 
+  padding: 16px; 
   display: flex; 
   flex-direction: column; 
-  gap: 12px; 
+  gap: 16px; 
   overflow: auto; 
-  min-height: 0; /* 允许滚动 */
+  min-height: 0;
+  background: white;
+  border-radius: 12px;
 }
-.bubble { max-width: 70%; padding: 10px 12px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
-.bubble.left { align-self: flex-start; background: #f3f4f6; color: #374151; }
-.bubble.right { align-self: flex-end; background: #4f46e5; color: #fff; }
+.bubble { 
+  max-width: 75%; 
+  padding: 14px 18px; 
+  border-radius: 16px; 
+  font-size: 14px; 
+  line-height: 1.7;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.bubble.left { 
+  align-self: flex-start; 
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #334155;
+  border-bottom-left-radius: 4px;
+}
+.bubble.right { 
+  align-self: flex-end; 
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+}
 
-.composer { display: flex; gap: 8px; padding-top: 10px; flex-shrink: 0; }
-.composer-input { flex: 1; height: 40px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0 12px; }
-.composer-input:disabled { background: #f9fafb; cursor: not-allowed; }
-.send-btn { width: 40px; height: 40px; border-radius: 10px; background: #4f46e5; color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.composer { 
+  display: flex; 
+  gap: 12px; 
+  padding-top: 16px; 
+  flex-shrink: 0;
+  border-top: 2px solid #e5e7eb;
+  margin-top: 16px;
+}
+.composer-input { 
+  flex: 1; 
+  height: 48px; 
+  border: 2px solid #e5e7eb; 
+  border-radius: 12px; 
+  padding: 0 16px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  background: white;
+}
+.composer-input:focus {
+  outline: none;
+  border-color: #5EB6E4;
+  box-shadow: 0 0 0 3px rgba(94, 182, 228, 0.1);
+}
+.composer-input:disabled { 
+  background: #f9fafb; 
+  cursor: not-allowed; 
+}
+.send-btn { 
+  width: 48px; 
+  height: 48px; 
+  border-radius: 12px; 
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white; 
+  border: none; 
+  cursor: pointer; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+}
+.send-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+}
+.send-btn:disabled { 
+  opacity: 0.5; 
+  cursor: not-allowed;
+  transform: none;
+}
 
 .loading-spinner {
   width: 18px;
   height: 18px;
   border: 2px solid #f3f3f3;
-  border-top: 2px solid #4f46e5;
+  border-top: 2px solid #0044CC;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

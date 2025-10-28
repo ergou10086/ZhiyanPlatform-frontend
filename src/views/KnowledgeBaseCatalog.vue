@@ -1,16 +1,25 @@
 <template>
   <div class="catalog-view">
-    <div class="section-card">
-      <div class="section-header">
-        <div>
-      <div class="section-title">成果目录管理</div>
-      <div class="section-subtitle">在这里您可以上传各类新的研究成果，并查看已有的成果档案</div>
+    <div class="page-header">
+      <div class="header-content">
+        <div class="header-title-section">
+          <h1 class="page-title">
+            <span class="title-text">成果目录管理</span>
+            <div class="title-decoration"></div>
+          </h1>
+          <p class="page-subtitle">
+            <svg class="subtitle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            在这里您可以上传各类新的研究成果，并查看已有的成果档案
+          </p>
         </div>
         <button class="archive-toggle-btn" @click="showArchivePanel = !showArchivePanel">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 2H5C3.9 2 3 2.9 3 4V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V4C21 2.9 20.1 2 19 2ZM5 4H8V9H5V4ZM10 4H13V9H10V4ZM8 11V20H5V11H8ZM10 11V20H13V11H10ZM19 20H15V11H19V20ZM15 9V4H19V9H15Z" fill="currentColor"/>
           </svg>
-          已有成果档案
+          <span>已有成果档案</span>
         </button>
       </div>
     </div>
@@ -2591,6 +2600,91 @@ export default {
 <style scoped>
 .catalog-view {
   position: relative;
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-header {
+  margin-bottom: 32px;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.header-title-section {
+  flex: 1;
+}
+
+.page-title {
+  position: relative;
+  margin: 0 0 16px 0;
+  display: inline-block;
+}
+
+.title-text {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.title-decoration {
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #5EB6E4 0%, #A7C6ED 50%, transparent 100%);
+  border-radius: 2px;
+}
+
+.page-subtitle {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.8;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-left: 3px solid #5EB6E4;
+  border-radius: 8px;
+}
+
+.subtitle-icon {
+  flex-shrink: 0;
+  color: #5EB6E4;
+  margin-top: 2px;
 }
 
 .section-header {
@@ -2602,28 +2696,30 @@ export default {
 .archive-toggle-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 12px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  flex-shrink: 0;
 }
 
 .archive-toggle-btn:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
 }
 
 .archive-toggle-btn svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 /* 滑动面板遮罩 */

@@ -34,10 +34,23 @@
       <div class="project-overview">
         <div class="project-header">
         <div class="project-info">
-            <h1 class="project-title">{{ currentProject.title }}</h1>
+            <h1 class="project-title">
+              <span class="title-text">{{ currentProject.title }}</span>
+              <div class="title-decoration"></div>
+            </h1>
           <div class="project-details">
-              <div class="project-name">{{ currentProject.description }}</div>
-              <div class="project-lead">负责人: {{ currentProject.lead }}</div>
+              <div class="project-name">
+                <svg class="detail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
+                </svg>
+                {{ currentProject.description }}
+              </div>
+              <div class="project-lead">
+                <svg class="detail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                负责人: {{ currentProject.lead }}
+              </div>
           </div>
         </div>
         <div class="project-progress">
@@ -1036,9 +1049,43 @@ export default {
 <style scoped>
 @import '@/assets/styles/variables.css';
 
+@keyframes bounceInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(60px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1.02);
+  }
+  80% {
+    transform: translateY(5px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bounceInDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-60px) scale(0.95);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(10px) scale(1.02);
+  }
+  80% {
+    transform: translateY(-5px) scale(0.98);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
 .ai-assistant-container {
   min-height: 100vh;
-  background-color: var(--bg-secondary);
+  background-color: #f8f9fa;
   display: flex;
   flex-direction: column;
 }
@@ -1145,23 +1192,25 @@ export default {
 
 .progress-bar {
   width: 100%;
-  height: 8px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-full);
+  height: 10px;
+  background: #e5e7eb;
+  border-radius: 20px;
   overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
-  border-radius: var(--radius-full);
-  transition: width var(--transition-normal);
+  background: linear-gradient(90deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 20px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 68, 204, 0.3);
 }
 
 .progress-text {
-  font-size: var(--text-sm);
-  color: var(--primary-color);
-  font-weight: var(--font-semibold);
+  font-size: 14px;
+  color: #0044CC;
+  font-weight: 700;
 }
 
 /* 项目切换器样式 */
@@ -1308,18 +1357,26 @@ export default {
 
 /* 项目概览区域 */
 .project-overview {
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-primary);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e3e8ef;
+  margin-bottom: 28px;
+  animation: bounceInDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.3s ease;
+}
+
+.project-overview:hover {
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .project-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-6);
+  gap: 32px;
 }
 
 .project-info {
@@ -1328,32 +1385,53 @@ export default {
 }
 
 .project-title {
-  font-size: var(--text-3xl);
-  font-weight: var(--font-bold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-3) 0;
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  position: relative;
+  margin: 0 0 20px 0;
+  display: inline-block;
+}
+
+.title-text {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: -0.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.title-decoration {
+  position: absolute;
+  bottom: -8px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #5EB6E4 0%, #A7C6ED 50%, transparent 100%);
+  border-radius: 2px;
 }
 
 .project-details {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 12px;
 }
 
-.project-name {
-  font-size: var(--text-lg);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.project-name,
+.project-lead {
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detail-icon {
+  flex-shrink: 0;
+  color: #5EB6E4;
 }
 
 .project-lead {
@@ -1370,16 +1448,23 @@ export default {
 
 /* 任务管理区域 */
 .task-management {
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-6);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-primary);
-  flex: 0 0 400px; /* 固定宽度，占据较小面积 */
-  height: 500px; /* 与AI对话框高度一致 */
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e3e8ef;
+  flex: 0 0 400px;
+  height: 500px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: all 0.3s ease;
+  animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.task-management:hover {
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .task-header {
@@ -1479,16 +1564,18 @@ export default {
 }
 
 .task-card {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 12px; /* 从16px减小到12px */
-  transition: all 0.3s ease;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  background: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
 .task-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  border-color: #5EB6E4;
 }
 
 .task-card .task-header {
@@ -1511,30 +1598,38 @@ export default {
 }
 
 .task-status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.task-card:hover .task-status {
+  transform: scale(1.05);
 }
 
 .task-status.pending {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: linear-gradient(135deg, #e0b3e5 0%, #a76fb5 100%);
+  color: white;
 }
 
 .task-status.in-progress {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: linear-gradient(135deg, #A7C6ED 0%, #5EB6E4 100%);
+  color: white;
 }
 
 .task-status.completed {
-  background: #e8f5e8;
-  color: #2e7d32;
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  color: white;
 }
 
 .task-status.paused {
-  background: #fff3e0;
-  color: #f57c00;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
 }
 
 .task-description {
@@ -1593,39 +1688,51 @@ export default {
 }
 
 .publish-btn {
-  background: var(--success-color);
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
   color: white;
   border: none;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--text-xs);
-  font-weight: var(--font-medium);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .publish-btn:hover {
-  background: var(--success-hover);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
 }
 
 /* AI对话区域 */
 .ai-chat-section {
-  background: white;
-  border-radius: 12px;
-  padding: 20px 40px 20px 40px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e3e8ef;
   height: 500px;
-  flex: 1; /* 占据剩余空间 */
+  flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
+  transition: all 0.3s ease;
+  animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s backwards;
+}
+
+.ai-chat-section:hover {
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .ai-dialog-title {
   position: absolute;
-  top: 20px;
-  left: 40px;
+  top: 24px;
+  left: 24px;
   font-size: 18px;
   font-weight: 600;
   color: #333;
@@ -1720,19 +1827,22 @@ export default {
 }
 
 .send-btn {
-  padding: 12px 24px;
-  background: #007bff;
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
   color: white;
   border: none;
   border-radius: 24px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
 }
 
 .send-btn:hover:not(:disabled) {
-  background: #0056b3;
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
 }
 
 .send-btn:disabled {
@@ -1744,16 +1854,27 @@ export default {
 
 /* AI分析建议区域 */
 .ai-suggestions {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e3e8ef;
+  transition: all 0.3s ease;
+  animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+}
+
+.ai-suggestions:hover {
+  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .suggestions-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: 22px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0 0 20px 0;
 }
 
@@ -1766,33 +1887,42 @@ export default {
 .suggestion-card {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .suggestion-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px);
+  border-color: #5EB6E4;
 }
 
 .suggestion-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #e8f5e8;
-  color: #2e7d32;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #A7C6ED 0%, #5EB6E4 100%);
+  color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.3);
+  transition: all 0.3s ease;
+}
+
+.suggestion-card:hover .suggestion-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .suggestion-icon.warning {
-  background: #fff3e0;
-  color: #f57c00;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
 }
 
 .suggestion-content {
