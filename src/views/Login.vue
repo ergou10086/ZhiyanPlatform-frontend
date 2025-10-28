@@ -1,68 +1,75 @@
 <template>
   <div class="login-container">
-    <div class="brand-corner">智研</div>
-    <div class="login-left">
-      <div class="logo-section">
-        <div class="logo-placeholder" :class="{ animated: animateLogo }">
-          <img src="@/assets/image/logo.svg" alt="Logo" class="logo-img" />
-        </div>
-        <h1 class="system-title" :class="{ animated: animateLogo }">高校科研团队协作与成果管理平台</h1>
-        <p class="system-subtitle" :class="{ animated: animateLogo }">University Research Team Collaboration and Achievement Management Platform</p>
-      </div>
-    </div>
+    <Header />
     
-    <div class="login-right">
+    <div class="login-content">
       <div class="login-box">
-        <div class="login-header">
-          <h2 class="login-title">欢迎回来</h2>
-          <p class="login-subtitle">请登录您的账户</p>
+      <div class="login-header">
+        <div class="user-avatar">
+          <img 
+            v-if="userAvatar" 
+            :src="userAvatar" 
+            :alt="'用户头像'"
+            class="avatar-image"
+          />
+          <div v-else class="default-avatar">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <h1 class="login-title">欢迎回来,请登录</h1>
+      </div>
+      
+      <form @submit.prevent="handleLogin" class="login-form">
+        <div class="form-group">
+          <label for="email">电子邮箱 *</label>
+          <input
+            type="email"
+            id="email"
+            v-model="loginForm.email"
+            placeholder="请输入邮箱地址"
+            required
+          />
         </div>
         
-        <form @submit.prevent="handleLogin" class="login-form">
-          <div class="form-group">
-            <label for="email">电子邮箱</label>
-            <input
-              type="email"
-              id="email"
-              v-model="loginForm.email"
-              placeholder="请输入邮箱地址"
-              required
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="password">密码</label>
-            <input
-              type="password"
-              id="password"
-              v-model="loginForm.password"
-              placeholder="请输入密码"
-              required
-            />
-          </div>
-          
-          <div class="form-options">
-            <label class="checkbox-option">
-              <input type="checkbox" v-model="loginForm.rememberMe" />
-              <span>记住我</span>
-            </label>
-            <a href="#" @click.prevent="goToForgotPassword" class="forgot-password">
-              忘记密码？
-            </a>
-          </div>
-          
-          <button type="submit" class="login-btn" :disabled="loading">
-            {{ loading ? '登录中...' : '登录' }}
-          </button>
-          
-          <div class="register-link">
-            <span>还没有账号？</span>
-            <a href="#" @click.prevent="goToRegister">立即注册</a>
-          </div>
-        </form>
+        <div class="form-group">
+          <label for="password">密码 *</label>
+          <input
+            type="password"
+            id="password"
+            v-model="loginForm.password"
+            placeholder="请输入密码"
+            required
+          />
+        </div>
+        
+        <div class="form-options">
+          <label class="checkbox-option">
+            <input type="checkbox" v-model="loginForm.rememberMe" />
+            记住我
+          </label>
+        </div>
+        
+        <div class="form-links">
+          <a href="#" @click.prevent="goToForgotPassword" class="forgot-password">
+            忘记密码?
+          </a>
+          <a href="#" @click.prevent="goToRegister" class="register-link">
+            没有账号?注册账号
+          </a>
+        </div>
+        
+        <button type="submit" class="login-btn" :disabled="loading">
+          {{ loading ? '登录中...' : '安全登录' }}
+        </button>
+      </form>
       </div>
     </div>
     
+    <Footer />
+
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
@@ -71,12 +78,16 @@
 </template>
 
 <script>
+import Header from '@/components/Header.vue'
+import Footer from '@/components/Footer.vue'
 import { authAPI } from '@/api/auth'
 import { saveLoginData, formatApiError, isValidEmail } from '@/utils/auth'
 
 export default {
   name: 'Login',
   components: {
+    Header,
+    Footer
   },
   data() {
     return {
@@ -89,16 +100,7 @@ export default {
         rememberMe: false
       },
       showToast: false,
-      toastMessage: '',
-      animateLogo: false
-    }
-  },
-  mounted() {
-    // 检查是否已经播放过动画
-    const hasAnimated = localStorage.getItem('authPagesAnimated')
-    if (!hasAnimated) {
-      this.animateLogo = true
-      localStorage.setItem('authPagesAnimated', 'true')
+      toastMessage: ''
     }
   },
   watch: {
@@ -246,271 +248,231 @@ export default {
 .login-container {
   min-height: 100vh;
   height: 100vh;
-  background: #ffffff;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+  background-image: url('@/assets/image/background_login.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
   position: relative;
-  overflow: hidden;
 }
 
-.login-left {
+
+.login-content {
   flex: 1;
-  background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  position: relative;
-  overflow: hidden;
-}
-
-.login-left::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 100%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-  animation: rotate 20s linear infinite;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.brand-corner {
-  position: fixed;
-  top: 20px;
-  left: 40px;
-  font-size: 28px;
-  font-weight: 700;
-  color: #ffffff;
-  z-index: 1000;
-  letter-spacing: 2px;
-}
-
-.logo-section {
+  padding: var(--space-5);
   position: relative;
   z-index: 2;
-  text-align: center;
-  color: white;
 }
 
-.logo-placeholder {
-  margin-bottom: 24px;
-  display: flex;
-  justify-content: center;
-  opacity: 1;
-}
 
-.logo-placeholder.animated {
-  animation: fadeInUp 0.8s ease-out;
-}
 
-.logo-img {
-  width: 80px;
-  height: 80px;
-  object-fit: contain;
-  border-radius: 12px;
-}
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.system-title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 12px 0;
-  color: white;
-}
-
-.system-title.animated {
-  animation: fadeInUp 0.8s ease-out 0.2s both;
-}
-
-.system-subtitle {
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-  font-weight: 300;
-  letter-spacing: 1px;
-}
-
-.system-subtitle.animated {
-  animation: fadeInUp 0.8s ease-out 0.4s both;
-}
-
-.login-right {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  background: #f8f9fa;
-}
 
 
 
 
 
 .login-box {
-  background: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  padding: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
+  padding: var(--space-10);
   width: 100%;
   max-width: 420px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
+
+.login-box:hover {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+}
+
 
 .login-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: var(--space-8);
+}
+
+.user-avatar {
+  margin-bottom: var(--space-5);
+  display: flex;
+  justify-content: center;
+}
+
+.avatar-image {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 3px solid var(--primary-light);
+  box-shadow: var(--shadow-md);
+}
+
+.default-avatar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 64px;
+  height: 64px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  border: 3px solid var(--primary-light);
+  box-shadow: var(--shadow-md);
+}
+
+.default-avatar svg {
+  color: var(--text-tertiary);
+  width: 32px;
+  height: 32px;
 }
 
 .login-title {
-  font-size: 28px;
-  color: #2d3748;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-}
-
-.login-subtitle {
-  font-size: 14px;
-  color: #718096;
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+  font-weight: var(--font-bold);
   margin: 0;
-  font-weight: 400;
+  background: linear-gradient(135deg, var(--text-primary), var(--primary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
-
 
 .login-form {
   width: 100%;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
-  color: #2d3748;
-  font-weight: 600;
-  font-size: 14px;
+  margin-bottom: var(--space-2);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
 }
 
 .form-group input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  padding: var(--space-3) var(--space-4);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  transition: all var(--transition-normal);
   box-sizing: border-box;
-  background: #ffffff;
-  color: #2d3748;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #3B82F6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+  transform: translateY(-1px);
 }
 
 .form-group input::placeholder {
-  color: #a0aec0;
+  color: var(--text-tertiary);
 }
 
 .form-options {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
 }
 
 .checkbox-option {
   display: flex;
   align-items: center;
-  font-size: 14px;
-  color: #4a5568;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: color var(--transition-fast);
 }
 
-.checkbox-option span {
-  margin-left: 8px;
+.checkbox-option:hover {
+  color: var(--text-primary);
 }
 
 .checkbox-option input {
-  margin: 0;
+  margin-right: var(--space-2);
   width: auto;
-  accent-color: #3B82F6;
+  accent-color: var(--primary-color);
 }
 
-.forgot-password {
-  color: #3B82F6;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: color 0.3s ease;
+.form-links {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-8);
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
-.forgot-password:hover {
-  color: #2563EB;
-}
-
+.forgot-password,
 .register-link {
-  text-align: center;
-  margin-top: 24px;
-  font-size: 14px;
-  color: #718096;
-}
-
-.register-link a {
-  color: #3B82F6;
+  color: var(--primary-color);
   text-decoration: none;
-  font-weight: 600;
-  margin-left: 4px;
-  transition: color 0.3s ease;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  transition: all var(--transition-fast);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
 }
 
-.register-link a:hover {
-  color: #2563EB;
+.forgot-password:hover,
+.register-link:hover {
+  color: var(--primary-hover);
+  background: var(--primary-light);
+  transform: translateY(-1px);
 }
 
 .login-btn {
   width: 100%;
-  padding: 14px 24px;
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  color: #ffffff;
+  padding: var(--space-3) var(--space-4);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+  color: var(--text-inverse);
   border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
 }
 
+.login-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--transition-slow);
+}
+
 .login-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-hover), var(--primary-dark));
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  box-shadow: var(--shadow-lg);
+}
+
+.login-btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .login-btn:disabled {
@@ -522,83 +484,44 @@ export default {
 
 /* 响应式设计 */
 @media (max-width: 1024px) {
-  .login-container {
+  .login-content {
     flex-direction: column;
-  }
-  
-  .login-left {
-    min-height: 300px;
-    flex: none;
-  }
-  
-  .login-right {
-    min-height: calc(100vh - 300px);
+    gap: var(--space-10);
+    padding: var(--space-8) var(--space-10);
   }
 }
 
 @media (max-width: 768px) {
-  .login-left {
-    min-height: 250px;
-    padding: 30px 20px;
-  }
-  
-  .logo-placeholder svg {
-    width: 60px;
-    height: 60px;
-  }
-  
-  .system-title {
-    font-size: 24px;
-  }
-  
-  .system-subtitle {
-    font-size: 14px;
-  }
-  
-  .login-right {
-    padding: 30px 20px;
-  }
-  
-  .login-box {
-    padding: 32px 24px;
+  .login-content {
+    padding: var(--space-5) var(--space-6);
+    gap: var(--space-8);
   }
 }
 
 @media (max-width: 480px) {
-  .login-left {
-    min-height: 200px;
-    padding: 20px;
-  }
-  
-  .logo-placeholder svg {
-    width: 50px;
-    height: 50px;
-  }
-  
-  .system-title {
-    font-size: 20px;
-  }
-  
-  .system-subtitle {
-    font-size: 12px;
-  }
-  
-  .login-right {
-    padding: 20px;
+  .login-content {
+    padding: var(--space-4) var(--space-5);
+    gap: var(--space-6);
   }
   
   .login-box {
-    padding: 24px 20px;
+    padding: var(--space-8) var(--space-5);
+    margin: var(--space-2);
   }
   
   .login-title {
-    font-size: 22px;
+    font-size: var(--text-xl);
   }
   
   .form-options {
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-3);
+  }
+  
+  .form-links {
+    flex-direction: column;
+    gap: var(--space-3);
+    text-align: center;
   }
 }
 

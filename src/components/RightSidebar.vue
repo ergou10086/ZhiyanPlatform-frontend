@@ -4,7 +4,7 @@
     <div class="calendar-header">
       <h3 class="widget-title">我的工作日历</h3>
     </div>
-
+    
     <!-- 日历卡片 -->
     <div class="calendar-widget">
       <div class="calendar">
@@ -24,11 +24,11 @@
             <span>六</span>
           </div>
           <div class="calendar-days">
-            <div
-              class="day"
-              v-for="(day, index) in calendarDays"
+            <div 
+              class="day" 
+              v-for="(day, index) in calendarDays" 
               :key="index"
-              :class="{
+              :class="{ 
                 'current-month': day.isCurrentMonth,
                 'today': day.isToday,
                 'selected': selectedDate && day.date && selectedDate.toDateString() === day.date.toDateString()
@@ -42,60 +42,26 @@
       </div>
     </div>
 
-    <!-- 任务提醒 -->
-    <div class="task-alert-widget" :class="{ 'urgent': upcomingTasks.length > 0 }">
-      <h3 class="widget-title">任务提醒</h3>
-
-      <!-- 加载状态 -->
-      <div v-if="tasksLoading" class="loading-container">
-        <div class="loading-spinner"></div>
-        <p class="loading-text">加载中...</p>
-      </div>
-
-      <!-- 任务内容 -->
-      <div v-else class="task-alert-content">
-        <!-- 有即将到期的任务 -->
-        <div v-if="upcomingTasks.length > 0" class="alert-message urgent">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div class="alert-text">
-            <p class="alert-title">有 <strong>{{ upcomingTasks.length }}</strong> 个任务即将截止</p>
-            <p class="alert-subtitle">请及时完成</p>
+    <!-- 本周统计 -->
+    <div class="stats-widget">
+      <h3 class="widget-title">本周统计</h3>
+      <div class="stats-content">
+        <div class="stat-item">
+          <div class="stat-header">
+            <span class="stat-label">完成任务</span>
+            <span class="stat-value">18/25</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill completed" style="width: 72%"></div>
           </div>
         </div>
-
-        <!-- 没有即将到期的任务 -->
-        <div v-else class="alert-message safe">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div class="alert-text">
-            <p class="alert-title">很棒！</p>
-            <p class="alert-subtitle">没有即将截止的任务</p>
+        <div class="stat-item">
+          <div class="stat-header">
+            <span class="stat-label">工时记录</span>
+            <span class="stat-value">32/40h</span>
           </div>
-        </div>
-
-        <!-- 任务列表 -->
-        <div v-if="upcomingTasks.length > 0" class="task-list">
-          <div
-            v-for="task in upcomingTasks.slice(0, 3)"
-            :key="task.id"
-            class="task-item"
-            @click="goToTaskDetail(task)"
-          >
-            <div class="task-info">
-              <p class="task-title">{{ task.title }}</p>
-              <p class="task-project">{{ task.projectName }}</p>
-            </div>
-            <div class="task-deadline" :class="{ 'overdue': task.isOverdue }">
-              {{ formatDate(task.dueDate) }}
-            </div>
-          </div>
-
-          <!-- 查看更多 -->
-          <div v-if="upcomingTasks.length > 3" class="view-more" @click="viewAllTasks">
-            查看全部 {{ upcomingTasks.length }} 个任务 →
+          <div class="progress-bar">
+            <div class="progress-fill work-hours" style="width: 80%"></div>
           </div>
         </div>
       </div>
@@ -104,17 +70,12 @@
 </template>
 
 <script>
-import { taskAPI } from '@/api/task'
-
 export default {
   name: 'RightSidebar',
   data() {
     return {
       currentDate: new Date(),
-      selectedDate: null,
-      upcomingTasks: [],
-      tasksLoading: false,
-      tasksError: null
+      selectedDate: null
     }
   },
   computed: {
@@ -126,20 +87,20 @@ export default {
     calendarDays() {
       const year = this.currentDate.getFullYear()
       const month = this.currentDate.getMonth()
-
+      
       // 获取当月第一天和最后一天
       const firstDay = new Date(year, month, 1)
       const lastDay = new Date(year, month + 1, 0)
-
+      
       // 获取当月第一天是星期几（0=周日，1=周一...）
       const firstDayOfWeek = firstDay.getDay()
-
+      
       // 获取上个月的最后几天
       const prevMonth = new Date(year, month, 0)
       const prevMonthLastDay = prevMonth.getDate()
-
+      
       const days = []
-
+      
       // 添加上个月的末尾几天
       for (let i = firstDayOfWeek - 1; i >= 0; i--) {
         days.push({
@@ -148,7 +109,7 @@ export default {
           isToday: false
         })
       }
-
+      
       // 添加当月的所有天
       for (let day = 1; day <= lastDay.getDate(); day++) {
         const date = new Date(year, month, day)
@@ -160,7 +121,7 @@ export default {
           date: date
         })
       }
-
+      
       // 添加下个月的前几天，确保日历网格完整
       const remainingDays = 42 - days.length // 6行 x 7天 = 42个格子
       for (let day = 1; day <= remainingDays; day++) {
@@ -170,13 +131,9 @@ export default {
           isToday: false
         })
       }
-
+      
       return days
     }
-  },
-  mounted() {
-    // 组件加载时获取任务
-    this.loadUpcomingTasks()
   },
   methods: {
     previousMonth() {
@@ -190,92 +147,6 @@ export default {
         this.selectedDate = day.date
         console.log('选择日期:', day.date)
       }
-    },
-
-    /**
-     * 加载即将到期的任务
-     */
-    async loadUpcomingTasks() {
-      // 检查用户是否已登录
-      const token = localStorage.getItem('access_token')
-      if (!token) {
-        console.log('[RightSidebar] 用户未登录，跳过加载任务')
-        return
-      }
-
-      this.tasksLoading = true
-      this.tasksError = null
-
-      try {
-        // 获取7天内即将到期的任务（只显示前5个）
-        const response = await taskAPI.getMyUpcomingTasks(7, 0, 5)
-
-        if (response.code === 200 && response.data) {
-          this.upcomingTasks = response.data.content || []
-          console.log('[RightSidebar] 成功加载任务:', this.upcomingTasks.length, '个')
-        } else {
-          console.error('[RightSidebar] 加载任务失败:', response.msg)
-          this.tasksError = response.msg || '加载失败'
-        }
-      } catch (error) {
-        console.error('[RightSidebar] 加载任务异常:', error)
-        // 如果是401错误（未登录），清空任务列表但不显示错误
-        if (error.response && error.response.status === 401) {
-          this.upcomingTasks = []
-          this.tasksError = null
-        } else {
-          this.tasksError = '网络错误'
-        }
-      } finally {
-        this.tasksLoading = false
-      }
-    },
-
-    /**
-     * 格式化日期显示
-     */
-    formatDate(dateString) {
-      if (!dateString) return '未设置'
-
-      const date = new Date(dateString)
-      const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const taskDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-
-      const diffTime = taskDate - today
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (diffDays < 0) {
-        return `逾期${Math.abs(diffDays)}天`
-      } else if (diffDays === 0) {
-        return '今天'
-      } else if (diffDays === 1) {
-        return '明天'
-      } else if (diffDays <= 7) {
-        return `${diffDays}天后`
-      } else {
-        return `${date.getMonth() + 1}/${date.getDate()}`
-      }
-    },
-
-    /**
-     * 跳转到任务详情
-     */
-    goToTaskDetail(task) {
-      if (task && task.projectId) {
-        this.$router.push({
-          path: `/project/${task.projectId}`,
-          query: { taskId: task.id }
-        })
-      }
-    },
-
-    /**
-     * 查看全部任务
-     */
-    viewAllTasks() {
-      // 可以跳转到一个任务列表页面，或者打开一个模态框
-      this.$router.push('/tasks')
     }
   }
 }
@@ -292,7 +163,6 @@ export default {
   border-radius: var(--radius-xl);
   border: 1px solid var(--border-primary);
   box-shadow: var(--shadow-md);
-  flex-shrink: 0; /* 防止被压缩 */
 }
 
 .calendar-header {
@@ -300,7 +170,7 @@ export default {
 }
 
 .calendar-widget,
-.task-alert-widget {
+.stats-widget {
   background: var(--bg-primary);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
@@ -310,173 +180,9 @@ export default {
 }
 
 .calendar-widget:hover,
-.task-alert-widget:hover {
+.stats-widget:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
-}
-
-/* 任务提醒样式 */
-.task-alert-widget {
-  border: 2px solid #dbeafe; /* 默认淡蓝色 */
-}
-
-.task-alert-widget.urgent {
-  border: 2px solid var(--error-color); /* 紧急时红色 */
-  background: linear-gradient(135deg, var(--bg-primary), var(--error-light));
-}
-
-.task-alert-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.alert-message {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-normal);
-}
-
-.alert-message.urgent {
-  background: var(--error-light);
-}
-
-.alert-message.safe {
-  background: var(--primary-light);
-}
-
-.alert-text {
-  flex: 1;
-}
-
-.alert-title {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-1) 0;
-}
-
-.alert-subtitle {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* 任务列表样式 */
-.task-list {
-  margin-top: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.task-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--space-3);
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-primary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.task-item:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--primary-color);
-  transform: translateX(4px);
-  box-shadow: var(--shadow-sm);
-}
-
-.task-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.task-title {
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-1) 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.task-project {
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.task-deadline {
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  color: var(--warning-color);
-  background: var(--warning-light);
-  padding: 2px 8px;
-  border-radius: var(--radius-md);
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-left: var(--space-2);
-}
-
-.task-deadline.overdue {
-  color: var(--error-color);
-  background: var(--error-light);
-}
-
-.view-more {
-  text-align: center;
-  padding: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--primary-color);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
-  font-weight: var(--font-medium);
-}
-
-.view-more:hover {
-  background: var(--primary-light);
-}
-
-/* 加载状态 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6);
-}
-
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-primary);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: var(--space-2);
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-text {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin: 0;
 }
 
 .widget-title {
@@ -665,13 +371,13 @@ export default {
   .stats-widget {
     padding: var(--space-4);
   }
-
+  
   .widget-header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
   }
-
+  
   .edit-btn {
     align-self: flex-end;
   }

@@ -2,7 +2,7 @@
   <div class="ai-assistant-container">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
-
+    
     <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">
@@ -34,23 +34,10 @@
       <div class="project-overview">
         <div class="project-header">
         <div class="project-info">
-            <h1 class="project-title">
-              <span class="title-text">{{ currentProject.title }}</span>
-              <div class="title-decoration"></div>
-            </h1>
+            <h1 class="project-title">{{ currentProject.title }}</h1>
           <div class="project-details">
-              <div class="project-name">
-                <svg class="detail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
-                </svg>
-                {{ currentProject.description }}
-              </div>
-              <div class="project-lead">
-                <svg class="detail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                负责人: {{ currentProject.lead }}
-              </div>
+              <div class="project-name">{{ currentProject.description }}</div>
+              <div class="project-lead">负责人: {{ currentProject.lead }}</div>
           </div>
         </div>
         <div class="project-progress">
@@ -92,60 +79,50 @@
       </div>
     </div>
 
-      <!-- 任务管理和AI对话左右布局 -->
-      <div class="task-and-chat-container">
       <!-- 任务管理区域 -->
       <div class="task-management">
         <div class="task-header">
-          <div class="filter-dropdown" @click.stop>
-            <button class="dropdown-button" @click="toggleFilterDropdown">
-              {{ getFilterText() }}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div v-if="filterDropdownOpen" class="dropdown-menu">
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'all' }"
-                @click="setFilterAndClose('all')"
-              >
-                全部状态
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'published' }"
-                @click="setFilterAndClose('published')"
-              >
-                已发布
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'in-progress' }"
-                @click="setFilterAndClose('in-progress')"
-              >
-                进行中
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'completed' }"
-                @click="setFilterAndClose('completed')"
-              >
-                已完成
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'paused' }"
-                @click="setFilterAndClose('paused')"
-              >
-                已暂停
-              </div>
+          <div class="filter-tabs">
+            <div 
+              class="tab" 
+              :class="{ active: activeFilter === 'all' }"
+              @click="setFilter('all')"
+            >
+              全部状态
+            </div>
+            <div
+              class="tab"
+              :class="{ active: activeFilter === 'published' }"
+              @click="setFilter('published')"
+            >
+              已发布
+            </div>
+            <div 
+              class="tab" 
+              :class="{ active: activeFilter === 'in-progress' }"
+              @click="setFilter('in-progress')"
+            >
+              进行中
+            </div>
+            <div 
+              class="tab" 
+              :class="{ active: activeFilter === 'completed' }"
+              @click="setFilter('completed')"
+            >
+              已完成
+            </div>
+            <div 
+              class="tab" 
+              :class="{ active: activeFilter === 'paused' }"
+              @click="setFilter('paused')"
+            >
+              已暂停
             </div>
           </div>
           <div class="search-box">
-            <input
-              type="text"
-              placeholder="搜索任务..."
+            <input 
+              type="text" 
+              placeholder="搜索任务..." 
               :value="searchQuery"
               @input="updateSearchQuery"
             />
@@ -155,17 +132,17 @@
             </svg>
           </div>
         </div>
-
+        
         <div class="task-grid">
-          <div
-            v-for="task in filteredTasks"
-            :key="task.id"
+          <div 
+            v-for="task in filteredTasks" 
+            :key="task.id" 
             class="task-card"
             :class="{ 'unpublished': !isTaskPublished(task) }"
           >
             <div class="task-header">
-              <input
-                type="checkbox"
+              <input 
+                type="checkbox" 
                 :checked="task.checked"
                 @change="toggleTaskCheckbox(task.id)"
               />
@@ -199,8 +176,8 @@
       <div class="ai-chat-section">
         <div class="ai-dialog-title">AI对话框</div>
         <div class="chat-container">
-          <div
-            v-for="message in chatMessages"
+          <div 
+            v-for="message in chatMessages" 
             :key="message.id"
             :class="message.type === 'ai' ? 'ai-message' : 'user-message'"
           >
@@ -209,17 +186,16 @@
             </div>
           </div>
         </div>
-
+        
         <div class="user-input-area">
-          <input
-            type="text"
-            placeholder="输入您的问题..."
+          <input 
+            type="text" 
+            placeholder="输入您的问题..." 
             v-model="userMessage"
             @keyup.enter="sendMessage"
           />
           <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim()">发送</button>
         </div>
-      </div>
       </div>
 
       <!-- AI分析建议区域 -->
@@ -310,7 +286,6 @@ export default {
       sidebarOpen: false,
       activeFilter: 'all',
       searchQuery: '',
-      filterDropdownOpen: false,
       userMessage: '',
       chatMessages: [],
       showProjectDropdown: false,
@@ -522,7 +497,7 @@ export default {
   computed: {
     filteredTasks() {
       let filtered = this.tasks
-
+      
       console.log('当前任务列表:', filtered)
       console.log('当前过滤器:', this.activeFilter)
       console.log('任务数量:', filtered.length)
@@ -542,14 +517,14 @@ export default {
       // 按搜索关键词筛选
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(task =>
+        filtered = filtered.filter(task => 
           task.title.toLowerCase().includes(query) ||
           task.description.toLowerCase().includes(query) ||
           task.assignee.toLowerCase().includes(query)
         )
         console.log('搜索后任务数量:', filtered.length)
       }
-
+      
       console.log('最终过滤后的任务列表:', filtered)
       return filtered
     }
@@ -900,23 +875,6 @@ export default {
     setFilter(filter) {
       this.activeFilter = filter
     },
-    toggleFilterDropdown() {
-      this.filterDropdownOpen = !this.filterDropdownOpen
-    },
-    setFilterAndClose(filter) {
-      this.activeFilter = filter
-      this.filterDropdownOpen = false
-    },
-    getFilterText() {
-      const filterTexts = {
-        'all': '全部状态',
-        'published': '已发布',
-        'in-progress': '进行中',
-        'completed': '已完成',
-        'paused': '已暂停'
-      }
-      return filterTexts[this.activeFilter] || '全部状态'
-    },
     updateSearchQuery(event) {
       this.searchQuery = event.target.value
     },
@@ -944,7 +902,7 @@ export default {
         console.log('Message is empty, not sending')
         return
       }
-
+      
       console.log('Adding user message to chat')
       // 添加用户消息
       const userMsg = {
@@ -955,7 +913,7 @@ export default {
       }
       this.chatMessages.push(userMsg)
       console.log('Chat messages after adding user message:', this.chatMessages)
-
+      
       // 模拟AI回复
       setTimeout(() => {
         console.log('Adding AI response')
@@ -972,7 +930,7 @@ export default {
         this.scrollToBottom()
       })
     }, 1000)
-
+    
     // 清空输入框
     this.userMessage = ''
     console.log('Input cleared')
@@ -990,7 +948,6 @@ export default {
     handleClickOutside(event) {
       if (!this.$el.contains(event.target)) {
         this.showProjectDropdown = false
-        this.filterDropdownOpen = false
       }
     }
   },
@@ -1019,7 +976,7 @@ export default {
     window.addEventListener('focus', () => {
       this.syncTaskStatusChanges()
     })
-
+    
     // 监听任务状态变化事件
     this.$root.$on('taskStatusChanged', (data) => {
       console.log('收到任务状态变化通知:', data)
@@ -1034,7 +991,7 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
     window.removeEventListener('focus', this.syncTaskStatusChanges)
-
+    
     // 清理全局事件监听器
     this.$root.$off('taskStatusChanged')
 
@@ -1049,52 +1006,14 @@ export default {
 <style scoped>
 @import '@/assets/styles/variables.css';
 
-@keyframes bounceInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(60px) scale(0.95);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(-10px) scale(1.02);
-  }
-  80% {
-    transform: translateY(5px) scale(0.98);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes bounceInDown {
-  0% {
-    opacity: 0;
-    transform: translateY(-60px) scale(0.95);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(10px) scale(1.02);
-  }
-  80% {
-    transform: translateY(-5px) scale(0.98);
-  }
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
 .ai-assistant-container {
   min-height: 100vh;
-  background-color: #f8f9fa;
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .top-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-primary);
   height: 64px;
@@ -1103,7 +1022,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  z-index: 1000;
+  position: relative;
 }
 
 .header-left {
@@ -1192,25 +1111,23 @@ export default {
 
 .progress-bar {
   width: 100%;
-  height: 10px;
-  background: #e5e7eb;
-  border-radius: 20px;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
   overflow: hidden;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #5EB6E4 0%, #0044CC 100%);
-  border-radius: 20px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 68, 204, 0.3);
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+  border-radius: var(--radius-full);
+  transition: width var(--transition-normal);
 }
 
 .progress-text {
-  font-size: 14px;
-  color: #0044CC;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--primary-color);
+  font-weight: var(--font-semibold);
 }
 
 /* 项目切换器样式 */
@@ -1348,7 +1265,6 @@ export default {
 
 .main-content {
   flex: 1;
-  margin-top: 64px; /* 为固定页眉留出空间 */
   padding: var(--space-6);
   display: flex;
   flex-direction: column;
@@ -1357,26 +1273,18 @@ export default {
 
 /* 项目概览区域 */
 .project-overview {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
-  padding: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e3e8ef;
-  margin-bottom: 28px;
-  animation: bounceInDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-  transition: all 0.3s ease;
-}
-
-.project-overview:hover {
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-primary);
 }
 
 .project-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 32px;
+  gap: var(--space-6);
 }
 
 .project-info {
@@ -1385,53 +1293,32 @@ export default {
 }
 
 .project-title {
-  position: relative;
-  margin: 0 0 20px 0;
-  display: inline-block;
-}
-
-.title-text {
-  font-size: 32px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3) 0;
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -0.5px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.title-decoration {
-  position: absolute;
-  bottom: -8px;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #5EB6E4 0%, #A7C6ED 50%, transparent 100%);
-  border-radius: 2px;
-}
-
 .project-details {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-2);
 }
 
-.project-name,
-.project-lead {
-  font-size: 15px;
-  font-weight: 500;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.detail-icon {
-  flex-shrink: 0;
-  color: #5EB6E4;
+.project-name {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .project-lead {
@@ -1439,93 +1326,46 @@ export default {
   color: var(--text-secondary);
 }
 
-/* 任务管理和AI对话容器 */
-.task-and-chat-container {
-  display: flex;
-  gap: var(--space-6);
-  align-items: flex-start;
-}
-
 /* 任务管理区域 */
 .task-management {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e3e8ef;
-  flex: 0 0 400px;
-  height: 500px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.task-management:hover {
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-primary);
 }
 
 .task-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px; /* 从20px减小到16px */
-  flex-shrink: 0; /* 防止头部被压缩 */
+  margin-bottom: 20px;
 }
 
-.filter-dropdown {
-  position: relative;
-  display: inline-block;
+.filter-tabs {
+  display: flex;
+  gap: 8px;
 }
 
-.dropdown-button {
+.tab {
   padding: 8px 16px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  background: white;
+  border-radius: 20px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.dropdown-button:hover {
-  border-color: var(--primary-color);
+  transition: all 0.3s ease;
+  color: #666;
   background: #f8f9fa;
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 150px;
-  z-index: 100;
+.tab.active {
+  background: #007bff;
+  color: white;
 }
 
-.dropdown-item {
-  padding: 10px 16px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.dropdown-item:hover {
-  background-color: #f8f9fa;
-}
-
-.dropdown-item.active {
-  background-color: var(--primary-light);
-  color: var(--primary-color);
-  font-weight: 600;
+.tab:hover:not(.active) {
+  background: #e9ecef;
+  color: #333;
 }
 
 .search-box {
@@ -1557,85 +1397,73 @@ export default {
 
 .task-grid {
   display: grid;
-  grid-template-columns: 1fr; /* 单列布局 */
-  gap: 12px;
-  overflow-y: auto;
-  flex: 1;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
 }
 
 .task-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
   padding: 16px;
-  background: white;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   cursor: pointer;
 }
 
 .task-card:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
-  border-color: #5EB6E4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .task-card .task-header {
   display: flex;
   align-items: center;
-  gap: 8px; /* 从12px减小到8px */
-  margin-bottom: 6px; /* 从8px减小到6px */
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .task-card input[type="checkbox"] {
-  width: 14px; /* 从16px减小到14px */
-  height: 14px; /* 从16px减小到14px */
+  width: 16px;
+  height: 16px;
 }
 
 .task-title {
   flex: 1;
-  font-size: 14px; /* 从16px减小到14px */
+  font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
 .task-status {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.task-card:hover .task-status {
-  transform: scale(1.05);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .task-status.pending {
-  background: linear-gradient(135deg, #e0b3e5 0%, #a76fb5 100%);
-  color: white;
+  background: #f3e5f5;
+  color: #7b1fa2;
 }
 
 .task-status.in-progress {
-  background: linear-gradient(135deg, #A7C6ED 0%, #5EB6E4 100%);
-  color: white;
+  background: #e3f2fd;
+  color: #1976d2;
 }
 
 .task-status.completed {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-  color: white;
+  background: #e8f5e8;
+  color: #2e7d32;
 }
 
 .task-status.paused {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: white;
+  background: #fff3e0;
+  color: #f57c00;
 }
 
 .task-description {
-  font-size: 12px; /* 从14px减小到12px */
+  font-size: 14px;
   color: #666;
-  margin-bottom: 8px; /* 从12px减小到8px */
+  margin-bottom: 12px;
   line-height: 1.4;
 }
 
@@ -1646,20 +1474,20 @@ export default {
 }
 
 .assignee-avatar {
-  width: 20px; /* 从24px减小到20px */
-  height: 20px; /* 从24px减小到20px */
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #007bff;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px; /* 从12px减小到10px */
+  font-size: 12px;
   font-weight: 600;
 }
 
 .task-assignee span {
-  font-size: 12px; /* 从14px减小到12px */
+  font-size: 14px;
   color: #333;
 }
 
@@ -1688,51 +1516,38 @@ export default {
 }
 
 .publish-btn {
-  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  background: var(--success-color);
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  transition: all var(--transition-fast);
 }
 
 .publish-btn:hover {
-  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
+  background: var(--success-hover);
+  transform: translateY(-1px);
 }
 
 /* AI对话区域 */
 .ai-chat-section {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e3e8ef;
+  background: white;
+  border-radius: 12px;
+  padding: 20px 40px 20px 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   height: 500px;
-  flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: all 0.3s ease;
-  animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s backwards;
-}
-
-.ai-chat-section:hover {
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
 }
 
 .ai-dialog-title {
   position: absolute;
-  top: 24px;
-  left: 24px;
+  top: 20px;
+  left: 40px;
   font-size: 18px;
   font-weight: 600;
   color: #333;
@@ -1827,22 +1642,19 @@ export default {
 }
 
 .send-btn {
-  padding: 12px 32px;
-  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  padding: 12px 24px;
+  background: #007bff;
   color: white;
   border: none;
   border-radius: 24px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  transition: background-color 0.3s ease;
 }
 
 .send-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
+  background: #0056b3;
 }
 
 .send-btn:disabled {
@@ -1854,27 +1666,16 @@ export default {
 
 /* AI分析建议区域 */
 .ai-suggestions {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
-  padding: 32px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e3e8ef;
-  transition: all 0.3s ease;
-  animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
-}
-
-.ai-suggestions:hover {
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .suggestions-title {
-  font-size: 22px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
   margin: 0 0 20px 0;
 }
 
@@ -1887,42 +1688,33 @@ export default {
 .suggestion-card {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  padding: 20px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  background: white;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
 .suggestion-card:hover {
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-4px);
-  border-color: #5EB6E4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
 }
 
 .suggestion-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #A7C6ED 0%, #5EB6E4 100%);
-  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e8f5e8;
+  color: #2e7d32;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.3);
-  transition: all 0.3s ease;
-}
-
-.suggestion-card:hover .suggestion-icon {
-  transform: scale(1.1) rotate(5deg);
 }
 
 .suggestion-icon.warning {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  background: #fff3e0;
+  color: #f57c00;
 }
 
 .suggestion-content {
@@ -2011,7 +1803,7 @@ export default {
   .main-content {
     padding: var(--space-4);
   }
-
+  
   .project-overview {
     padding: var(--space-4);
   }
@@ -2029,7 +1821,7 @@ export default {
   .project-title {
     font-size: var(--text-2xl);
   }
-
+  
   .project-progress {
     min-width: 180px;
     align-self: center;
@@ -2054,19 +1846,24 @@ export default {
     gap: var(--space-4);
     align-items: stretch;
   }
-
+  
+  .filter-tabs {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
   .search-box input {
     width: 100%;
   }
-
+  
   .task-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .suggestions-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .bottom-actions {
     flex-direction: column;
   }
