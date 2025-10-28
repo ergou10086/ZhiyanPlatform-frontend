@@ -1,19 +1,34 @@
 // 认证相关的工具函数
+import tokenManager from './tokenManager'
 
 /**
  * 保存用户登录信息
  * @param {Object} loginData - 登录返回的数据
  */
 export function saveLoginData(loginData) {
-  const { accessToken, refreshToken, rememberMeToken, userInfo } = loginData
+  const { accessToken, refreshToken, rememberMeToken, userInfo, expiresIn } = loginData
   
-  // 保存token
-  if (accessToken) {
-    localStorage.setItem('access_token', accessToken)
+  console.log('📦 保存登录数据:', { 
+    hasAccessToken: !!accessToken, 
+    hasRefreshToken: !!refreshToken,
+    expiresIn 
+  })
+
+  // 使用TokenManager保存token（会自动设置刷新定时器）
+  if (accessToken && refreshToken && expiresIn) {
+    tokenManager.saveTokens(accessToken, refreshToken, expiresIn)
+  } else {
+    // 兼容旧的逻辑（如果后端没有返回expiresIn）
+    console.warn('⚠️ 登录响应缺少expiresIn，使用旧方式保存token')
+    if (accessToken) {
+      localStorage.setItem('access_token', accessToken)
+    }
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken)
+    }
   }
-  if (refreshToken) {
-    localStorage.setItem('refresh_token', refreshToken)
-  }
+
+  // 保存rememberMe token
   if (rememberMeToken) {
     localStorage.setItem('remember_me_token', rememberMeToken)
   }
@@ -63,10 +78,12 @@ export function isLoggedIn() {
  * 清除所有认证信息
  */
 export function clearAuthData() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('remember_me_token')
-  localStorage.removeItem('user_info')
+  console.log('🗑️ 清除所有认证信息')
+  
+  // 使用TokenManager清除token（会停止刷新定时器）
+  tokenManager.clearTokens()
+  
+  // 清除其他数据
   localStorage.removeItem('userAvatar')
   localStorage.removeItem('globalUserInfo')
   
