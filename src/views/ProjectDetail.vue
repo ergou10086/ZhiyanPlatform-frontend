@@ -2355,8 +2355,6 @@ export default {
   gap: 8px;
   max-height: 60vh;
   overflow-y: auto;
-  /* 防止滚动事件穿透到背景 */
-  overscroll-behavior: contain;
 }
 
 .task-list-item {
@@ -2881,7 +2879,6 @@ export default {
   justify-content: center;
   z-index: 2000;
   padding: 20px;
-  overflow: hidden; /* 防止背景滚动 */
 }
 
 .modal-content {

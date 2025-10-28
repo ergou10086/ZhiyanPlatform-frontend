@@ -1,11 +1,21 @@
 <template>
   <div class="catalog-view">
     <div class="section-card">
+      <div class="section-header">
+        <div>
       <div class="section-title">成果目录管理</div>
       <div class="section-subtitle">在这里您可以上传各类新的研究成果，并查看已有的成果档案</div>
+        </div>
+        <button class="archive-toggle-btn" @click="showArchivePanel = !showArchivePanel">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 2H5C3.9 2 3 2.9 3 4V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V4C21 2.9 20.1 2 19 2ZM5 4H8V9H5V4ZM10 4H13V9H10V4ZM8 11V20H5V11H8ZM10 11V20H13V11H10ZM19 20H15V11H19V20ZM15 9V4H19V9H15Z" fill="currentColor"/>
+          </svg>
+          已有成果档案
+        </button>
+      </div>
     </div>
 
-    <div class="section-card">
+    <div class="section-card add-achievement-section">
       <div class="section-title small">添加新成果</div>
       <div class="add-grid">
         <div class="add-card">
@@ -55,98 +65,6 @@
           </div>
           <div class="add-desc">创建自定义成果类型</div>
           <button class="add-btn" @click="createCustomType">新建类型</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-card">
-      <div class="section-title small">已有成果档案</div>
-      
-      <!-- 搜索框 -->
-      <div class="search-section">
-        <div class="search-container">
-          <input 
-            v-model="searchText" 
-            type="text" 
-            placeholder="搜索成果名称、类型或上传者..." 
-            class="search-input"
-            @input="onSearchInput"
-          />
-          <div class="search-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <button 
-            v-if="searchText" 
-            @click="clearSearch" 
-            class="clear-search-btn"
-            title="清除搜索"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div v-if="searchText" class="search-results-info">
-          找到 {{ filteredFiles.length }} 个结果
-        </div>
-      </div>
-      
-      <div class="table-wrap">
-        <table class="doc-table">
-          <thead>
-            <tr>
-              <th>成果名</th>
-              <th>类型</th>
-              <th>上传者</th>
-              <th>上传时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in paginatedFiles" :key="row.id">
-              <td class="filename">
-                <span class="file-dot" :class="row.typeCls"></span>
-                <div class="file-info">
-                  <div class="file-name">{{ row.name }}</div>
-                  <div v-if="row.fileCount && row.fileCount > 1" class="file-count">包含 {{ row.fileCount }} 个文件</div>
-                </div>
-              </td>
-              <td>{{ row.type }}</td>
-              <td>{{ row.uploader }}</td>
-              <td>{{ row.time }}</td>
-              <td class="ops">
-                <a href="#" @click.prevent="viewFile(row)">查看</a>
-                <a href="#" @click.prevent="downloadAllFiles(row)" v-if="row.files && row.files.length > 1">下载全部</a>
-                <a href="#" @click.prevent="downloadFile(row)" v-else>下载</a>
-                <a href="#" @click.prevent="deleteFile(row)" class="delete-link">删除</a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="pagination line">
-        <span class="pager-text">{{ paginationInfo }}</span>
-        <div class="pager-group">
-          <button 
-            class="pager small" 
-            :disabled="currentPage === 1"
-            @click="goToPage(currentPage - 1)"
-          >上一页</button>
-          <button 
-            v-for="page in visiblePages" 
-            :key="page"
-            class="page-num small" 
-            :class="{ active: page === currentPage }"
-            @click="goToPage(page)"
-          >{{ page }}</button>
-          <button 
-            class="pager small" 
-            :disabled="currentPage === totalPages"
-            @click="goToPage(currentPage + 1)"
-          >下一页</button>
         </div>
       </div>
     </div>
@@ -1109,10 +1027,117 @@
         </div>
       </div>
     </div>
+
+    <!-- 成果档案滑动面板遮罩 -->
+    <div v-if="showArchivePanel" class="archive-overlay" @click="showArchivePanel = false"></div>
+    
+    <!-- 成果档案滑动面板 -->
+    <div class="archive-slide-panel notranslate" :class="{ 'open': showArchivePanel }" translate="no">
+      <div class="panel-header">
+        <div class="panel-title">已有成果档案</div>
+        <button class="panel-close-btn" @click="showArchivePanel = false">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="panel-content">
+        <!-- 搜索框 -->
+        <div class="search-section">
+          <div class="search-container">
+            <input 
+              v-model="searchText" 
+              type="text" 
+              placeholder="搜索成果名称、类型或上传者..." 
+              class="search-input"
+              @input="onSearchInput"
+            />
+            <div class="search-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 21L16.514 16.506L21 21ZM19 10.5C19 15.194 15.194 19 10.5 19C5.806 19 2 15.194 2 10.5C2 5.806 5.806 2 10.5 2C15.194 2 19 5.806 19 10.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <button 
+              v-if="searchText" 
+              @click="clearSearch" 
+              class="clear-search-btn"
+              title="清除搜索"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div v-if="searchText" class="search-results-info">
+            找到 {{ filteredFiles.length }} 个结果
+          </div>
+        </div>
+        
+        <div class="table-wrap">
+          <table class="doc-table">
+            <thead>
+              <tr>
+                <th>成果名</th>
+                <th>类型</th>
+                <th>上传者</th>
+                <th>上传时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in paginatedFiles" :key="row.id">
+                <td class="filename">
+                  <span class="file-dot" :class="row.typeCls"></span>
+                  <div class="file-info">
+                    <div class="file-name">{{ row.name }}</div>
+                    <div v-if="row.fileCount && row.fileCount > 1" class="file-count">包含 {{ row.fileCount }} 个文件</div>
+                  </div>
+                </td>
+                <td>{{ row.type }}</td>
+                <td>{{ row.uploader }}</td>
+                <td>{{ row.time }}</td>
+                <td class="ops">
+                  <a href="#" @click.prevent="viewFile(row)">查看</a>
+                  <a href="#" @click.prevent="downloadAllFiles(row)" v-if="row.files && row.files.length > 1">下载全部</a>
+                  <a href="#" @click.prevent="downloadFile(row)" v-else>下载</a>
+                  <a href="#" @click.prevent="deleteFile(row)" class="delete-link">删除</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination line">
+          <span class="pager-text">{{ paginationInfo }}</span>
+          <div class="pager-group">
+            <button 
+              class="pager small" 
+              :disabled="currentPage === 1"
+              @click="goToPage(currentPage - 1)"
+            >上一页</button>
+            <button 
+              v-for="page in visiblePages" 
+              :key="page"
+              class="page-num small" 
+              :class="{ active: page === currentPage }"
+              @click="goToPage(page)"
+            >{{ page }}</button>
+            <button 
+              class="pager small" 
+              :disabled="currentPage === totalPages"
+              @click="goToPage(currentPage + 1)"
+            >下一页</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { EventBus, EVENTS } from '@/utils/eventBus'
+
 export default {
   name: 'KnowledgeBaseCatalog',
   props: {
@@ -1135,6 +1160,7 @@ export default {
       customTypeName: '',
       customTypeDesc: '',
       uploadedFiles: [],
+      showArchivePanel: false, // 控制成果档案面板的显示
       currentPage: 1,
       pageSize: 5,
       totalItems: 0,
@@ -1288,6 +1314,12 @@ export default {
   mounted() {
     // 组件挂载时加载本地存储的数据
     this.loadFromLocalStorage()
+  },
+  watch: {
+    showArchivePanel(newVal) {
+      // 当面板状态变化时，通知全局用户信息框
+      EventBus.$emit(EVENTS.ARCHIVE_PANEL_TOGGLE, newVal)
+    }
   },
   beforeDestroy() {
     // 组件销毁前保存数据
@@ -2557,10 +2589,199 @@ export default {
 </script>
 
 <style scoped>
-.section-card { background: #fff; border: 1px solid #eef0f2; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-.section-title { font-size: 16px; font-weight: 600; color: #333; }
-.section-title.small { font-size: 14px; }
-.section-subtitle { color: #9ca3af; font-size: 12px; margin-top: 6px; }
+.catalog-view {
+  position: relative;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.archive-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.archive-toggle-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.archive-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 滑动面板遮罩 */
+.archive-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+/* 滑动面板样式 */
+.archive-slide-panel {
+  position: fixed;
+  top: 0;
+  right: -600px;
+  width: 600px;
+  height: 100vh;
+  background: #fff;
+  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+  transition: right 0.3s ease;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+}
+
+.archive-slide-panel.open {
+  right: 0;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 2px solid #e5e7eb;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  gap: 12px;
+}
+
+.panel-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.panel-close-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border: 2px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.panel-close-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #ef4444;
+  transform: scale(1.05);
+}
+
+.panel-close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* 面板内表格样式 */
+.archive-slide-panel .table-wrap {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.archive-slide-panel .doc-table {
+  min-width: 100%;
+}
+
+.archive-slide-panel .doc-table thead th {
+  font-size: 12px;
+  padding: 10px 8px;
+  white-space: nowrap;
+}
+
+.archive-slide-panel .doc-table tbody td {
+  font-size: 13px;
+  padding: 10px 8px;
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.archive-slide-panel .doc-table tbody .filename {
+  max-width: 200px;
+}
+
+.archive-slide-panel .doc-table .file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive-slide-panel .ops {
+  white-space: nowrap;
+}
+
+.archive-slide-panel .ops a {
+  margin-right: 8px;
+  font-size: 12px;
+  display: inline-block;
+}
+
+.section-card { 
+  background: #fff; 
+  border: 1px solid #eef0f2; 
+  border-radius: 12px; 
+  padding: 24px 28px; 
+  margin-bottom: 20px; 
+}
+
+.add-achievement-section {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  flex-direction: column;
+  padding: 32px 48px;
+}
+
+.section-title { 
+  font-size: 20px; 
+  font-weight: 600; 
+  color: #1f2937; 
+}
+
+.section-title.small { 
+  font-size: 18px; 
+  margin-bottom: 24px;
+}
+.section-subtitle { 
+  color: #6b7280; 
+  font-size: 13px; 
+  margin-top: 6px; 
+}
 
 /* 搜索框样式 */
 .search-section {
@@ -2653,36 +2874,86 @@ export default {
   border-radius: 4px;
 }
 
-.add-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.add-card { border: 1px solid #eef0f2; border-radius: 12px; padding: 14px; background: #fff; }
-.add-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.add-name { color: #374151; font-weight: 600; }
-.add-desc { color: #9ca3af; font-size: 12px; margin-bottom: 8px; }
+.add-grid { 
+  display: grid; 
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 30px 40px; 
+  padding: 20px 40px;
+  flex: 1;
+  align-content: center;
+}
+
+.add-card { 
+  border: 2px solid #eef0f2; 
+  border-radius: 14px; 
+  padding: 28px 24px; 
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+}
+
+.add-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-color: #5b6bff;
+}
+
+.add-head { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  margin-bottom: 14px; 
+}
+
+.add-name { 
+  color: #1f2937; 
+  font-weight: 600; 
+  font-size: 19px;
+}
+
+.add-desc { 
+  color: #6b7280; 
+  font-size: 15px; 
+  margin-bottom: 20px; 
+  flex: 1;
+  line-height: 1.5;
+}
+
 .add-btn {
-  margin-top: 12px;
-  padding: 8px 20px;
-  background: #5b6bff;
+  margin-top: auto;
+  padding: 13px 24px;
+  background: linear-gradient(135deg, #5b6bff 0%, #4a5bff 100%);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   width: 100%;
+  box-shadow: 0 3px 12px rgba(91, 107, 255, 0.25);
 }
 
 .add-btn:hover {
-  background: #4a5bff;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.3);
+  background: linear-gradient(135deg, #4a5bff 0%, #3a4bef 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 16px rgba(91, 107, 255, 0.4);
 }
 
 .add-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(91, 107, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(91, 107, 255, 0.3);
 }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot { 
+  width: 14px; 
+  height: 14px; 
+  border-radius: 50%; 
+  display: inline-block; 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
 .dot-blue { background: #3b82f6; }
 .dot-orange { background: #f59e0b; }
 .dot-green { background: #10b981; }
@@ -2726,7 +2997,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
 }
 
 .upload-dialog {
@@ -3169,7 +3440,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 1100;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -3750,8 +4021,53 @@ export default {
   height: 16px;
 }
 
-@media (max-width: 900px) {
-  .add-grid { grid-template-columns: 1fr; }
+@media (max-width: 1400px) {
+  .add-grid { 
+    gap: 25px 30px;
+    padding: 20px 30px;
+  }
+  
+  .add-achievement-section {
+    padding: 28px 36px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .add-grid { 
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    padding: 20px 24px;
+  }
+  
+  .add-achievement-section {
+    padding: 24px 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .add-grid { 
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 16px 20px;
+  }
+  
+  .add-card {
+    min-height: 160px;
+    padding: 24px 20px;
+  }
+  
+  .section-card {
+    padding: 20px 16px;
+  }
+  
+  .add-achievement-section {
+    padding: 20px 24px;
+  }
+  
+  .archive-toggle-btn {
+    font-size: 13px;
+    padding: 8px 16px;
+  }
 }
 
 /* 内容编辑相关样式 */
