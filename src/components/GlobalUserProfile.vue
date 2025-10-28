@@ -96,11 +96,21 @@ export default {
       if (this.isLoggedIn && savedUserInfo) {
         try {
           const userData = JSON.parse(savedUserInfo)
+          
+          // 优先使用 avatar，其次使用 avatarUrl
+          const avatarUrl = userData.avatar || userData.avatarUrl || ''
+          
           this.globalUserInfo = {
             nickname: userData.nickname || userData.name || '用户',
-            avatar: userData.avatar || ''
+            avatar: avatarUrl  // 确保有值
           }
-          console.log('GlobalUserProfile加载用户信息:', this.globalUserInfo)
+          
+          console.log('GlobalUserProfile加载用户信息:', {
+            nickname: this.globalUserInfo.nickname,
+            avatar: this.globalUserInfo.avatar,
+            hasAvatar: !!this.globalUserInfo.avatar,
+            avatarLength: this.globalUserInfo.avatar.length
+          })
         } catch (error) {
           console.error('解析用户信息失败:', error)
           this.isLoggedIn = false

@@ -883,11 +883,58 @@ export default {
       }
     },
     
-    loadProject() {
+    async loadProject() {
       const projectId = this.$route.params.id
       console.log('正在加载项目ID:', projectId, '类型:', typeof projectId)
       
-      // 从localStorage加载项目数据
+      // 优先从后端API获取最新的项目数据
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const response = await projectAPI.getProjectById(projectId)
+        
+        if (response && response.code === 200 && response.data) {
+          console.log('从API获取到最新项目数据:', response.data)
+          const apiProject = response.data
+          
+          // 使用API返回的最新数据
+          this.project = {
+            id: apiProject.id,
+            name: apiProject.name,
+            title: apiProject.name,
+            description: apiProject.description || '暂无描述',
+            startDate: apiProject.startDate || '',
+            endDate: apiProject.endDate || '',
+            period: (apiProject.startDate && apiProject.endDate) ? 
+              `${apiProject.startDate} 至 ${apiProject.endDate}` : 
+              '2024-01-01 至 2024-12-31',
+            status: apiProject.status || 'PLANNING',
+            visibility: apiProject.visibility || 'PRIVATE',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            manager: this.getCurrentUserName(),
+            teamSize: apiProject.teamSize || 1,
+            category: apiProject.category || '其他',
+            aiCore: '待定',
+            tags: apiProject.tags || [],
+            tasks: [],
+            created_by: apiProject.creatorId || 1
+          }
+          
+          console.log('项目加载完成，最新imageUrl:', this.project.imageUrl)
+          
+          // 加载团队成员（从localStorage或使用默认值）
+          this.loadTeamMembersFromLocalStorage()
+          
+          // 加载任务数据
+          this.loadProjectTasks()
+          this.isLoading = false
+          return
+        }
+      } catch (error) {
+        console.error('从API加载项目失败，回退到localStorage:', error)
+      }
+      
+      // 如果API失败，从localStorage加载项目数据（作为后备）
       const savedProjects = localStorage.getItem('projects')
       console.log('localStorage中的项目数据:', savedProjects)
       
@@ -978,6 +1025,30 @@ export default {
       
       // 加载项目任务数据
       this.loadProjectTasks()
+    },
+    
+    loadTeamMembersFromLocalStorage() {
+      const projectId = this.$route.params.id
+      const savedProjects = localStorage.getItem('projects')
+      
+      if (savedProjects) {
+        const projects = JSON.parse(savedProjects)
+        const foundProject = projects.find(p => String(p.id) === String(projectId))
+        
+        if (foundProject) {
+          this.teamMembers = foundProject.teamMembers || [
+            { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+          ]
+          this.inviteSlots = foundProject.inviteSlots || []
+        }
+      }
+      
+      // 如果没有找到，使用默认值
+      if (!this.teamMembers || this.teamMembers.length === 0) {
+        this.teamMembers = [
+          { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+        ]
+      }
     },
     goBack() {
       this.$router.go(-1)

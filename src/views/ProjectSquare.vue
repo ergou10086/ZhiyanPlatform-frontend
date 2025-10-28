@@ -241,6 +241,12 @@ export default {
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', this.loadUserAvatar)
   },
+  activated() {
+    // 当页面被激活时（从其他页面返回），重新加载项目数据
+    // 这样可以获取到最新上传的图片
+    console.log('页面被激活，重新加载项目数据')
+    this.loadProjects()
+  },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
