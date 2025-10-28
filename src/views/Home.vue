@@ -556,23 +556,23 @@ export default {
 
 .header-image {
   width: 100%;
-  height: 100px;
+  height:63px; /* 缩小高度，使其能被页眉完全遮挡 */
+  margin-bottom: 0; /* 移除底部间距 */
   overflow: hidden;
   position: relative;
   z-index: 999; /* 在页眉(z-index: 1000)后面 */
-  margin-top: 64px; /* 位于页眉下方 */
 }
 
 .header-image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain; /* 完整显示图片，保持原比例 */
   display: block;
 }
 
 .main-content {
   flex: 1;
-  margin-top: 164px; /* 64px页眉 + 100px图片 */
+  margin-top: 0; /* 组件紧贴图片 */
   display: flex;
   gap: var(--space-6);
   padding: var(--space-6);
