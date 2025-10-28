@@ -1497,11 +1497,10 @@ export default {
         console.log('[deleteTask] API返回结果:', response)
         
         if (response && response.code === 200) {
-          // 删除成功，从本地任务列表中移除
-          this.tasks = this.tasks.filter(t => t.id !== taskId)
+          console.log('[deleteTask] ✅ 任务删除成功，重新从后端加载任务列表')
           
-          // 保存到localStorage
-          this.saveProjectData()
+          // ✅ 重新从后端加载最新的任务列表，确保数据一致性
+          await this.loadProjectTasks()
           
           this.showSuccessToast('任务已删除！')
         } else {
@@ -1661,15 +1660,13 @@ export default {
         console.log('[changeTaskStatus] API返回结果:', response)
         
         if (response && response.code === 200) {
-          // 更新本地任务状态
-          task.status = newStatus
-          task.status_value = statusValue
+          console.log('[changeTaskStatus] ✅ 任务状态更新成功，重新加载任务列表')
           
           // 关闭状态菜单
           this.$set(task, 'showStatusMenu', false)
           
-          // 保存到localStorage
-          this.saveProjectData()
+          // ✅ 重新从后端加载最新的任务列表，确保数据一致性
+          await this.loadProjectTasks()
           
           this.showSuccessToast('任务状态已更新！')
           

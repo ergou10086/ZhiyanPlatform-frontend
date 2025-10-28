@@ -951,7 +951,7 @@ export default {
           // 添加前端显示需要的字段
           title: response.data.name, // 保留title字段用于前端显示
           status: this.getStatusDisplay(response.data.status), // 转换为中文状态显示
-          teamSize: createdTasks.length || 1,
+          teamSize: 1, // 默认团队人数为1
           dataAssets: this.formData.projectDescription || '暂无描述',
           direction: this.formData.projectDescription || '暂无描述',
           aiCore: '待定',
