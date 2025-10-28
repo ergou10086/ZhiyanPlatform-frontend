@@ -554,23 +554,95 @@ export default {
       return filtered
     }
   },
-  methods: {
-    toggleSidebar() {
-      this.sidebarOpen = !this.sidebarOpen
-    },
-    closeSidebar() {
-      this.sidebarOpen = false
-    },
-    toggleProjectDropdown() {
-      this.showProjectDropdown = !this.showProjectDropdown
-    },
+  mounted() {
+    document.addEventListener('click', this.handleClickOutside)
+    
+    // 调试localStorage数据
+    this.debugLocalStorage()
+    
+    // 先加载用户项目
+    this.loadUserProjects()
+    
+    // 使用 nextTick 确保 availableProjects 已经更新
+    this.$nextTick(() => {
+      // 尝试从 localStorage 恢复上次选中的项目
+      const lastSelectedProject = localStorage.getItem('lastSelectedProject')
+      if (lastSelectedProject) {
+        try {
+          const projectData = JSON.parse(lastSelectedProject)
+          console.log('尝试恢复上次选中的项目:', projectData.title)
+          
+          // 在项目列表中找到对应的项目
+          const foundProject = this.availableProjects.find(p => String(p.id) === String(projectData.id))
+          if (foundProject) {
+            this.currentProject = foundProject
+            console.log('已恢复上次选中的项目:', foundProject.title)
+            
+            // 恢复项目后，重新加载该项目的任务数据
+            this.loadProjectTasks(this.currentProject.id)
+          } else {
+            console.log('未找到上次选中的项目，使用默认项目')
+            // 使用默认项目
+            this.loadProjectTasks(this.currentProject.id)
+          }
+        } catch (error) {
+          console.error('恢复上次选中的项目失败:', error)
+          // 恢复失败时使用默认项目
+          this.loadProjectTasks(this.currentProject.id)
+        }
+      } else {
+        // 没有保存的项目，使用默认项目
+        this.loadProjectTasks(this.currentProject.id)
+      }
+    })
+
+    // 设置定时器定期同步任务状态（每30秒）
+    this.syncTimer = setInterval(() => {
+      this.syncTaskStatusChanges()
+    }, 30000)
+
+    // 监听页面可见性变化，当页面重新获得焦点时同步
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.syncTaskStatusChanges()
+      }
+    })
+
+    // 监听窗口焦点变化
+    window.addEventListener('focus', () => {
+      this.syncTaskStatusChanges()
+    })
+
+    // 监听任务状态变化事件
+    this.$root.$on('taskStatusChanged', (data) => {
+      console.log('收到任务状态变化通知:', data)
+      // 如果变化的是当前项目的任务，立即同步
+      if (data.projectId === this.currentProject.id) {
+        console.log('当前项目任务状态发生变化，立即同步')
+        this.syncTaskStatusChanges()
+      }
+    })
+  },
+    
     switchProject(project) {
       this.currentProject = { ...project }
       this.showProjectDropdown = false
+  
+      // 保存当前选中的项目到 localStorage
+      localStorage.setItem('lastSelectedProject', JSON.stringify({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        lead: project.lead,
+        progress: project.progress
+      }))
+  
       // 重新加载项目任务数据
       this.loadProjectTasks(project.id)
-      // 如果是用户项目，重新加载用户项目数据
-      if (project.id > 1000) {
+      // 检查是否是用户项目（判断ID是否为字符串且是雪花ID）
+      // 雪花ID通常是19位数字，而默认项目的ID是1,2,3,4
+      const isCustomProject = String(project.id).length > 5
+      if (isCustomProject) {
         this.loadUserProjects()
         this.loadProjectTasks(project.id)
       }
@@ -616,7 +688,7 @@ export default {
 
       // 将用户创建的项目添加到可用项目列表中
       const userProjects = createdProjects.map(project => ({
-        id: project.id + 1000, // 避免ID冲突
+        id: project.id, // 使用原始的雪花ID
         title: project.title,
         description: project.description || project.title,
         lead: project.lead || '您',
@@ -628,17 +700,16 @@ export default {
       // 为每个用户项目加载任务数据
       userProjects.forEach(project => {
         const projectId = project.id
-        const originalProjectId = project.id - 1000 // 转换回原始ID
 
-        console.log(`处理项目 ${project.title} (ID: ${originalProjectId})`)
+        console.log(`处理项目 ${project.title} (ID: ${projectId})`)
 
         // 从localStorage加载该项目的任务
-        const projectTasks = this.loadTasksFromProject(originalProjectId)
+        const projectTasks = this.loadTasksFromProject(projectId)
 
         if (projectTasks.length > 0) {
           // 如果有任务，使用这些任务
           this.projectTasks[projectId] = projectTasks.map((task, index) => ({
-            id: projectId * 100 + index + 1,
+            id: task.id || `${projectId}_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 使用真实ID或生成唯一ID
             title: task.title,
             description: task.description || '任务描述',
             assignee: task.assignee || '项目负责人',
@@ -654,8 +725,11 @@ export default {
         }
       })
 
-      // 合并默认项目和用户项目
-      this.availableProjects = [...this.availableProjects, ...userProjects]
+      // 合并默认项目和用户项目（避免重复添加）
+      // 先保留默认项目
+      const defaultProjects = this.availableProjects.filter(p => p.id <= 4)
+      // 然后合并用户项目，避免重复
+      this.availableProjects = [...defaultProjects, ...userProjects]
 
       console.log('最终可用项目列表:', this.availableProjects)
       console.log('最终项目任务数据:', this.projectTasks)
@@ -688,7 +762,8 @@ export default {
 
       // 获取项目信息
       const projects = JSON.parse(localStorage.getItem('projects') || '[]')
-      const project = projects.find(p => p.id === projectId)
+      // 使用字符串比较，避免类型不一致导致找不到项目
+      const project = projects.find(p => String(p.id) === String(projectId))
 
       if (!project) {
         console.log(`未找到项目 ${projectId}`)
@@ -992,58 +1067,22 @@ export default {
         this.showProjectDropdown = false
         this.filterDropdownOpen = false
       }
-    }
-  },
-  mounted() {
-    document.addEventListener('click', this.handleClickOutside)
-    // 调试localStorage数据
-    this.debugLocalStorage()
-    // 加载用户的项目数据
-    this.loadUserProjects()
-    // 初始化当前项目的任务数据
-    this.loadProjectTasks(this.currentProject.id)
+    },
+    beforeDestroy() {
+      document.removeEventListener('click', this.handleClickOutside)
+      document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
+      window.removeEventListener('focus', this.syncTaskStatusChanges)
 
-    // 设置定时器定期同步任务状态（每30秒）
-    this.syncTimer = setInterval(() => {
-      this.syncTaskStatusChanges()
-    }, 30000)
+      // 清理全局事件监听器
+      this.$root.$off('taskStatusChanged')
 
-    // 监听页面可见性变化，当页面重新获得焦点时同步
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.syncTaskStatusChanges()
+      // 清理定时器
+      if (this.syncTimer) {
+        clearInterval(this.syncTimer)
       }
-    })
-
-    // 监听窗口焦点变化
-    window.addEventListener('focus', () => {
-      this.syncTaskStatusChanges()
-    })
-
-    // 监听任务状态变化事件
-    this.$root.$on('taskStatusChanged', (data) => {
-      console.log('收到任务状态变化通知:', data)
-      // 如果变化的是当前项目的任务，立即同步
-      if (data.projectId === this.currentProject.id) {
-        console.log('当前项目任务状态发生变化，立即同步')
-        this.syncTaskStatusChanges()
-      }
-    })
-  },
-  beforeDestroy() {
-    document.removeEventListener('click', this.handleClickOutside)
-    document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
-    window.removeEventListener('focus', this.syncTaskStatusChanges)
-
-    // 清理全局事件监听器
-    this.$root.$off('taskStatusChanged')
-
-    // 清理定时器
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer)
     }
   }
-}
+
 </script>
 
 <style scoped>

@@ -15,11 +15,6 @@
        </div>
      </div>
 
-    <!-- 顶部图片区域 -->
-    <div class="header-image">
-      <img :src="headerImage" alt="Header Image" />
-    </div>
-
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 左侧内容 -->
@@ -72,53 +67,110 @@
           </div>
         </div>
 
-        <!-- 工作项 -->
-        <div class="work-items">
-          <div class="section-card">
-            <div class="section-header">
-              <h2 class="section-title">工作项</h2>
-              <button class="more-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="1" fill="currentColor"/>
-                  <circle cx="19" cy="12" r="1" fill="currentColor"/>
-                  <circle cx="5" cy="12" r="1" fill="currentColor"/>
-                </svg>
-              </button>
-            </div>
-            <div class="work-item-list">
-            <div class="work-item high-priority">
-              <div class="priority-bar"></div>
-              <div class="item-content">
-                <h3 class="item-title">智能推荐系统优化</h3>
-                <p class="item-description">重构推荐算法模块,提升准确率</p>
-                <div class="item-meta">
-                  <span class="priority">高优先级</span>
-                  <span class="deadline">截止:2023-06-15</span>
+        <!-- 工作项和我参与的项目布局 -->
+        <div class="work-items-container">
+          <!-- 工作项 -->
+          <div class="work-items">
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">工作项</h2>
+              </div>
+              <div class="work-item-list">
+              <div class="work-item high-priority">
+                <div class="priority-bar"></div>
+                <div class="item-content">
+                  <h3 class="item-title">智能推荐系统优化</h3>
+                  <p class="item-description">重构推荐算法模块,提升准确率</p>
+                  <div class="item-meta">
+                    <span class="priority">高优先级</span>
+                    <span class="deadline">截止:2023-06-15</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="work-item medium-priority">
-              <div class="priority-bar"></div>
-              <div class="item-content">
-                <h3 class="item-title">用户界面改版</h3>
-                <p class="item-description">重新设计用户交互流程</p>
-                <div class="item-meta">
-                  <span class="priority">中优先级</span>
-                  <span class="deadline">截止:2023-06-20</span>
+              <div class="work-item medium-priority">
+                <div class="priority-bar"></div>
+                <div class="item-content">
+                  <h3 class="item-title">用户界面改版</h3>
+                  <p class="item-description">重新设计用户交互流程</p>
+                  <div class="item-meta">
+                    <span class="priority">中优先级</span>
+                    <span class="deadline">截止:2023-06-20</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="work-item low-priority">
-              <div class="priority-bar"></div>
-              <div class="item-content">
-                <h3 class="item-title">数据库性能优化</h3>
-                <p class="item-description">优化查询索引,提升响应速度</p>
-                <div class="item-meta">
-                  <span class="priority">低优先级</span>
-                  <span class="deadline">截止:2023-06-30</span>
+              <div class="work-item low-priority">
+                <div class="priority-bar"></div>
+                <div class="item-content">
+                  <h3 class="item-title">数据库性能优化</h3>
+                  <p class="item-description">优化查询索引,提升响应速度</p>
+                  <div class="item-meta">
+                    <span class="priority">低优先级</span>
+                    <span class="deadline">截止:2023-06-30</span>
+                  </div>
                 </div>
               </div>
+              </div>
             </div>
+          </div>
+
+          <!-- 我参与的项目 -->
+          <div class="my-projects">
+            <div class="section-card">
+              <h2 class="section-title">我参与的项目</h2>
+              <div class="project-list">
+                <div class="project-card">
+                  <div class="project-icon blue-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 3H5C3.89543 3 3 3.89543 3 5V9C3 10.1046 3.89543 11 5 11H9C10.1046 11 11 10.1046 11 9V5C11 3.89543 10.1046 3 9 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M19 3H15C13.8954 3 13 3.89543 13 5V9C13 10.1046 13.8954 11 15 11H19C20.1046 11 21 10.1046 21 9V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M9 13H5C3.89543 13 3 13.8954 3 15V19C3 20.1046 3.89543 21 5 21H9C10.1046 21 11 20.1046 11 19V15C11 13.8954 10.1046 13 9 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M19 13H15C13.8954 13 13 13.8954 13 15V19C13 20.1046 13.8954 21 15 21H19C20.1046 21 21 20.1046 21 19V15C21 13.8954 20.1046 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="project-content">
+                    <h3 class="project-title">量子计算算法优化研究</h3>
+                    <p class="project-description">量子计算算法优化研究</p>
+                    <div class="project-meta">
+                      <span class="status-badge status-inprogress">进行中</span>
+                      <span class="progress-text">65% 完成</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="project-card">
+                  <div class="project-icon multi-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M20 8V14M17 11H23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="project-content">
+                    <h3 class="project-title">多模态医学影像数据平台</h3>
+                    <p class="project-description">多模态医学影像数据平台</p>
+                    <div class="project-meta">
+                      <span class="status-badge status-ongoing">进行时</span>
+                      <span class="progress-text">45% 完成</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="project-card">
+                  <div class="project-icon weather-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M3 15H21M3 9H21M9 3V21M15 3V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="project-content">
+                    <h3 class="project-title">气候变化预测模型研究</h3>
+                    <p class="project-description">气候变化预测模型研究</p>
+                    <div class="project-meta">
+                      <span class="status-badge status-completed">已完成</span>
+                      <span class="progress-text">100% 完成</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -155,7 +207,6 @@
 import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
 import { authAPI } from '@/api/auth'
-import headerImage from '@/assets/image/colourfulegg.jpg'
 
 export default {
   name: 'Home',
@@ -168,7 +219,6 @@ export default {
       sidebarOpen: false,
       userMenuOpen: false,
       userAvatar: null, // 用户头像URL，可以从localStorage或API获取
-      headerImage, // 导入的头图
       globalUserInfo: {
         nickname: '张伟',
         avatar: ''
@@ -346,10 +396,6 @@ export default {
 }
 
 .top-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-primary);
   height: 64px;
@@ -358,7 +404,9 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  z-index: 1000;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 .header-left {
@@ -499,25 +547,8 @@ export default {
   transition: transform 0.3s ease;
 }
 
-.header-image {
-  width: 100%;
-  height:63px; /* 缩小高度，使其能被页眉完全遮挡 */
-  margin-bottom: 0; /* 移除底部间距 */
-  overflow: hidden;
-  position: relative;
-  z-index: 999; /* 在页眉(z-index: 1000)后面 */
-}
-
-.header-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* 完整显示图片，保持原比例 */
-  display: block;
-}
-
 .main-content {
   flex: 1;
-  margin-top: 0; /* 组件紧贴图片 */
   display: flex;
   gap: var(--space-6);
   padding: var(--space-6);
@@ -724,7 +755,156 @@ export default {
   color: #666;
 }
 
+/* 工作项和项目容器布局 */
+.work-items-container {
+  display: flex;
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+.work-items {
+  flex: 0 0 60%; /* 工作项占60%宽度 */
+}
+
+.work-items .section-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.my-projects {
+  flex: 1; /* 我参与的项目占剩余40%宽度 */
+}
+
+.my-projects .section-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.project-card {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+.project-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--primary-color);
+}
+
+.project-icon {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all var(--transition-normal);
+}
+
+.project-card:hover .project-icon {
+  transform: scale(1.05);
+}
+
+.blue-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.multi-icon {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.weather-icon {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.project-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3) 0;
+  line-height: var(--leading-relaxed);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  line-height: 1.5;
+}
+
+.status-inprogress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-ongoing {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.progress-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
 @media (max-width: 1200px) {
+  .work-items-container {
+    flex-direction: column;
+  }
+  
+  .work-items {
+    flex: 1;
+  }
+  
   .main-content {
     flex-direction: column;
   }
