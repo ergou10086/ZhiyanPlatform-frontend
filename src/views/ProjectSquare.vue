@@ -577,6 +577,10 @@ export default {
 }
 
 .top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-primary);
   height: 64px;
@@ -585,9 +589,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+  z-index: 1000;
 }
 
 .header-left {
@@ -647,6 +649,7 @@ export default {
 
 .main-content {
   flex: 1;
+  margin-top: 64px; /* 为固定页眉留出空间 */
   padding: var(--space-5) var(--space-6) 0;
   display: flex;
   flex-direction: column;

@@ -15,6 +15,11 @@
        </div>
      </div>
 
+    <!-- 顶部图片区域 -->
+    <div class="header-image">
+      <img :src="headerImage" alt="Header Image" />
+    </div>
+
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 左侧内容 -->
@@ -150,6 +155,7 @@
 import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
 import { authAPI } from '@/api/auth'
+import headerImage from '@/assets/image/colourfulegg.jpg'
 
 export default {
   name: 'Home',
@@ -162,6 +168,7 @@ export default {
       sidebarOpen: false,
       userMenuOpen: false,
       userAvatar: null, // 用户头像URL，可以从localStorage或API获取
+      headerImage, // 导入的头图
       globalUserInfo: {
         nickname: '张伟',
         avatar: ''
@@ -339,6 +346,10 @@ export default {
 }
 
 .top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-primary);
   height: 64px;
@@ -347,9 +358,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
+  z-index: 1000;
 }
 
 .header-left {
@@ -490,8 +499,25 @@ export default {
   transition: transform 0.3s ease;
 }
 
+.header-image {
+  width: 100%;
+  height:63px; /* 缩小高度，使其能被页眉完全遮挡 */
+  margin-bottom: 0; /* 移除底部间距 */
+  overflow: hidden;
+  position: relative;
+  z-index: 999; /* 在页眉(z-index: 1000)后面 */
+}
+
+.header-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 完整显示图片，保持原比例 */
+  display: block;
+}
+
 .main-content {
   flex: 1;
+  margin-top: 0; /* 组件紧贴图片 */
   display: flex;
   gap: var(--space-6);
   padding: var(--space-6);
