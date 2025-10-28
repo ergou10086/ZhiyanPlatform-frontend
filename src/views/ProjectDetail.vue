@@ -704,6 +704,8 @@ export default {
       inviteSearchQuery: '',
       searchResults: [],
       isSearching: false,
+      searchDebounceTimer: null, // 搜索防抖定时器
+      currentSearchKeyword: '', // 当前搜索关键词（用于验证请求）
       taskListModalOpen: false,
       isCreatingTask: false, // 防止重复点击创建任务
       taskDetailModalOpen: false, // 任务详情弹窗
@@ -762,6 +764,11 @@ export default {
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
+    // 清理搜索防抖定时器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+      this.searchDebounceTimer = null
+    }
   },
   methods: {
     openTaskListModal() {
@@ -1069,14 +1076,14 @@ export default {
         await this.performSearch()
       }, 300)
     },
-    
+
     async performSearch() {
       // 生成新的请求ID
       this.searchRequestId++
       const currentRequestId = this.searchRequestId
-      
+
       console.log(`🔍 开始搜索 [请求ID: ${currentRequestId}]`)
-      
+
       this.isSearching = true
       
       try {
@@ -1094,6 +1101,8 @@ export default {
 
         console.log(`✅ 处理响应 [请求ID: ${currentRequestId}]`, response)
 
+          // ✅ 关键：验证当前关键词是否仍然匹配（避免竞态条件）
+          if (this.currentSearchKeyword === keyword) {
         if (response.code === 200 && response.data) {
           // 处理分页结果
           if (response.data.content && Array.isArray(response.data.content)) {
@@ -1105,6 +1114,10 @@ export default {
           }
         } else {
           this.searchResults = []
+            }
+          } else {
+            // 关键词已改变，忽略这个过期的响应
+            console.log('忽略过期的搜索响应: 请求关键词=', keyword, ', 当前关键词=', this.currentSearchKeyword)
         }
       } catch (error) {
         // 只处理最新请求的错误
@@ -1119,6 +1132,8 @@ export default {
           this.isSearching = false
         }
       }
+        }
+      }, 500) // 500毫秒防抖延迟
     },
     async addUserToProject(user) {
       // 检查用户是否已经是团队成员
@@ -1161,6 +1176,9 @@ export default {
         const response = await projectAPI.getProjectMembers(this.project.id)
 
         if (response.code === 200 && response.data) {
+          console.log('成员数据响应:', response.data)
+          console.log('成员数据content:', response.data.content)
+
           // 转换后端数据格式到前端格式
           const membersFromBackend = response.data.content.map(member => ({
             id: member.userId,
@@ -1180,6 +1198,9 @@ export default {
             // 后端有数据，使用后端数据
             console.log('使用后端返回的成员列表，共', membersFromBackend.length, '个成员')
             this.teamMembers = membersFromBackend
+
+            // 打印最终的成员列表，方便调试
+            console.log('最终成员列表:', this.teamMembers)
           }
         } else {
           // API调用失败，显示默认成员
