@@ -1,86 +1,95 @@
 <template>
   <div class="forgot-password-container">
-    <Header />
-    
-    <div class="forgot-password-content">
-      <div class="forgot-password-box">
-      <div class="forgot-password-header">
-        <button class="back-btn" @click="goToLogin" title="返回登录">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <h1 class="forgot-password-title">忘记密码</h1>
-      </div>
-      
-      <form @submit.prevent="handleResetPassword" class="forgot-password-form">
-        <div class="form-group">
-          <label for="email">电子邮箱 *</label>
-          <input
-            type="email"
-            id="email"
-            v-model="resetForm.email"
-            placeholder="请输入您的邮箱地址"
-            required
-          />
+    <div class="brand-corner">智研</div>
+    <div class="forgot-password-left">
+      <div class="logo-section">
+        <div class="logo-placeholder" :class="{ animated: animateLogo }">
+          <img src="@/assets/image/logo.svg" alt="Logo" class="logo-img" />
         </div>
-        
-        <div class="form-group">
-          <label for="code">验证码 *</label>
-          <div class="code-input-group">
-            <input
-              type="text"
-              id="code"
-              v-model="resetForm.code"
-              placeholder="请输入6位验证码"
-              maxlength="6"
-              pattern="[0-9]{6}"
-              required
-              class="code-input"
-              @input="formatCodeInput"
-            />
-            <button 
-              type="button" 
-              @click="sendCode" 
-              class="send-code-btn" 
-              :disabled="loading || countdown > 0"
-            >
-              {{ countdown > 0 ? `${countdown}s后重发` : '发送验证码' }}
-            </button>
-          </div>
-        </div>
-        
-        <div class="form-group">
-          <label for="newPassword">新密码 *</label>
-          <input
-            type="password"
-            id="newPassword"
-            v-model="resetForm.newPassword"
-            placeholder="请输入新密码"
-            required
-            minlength="6"
-          />
-        </div>
-        
-        <div class="form-group">
-          <label for="confirmPassword">确认密码 *</label>
-          <input
-            type="password"
-            id="confirmPassword"
-            v-model="resetForm.confirmPassword"
-            placeholder="请再次输入新密码"
-            required
-          />
-        </div>
-        
-        <button type="submit" class="complete-btn" :disabled="loading">
-          {{ loading ? '处理中...' : '完成' }}
-        </button>
-      </form>
+        <h1 class="system-title" :class="{ animated: animateLogo }">高校科研团队协作与成果管理平台</h1>
+        <p class="system-subtitle" :class="{ animated: animateLogo }">University Research Team Collaboration and Achievement Management Platform</p>
       </div>
     </div>
     
-    <Footer />
+    <div class="forgot-password-right">
+      <div class="forgot-password-box">
+        <div class="forgot-password-header">
+          <button class="back-btn" @click="goToLogin" title="返回登录">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>返回登录</span>
+          </button>
+          <h2 class="forgot-password-title">重置密码</h2>
+          <p class="forgot-password-subtitle">通过邮箱验证重置您的密码</p>
+        </div>
+        
+        <form @submit.prevent="handleResetPassword" class="forgot-password-form">
+          <div class="form-group">
+            <label for="email">电子邮箱</label>
+            <input
+              type="email"
+              id="email"
+              v-model="resetForm.email"
+              placeholder="请输入您的邮箱地址"
+              required
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="code">验证码</label>
+            <div class="code-input-group">
+              <input
+                type="text"
+                id="code"
+                v-model="resetForm.code"
+                placeholder="请输入6位验证码"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                required
+                class="code-input"
+                @input="formatCodeInput"
+              />
+              <button 
+                type="button" 
+                @click="sendCode" 
+                class="send-code-btn" 
+                :disabled="loading || countdown > 0"
+              >
+                {{ countdown > 0 ? `${countdown}s后重发` : '发送验证码' }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="newPassword">新密码</label>
+            <input
+              type="password"
+              id="newPassword"
+              v-model="resetForm.newPassword"
+              placeholder="请输入新密码"
+              required
+              minlength="6"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="confirmPassword">确认密码</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              v-model="resetForm.confirmPassword"
+              placeholder="请再次输入新密码"
+              required
+            />
+          </div>
+          
+          <button type="submit" class="complete-btn" :disabled="loading">
+            {{ loading ? '重置中...' : '重置密码' }}
+          </button>
+        </form>
+      </div>
+    </div>
     
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
@@ -90,16 +99,12 @@
 </template>
 
 <script>
-import Header from '@/components/Header.vue'
-import Footer from '@/components/Footer.vue'
 import { authAPI } from '@/api/auth'
 import { formatApiError, isValidEmail, validatePassword } from '@/utils/auth'
 
 export default {
   name: 'ForgotPassword',
   components: {
-    Header,
-    Footer
   },
   data() {
     return {
@@ -113,7 +118,16 @@ export default {
         confirmPassword: ''
       },
       showToast: false,
-      toastMessage: ''
+      toastMessage: '',
+      animateLogo: false
+    }
+  },
+  mounted() {
+    // 检查是否已经播放过动画
+    const hasAnimated = localStorage.getItem('authPagesAnimated')
+    if (!hasAnimated) {
+      this.animateLogo = true
+      localStorage.setItem('authPagesAnimated', 'true')
     }
   },
   methods: {
@@ -261,81 +275,170 @@ export default {
 .forgot-password-container {
   min-height: 100vh;
   height: 100vh;
-  background-color: #f5f5f5;
-  background-image: url('@/assets/image/background_login.jpg');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: #ffffff;
   display: flex;
-  flex-direction: column;
   margin: 0;
   padding: 0;
+  position: relative;
+  overflow: hidden;
 }
 
-.forgot-password-content {
+.forgot-password-left {
+  flex: 1;
+  background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.forgot-password-left::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 100%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.brand-corner {
+  position: fixed;
+  top: 20px;
+  left: 40px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  z-index: 1000;
+  letter-spacing: 2px;
+}
+
+.logo-section {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  color: white;
+}
+
+.logo-placeholder {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+  opacity: 1;
+}
+
+.logo-placeholder.animated {
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.logo-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  border-radius: 12px;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.system-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 12px 0;
+  color: white;
+}
+
+.system-title.animated {
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.system-subtitle {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+.system-subtitle.animated {
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.forgot-password-right {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 40px;
+  background: #f8f9fa;
 }
 
 .forgot-password-box {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 40px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 48px;
   width: 100%;
   max-width: 450px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
-.forgot-password-box:hover {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
 }
 
 .forgot-password-header {
-  text-align: center;
-  margin-bottom: 30px;
   position: relative;
+  margin-bottom: 32px;
 }
 
 .back-btn {
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 8px;
-  border-radius: var(--radius-md);
-  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #3B82F6;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .back-btn:hover {
-  color: var(--primary-color);
-  background: var(--primary-light);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .forgot-password-title {
-  font-size: 24px;
-  color: #333;
-  font-weight: 500;
-  margin: 0;
+  font-size: 28px;
+  color: #2d3748;
+  font-weight: 700;
+  margin: 0 0 8px 0;
 }
 
 .forgot-password-subtitle {
-  color: #666;
   font-size: 14px;
+  color: #718096;
+  margin: 0;
+  font-weight: 400;
 }
 
 .forgot-password-form {
@@ -349,73 +452,33 @@ export default {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #333;
-  font-weight: 500;
+  color: #2d3748;
+  font-weight: 600;
   font-size: 14px;
 }
 
 .form-group input {
   width: 100%;
   padding: 12px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 14px;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
   box-sizing: border-box;
+  background: #ffffff;
+  color: #2d3748;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.reset-btn {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.2s ease;
+.form-group input::placeholder {
+  color: #a0aec0;
 }
 
-.reset-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.reset-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.code-sent-message {
-  text-align: center;
-  padding: 20px 0;
-  margin-bottom: 30px;
-}
-
-.success-icon {
-  margin-bottom: 20px;
-}
-
-.success-icon svg {
-  color: #4CAF50;
-}
-
-.code-sent-message h3 {
-  color: #333;
-  margin-bottom: 15px;
-  font-size: 20px;
-}
-
-.code-sent-message p {
-  color: #666;
-  margin-bottom: 10px;
-  line-height: 1.5;
-}
 
 .code-input-group {
   display: flex;
@@ -427,91 +490,28 @@ export default {
   flex: 1;
 }
 
-.resend-code-btn {
-  background: transparent;
-  color: #667eea;
-  border: 2px solid #667eea;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  white-space: nowrap;
-}
-
-.resend-code-btn:hover:not(:disabled) {
-  background: #667eea;
-  color: white;
-}
-
-.resend-code-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.verify-btn {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.verify-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.verify-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.reset-password-btn {
-  width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.reset-password-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.reset-password-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
 .send-code-btn {
-  background: #007bff;
+  background: #3B82F6;
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .send-code-btn:hover:not(:disabled) {
-  background: #0056b3;
+  background: #2563EB;
+  transform: translateY(-1px);
 }
 
 .send-code-btn:disabled {
-  background: #e0e0e0;
-  color: #9aa0a6;
+  background: #e2e8f0;
+  color: #cbd5e0;
   border: none;
   opacity: 1;
   cursor: not-allowed;
@@ -519,53 +519,101 @@ export default {
 
 .complete-btn {
   width: 100%;
-  padding: 12px;
-  background: #007bff;
-  color: white;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #ffffff;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .complete-btn:hover:not(:disabled) {
-  background: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
 }
 
 .complete-btn:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
-.back-to-login {
-  text-align: center;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #e1e5e9;
+
+@media (max-width: 1024px) {
+  .forgot-password-container {
+    flex-direction: column;
+  }
+  
+  .forgot-password-left {
+    min-height: 300px;
+    flex: none;
+  }
+  
+  .forgot-password-right {
+    min-height: calc(100vh - 300px);
+  }
 }
 
-.back-to-login a {
-  color: #667eea;
-  text-decoration: none;
-  font-size: 14px;
-  transition: color 0.3s ease;
+@media (max-width: 768px) {
+  .forgot-password-left {
+    min-height: 250px;
+    padding: 30px 20px;
+  }
+  
+  .logo-placeholder svg {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .system-title {
+    font-size: 24px;
+  }
+  
+  .system-subtitle {
+    font-size: 14px;
+  }
+  
+  .forgot-password-right {
+    padding: 30px 20px;
+  }
+  
+  .forgot-password-box {
+    padding: 32px 24px;
+  }
 }
-
-.back-to-login a:hover {
-  color: #5a6fd8;
-}
-
 
 @media (max-width: 480px) {
+  .forgot-password-left {
+    min-height: 200px;
+    padding: 20px;
+  }
+  
+  .logo-placeholder svg {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .system-title {
+    font-size: 20px;
+  }
+  
+  .system-subtitle {
+    font-size: 12px;
+  }
+  
+  .forgot-password-right {
+    padding: 20px;
+  }
+  
   .forgot-password-box {
-    padding: 30px 20px;
-    margin: 10px;
+    padding: 24px 20px;
   }
   
   .forgot-password-title {
-    font-size: 20px;
+    font-size: 22px;
   }
   
   .code-input-group {
