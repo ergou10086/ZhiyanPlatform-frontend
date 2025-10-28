@@ -905,7 +905,6 @@ export default {
   color: #666;
 }
 
-
 @media (max-width: 1200px) {
   .main-content {
     flex-direction: column;

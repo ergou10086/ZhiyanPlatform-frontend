@@ -270,6 +270,31 @@ export const taskAPI = {
   countProjectTasks(projectId) {
     console.log('[taskAPI.countProjectTasks] 统计项目任务')
     return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/count`)
+  },
+
+  /**
+   * 获取我的即将到期的任务（所有参与项目）
+   * @param {Number} days - 未来天数（默认7天）
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getMyUpcomingTasks(days = 7, page = 0, size = 10) {
+    console.log('[taskAPI.getMyUpcomingTasks] 获取我的即将到期任务')
+    return api.get('/zhiyan/api/projects/tasks/my-upcoming', {
+      params: { days, page, size }
+    })
+  },
+
+  /**
+   * 获取我的已逾期任务（所有参与项目）
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getMyOverdueTasks(page = 0, size = 10) {
+    console.log('[taskAPI.getMyOverdueTasks] 获取我的已逾期任务')
+    return api.get('/zhiyan/api/projects/tasks/my-overdue', {
+      params: { page, size }
+    })
   }
 }
 
