@@ -1,5 +1,5 @@
 <template>
-  <div v-show="!hideForArchive" class="global-user-profile" :class="{ 'floating': floating }">
+  <div class="global-user-profile" :class="{ 'floating': floating }">
     <div class="user-profile" @click="toggleUserMenu">
       <div class="user-avatar">
         <img v-if="globalUserInfo.avatar" :src="globalUserInfo.avatar" alt="用户头像" />
@@ -52,7 +52,6 @@
 
 <script>
 import { clearAuthData } from '@/utils/auth'
-import { EventBus, EVENTS } from '@/utils/eventBus'
 
 export default {
   name: 'GlobalUserProfile',
@@ -71,8 +70,7 @@ export default {
         avatar: ''
       },
       showToast: false,
-      toastMessage: '',
-      hideForArchive: false // 当成果档案面板打开时隐藏
+      toastMessage: ''
     }
   },
   mounted() {
@@ -82,14 +80,11 @@ export default {
     window.addEventListener('storage', this.handleStorageChange)
     // 监听自定义事件，实现同页面实时更新
     this.$root.$on('userInfoUpdated', this.loadGlobalUserInfo)
-    // 监听成果档案面板的显示状态
-    EventBus.$on(EVENTS.ARCHIVE_PANEL_TOGGLE, this.handleArchivePanelToggle)
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     window.removeEventListener('storage', this.handleStorageChange)
     this.$root.$off('userInfoUpdated', this.loadGlobalUserInfo)
-    EventBus.$off(EVENTS.ARCHIVE_PANEL_TOGGLE, this.handleArchivePanelToggle)
   },
   methods: {
     loadGlobalUserInfo() {
@@ -170,14 +165,6 @@ export default {
         this.showToast = false
         this.toastMessage = ''
       }, 1000)
-    },
-    handleArchivePanelToggle(isOpen) {
-      // 当成果档案面板打开时隐藏用户信息框，关闭时显示
-      this.hideForArchive = isOpen
-      // 如果面板打开，同时关闭用户菜单
-      if (isOpen) {
-        this.userMenuOpen = false
-      }
     }
   }
 }
