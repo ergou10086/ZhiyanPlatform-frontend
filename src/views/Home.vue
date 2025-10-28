@@ -67,78 +67,53 @@
           </div>
         </div>
 
-        <!-- 工作项和我参与的项目布局 -->
-        <div class="work-items-container">
-          <!-- 工作项 -->
-          <div class="work-items">
-            <div class="section-card">
-              <div class="section-header">
-                <h2 class="section-title">工作项</h2>
-              </div>
-              <div class="work-item-list">
-              <div class="work-item high-priority">
-                <div class="priority-bar"></div>
-                <div class="item-content">
-                  <h3 class="item-title">智能推荐系统优化</h3>
-                  <p class="item-description">重构推荐算法模块,提升准确率</p>
-                  <div class="item-meta">
-                    <span class="priority">高优先级</span>
-                    <span class="deadline">截止:2023-06-15</span>
-                  </div>
+        <!-- 工作项 -->
+        <div class="work-items">
+          <div class="section-card">
+            <div class="section-header">
+              <h2 class="section-title">工作项</h2>
+              <button class="more-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="1" fill="currentColor"/>
+                  <circle cx="19" cy="12" r="1" fill="currentColor"/>
+                  <circle cx="5" cy="12" r="1" fill="currentColor"/>
+                </svg>
+              </button>
+            </div>
+            <div class="work-item-list">
+            <div class="work-item high-priority">
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <h3 class="item-title">智能推荐系统优化</h3>
+                <p class="item-description">重构推荐算法模块,提升准确率</p>
+                <div class="item-meta">
+                  <span class="priority">高优先级</span>
+                  <span class="deadline">截止:2023-06-15</span>
                 </div>
-              </div>
-              <div class="work-item medium-priority">
-                <div class="priority-bar"></div>
-                <div class="item-content">
-                  <h3 class="item-title">用户界面改版</h3>
-                  <p class="item-description">重新设计用户交互流程</p>
-                  <div class="item-meta">
-                    <span class="priority">中优先级</span>
-                    <span class="deadline">截止:2023-06-20</span>
-                  </div>
-                </div>
-              </div>
-              <div class="work-item low-priority">
-                <div class="priority-bar"></div>
-                <div class="item-content">
-                  <h3 class="item-title">数据库性能优化</h3>
-                  <p class="item-description">优化查询索引,提升响应速度</p>
-                  <div class="item-meta">
-                    <span class="priority">低优先级</span>
-                    <span class="deadline">截止:2023-06-30</span>
-                  </div>
-                </div>
-              </div>
               </div>
             </div>
-          </div>
-
-          <!-- 我参与的项目 -->
-          <div class="my-projects">
-            <div class="section-card">
-              <div class="section-header">
-                <h2 class="section-title">我参与的项目</h2>
-              </div>
-              <div class="project-list">
-                <div 
-                  v-for="project in userProjects" 
-                  :key="project.id" 
-                  class="project-item"
-                  @click="goToProjectDetail(project.id)"
-                >
-                  <div class="project-avatar">
-                    <div class="avatar-icon">{{ project.title.charAt(0) }}</div>
-                  </div>
-                  <div class="project-info">
-                    <h3 class="project-name">{{ project.title }}</h3>
-                    <p class="project-description">{{ project.description }}</p>
-                    <div class="project-meta">
-                      <span class="project-status" :class="project.statusClass">{{ project.status }}</span>
-                      <span class="project-progress">{{ project.progress }}% 完成</span>
-                    </div>
-                  </div>
+            <div class="work-item medium-priority">
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <h3 class="item-title">用户界面改版</h3>
+                <p class="item-description">重新设计用户交互流程</p>
+                <div class="item-meta">
+                  <span class="priority">中优先级</span>
+                  <span class="deadline">截止:2023-06-20</span>
                 </div>
               </div>
+            </div>
+            <div class="work-item low-priority">
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <h3 class="item-title">数据库性能优化</h3>
+                <p class="item-description">优化查询索引,提升响应速度</p>
+                <div class="item-meta">
+                  <span class="priority">低优先级</span>
+                  <span class="deadline">截止:2023-06-30</span>
+                </div>
+              </div>
+            </div>
             </div>
           </div>
         </div>
@@ -192,33 +167,7 @@ export default {
         avatar: ''
       },
       showModal: false,
-      modalMessage: '',
-      userProjects: [
-        {
-          id: 1,
-          title: '量子计算算法优化研究',
-          description: '量子计算算法优化研究',
-          status: '进行中',
-          statusClass: 'status-ongoing',
-          progress: 65
-        },
-        {
-          id: 2,
-          title: '多模态医学影像数据平台',
-          description: '多模态医学影像数据平台',
-          status: '规划中',
-          statusClass: 'status-planning',
-          progress: 45
-        },
-        {
-          id: 3,
-          title: '气候变化预测模型研究',
-          description: '气候变化预测模型研究',
-          status: '已完成',
-          statusClass: 'status-completed',
-          progress: 100
-        }
-      ]
+      modalMessage: ''
     }
   },
   mounted() {
@@ -339,10 +288,6 @@ export default {
     handleProjectSquare() {
       console.log('项目广场')
       this.$router.push('/project-square')
-    },
-    goToProjectDetail(projectId) {
-      console.log('跳转到项目详情:', projectId)
-      this.$router.push(`/project-detail/${projectId}`)
     },
     handleKnowledgeBase() {
       console.log('知识库')
@@ -550,9 +495,6 @@ export default {
   display: flex;
   gap: var(--space-6);
   padding: var(--space-6);
-  transform: scale(0.9);
-  transform-origin: top left;
-  width: calc(100% / 0.9); /* 补偿缩放，使其视觉上占据100%宽度 */
 }
 
 .content-left {
@@ -678,129 +620,6 @@ export default {
 
 .action-card:hover .card-label {
   color: var(--primary-color);
-}
-
-/* 工作项和项目容器布局 */
-.work-items-container {
-  display: flex;
-  gap: var(--space-6);
-  align-items: stretch; /* 拉伸对齐 */
-}
-
-.work-items {
-  flex: 0 0 60%; /* 占据60%宽度 */
-  display: flex;
-  flex-direction: column;
-}
-
-.work-items .section-card {
-  flex: 1; /* 使工作项卡片占满容器高度 */
-  display: flex;
-  flex-direction: column;
-}
-
-.my-projects {
-  flex: 1; /* 占据剩余40%宽度 */
-  display: flex;
-  flex-direction: column;
-}
-
-.my-projects .section-card {
-  flex: 1; /* 使项目卡片占满容器高度 */
-  display: flex;
-  flex-direction: column;
-}
-
-.project-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.project-item {
-  background: var(--bg-primary);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
-  display: flex;
-  gap: var(--space-3);
-  border: 1px solid var(--border-primary);
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-normal);
-  cursor: pointer;
-}
-
-.project-item:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateX(4px);
-  border-color: var(--primary-color);
-}
-
-.project-avatar {
-  flex-shrink: 0;
-}
-
-.avatar-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-lg);
-  font-weight: var(--font-bold);
-}
-
-.project-info {
-  flex: 1;
-}
-
-.project-name {
-  font-size: var(--text-base);
-  font-weight: var(--font-semibold);
-  color: var(--text-primary);
-  margin: 0 0 var(--space-2) 0;
-}
-
-.project-description {
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  margin: 0 0 var(--space-3) 0;
-  line-height: var(--leading-relaxed);
-}
-
-.project-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  align-items: center;
-}
-
-.project-status {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-weight: 500;
-  font-size: 11px;
-}
-
-.status-ongoing {
-  background: var(--primary-light);
-  color: var(--primary-color);
-}
-
-.status-planning {
-  background: var(--warning-light);
-  color: var(--warning-color);
-}
-
-.status-completed {
-  background: var(--success-light);
-  color: var(--success-color);
-}
-
-.project-progress {
-  color: var(--text-secondary);
 }
 
 .work-item-list {

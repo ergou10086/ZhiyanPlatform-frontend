@@ -2,7 +2,7 @@
   <div class="ai-assistant-container">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
-    
+
     <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">
@@ -92,36 +92,36 @@
               </svg>
             </button>
             <div v-if="filterDropdownOpen" class="dropdown-menu">
-              <div 
-                class="dropdown-item" 
+              <div
+                class="dropdown-item"
                 :class="{ active: activeFilter === 'all' }"
                 @click="setFilterAndClose('all')"
               >
                 全部状态
               </div>
-              <div 
-                class="dropdown-item" 
+              <div
+                class="dropdown-item"
                 :class="{ active: activeFilter === 'published' }"
                 @click="setFilterAndClose('published')"
               >
                 已发布
               </div>
-              <div 
-                class="dropdown-item" 
+              <div
+                class="dropdown-item"
                 :class="{ active: activeFilter === 'in-progress' }"
                 @click="setFilterAndClose('in-progress')"
               >
                 进行中
               </div>
-              <div 
-                class="dropdown-item" 
+              <div
+                class="dropdown-item"
                 :class="{ active: activeFilter === 'completed' }"
                 @click="setFilterAndClose('completed')"
               >
                 已完成
               </div>
-              <div 
-                class="dropdown-item" 
+              <div
+                class="dropdown-item"
                 :class="{ active: activeFilter === 'paused' }"
                 @click="setFilterAndClose('paused')"
               >
@@ -130,9 +130,9 @@
             </div>
           </div>
           <div class="search-box">
-            <input 
-              type="text" 
-              placeholder="搜索任务..." 
+            <input
+              type="text"
+              placeholder="搜索任务..."
               :value="searchQuery"
               @input="updateSearchQuery"
             />
@@ -142,17 +142,17 @@
             </svg>
           </div>
         </div>
-        
+
         <div class="task-grid">
-          <div 
-            v-for="task in filteredTasks" 
-            :key="task.id" 
+          <div
+            v-for="task in filteredTasks"
+            :key="task.id"
             class="task-card"
             :class="{ 'unpublished': !isTaskPublished(task) }"
           >
             <div class="task-header">
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 :checked="task.checked"
                 @change="toggleTaskCheckbox(task.id)"
               />
@@ -186,8 +186,8 @@
       <div class="ai-chat-section">
         <div class="ai-dialog-title">AI对话框</div>
         <div class="chat-container">
-          <div 
-            v-for="message in chatMessages" 
+          <div
+            v-for="message in chatMessages"
             :key="message.id"
             :class="message.type === 'ai' ? 'ai-message' : 'user-message'"
           >
@@ -196,11 +196,11 @@
             </div>
           </div>
         </div>
-        
+
         <div class="user-input-area">
-          <input 
-            type="text" 
-            placeholder="输入您的问题..." 
+          <input
+            type="text"
+            placeholder="输入您的问题..."
             v-model="userMessage"
             @keyup.enter="sendMessage"
           />
@@ -509,7 +509,7 @@ export default {
   computed: {
     filteredTasks() {
       let filtered = this.tasks
-      
+
       console.log('当前任务列表:', filtered)
       console.log('当前过滤器:', this.activeFilter)
       console.log('任务数量:', filtered.length)
@@ -529,14 +529,14 @@ export default {
       // 按搜索关键词筛选
       if (this.searchQuery.trim()) {
         const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(task => 
+        filtered = filtered.filter(task =>
           task.title.toLowerCase().includes(query) ||
           task.description.toLowerCase().includes(query) ||
           task.assignee.toLowerCase().includes(query)
         )
         console.log('搜索后任务数量:', filtered.length)
       }
-      
+
       console.log('最终过滤后的任务列表:', filtered)
       return filtered
     }
@@ -931,7 +931,7 @@ export default {
         console.log('Message is empty, not sending')
         return
       }
-      
+
       console.log('Adding user message to chat')
       // 添加用户消息
       const userMsg = {
@@ -942,7 +942,7 @@ export default {
       }
       this.chatMessages.push(userMsg)
       console.log('Chat messages after adding user message:', this.chatMessages)
-      
+
       // 模拟AI回复
       setTimeout(() => {
         console.log('Adding AI response')
@@ -959,7 +959,7 @@ export default {
         this.scrollToBottom()
       })
     }, 1000)
-    
+
     // 清空输入框
     this.userMessage = ''
     console.log('Input cleared')
@@ -1006,7 +1006,7 @@ export default {
     window.addEventListener('focus', () => {
       this.syncTaskStatusChanges()
     })
-    
+
     // 监听任务状态变化事件
     this.$root.$on('taskStatusChanged', (data) => {
       console.log('收到任务状态变化通知:', data)
@@ -1021,7 +1021,7 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
     window.removeEventListener('focus', this.syncTaskStatusChanges)
-    
+
     // 清理全局事件监听器
     this.$root.$off('taskStatusChanged')
 
@@ -1881,7 +1881,7 @@ export default {
   .main-content {
     padding: var(--space-4);
   }
-  
+
   .project-overview {
     padding: var(--space-4);
   }
@@ -1899,7 +1899,7 @@ export default {
   .project-title {
     font-size: var(--text-2xl);
   }
-  
+
   .project-progress {
     min-width: 180px;
     align-self: center;
@@ -1924,19 +1924,19 @@ export default {
     gap: var(--space-4);
     align-items: stretch;
   }
-  
+
   .search-box input {
     width: 100%;
   }
-  
+
   .task-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .suggestions-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .bottom-actions {
     flex-direction: column;
   }
