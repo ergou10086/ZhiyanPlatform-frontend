@@ -2764,7 +2764,7 @@ export default {
   min-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
-  padding: 32px 48px;
+  padding: 16px 48px 32px;
 }
 
 .section-title { 
@@ -2775,7 +2775,7 @@ export default {
 
 .section-title.small { 
   font-size: 18px; 
-  margin-bottom: 24px;
+  margin-bottom: 4px;
 }
 .section-subtitle { 
   color: #6b7280; 
@@ -2877,20 +2877,20 @@ export default {
 .add-grid { 
   display: grid; 
   grid-template-columns: repeat(3, 1fr); 
-  gap: 30px 40px; 
-  padding: 20px 40px;
+  gap: 20px 28px; 
+  padding: 0 40px 20px;
   flex: 1;
   align-content: center;
 }
 
 .add-card { 
   border: 2px solid #eef0f2; 
-  border-radius: 14px; 
-  padding: 28px 24px; 
+  border-radius: 12px; 
+  padding: 20px 18px; 
   background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
   transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  min-height: 180px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  min-height: 140px;
   display: flex;
   flex-direction: column;
 }
@@ -2904,37 +2904,37 @@ export default {
 .add-head { 
   display: flex; 
   align-items: center; 
-  gap: 12px; 
-  margin-bottom: 14px; 
+  gap: 10px; 
+  margin-bottom: 10px; 
 }
 
 .add-name { 
   color: #1f2937; 
   font-weight: 600; 
-  font-size: 19px;
+  font-size: 17px;
 }
 
 .add-desc { 
   color: #6b7280; 
-  font-size: 15px; 
-  margin-bottom: 20px; 
+  font-size: 14px; 
+  margin-bottom: 12px; 
   flex: 1;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .add-btn {
   margin-top: auto;
-  padding: 13px 24px;
+  padding: 11px 20px;
   background: linear-gradient(135deg, #5b6bff 0%, #4a5bff 100%);
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: 9px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   width: 100%;
-  box-shadow: 0 3px 12px rgba(91, 107, 255, 0.25);
+  box-shadow: 0 3px 10px rgba(91, 107, 255, 0.2);
 }
 
 .add-btn:hover {
@@ -2948,11 +2948,11 @@ export default {
   box-shadow: 0 2px 8px rgba(91, 107, 255, 0.3);
 }
 .dot { 
-  width: 14px; 
-  height: 14px; 
+  width: 12px; 
+  height: 12px; 
   border-radius: 50%; 
   display: inline-block; 
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 .dot-blue { background: #3b82f6; }
 .dot-orange { background: #f59e0b; }
@@ -4023,37 +4023,45 @@ export default {
 
 @media (max-width: 1400px) {
   .add-grid { 
-    gap: 25px 30px;
-    padding: 20px 30px;
+    gap: 20px 24px;
+    padding: 0 30px 20px;
   }
   
   .add-achievement-section {
-    padding: 28px 36px;
+    padding: 14px 36px 28px;
+  }
+  
+  .section-title.small {
+    margin-bottom: 4px;
   }
 }
 
 @media (max-width: 1200px) {
   .add-grid { 
     grid-template-columns: repeat(2, 1fr);
-    gap: 24px;
-    padding: 20px 24px;
+    gap: 20px;
+    padding: 0 24px 20px;
   }
   
   .add-achievement-section {
-    padding: 24px 32px;
+    padding: 12px 32px 24px;
+  }
+  
+  .section-title.small {
+    margin-bottom: 4px;
   }
 }
 
 @media (max-width: 768px) {
   .add-grid { 
     grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 16px 20px;
+    gap: 16px;
+    padding: 0 20px 16px;
   }
   
   .add-card {
-    min-height: 160px;
-    padding: 24px 20px;
+    min-height: 130px;
+    padding: 18px 16px;
   }
   
   .section-card {
@@ -4061,12 +4069,16 @@ export default {
   }
   
   .add-achievement-section {
-    padding: 20px 24px;
+    padding: 12px 20px;
   }
   
   .archive-toggle-btn {
     font-size: 13px;
     padding: 8px 16px;
+  }
+  
+  .section-title.small {
+    margin-bottom: 4px;
   }
 }
 
