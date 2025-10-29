@@ -589,6 +589,108 @@
       </div>
     </div>
 
+    <!-- 邀请成员弹窗 -->
+    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click="closeInviteMemberModal">
+      <div class="modal-content invite-member-modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">邀请成员</h3>
+          <button class="modal-close" @click="closeInviteMemberModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <!-- 搜索用户 -->
+          <div class="search-section">
+            <label class="form-label">搜索用户</label>
+            <div class="search-input-wrapper">
+              <input 
+                v-model="userSearchKeyword" 
+                type="text" 
+                class="form-input search-input" 
+                placeholder="请输入用户ID或姓名进行搜索"
+                @input="handleSearchInput"
+              />
+              <button class="search-btn" @click="searchUsers" :disabled="isSearching">
+                <svg v-if="!isSearching" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span v-else class="loading-spinner-small"></span>
+              </button>
+            </div>
+          </div>
+          
+          <!-- 搜索结果列表 -->
+          <div class="search-results" v-if="searchedUsers.length > 0">
+            <div class="search-results-header">
+              <span class="results-count">找到 {{ searchedUsers.length }} 个用户</span>
+            </div>
+            <div class="user-list">
+              <div 
+                v-for="user in searchedUsers" 
+                :key="user.userId" 
+                class="user-item"
+                :class="{ 'user-selected': selectedUserId === user.userId }"
+                @click="selectUser(user)"
+              >
+                <div class="user-avatar">
+                  <img v-if="user.avatar" :src="user.avatar" alt="用户头像" />
+                  <div v-else class="avatar-placeholder">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="user-info">
+                  <div class="user-name">{{ user.username || user.name }}</div>
+                  <div class="user-email">{{ user.email || 'ID: ' + user.userId }}</div>
+                </div>
+                <div class="user-select-indicator" v-if="selectedUserId === user.userId">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 空状态 -->
+          <div class="empty-state" v-else-if="hasSearched && !isSearching">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="8" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21L16.65 16.65" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>未找到相关用户</p>
+          </div>
+          
+          <!-- 提示信息 -->
+          <div class="search-hint" v-else>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="8" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21L16.65 16.65" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>请输入用户ID或姓名进行搜索</p>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button class="btn secondary" @click="closeInviteMemberModal">取消</button>
+          <button 
+            class="btn primary" 
+            @click="confirmInvite" 
+            :disabled="!selectedUserId || isInviting"
+          >
+            <span v-if="!isInviting">确定邀请</span>
+            <span v-else>邀请中...</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 任务详情弹窗 -->
     <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
       <div class="modal-content task-detail-modal" @click.stop>
@@ -704,7 +806,16 @@ export default {
         dueDate: '',
         priority: '中',
         taskId: null
-      }
+      },
+      // 邀请成员相关
+      inviteMemberModalOpen: false, // 邀请成员弹窗
+      userSearchKeyword: '', // 用户搜索关键词
+      searchedUsers: [], // 搜索到的用户列表
+      selectedUserId: null, // 选中的用户ID
+      isSearching: false, // 搜索中状态
+      isInviting: false, // 邀请中状态
+      hasSearched: false, // 是否已经搜索过
+      searchDebounceTimer: null // 搜索防抖定时器
     }
   },
   computed: {
@@ -923,7 +1034,7 @@ export default {
           console.log('项目加载完成，最新imageUrl:', this.project.imageUrl)
           
           // 加载团队成员（从localStorage或使用默认值）
-          this.loadTeamMembersFromLocalStorage()
+          this.loadTeamMembers()
           
           // 加载任务数据
           this.loadProjectTasks()
@@ -1069,15 +1180,152 @@ export default {
       }
     },
     inviteMember() {
-      const role = prompt('请输入邀请的角色:')
-      if (role && role.trim()) {
-        const newInvite = {
-          id: Date.now(),
-          role: role.trim()
+      // 打开邀请成员弹窗
+      this.inviteMemberModalOpen = true
+      this.userSearchKeyword = ''
+      this.searchedUsers = []
+      this.selectedUserId = null
+      this.hasSearched = false
+    },
+    closeInviteMemberModal() {
+      this.inviteMemberModalOpen = false
+      this.userSearchKeyword = ''
+      this.searchedUsers = []
+      this.selectedUserId = null
+      this.hasSearched = false
+      this.isSearching = false
+      this.isInviting = false
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+        this.searchDebounceTimer = null
+      }
+    },
+    handleSearchInput() {
+      // 防抖搜索：用户停止输入300ms后自动搜索
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+      }
+      
+      if (this.userSearchKeyword.trim()) {
+        this.searchDebounceTimer = setTimeout(() => {
+          this.searchUsers()
+        }, 300)
+      } else {
+        this.searchedUsers = []
+        this.hasSearched = false
+      }
+    },
+    async searchUsers() {
+      if (!this.userSearchKeyword.trim()) {
+        this.showToastMessage('请输入搜索关键词')
+        return
+      }
+      
+      this.isSearching = true
+      this.hasSearched = false
+      
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const response = await projectAPI.searchUsers(this.userSearchKeyword.trim(), 0, 20)
+        
+        console.log('搜索用户响应:', response)
+        
+        if (response && response.code === 200) {
+          // 处理分页数据或直接的用户列表
+          if (response.data && response.data.content) {
+            this.searchedUsers = response.data.content
+          } else if (Array.isArray(response.data)) {
+            this.searchedUsers = response.data
+          } else {
+            this.searchedUsers = []
+          }
+          
+          this.hasSearched = true
+          console.log('搜索到的用户:', this.searchedUsers)
+        } else {
+          this.showToastMessage(response?.msg || '搜索失败')
+          this.searchedUsers = []
+          this.hasSearched = true
         }
-        this.inviteSlots.push(newInvite)
-        this.saveProjectData()
-        alert('邀请已发送！')
+      } catch (error) {
+        console.error('搜索用户失败:', error)
+        this.showToastMessage('搜索用户失败: ' + (error.message || '网络错误'))
+        this.searchedUsers = []
+        this.hasSearched = true
+      } finally {
+        this.isSearching = false
+      }
+    },
+    selectUser(user) {
+      this.selectedUserId = user.userId
+      console.log('选中用户:', user)
+    },
+    async confirmInvite() {
+      if (!this.selectedUserId) {
+        this.showToastMessage('请先选择要邀请的用户')
+        return
+      }
+      
+      this.isInviting = true
+      
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const projectId = this.$route.params.id
+        
+        // 调用邀请接口
+        const response = await projectAPI.inviteMember(projectId, {
+          userId: this.selectedUserId,
+          role: 'MEMBER' // 默认角色为普通成员
+        })
+        
+        console.log('邀请成员响应:', response)
+        
+        if (response && response.code === 200) {
+          this.showToastMessage('邀请成功！')
+          this.closeInviteMemberModal()
+          
+          // 重新加载团队成员列表
+          this.loadTeamMembers()
+        } else {
+          this.showToastMessage(response?.msg || '邀请失败')
+        }
+      } catch (error) {
+        console.error('邀请成员失败:', error)
+        this.showToastMessage('邀请失败: ' + (error.message || '网络错误'))
+      } finally {
+        this.isInviting = false
+      }
+    },
+    async loadTeamMembers() {
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const projectId = this.$route.params.id
+        
+        const response = await projectAPI.getProjectMembers(projectId, 0, 50)
+        
+        console.log('团队成员响应:', response)
+        
+        if (response && response.code === 200) {
+          // 处理成员数据
+          if (response.data && response.data.content) {
+            this.teamMembers = response.data.content.map(member => ({
+              id: member.userId,
+              name: member.username || member.name || '未知用户',
+              role: member.roleName || member.role || '成员',
+              avatar: member.avatar || null
+            }))
+          } else if (Array.isArray(response.data)) {
+            this.teamMembers = response.data.map(member => ({
+              id: member.userId,
+              name: member.username || member.name || '未知用户',
+              role: member.roleName || member.role || '成员',
+              avatar: member.avatar || null
+            }))
+          }
+        }
+      } catch (error) {
+        console.error('加载团队成员失败:', error)
+        // 失败时保留原有数据
       }
     },
     removeTeamMember(memberId) {
@@ -3393,5 +3641,240 @@ export default {
   font-size: 12px;
   margin-top: 4px;
   display: block;
+}
+
+/* 邀请成员弹窗样式 */
+.invite-member-modal {
+  max-width: 600px;
+  max-height: 85vh;
+}
+
+.search-section {
+  margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.search-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 42px;
+}
+
+.search-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.search-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.loading-spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+.search-results {
+  margin-top: 20px;
+}
+
+.search-results-header {
+  padding: 8px 0;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 12px;
+}
+
+.results-count {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.user-list {
+  max-height: 400px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.user-item:hover {
+  background: #f8f9fa;
+  border-color: #007bff;
+  transform: translateX(4px);
+}
+
+.user-item.user-selected {
+  background: #e3f2fd;
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-right: 12px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-email {
+  font-size: 13px;
+  color: #6c757d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-select-indicator {
+  flex-shrink: 0;
+  margin-left: 12px;
+  animation: checkmark-appear 0.3s ease;
+}
+
+@keyframes checkmark-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  color: #6c757d;
+  font-size: 14px;
+  margin: 0;
+}
+
+.search-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+}
+
+.search-hint svg {
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.search-hint p {
+  color: #6c757d;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 自定义滚动条 */
+.user-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.user-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.user-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 </style>

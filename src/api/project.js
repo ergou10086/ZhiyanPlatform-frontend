@@ -246,6 +246,63 @@ export const projectAPI = {
     return api.delete('/zhiyan/api/projects/delete-image', {
       params: { imageUrl }
     })
+  },
+
+  /**
+   * 邀请成员加入项目
+   * @param {Number} projectId - 项目ID
+   * @param {Object} data - 包含 userId 和 role（可选，默认MEMBER）
+   */
+  inviteMember(projectId, data) {
+    console.log('[projectAPI.inviteMember] 邀请成员, 项目ID:', projectId, '数据:', data)
+    return api.post(`/zhiyan/api/projects/${projectId}/invite`, data)
+  },
+
+  /**
+   * 分配角色给用户（添加成员）
+   * @param {Number} projectId - 项目ID
+   * @param {Object} data - 包含 userId 和 roleCode
+   */
+  assignRole(projectId, data) {
+    console.log('[projectAPI.assignRole] 分配角色, 项目ID:', projectId, '数据:', data)
+    return api.post(`/zhiyan/api/projects/${projectId}/assign`, data)
+  },
+
+  /**
+   * 移除项目成员
+   * @param {Number} projectId - 项目ID
+   * @param {Number} userId - 用户ID
+   */
+  removeMember(projectId, userId) {
+    console.log('[projectAPI.removeMember] 移除成员, 项目ID:', projectId, '用户ID:', userId)
+    return api.delete(`/zhiyan/api/projects/${projectId}/members/${userId}`)
+  },
+
+  /**
+   * 获取项目成员列表
+   * @param {Number} projectId - 项目ID
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getProjectMembers(projectId, page = 0, size = 20) {
+    console.log('[projectAPI.getProjectMembers] 获取项目成员, 项目ID:', projectId)
+    return api.get(`/zhiyan/api/projects/${projectId}/members`, {
+      params: { page, size }
+    })
+  },
+
+  /**
+   * 搜索用户（用于邀请成员）
+   * 通过项目服务调用认证服务
+   * @param {String} keyword - 搜索关键词（可以是姓名、邮箱等）
+   * @param {Number} page - 页码，从0开始
+   * @param {Number} size - 每页数量
+   */
+  searchUsers(keyword, page = 0, size = 10) {
+    console.log('[projectAPI.searchUsers] 搜索用户, 关键词:', keyword, '页码:', page, '每页:', size)
+    return api.get(`/zhiyan/api/users/search`, {
+      params: { keyword, page, size }
+    })
   }
 }
 
