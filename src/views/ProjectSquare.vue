@@ -120,7 +120,7 @@
               <ul class="meta-list">
                 <li>
                   <span class="meta-label">创建者：</span>
-                  <span class="meta-value">{{ project.creatorName }}</span>
+                  <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
                 </li>
                 <li>
                   <span class="meta-label">团队规模：</span>
@@ -181,6 +181,7 @@
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
+import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
 
 export default {
   name: 'ProjectSquare',
@@ -231,17 +232,75 @@ export default {
     }
   },
   mounted() {
+    // 清理旧的图片 URL（包含 localhost 的错误 URL）
+    this.cleanupOldImageUrls()
+    
     this.loadUserAvatar()
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', this.loadUserAvatar)
   },
+  activated() {
+    // 当页面被激活时（从其他页面返回），重新加载项目数据
+    // 这样可以获取到最新上传的图片
+    console.log('页面被激活，重新加载项目数据')
+    this.loadProjects()
+  },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
   },
   methods: {
+    /**
+     * 清理 localStorage 中包含错误 URL 的旧数据
+     * 主要清理包含 localhost:9000 的图片 URL
+     */
+    cleanupOldImageUrls() {
+      try {
+        const savedProjects = localStorage.getItem('projects')
+        if (!savedProjects) return
+        
+        const projects = JSON.parse(savedProjects)
+        let needsCleanup = false
+        
+        // 检查是否有包含 localhost 的 URL
+        const hasLocalhost = projects.some(p => {
+          const url = p.image || p.imageUrl
+          return url && (url.includes('localhost:9000') || url.includes('localhost'))
+        })
+        
+        if (hasLocalhost) {
+          console.log('🧹 检测到旧的图片 URL，正在清理...')
+          
+          // 清理所有包含 localhost 的 URL
+          const cleanedProjects = projects.map(project => {
+            let imageUrl = project.imageUrl || project.image
+            
+            if (imageUrl && imageUrl.includes('localhost')) {
+              console.log(`清理项目 ${project.id} (${project.name || project.title}) 的图片 URL:`, imageUrl)
+              imageUrl = null
+              needsCleanup = true
+            }
+            
+            return {
+              ...project,
+              image: imageUrl,
+              imageUrl: imageUrl
+            }
+          })
+          
+          if (needsCleanup) {
+            localStorage.setItem('projects', JSON.stringify(cleanedProjects))
+            console.log('✅ 已清理包含错误 URL 的项目数据')
+          }
+        }
+      } catch (error) {
+        console.error('清理旧数据失败:', error)
+        // 如果清理失败，不影响正常功能
+      }
+    },
+    
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
     },
@@ -329,33 +388,58 @@ export default {
             backendProjects = []
           }
           
-          // 转换后端数据格式为前端格式，并过滤掉私有项目
+          // 获取localStorage中的旧项目数据（如果有的话）
+          const savedProjects = localStorage.getItem('projects')
+          const localProjects = savedProjects ? JSON.parse(savedProjects) : []
+          
+          // 转换后端数据格式为前端格式，并合并localStorage中的图片数据
           this.projects = backendProjects
-            .map(project => ({
-              id: project.id,
-              name: project.name,
-              title: project.name, // 前端显示用title
-              description: project.description || '暂无描述',
-              status: this.getStatusDisplay(project.status),
-              visibility: project.visibility,
-              teamSize: project.teamSize || 1,
-              dataAssets: project.description || '暂无描述',
-              direction: project.description || '暂无描述',
-              aiCore: '待定',
-              category: project.category || '其他',
-              tags: project.tags || [],
-              image: project.imageUrl || null,
-              imageUrl: project.imageUrl || null,
-              startDate: project.startDate,
-              endDate: project.endDate,
-              start_date: project.startDate,
-              end_date: project.endDate,
-              created_by: project.creatorId,
-              creatorId: project.creatorId,
-              creatorName: project.creatorName || '未知用户', // 后端已填充创建者名称
-              createdAt: project.createdAt,
-              updatedAt: project.updatedAt
-            }))
+            .map(project => {
+              // 查找localStorage中对应的项目
+              const localProject = localProjects.find(p => String(p.id) === String(project.id))
+              
+              // 优先使用后端的imageUrl，如果后端没有但localStorage有，则使用localStorage的
+              let imageUrl = project.imageUrl || (localProject && localProject.imageUrl) || null
+              
+              // 规范化图片 URL（转换为完整的 MinIO URL）
+              imageUrl = normalizeProjectCoverUrl(imageUrl)
+              
+              console.log(`项目 ${project.id} 图片URL处理:`, {
+                backend: project.imageUrl,
+                local: localProject?.imageUrl,
+                normalized: imageUrl
+              })
+              
+              return {
+                id: project.id,
+                name: project.name,
+                title: project.name, // 前端显示用title
+                description: project.description || '暂无描述',
+                status: this.getStatusDisplay(project.status),
+                visibility: project.visibility,
+                teamSize: project.teamSize || 1,
+                dataAssets: project.description || '暂无描述',
+                direction: project.description || '暂无描述',
+                aiCore: '待定',
+                category: project.category || '其他',
+                tags: project.tags || [],
+                image: imageUrl,
+                imageUrl: imageUrl,
+                startDate: project.startDate,
+                endDate: project.endDate,
+                start_date: project.startDate,
+                end_date: project.endDate,
+                created_by: project.creatorId,
+                creatorId: project.creatorId,
+                creatorName: project.creatorName || '神秘用户', // 添加创建者名称
+                createdAt: project.createdAt,
+                updatedAt: project.updatedAt,
+                // 保留localStorage中的其他数据（如任务、团队成员等）
+                tasks: localProject?.tasks || [],
+                teamMembers: localProject?.teamMembers || [],
+                inviteSlots: localProject?.inviteSlots || []
+              }
+            })
             .filter(project => {
               // 只保留公开项目，记录被过滤的私有项目
               if (project.visibility !== 'PUBLIC') {
@@ -368,11 +452,11 @@ export default {
           console.log('转换后的项目数量:', this.projects.length)
           if (this.projects.length > 0) {
             console.log('项目数据示例:', this.projects[0])
-            console.log('所有项目的状态:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status, visibility: p.visibility })))
+            console.log('所有项目的状态:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status, visibility: p.visibility, imageUrl: p.imageUrl })))
           }
           
-          // 只保存后端数据到localStorage（覆盖旧数据）
-          // 这样可以确保显示的都是数据库中真实存在的公开项目
+          // 保存合并后的数据到localStorage
+          // 这样可以确保显示的都是数据库中真实存在的公开项目，同时保留本地的图片和其他数据
           localStorage.setItem('projects', JSON.stringify(this.projects))
           
           console.log('====== 项目加载完成，显示', this.projects.length, '个公开项目 ======')
@@ -399,17 +483,24 @@ export default {
       const savedProjects = localStorage.getItem('projects')
       if (savedProjects) {
         const allProjects = JSON.parse(savedProjects)
-        // 只保留公开项目，并确保状态正确转换
+        // 只保留公开项目，并确保状态正确转换和图片URL规范化
         this.projects = allProjects.filter(project => {
           if (project.visibility !== 'PUBLIC') {
             console.warn('从localStorage过滤掉非公开项目:', project.id, project.name || project.title, '可见性:', project.visibility)
             return false
           }
           return true
-        }).map(project => ({
-          ...project,
-          status: this.getStatusDisplay(project.status) // 确保状态正确转换
-        }))
+        }).map(project => {
+          // 规范化图片 URL
+          const normalizedImageUrl = normalizeProjectCoverUrl(project.image || project.imageUrl)
+          
+          return {
+            ...project,
+            status: this.getStatusDisplay(project.status), // 确保状态正确转换
+            image: normalizedImageUrl,
+            imageUrl: normalizedImageUrl
+          }
+        })
         console.log('从localStorage加载的项目数量:', allProjects.length, '过滤后项目数量:', this.projects.length)
         console.log('localStorage中所有项目的状态:', allProjects.map(p => ({ id: p.id, title: p.title || p.name, status: p.status, visibility: p.visibility })))
       } else {
@@ -577,10 +668,6 @@ export default {
 }
 
 .top-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-primary);
   height: 64px;
@@ -589,7 +676,9 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  z-index: 1000;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
 }
 
 .header-left {
@@ -649,7 +738,6 @@ export default {
 
 .main-content {
   flex: 1;
-  margin-top: 64px; /* 为固定页眉留出空间 */
   padding: var(--space-5) var(--space-6) 0;
   display: flex;
   flex-direction: column;

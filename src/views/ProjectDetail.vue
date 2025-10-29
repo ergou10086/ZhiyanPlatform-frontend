@@ -13,12 +13,46 @@
       <div class="header-left">
         <button class="back-btn" @click="goBack" aria-label="返回">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
         <span class="page-title">项目详情</span>
       </div>
       <div class="header-right">
+        <div class="user-area">
+          <div class="user-profile" @click="toggleUserMenu">
+            <div class="user-avatar">
+              <img v-if="userAvatar" :src="userAvatar" alt="用户头像" />
+              <div v-else class="avatar-placeholder">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+            </div>
+            <span class="username">{{ getCurrentUserName() }}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate': userMenuOpen }">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="user-menu" v-if="userMenuOpen">
+            <div class="menu-item" @click="goToProfile">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              个人信息
+            </div>
+            <div class="menu-item" @click="logout">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              退出登录
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -29,13 +63,49 @@
         <div class="loading-spinner"></div>
         <p>正在加载项目详情...</p>
       </div>
-
+      
       <!-- 项目详情内容 -->
       <div v-if="project">
       <!-- 项目信息卡片 -->
       <div class="project-card">
         <div class="project-header">
           <div class="project-info">
+            <!-- 项目图片区域 -->
+            <div class="project-image-section">
+              <div class="project-image-container">
+                <img 
+                  v-if="project.imageUrl || project.image" 
+                  :src="project.imageUrl || project.image" 
+                  alt="项目图片" 
+                  class="project-image"
+                  @load="onImageLoad"
+                  @error="onImageError"
+                />
+                <div v-else class="project-image-placeholder">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19Z" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 18L8 13L14 19M14 12L21 3" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <!-- 项目管理员可以上传图片 -->
+                <div v-if="isProjectManager" class="project-image-overlay" @click="triggerImageUpload">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>上传图片</span>
+                </div>
+              </div>
+              <!-- 隐藏的图片上传输入 -->
+              <input 
+                ref="projectImageUpload" 
+                type="file" 
+                accept="image/*" 
+                @change="handleProjectImageUpload" 
+                style="display: none"
+              />
+            </div>
+            
             <h1 class="project-title">{{ project.title }}</h1>
             <div class="project-meta">
               <div class="meta-item">
@@ -65,14 +135,14 @@
           <div class="project-actions" v-if="isProjectManager">
             <button class="btn secondary" @click="editProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               编辑项目
             </button>
             <button class="btn btn-danger" @click="deleteProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               删除项目
             </button>
@@ -89,7 +159,7 @@
               <button class="btn secondary">
                 <span>所有类型</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
               <ul class="dropdown-menu" v-if="taskTypeOpen">
@@ -107,7 +177,7 @@
           <div class="empty-state-content">
             <div class="empty-state-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#6c757d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#6c757d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
             <h3 class="empty-state-title">暂无任务</h3>
@@ -116,7 +186,7 @@
             </p>
           </div>
         </div>
-
+        
         <!-- 任务网格 -->
         <div v-else class="task-grid">
           <div v-for="task in filteredTasks" :key="task.id" class="task-card" @click="openTaskDetailModal(task)">
@@ -127,7 +197,7 @@
                   <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
                     {{ task.status }}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </button>
                   <div class="task-status-menu" v-if="task.showStatusMenu">
@@ -139,13 +209,13 @@
                 </div>
                 <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
                 <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
               </div>
@@ -166,13 +236,13 @@
           </div>
           </div>
         </div>
-
+        
         <!-- 更多按钮放在任务网格下面 -->
         <div v-if="allTasks.length > 5" class="more-button-container">
           <button class="more-button" @click="openTaskListModal">
             <span class="more-text">更多</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
@@ -187,15 +257,16 @@
             <button class="btn primary" @click="inviteMember">邀请成员</button>
         </div>
         </div>
-
+        
+        
         <div class="team-grid">
           <div v-for="member in teamMembers" :key="member.id" class="member-card">
             <div class="member-avatar">
               <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
               <div v-else class="avatar-placeholder">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
             </div>
@@ -205,7 +276,7 @@
             </div>
             <button v-if="isProjectManager" class="remove-member-btn" @click="removeTeamMember(member.id)" title="移除成员">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
           </div>
@@ -214,8 +285,8 @@
             <div class="member-avatar">
               <div class="avatar-placeholder">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
             </div>
@@ -225,7 +296,7 @@
             </div>
             <button v-if="isProjectManager" class="remove-member-btn" @click="removeInviteSlot(invite.id)" title="取消邀请">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
           </div>
@@ -241,47 +312,47 @@
           <h3 class="modal-title">新建任务</h3>
           <button class="modal-close" @click="closeTaskModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">任务标题</label>
-            <input
-              v-model="newTask.title"
-              type="text"
-              class="form-input"
+            <input 
+              v-model="newTask.title" 
+              type="text" 
+              class="form-input" 
               placeholder="请输入任务标题"
               maxlength="50"
             />
           </div>
-
+          
           <div class="form-field">
             <label class="form-label">任务描述</label>
-            <textarea
-              v-model="newTask.description"
-              class="form-textarea"
+            <textarea 
+              v-model="newTask.description" 
+              class="form-textarea" 
               placeholder="请输入任务描述"
               rows="3"
               maxlength="200"
             ></textarea>
           </div>
-
+          
           <div class="form-row">
             <div class="form-field">
               <label class="form-label">截止日期</label>
-              <input
-                v-model="newTask.dueDate"
-                type="date"
+              <input 
+                v-model="newTask.dueDate" 
+                type="date" 
                 :min="today"
                 class="form-input"
                 @change="validateNewTaskDueDate"
               />
               <div v-if="newTask.dateError" class="error-message">{{ newTask.dateError }}</div>
             </div>
-
+            
             <div class="form-field">
               <label class="form-label">优先级</label>
               <select v-model="newTask.priority" class="form-select">
@@ -292,7 +363,7 @@
             </div>
           </div>
         </div>
-
+        
         <div class="modal-footer">
           <button type="button" @click="closeTaskModal" class="btn btn-secondary">取消</button>
           <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim() || isCreatingTask">
@@ -309,54 +380,54 @@
           <h3 class="modal-title">编辑项目</h3>
           <button class="modal-close" @click="closeEditProjectModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">项目名称</label>
-            <input
-              v-model="editProjectData.name"
-              type="text"
-              class="form-input"
+            <input 
+              v-model="editProjectData.name" 
+              type="text" 
+              class="form-input" 
               placeholder="请输入项目名称"
               maxlength="100"
             />
           </div>
-
+          
           <div class="form-field">
             <label class="form-label">项目描述</label>
-            <textarea
-              v-model="editProjectData.description"
-              class="form-textarea"
+            <textarea 
+              v-model="editProjectData.description" 
+              class="form-textarea" 
               placeholder="请输入项目描述"
               rows="3"
               maxlength="500"
             ></textarea>
           </div>
-
+          
           <div class="form-row">
             <div class="form-field">
               <label class="form-label">开始日期</label>
-              <input
-                v-model="editProjectData.startDate"
-                type="date"
+              <input 
+                v-model="editProjectData.startDate" 
+                type="date" 
                 class="form-input"
               />
             </div>
-
+            
             <div class="form-field">
               <label class="form-label">结束日期</label>
-              <input
-                v-model="editProjectData.endDate"
-                type="date"
+              <input 
+                v-model="editProjectData.endDate" 
+                type="date" 
                 class="form-input"
               />
             </div>
           </div>
-
+          
           <div class="form-row">
             <div class="form-field">
               <label class="form-label">可见性</label>
@@ -366,7 +437,7 @@
                 <option value="TEAM">团队</option>
               </select>
             </div>
-
+            
             <div class="form-field">
               <label class="form-label">项目状态</label>
               <select v-model="editProjectData.status" class="form-select">
@@ -378,83 +449,12 @@
             </div>
           </div>
         </div>
-
+        
         <div class="modal-footer">
           <button type="button" @click="closeEditProjectModal" class="btn btn-secondary">取消</button>
           <button type="button" @click="saveProjectUpdate" class="btn btn-primary" :disabled="!editProjectData.name.trim()">
             保存更改
           </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 邀请成员弹窗 -->
-    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click="closeInviteMemberModal">
-      <div class="modal-content invite-modal" @click.stop>
-        <div class="modal-header">
-          <h3>邀请成员</h3>
-          <button @click="closeInviteMemberModal" class="modal-close">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="invite-form">
-            <div class="form-field">
-              <label class="form-label">搜索用户</label>
-              <div class="search-container">
-                <input
-                  type="text"
-                  v-model="inviteSearchQuery"
-                  class="form-input"
-                  placeholder="请输入用户ID或姓名进行搜索"
-                  @input="searchUsers"
-                />
-                <button @click="searchUsers" class="search-btn">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 搜索结果 -->
-          <div v-if="searchResults.length > 0" class="search-results">
-            <h4>搜索结果</h4>
-            <div class="user-list">
-              <div v-for="user in searchResults" :key="user.id" class="user-item">
-                <div class="user-info">
-                  <div class="user-avatar">
-                    <img v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                    <div v-else class="avatar-placeholder">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <circle cx="12" cy="7" r="4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <div class="user-details">
-                    <div class="user-name">{{ user.name }}</div>
-                    <div class="user-email">{{ user.email }}</div>
-                  </div>
-                </div>
-                <button @click="addUserToProject(user)" class="invite-btn">
-                  添加
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 无搜索结果提示 -->
-          <div v-if="inviteSearchQuery && searchResults.length === 0 && !isSearching" class="no-results">
-            <p>未找到匹配的用户</p>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button @click="closeInviteMemberModal" class="btn btn-secondary">取消</button>
         </div>
       </div>
     </div>
@@ -466,11 +466,11 @@
           <h3 class="modal-title">所有任务</h3>
           <button class="modal-close" @click="closeTaskListModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body">
           <div class="task-list-container">
             <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item" @click="openTaskDetailModal(task)">
@@ -481,7 +481,7 @@
                     <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
                       {{ task.status }}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
                     </button>
                     <div class="task-status-menu" v-if="task.showStatusMenu">
@@ -493,13 +493,13 @@
                   </div>
                   <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </button>
                   <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </button>
                 </div>
@@ -531,22 +531,22 @@
           <h3>编辑任务</h3>
           <button class="modal-close" @click="closeEditTaskModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body">
           <div class="form-field">
             <label class="form-label">任务标题</label>
             <input
               type="text"
-              v-model="editTaskData.title"
+              v-model="editTaskData.title" 
               class="form-input"
               placeholder="请输入任务标题"
             />
           </div>
-
+          
           <div class="form-field">
             <label class="form-label">任务描述</label>
             <textarea
@@ -579,7 +579,7 @@
             </div>
           </div>
         </div>
-
+        
         <div class="modal-footer">
           <button type="button" @click="closeEditTaskModal" class="btn btn-secondary">取消</button>
           <button type="button" @click="saveEditTask" class="btn btn-primary" :disabled="!editTaskData.title.trim()">
@@ -596,52 +596,52 @@
           <h3 class="modal-title">任务详情</h3>
           <button class="modal-close" @click="closeTaskDetailModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
         </div>
-
+        
         <div class="modal-body task-detail-body">
           <div class="task-detail-section">
             <label class="task-detail-label">任务标题</label>
             <div class="task-detail-value">{{ selectedTask.title }}</div>
           </div>
-
+          
           <div class="task-detail-section">
             <label class="task-detail-label">任务描述</label>
             <div class="task-detail-value task-description-scroll">{{ selectedTask.description || '暂无描述' }}</div>
           </div>
-
+          
           <div class="task-detail-section">
             <label class="task-detail-label">优先级</label>
             <div class="task-detail-value">
               <span class="task-priority-badge" :class="priorityClass(selectedTask.priority)">{{ selectedTask.priority }}</span>
             </div>
           </div>
-
+          
           <div class="task-detail-section">
             <label class="task-detail-label">状态</label>
             <div class="task-detail-value">
               <span class="task-status-badge" :class="statusClass(selectedTask.status)">{{ selectedTask.status }}</span>
             </div>
           </div>
-
+          
           <div class="task-detail-section" v-if="selectedTask.date">
             <label class="task-detail-label">截止日期</label>
             <div class="task-detail-value">{{ selectedTask.date }}</div>
           </div>
-
+          
           <div class="task-detail-section">
             <label class="task-detail-label">创建人</label>
             <div class="task-detail-value">{{ selectedTask.created_by_name || '未知' }}</div>
           </div>
-
+          
           <div class="task-detail-section" v-if="selectedTask.assignee_name">
             <label class="task-detail-label">负责人</label>
             <div class="task-detail-value">{{ selectedTask.assignee_name }}</div>
           </div>
         </div>
-
+        
         <div class="modal-footer">
           <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
@@ -657,6 +657,8 @@
 </template>
 
 <script>
+import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
+
 export default {
   name: 'ProjectDetail',
   data() {
@@ -668,15 +670,8 @@ export default {
       statusDropdownOpen: false,
       taskModalOpen: false,
       editProjectModalOpen: false,
-      inviteMemberModalOpen: false,
       showToast: false,
       toastMessage: '',
-      inviteSearchQuery: '',
-      searchResults: [],
-      isSearching: false,
-      searchDebounceTimer: null, // 防抖定时器
-      searchAbortController: null, // 请求取消控制器
-      searchRequestId: 0, // 请求序列号
       newTask: {
         title: '',
         description: '',
@@ -698,7 +693,6 @@ export default {
       teamMembers: [],
       inviteSlots: [],
       isLoading: true,
-      membersLoadError: null, // 成员加载错误信息
       taskListModalOpen: false,
       isCreatingTask: false, // 防止重复点击创建任务
       taskDetailModalOpen: false, // 任务详情弹窗
@@ -889,11 +883,58 @@ export default {
       }
     },
     
-    loadProject() {
+    async loadProject() {
       const projectId = this.$route.params.id
       console.log('正在加载项目ID:', projectId, '类型:', typeof projectId)
       
-      // 从localStorage加载项目数据
+      // 优先从后端API获取最新的项目数据
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const response = await projectAPI.getProjectById(projectId)
+        
+        if (response && response.code === 200 && response.data) {
+          console.log('从API获取到最新项目数据:', response.data)
+          const apiProject = response.data
+          
+          // 使用API返回的最新数据
+          this.project = {
+            id: apiProject.id,
+            name: apiProject.name,
+            title: apiProject.name,
+            description: apiProject.description || '暂无描述',
+            startDate: apiProject.startDate || '',
+            endDate: apiProject.endDate || '',
+            period: (apiProject.startDate && apiProject.endDate) ? 
+              `${apiProject.startDate} 至 ${apiProject.endDate}` : 
+              '2024-01-01 至 2024-12-31',
+            status: apiProject.status || 'PLANNING',
+            visibility: apiProject.visibility || 'PRIVATE',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            manager: this.getCurrentUserName(),
+            teamSize: apiProject.teamSize || 1,
+            category: apiProject.category || '其他',
+            aiCore: '待定',
+            tags: apiProject.tags || [],
+            tasks: [],
+            created_by: apiProject.creatorId || 1
+          }
+          
+          console.log('项目加载完成，最新imageUrl:', this.project.imageUrl)
+          
+          // 加载团队成员（从localStorage或使用默认值）
+          this.loadTeamMembersFromLocalStorage()
+          
+          // 加载任务数据
+          this.loadProjectTasks()
+          this.isLoading = false
+          return
+        }
+      } catch (error) {
+        console.error('从API加载项目失败，回退到localStorage:', error)
+      }
+      
+      // 如果API失败，从localStorage加载项目数据（作为后备）
       const savedProjects = localStorage.getItem('projects')
       console.log('localStorage中的项目数据:', savedProjects)
       
@@ -923,8 +964,8 @@ export default {
               '2024-01-01 至 2024-12-31',
             status: this.getStatusValue(foundProject.status), // 转换为枚举值
             visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
-            imageUrl: foundProject.imageUrl || foundProject.image || 'https://via.placeholder.com/400x225?text=Project+Image',
-            image: foundProject.image || foundProject.imageUrl,
+            imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            image: normalizeProjectCoverUrl(foundProject.image || foundProject.imageUrl),
             manager: this.getCurrentUserName(), // 从用户信息获取负责人
             teamSize: foundProject.teamSize,
             category: foundProject.category,
@@ -943,10 +984,10 @@ export default {
           // 注意：任务数据现在通过loadProjectTasks方法从后端API加载
           // 这里不再从localStorage加载任务，以确保数据是最新的
           
-          // ✅ 修复：不再使用localStorage中的成员数据或默认值
-          // 团队成员数据将通过loadProjectMembers方法从后端API加载
-          // 初始化为空数组，避免显示错误的默认成员信息
-          this.teamMembers = []
+          // 加载团队成员数据
+          this.teamMembers = foundProject.teamMembers || [
+            { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
+          ]
           this.inviteSlots = foundProject.inviteSlots || []
           
         } else {
@@ -981,241 +1022,68 @@ export default {
       // 加载完成
       this.isLoading = false
       console.log('项目加载完成，project:', this.project)
-
+      
       // 加载项目任务数据
       this.loadProjectTasks()
-
-      // 如果项目加载成功，从后端加载成员列表
-      if (this.project && this.project.id) {
-        this.loadProjectMembers()
-      }
     },
-    goBack() {
-      this.$router.go(-1)
-    },
-    async addTeamMember() {
-      // 使用更好的UI提示用户输入
-      const userId = prompt('请输入要添加的用户ID:')
-      if (!userId || !userId.trim()) {
-        return
-      }
-
-      // 弹出选择角色
-      const roleChoice = confirm('点击"确定"添加为项目拥有者(OWNER)，点击"取消"添加为普通成员(MEMBER)')
-      const roleCode = roleChoice ? 'OWNER' : 'MEMBER'
-
-      try {
-        // 导入 API
-        const { projectAPI } = await import('@/api/project')
-
-        // 调用后端API - 使用 assignRole (分配角色接口)
-        const response = await projectAPI.assignRole(this.project.id, {
-          userId: parseInt(userId.trim()),
-          roleCode: roleCode
-        })
-
-        if (response.code === 200) {
-          this.showSuccessToast(`成员添加成功！角色: ${roleCode === 'OWNER' ? '项目拥有者' : '普通成员'}`)
-          // 刷新成员列表
-          this.loadProjectMembers()
-        } else {
-          alert(`添加失败: ${response.message || response.msg || '未知错误'}`)
-        }
-      } catch (error) {
-        console.error('添加成员失败:', error)
-        alert(`添加失败: ${error.message || error.msg || '网络错误'}`)
-      }
-    },
-    inviteMember() {
-      this.inviteMemberModalOpen = true
-      this.resetInviteForm()
-    },
-    closeInviteMemberModal() {
-      this.inviteMemberModalOpen = false
-      this.resetInviteForm()
-    },
-    resetInviteForm() {
-      this.inviteSearchQuery = ''
-      this.searchResults = []
-      this.isSearching = false
-      // 清理防抖定时器
-      if (this.searchDebounceTimer) {
-        clearTimeout(this.searchDebounceTimer)
-        this.searchDebounceTimer = null
-      }
-      // 重置请求ID，废弃所有进行中的请求
-      this.searchRequestId++
-    },
-    async searchUsers() {
-      // 清除之前的防抖定时器
-      if (this.searchDebounceTimer) {
-        clearTimeout(this.searchDebounceTimer)
-      }
-
-      // 如果搜索框为空，立即清空结果
-      if (!this.inviteSearchQuery.trim()) {
-        this.searchResults = []
-        this.isSearching = false
-        return
-      }
-
-      // 设置防抖：延迟300ms执行搜索
-      this.searchDebounceTimer = setTimeout(async () => {
-        await this.performSearch()
-      }, 300)
-    },
-
-    async performSearch() {
-      // 生成新的请求ID
-      this.searchRequestId++
-      const currentRequestId = this.searchRequestId
-
-      console.log(`🔍 开始搜索 [请求ID: ${currentRequestId}]`)
-
-      this.isSearching = true
+    
+    loadTeamMembersFromLocalStorage() {
+      const projectId = this.$route.params.id
+      const savedProjects = localStorage.getItem('projects')
       
-      try {
-        const { projectAPI } = await import('@/api/project')
-        const keyword = this.inviteSearchQuery.trim()
-
-        // 使用项目服务的搜索API
-        const response = await projectAPI.searchUsers(keyword, 0, 10)
-
-        // ✅ 关键：检查这个响应是否是最新的请求
-        if (currentRequestId !== this.searchRequestId) {
-          console.log(`⚠️ 忽略旧响应 [请求ID: ${currentRequestId}, 当前ID: ${this.searchRequestId}]`)
-          return
-        }
-
-        console.log(`✅ 处理响应 [请求ID: ${currentRequestId}]`, response)
-
-        if (response.code === 200 && response.data) {
-          // 处理分页结果
-          if (response.data.content && Array.isArray(response.data.content)) {
-            this.searchResults = response.data.content
-          } else if (Array.isArray(response.data)) {
-            this.searchResults = response.data
-          } else {
-            this.searchResults = [response.data]
-          }
-        } else {
-          this.searchResults = []
-        }
-      } catch (error) {
-        // 只处理最新请求的错误
-        if (currentRequestId === this.searchRequestId) {
-          console.error('搜索用户失败:', error)
-          this.searchResults = []
-          this.showSuccessToast('搜索失败，请重试')
-        }
-      } finally {
-        // 只有最新请求才更新loading状态
-        if (currentRequestId === this.searchRequestId) {
-          this.isSearching = false
-        }
-      }
-    },
-    async addUserToProject(user) {
-      // 检查用户是否已经是团队成员
-      const isAlreadyMember = this.teamMembers.some(member => member.id === user.id || member.userId === user.id)
-      if (isAlreadyMember) {
-        alert('该用户已经是团队成员')
-        return
-      }
-      
-      try {
-        const { projectAPI } = await import('@/api/project')
-
-        // 调用后端API邀请成员（默认角色为MEMBER）
-        const response = await projectAPI.inviteMember(this.project.id, {
-          userId: user.id,
-          role: 'MEMBER'  // 默认添加为普通成员
-        })
-
-        if (response.code === 200) {
-          this.showSuccessToast(`${user.name || user.realName || '用户'} 已添加到项目`)
-          this.closeInviteMemberModal()
-          // 刷新成员列表
-          this.loadProjectMembers()
-        } else {
-          alert(`添加失败: ${response.message || response.msg || '未知错误'}`)
-        }
-      } catch (error) {
-        console.error('添加用户失败:', error)
-        alert(`添加失败: ${error.message || error.msg || '网络错误'}`)
-      }
-    },
-    async loadProjectMembers() {
-      // ✅ 优化：先从后端加载成员列表，如果为空再显示默认成员
-      try {
-        // 清除之前的错误信息
-        this.membersLoadError = null
-
-        const { projectAPI } = await import('@/api/project')
-
-        const response = await projectAPI.getProjectMembers(this.project.id)
-
-        if (response.code === 200 && response.data) {
-          // 转换后端数据格式到前端格式
-          const membersFromBackend = response.data.content.map(member => ({
-            id: member.userId,
-            name: member.username || member.nickname || `用户${member.userId}`,
-            role: member.roleCode === 'OWNER' ? '项目拥有者' : '普通成员',
-            avatar: member.avatar || null,
-            joinedAt: member.joinedAt
-          }))
-
-          // ✅ 判断：如果后端返回的成员列表为空，则显示默认成员（当前用户）
-          if (membersFromBackend.length === 0) {
-            console.log('后端成员列表为空，使用默认成员（当前用户）')
-            this.teamMembers = [
-              { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
-            ]
-          } else {
-            // 后端有数据，使用后端数据
-            console.log('使用后端返回的成员列表，共', membersFromBackend.length, '个成员')
-            this.teamMembers = membersFromBackend
-          }
-        } else {
-          // API调用失败，显示默认成员
-          console.log('加载成员失败，使用默认成员')
-          this.membersLoadError = response.message || '加载成员列表失败'
-          this.teamMembers = [
+      if (savedProjects) {
+        const projects = JSON.parse(savedProjects)
+        const foundProject = projects.find(p => String(p.id) === String(projectId))
+        
+        if (foundProject) {
+          this.teamMembers = foundProject.teamMembers || [
             { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
           ]
+          this.inviteSlots = foundProject.inviteSlots || []
         }
-      } catch (error) {
-        console.error('加载项目成员失败:', error)
-        // 加载失败时，显示默认成员
-        console.log('加载成员异常，使用默认成员')
-        this.membersLoadError = '加载成员列表失败，显示默认信息'
+      }
+      
+      // 如果没有找到，使用默认值
+      if (!this.teamMembers || this.teamMembers.length === 0) {
         this.teamMembers = [
           { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
         ]
       }
     },
-    async removeTeamMember(memberId) {
-      if (!confirm('确定要移除此成员吗？')) {
-        return
-      }
-
-      try {
-        // 导入 API
-        const { projectAPI } = await import('@/api/project')
-
-        // 调用后端API
-        const response = await projectAPI.removeMember(this.project.id, memberId)
-
-        if (response.code === 200) {
-          this.showSuccessToast('成员已移除！')
-          // 刷新成员列表
-          this.loadProjectMembers()
-        } else {
-          alert(`移除失败: ${response.message || response.msg || '未知错误'}`)
+    goBack() {
+      this.$router.go(-1)
+    },
+    addTeamMember() {
+      const name = prompt('请输入成员姓名:')
+      if (name && name.trim()) {
+        const role = prompt('请输入成员角色:')
+        const newMember = {
+          id: Date.now(),
+          name: name.trim(),
+          role: role ? role.trim() : '团队成员',
+          avatar: null
         }
-      } catch (error) {
-        console.error('移除成员失败:', error)
-        alert(`移除失败: ${error.message || error.msg || '网络错误'}`)
+        this.teamMembers.push(newMember)
+        this.saveProjectData()
+        alert('成员添加成功！')
+      }
+    },
+    inviteMember() {
+      const role = prompt('请输入邀请的角色:')
+      if (role && role.trim()) {
+        const newInvite = {
+          id: Date.now(),
+          role: role.trim()
+        }
+        this.inviteSlots.push(newInvite)
+        this.saveProjectData()
+        alert('邀请已发送！')
+      }
+    },
+    removeTeamMember(memberId) {
+      if (confirm('确定要移除此成员吗？')) {
+        this.teamMembers = this.teamMembers.filter(m => m.id !== memberId)
+        this.saveProjectData()
       }
     },
     removeInviteSlot(slotId) {
@@ -1482,7 +1350,7 @@ export default {
         console.log('[saveNewTask] 任务正在创建中，忽略重复点击')
         return
       }
-
+      
       if (!this.newTask.title.trim()) {
         alert('请输入任务标题')
         return
@@ -1496,11 +1364,11 @@ export default {
       
       // 设置创建中状态
       this.isCreatingTask = true
-
+      
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-
+        
         // 构建任务数据（使用后端需要的格式）
         const taskData = {
           projectId: this.project.id,
@@ -1510,18 +1378,18 @@ export default {
           dueDate: this.newTask.dueDate || null,
           assigneeIds: [] // 新任务默认没有执行者
         }
-
+        
         console.log('[saveNewTask] 创建任务，数据:', taskData)
-
+        
         // 调用后端API创建任务
         const response = await taskAPI.createTask(taskData)
-
+        
         console.log('[saveNewTask] API返回结果:', response)
-
+        
         if (response && response.code === 200) {
           // 创建成功，重新加载任务列表
           await this.loadProjectTasks()
-
+          
           this.closeTaskModal()
           this.showSuccessToast('任务创建成功！')
         } else {
@@ -1564,13 +1432,13 @@ export default {
         alert('请输入任务标题')
         return
       }
-
+      
       // 验证截止日期不能早于今天
       if (this.editTaskData.dueDate && new Date(this.editTaskData.dueDate) < new Date(this.today)) {
         alert('任务截止日期不能早于今天')
         return
       }
-
+      
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
@@ -1582,18 +1450,18 @@ export default {
           priority: this.getPriorityValue(this.editTaskData.priority),
           dueDate: this.editTaskData.dueDate || null
         }
-
+        
         console.log('[saveEditTask] 更新任务，ID:', this.editTaskData.taskId, '数据:', updateData)
-
+        
         // 调用后端API更新任务
         const response = await taskAPI.updateTask(this.editTaskData.taskId, updateData)
-
+        
         console.log('[saveEditTask] API返回结果:', response)
-
+        
         if (response && response.code === 200) {
           // 更新成功，重新加载任务列表
           await this.loadProjectTasks()
-
+          
           this.closeEditTaskModal()
           this.showSuccessToast('任务更新成功！')
         } else {
@@ -1616,25 +1484,24 @@ export default {
       if (!confirm('确定要删除此任务吗？')) {
         return
       }
-
+      
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-
+        
         console.log('[deleteTask] 删除任务，任务ID:', taskId)
-
+        
         // 调用后端API删除任务
         const response = await taskAPI.deleteTask(taskId)
-
+        
         console.log('[deleteTask] API返回结果:', response)
-
+        
         if (response && response.code === 200) {
-          // 删除成功，从本地任务列表中移除
-          this.tasks = this.tasks.filter(t => t.id !== taskId)
-
-          // 保存到localStorage
-          this.saveProjectData()
-
+          console.log('[deleteTask] ✅ 任务删除成功，重新从后端加载任务列表')
+          
+          // ✅ 重新从后端加载最新的任务列表，确保数据一致性
+          await this.loadProjectTasks()
+          
           this.showSuccessToast('任务已删除！')
         } else {
           alert('删除任务失败：' + (response.msg || '未知错误'))
@@ -1793,15 +1660,13 @@ export default {
         console.log('[changeTaskStatus] API返回结果:', response)
         
         if (response && response.code === 200) {
-          // 更新本地任务状态
-          task.status = newStatus
-          task.status_value = statusValue
+          console.log('[changeTaskStatus] ✅ 任务状态更新成功，重新加载任务列表')
           
           // 关闭状态菜单
           this.$set(task, 'showStatusMenu', false)
           
-          // 保存到localStorage
-          this.saveProjectData()
+          // ✅ 重新从后端加载最新的任务列表，确保数据一致性
+          await this.loadProjectTasks()
           
           this.showSuccessToast('任务状态已更新！')
           
@@ -1893,6 +1758,113 @@ export default {
       this.selectedTaskType = type
       this.taskTypeOpen = false
     },
+    triggerImageUpload() {
+      // 触发文件上传输入
+      this.$refs.projectImageUpload.click()
+    },
+    async handleProjectImageUpload(event) {
+      const file = event.target.files[0]
+      if (!file) return
+      
+      try {
+        // 验证文件类型
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+        if (!allowedTypes.includes(file.type)) {
+          alert('只支持以下图片格式: jpg, png, gif, webp, bmp')
+          return
+        }
+        
+        // 验证文件大小（5MB）
+        if (file.size > 5 * 1024 * 1024) {
+          alert('文件大小不能超过5MB')
+          return
+        }
+        
+        // 导入项目API
+        const { projectAPI } = await import('@/api/project')
+        
+        console.log('[handleProjectImageUpload] 开始上传项目图片:', file.name)
+        
+        // 上传图片
+        const response = await projectAPI.uploadProjectImage(file, this.project.id)
+        
+        console.log('[handleProjectImageUpload] API返回结果:', response)
+        console.log('[handleProjectImageUpload] 返回结果类型:', typeof response)
+        console.log('[handleProjectImageUpload] 返回结果完整信息:', JSON.stringify(response, null, 2))
+        
+        // ✅ 调试：打印响应的所有字段
+        if (response) {
+          console.log('[handleProjectImageUpload] response.code:', response.code)
+          console.log('[handleProjectImageUpload] response.msg:', response.msg)
+          console.log('[handleProjectImageUpload] response.data:', response.data)
+          
+          if (response.data) {
+            console.log('[handleProjectImageUpload] response.data.imageUrl:', response.data.imageUrl)
+            console.log('[handleProjectImageUpload] response.data所有字段:', Object.keys(response.data))
+          }
+        }
+        
+        if (response && response.code === 200 && response.data) {
+          // 更新项目图片URL
+          const imageUrl = response.data.imageUrl
+          console.log('[handleProjectImageUpload] 提取到的imageUrl:', imageUrl)
+          
+          if (!imageUrl) {
+            console.warn('[handleProjectImageUpload] ⚠️ 警告：imageUrl 为空或不存在！')
+            console.warn('[handleProjectImageUpload] response.data 的所有字段:', response.data)
+            alert('上传成功但未获取到图片URL')
+            return
+          }
+          
+          // ✅ 使用 Vue.set 来确保响应式更新
+          this.$set(this.project, 'imageUrl', imageUrl)
+          this.$set(this.project, 'image', imageUrl)
+          
+          console.log('[handleProjectImageUpload] 项目对象已更新:', {
+            imageUrl: this.project.imageUrl,
+            image: this.project.image
+          })
+          
+          // 保存到localStorage
+          this.saveProjectData()
+          
+          // ✅ 强制Vue重新渲染（以防万一）
+          this.$forceUpdate()
+          
+          console.log('[handleProjectImageUpload] ✅ 强制更新Vue视图')
+          console.log('[handleProjectImageUpload] ✅ 图片URL已设置:', imageUrl)
+          
+          this.showSuccessToast('项目图片上传成功！')
+          console.log('[handleProjectImageUpload] 项目图片上传成功，URL:', imageUrl)
+        } else {
+          console.error('[handleProjectImageUpload] ❌ 响应不符合预期')
+          console.error('[handleProjectImageUpload] response:', response)
+          alert('上传失败: ' + (response?.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[handleProjectImageUpload] 上传项目图片失败:', error)
+        
+        // ✅ 增强的错误处理
+        if (error && error.status === 403) {
+          console.error('[handleProjectImageUpload] ❌ 403 Forbidden - 认证失败')
+          console.error('[handleProjectImageUpload] 可能原因: JWT token 过期或无效')
+          const token = localStorage.getItem('access_token')
+          if (!token) {
+            console.error('[handleProjectImageUpload] 🔴 Token 为空')
+            alert('登录已过期，请重新登录')
+          } else {
+            alert('认证失败，请重新登录')
+          }
+        } else {
+          alert('上传项目图片失败，请稍后重试')
+        }
+      } finally {
+        // 清空输入，允许重复选择同一文件
+        if (this.$refs.projectImageUpload) {
+          this.$refs.projectImageUpload.value = ''
+        }
+      }
+    },
     showSuccessToast(message) {
       this.toastMessage = message
       this.showToast = true
@@ -1902,6 +1874,38 @@ export default {
         this.showToast = false
         this.toastMessage = ''
       }, 1000)
+    },
+    onImageLoad() {
+      console.log('✅ 图片加载成功:', this.project.imageUrl || this.project.image)
+    },
+    onImageError(event) {
+      const imageUrl = this.project.imageUrl || this.project.image
+      console.error('❌ 图片加载失败，URL:', imageUrl)
+      console.error('❌ 错误详情:', event)
+      console.warn('⚠️ 可能的原因：')
+      console.warn('  1. CORS 跨域问题 - MinIO 没有正确配置 CORS')
+      console.warn('  2. 图片 URL 不正确')
+      console.warn('  3. MinIO 服务不可用或桶策略未设置为public')
+      console.warn('  4. 网络连接问题')
+      
+      // 测试URL可访问性
+      if (imageUrl) {
+        console.log('📝 测试 URL 可访问性，请在浏览器中直接访问：', imageUrl)
+        console.log('📝 或运行以下PowerShell命令测试：')
+        console.log(`   Invoke-WebRequest -Uri "${imageUrl}" -Method GET -UseBasicParsing`)
+        
+        // 尝试fetch测试
+        fetch(imageUrl, { method: 'HEAD' })
+          .then(response => {
+            console.log('✅ HEAD请求成功，状态码:', response.status)
+            console.log('✅ Content-Type:', response.headers.get('Content-Type'))
+            console.log('✅ Access-Control-Allow-Origin:', response.headers.get('Access-Control-Allow-Origin'))
+          })
+          .catch(error => {
+            console.error('❌ HEAD请求失败:', error)
+            console.error('❌ 这通常表示CORS或网络问题')
+          })
+      }
     }
   }
 }
@@ -1916,10 +1920,6 @@ export default {
 }
 
 .top-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   background: white;
   border-bottom: 1px solid #e9ecef;
   height: 64px;
@@ -1928,7 +1928,6 @@ export default {
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
 }
 
 .header-left {
@@ -2039,7 +2038,6 @@ export default {
 
 .main-content {
   flex: 1;
-  margin-top: 64px; /* 为固定页眉留出空间 */
   padding: 20px 24px 28px;
   display: flex;
   flex-direction: column;
@@ -2062,6 +2060,68 @@ export default {
 
 .project-info {
   flex: 1;
+}
+
+.project-image-section {
+  margin-bottom: 24px;
+}
+
+.project-image-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  height: 300px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.project-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d9d9d9;
+}
+
+.project-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.project-image-container:hover .project-image-overlay {
+  opacity: 1;
+}
+
+.project-image-overlay svg {
+  color: white;
+}
+
+.project-image-overlay span {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .project-title {
@@ -2323,16 +2383,16 @@ export default {
   .task-grid {
     grid-template-columns: 1fr;
   }
-
+  
   .task-empty-state {
     min-height: 150px;
     padding: 30px 15px;
   }
-
+  
   .empty-state-title {
     font-size: 16px;
   }
-
+  
   .empty-state-message {
     font-size: 13px;
   }
@@ -3291,30 +3351,6 @@ export default {
   }
 }
 
-/* 团队成员加载提示样式 */
-.loading-message {
-  padding: 32px;
-  text-align: center;
-  color: #6c757d;
-  font-size: 14px;
-}
-
-.loading-message p {
-  margin: 0;
-}
-
-/* 团队成员错误提示样式 */
-.error-message {
-  padding: 32px;
-  text-align: center;
-  color: #dc3545;
-  font-size: 14px;
-}
-
-.error-message p {
-  margin: 0;
-}
-
 /* 成功提示Toast样式 */
 .success-toast {
   position: fixed;
@@ -3357,144 +3393,5 @@ export default {
   font-size: 12px;
   margin-top: 4px;
   display: block;
-}
-
-/* 邀请成员弹窗样式 */
-.invite-modal {
-  max-width: 600px;
-}
-
-.search-container {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.search-container .form-input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 1px solid #e9ecef;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.search-btn {
-  padding: 10px 14px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background-color 0.2s;
-}
-
-.search-btn:hover {
-  background: #0056b3;
-}
-
-.search-results {
-  margin-top: 20px;
-}
-
-.search-results h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
-}
-
-.user-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.user-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  background: #e9ecef;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c757d;
-}
-
-.user-details {
-  flex: 1;
-}
-
-.user-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.user-email {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.invite-btn {
-  padding: 8px 16px;
-  background: #28a745;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background-color 0.2s;
-}
-
-.invite-btn:hover {
-  background: #218838;
-}
-
-.no-results {
-  text-align: center;
-  padding: 40px 20px;
-  color: #6c757d;
-}
-
-.no-results p {
-  margin: 0;
-  font-size: 14px;
 }
 </style>

@@ -21,6 +21,15 @@ const config = {
     }
   },
   
+  // MinIO配置
+  minio: {
+    // MinIO服务基础URL
+    baseURL: process.env.NODE_ENV === 'production'
+      ? 'http://10.7.10.98:9000'  // 生产环境MinIO地址
+      : 'http://10.7.10.98:9000',  // 开发环境MinIO地址
+    bucket: 'zhiyan'
+  },
+  
   // 应用配置
   app: {
     name: '智研平台',
@@ -35,5 +44,10 @@ const config = {
     userInfoKey: 'user_info'
   }
 }
+
+// 导出常用的配置项
+export const API_BASE_URL = config.api.baseURL
+export const MINIO_BASE_URL = config.minio.baseURL
+export const MINIO_BUCKET = config.minio.bucket
 
 export default config

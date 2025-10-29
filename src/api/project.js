@@ -5,11 +5,13 @@ import config from '@/config'
 const api = axios.create({
   baseURL: '', // 使用相对路径，通过Vue代理转发
   timeout: config.api.timeout,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  },
   withCredentials: true
+  // ✅ 不设置默认 Content-Type，让 Axios 根据数据类型自动处理
+  // ✅ 对于 FormData，Axios 会自动设置为 multipart/form-data
+  // headers: {
+  //   'Content-Type': 'application/json',
+  //   'Accept': 'application/json'
+  // }
 })
 
 // 请求拦截器
@@ -19,15 +21,32 @@ api.interceptors.request.use(
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('[API请求拦截器] 已附加 Authorization header')
+    } else {
+      console.warn('[API请求拦截器]  警告：access_token 为空')
     }
     
-    console.log('项目API请求:', config.method?.toUpperCase(), config.url)
-    console.log('请求数据:', config.data)
+    // ✅ 对于 FormData 数据，不要手动设置 Content-Type
+    // ✅ 只删除默认的 Content-Type，让浏览器自动处理
+    if (config.data instanceof FormData) {
+      // 不删除 headers 对象本身，只在需要时删除特定属性
+      // 但更安全的做法是使用 undefined 而不是 delete
+      config.headers['Content-Type'] = undefined
+      console.log('[API请求拦截器] FormData 检测到，已清空 Content-Type，让浏览器自动设置')
+      console.log('[API请求拦截器] 当前请求头:', config.headers)
+    } else if (!config.headers['Content-Type']) {
+      // 对于非 FormData 数据，设置默认的 Content-Type
+      config.headers['Content-Type'] = 'application/json'
+    }
+    
+    console.log('[API请求拦截器] 项目API请求:', config.method?.toUpperCase(), config.url)
+    console.log('[API请求拦截器] 请求数据类型:', config.data instanceof FormData ? 'FormData' : typeof config.data)
+    console.log('[API请求拦截器] 最终请求头:', config.headers)
     
     return config
   },
   error => {
-    console.error('请求拦截器错误:', error)
+    console.error('[API请求拦截器] 错误:', error)
     return Promise.reject(error)
   }
 )
@@ -44,12 +63,21 @@ api.interceptors.response.use(
     console.error('项目API错误:', error)
     
     if (error.response) {
-      // 服务器返回了错误响应
       const { status, data } = error.response
       console.error('服务器错误:', status, data)
       
       if (status === 401) {
         // token过期，跳转到登录页
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_info')
+        window.location.href = '/login'
+      }
+      
+      // ✅ 处理 403 Forbidden - 可能是 token 过期或无效
+      if (status === 403) {
+        console.error('[API响应拦截器] ❌ 403 Forbidden - 认证失败')
+        console.error('[API响应拦截器] 清除所有认证信息并跳转到登录页')
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('user_info')
@@ -191,59 +219,32 @@ export const projectAPI = {
   },
 
   /**
-   * 邀请成员加入项目
-   * @param {Number} projectId - 项目ID
-   * @param {Object} data - 包含 userId 和 role（可选，默认MEMBER）
+   * 上传项目图片
+   * @param {File} file - 图片文件
+   * @param {Number} projectId - 项目ID（可选）
    */
-  inviteMember(projectId, data) {
-    console.log('[projectAPI.inviteMember] 邀请成员, 项目ID:', projectId, '数据:', data)
-    return api.post(`/zhiyan/api/projects/${projectId}/invite`, data)
+  uploadProjectImage(file, projectId = null) {
+    console.log('[projectAPI.uploadProjectImage] 上传项目图片, projectId:', projectId)
+    
+    const formData = new FormData()
+    formData.append('file', file)
+    if (projectId) {
+      formData.append('projectId', projectId)
+    }
+    
+    // ✅ 不要手动设置 Content-Type
+    // ✅ Axios 会自动检测 FormData 并设置正确的 multipart/form-data (包含 boundary)
+    return api.post('/zhiyan/api/projects/upload-image', formData)
   },
 
   /**
-   * 分配角色给用户（添加成员）
-   * @param {Number} projectId - 项目ID
-   * @param {Object} data - 包含 userId 和 roleCode
+   * 删除项目图片
+   * @param {String} imageUrl - 图片URL
    */
-  assignRole(projectId, data) {
-    console.log('[projectAPI.assignRole] 分配角色, 项目ID:', projectId, '数据:', data)
-    return api.post(`/zhiyan/api/projects/${projectId}/assign`, data)
-  },
-
-  /**
-   * 移除项目成员
-   * @param {Number} projectId - 项目ID
-   * @param {Number} userId - 用户ID
-   */
-  removeMember(projectId, userId) {
-    console.log('[projectAPI.removeMember] 移除成员, 项目ID:', projectId, '用户ID:', userId)
-    return api.delete(`/zhiyan/api/projects/${projectId}/members/${userId}`)
-  },
-
-  /**
-   * 获取项目成员列表
-   * @param {Number} projectId - 项目ID
-   * @param {Number} page - 页码
-   * @param {Number} size - 每页数量
-   */
-  getProjectMembers(projectId, page = 0, size = 20) {
-    console.log('[projectAPI.getProjectMembers] 获取项目成员, 项目ID:', projectId)
-    return api.get(`/zhiyan/api/projects/${projectId}/members`, {
-      params: { page, size }
-    })
-  },
-
-  /**
-   * 搜索用户（用于邀请成员）
-   * 通过项目服务调用认证服务
-   * @param {String} keyword - 搜索关键词（可以是姓名、邮箱等）
-   * @param {Number} page - 页码，从0开始
-   * @param {Number} size - 每页数量
-   */
-  searchUsers(keyword, page = 0, size = 10) {
-    console.log('[projectAPI.searchUsers] 搜索用户, 关键词:', keyword, '页码:', page, '每页:', size)
-    return api.get(`/zhiyan/api/users/search`, {
-      params: { keyword, page, size }
+  deleteProjectImage(imageUrl) {
+    console.log('[projectAPI.deleteProjectImage] 删除项目图片:', imageUrl)
+    return api.delete('/zhiyan/api/projects/delete-image', {
+      params: { imageUrl }
     })
   }
 }

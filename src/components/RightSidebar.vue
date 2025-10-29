@@ -153,6 +153,10 @@ export default {
       })
     }
   },
+  mounted() {
+    // 组件加载时获取任务
+    this.loadUpcomingTasks()
+  },
   methods: {
     previousMonth() {
       this.currentDate = new Date(this.currentDate.getFullYear(), this.currentDate.getMonth() - 1, 1)

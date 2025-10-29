@@ -190,17 +190,26 @@ export default {
             userInfo: response.data.user
           }
           
-          console.log('登录成功，保存数据:', loginData)
+          console.log('🔐 登录成功，原始用户数据:', response.data.user)
           saveLoginData(loginData)
           
-          // 验证数据是否保存成功
+          // 验证保存后的数据
           const savedToken = localStorage.getItem('access_token')
           const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            const parsed = JSON.parse(savedUserInfo)
+            console.log('✅ 保存后的用户信息:', {
+              nickname: parsed.nickname,
+              avatar: parsed.avatar,
+              avatarUrl: parsed.avatarUrl,
+              hasAvatar: !!(parsed.avatar || parsed.avatarUrl),
+              avatarLength: (parsed.avatar || parsed.avatarUrl || '').length
+            })
+          }
+          
           console.log('数据保存验证:', {
             token: !!savedToken,
-            userInfo: !!savedUserInfo,
-            tokenValue: savedToken,
-            userInfoValue: savedUserInfo
+            userInfo: !!savedUserInfo
           })
           
           // 显示成功消息

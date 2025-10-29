@@ -1,41 +1,73 @@
 // 认证相关的工具函数
-import tokenManager from './tokenManager'
+import { normalizeAvatarUrl } from './imageUtils'
+
+/**
+ * 规范化用户信息
+ * 处理后端返回的 avatarUrl 可能是 JSON 字符串的情况
+ * @param {Object} userInfo - 用户信息对象
+ * @returns {Object} 规范化后的用户信息
+ */
+export function normalizeUserInfo(userInfo) {
+  if (!userInfo) return null
+  
+  const normalized = { ...userInfo }
+  
+  // 处理 avatarUrl/avatar 字段
+  let avatarUrl = userInfo.avatar || userInfo.avatarUrl || ''
+  
+  // 如果 avatarUrl 是 JSON 字符串，提取实际的 URL
+  if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(avatarUrl)
+      // 优先使用 minio_url，其次使用 cdn_url
+      avatarUrl = parsed.minio_url || parsed.minioUrl || parsed.cdn_url || parsed.cdnUrl || ''
+    } catch (e) {
+      // 解析失败，使用原始值
+      console.warn('Failed to parse avatar JSON:', avatarUrl)
+    }
+  }
+  
+  // 使用 normalizeAvatarUrl 规范化头像URL
+  avatarUrl = normalizeAvatarUrl(avatarUrl) || ''
+  
+  // 统一设置 avatar 和 avatarUrl（确保两个字段都有值）
+  normalized.avatar = avatarUrl
+  normalized.avatarUrl = avatarUrl
+  normalized.nickname = userInfo.nickname || userInfo.name || ''
+  
+  // 添加调试日志
+  console.log('🔄 规范化用户信息:', {
+    原始avatar: userInfo.avatar || userInfo.avatarUrl,
+    规范化后: avatarUrl,
+    nickname: normalized.nickname,
+    hasAvatar: !!avatarUrl
+  })
+  
+  return normalized
+}
 
 /**
  * 保存用户登录信息
  * @param {Object} loginData - 登录返回的数据
  */
 export function saveLoginData(loginData) {
-  const { accessToken, refreshToken, rememberMeToken, userInfo, expiresIn } = loginData
+  const { accessToken, refreshToken, rememberMeToken, userInfo } = loginData
   
-  console.log('📦 保存登录数据:', { 
-    hasAccessToken: !!accessToken, 
-    hasRefreshToken: !!refreshToken,
-    expiresIn 
-  })
-
-  // 使用TokenManager保存token（会自动设置刷新定时器）
-  if (accessToken && refreshToken && expiresIn) {
-    tokenManager.saveTokens(accessToken, refreshToken, expiresIn)
-  } else {
-    // 兼容旧的逻辑（如果后端没有返回expiresIn）
-    console.warn('⚠️ 登录响应缺少expiresIn，使用旧方式保存token')
-    if (accessToken) {
-      localStorage.setItem('access_token', accessToken)
-    }
-    if (refreshToken) {
-      localStorage.setItem('refresh_token', refreshToken)
-    }
+  // 保存token
+  if (accessToken) {
+    localStorage.setItem('access_token', accessToken)
   }
-
-  // 保存rememberMe token
+  if (refreshToken) {
+    localStorage.setItem('refresh_token', refreshToken)
+  }
   if (rememberMeToken) {
     localStorage.setItem('remember_me_token', rememberMeToken)
   }
   
-  // 保存用户信息
+  // 保存用户信息，确保字段名称一致
   if (userInfo) {
-    localStorage.setItem('user_info', JSON.stringify(userInfo))
+    const normalizedUserInfo = normalizeUserInfo(userInfo)
+    localStorage.setItem('user_info', JSON.stringify(normalizedUserInfo))
   }
 }
 
@@ -78,12 +110,10 @@ export function isLoggedIn() {
  * 清除所有认证信息
  */
 export function clearAuthData() {
-  console.log('🗑️ 清除所有认证信息')
-  
-  // 使用TokenManager清除token（会停止刷新定时器）
-  tokenManager.clearTokens()
-  
-  // 清除其他数据
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+  localStorage.removeItem('remember_me_token')
+  localStorage.removeItem('user_info')
   localStorage.removeItem('userAvatar')
   localStorage.removeItem('globalUserInfo')
   
