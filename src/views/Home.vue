@@ -117,8 +117,16 @@
           <div class="my-projects">
             <div class="section-card">
               <h2 class="section-title">我参与的项目</h2>
-              <div class="project-list">
-                <div class="project-card">
+              <div v-if="isLoadingProjects" class="loading-projects">
+                <p>正在加载项目...</p>
+              </div>
+              <div v-else class="project-list">
+                <div 
+                  v-for="project in myProjects" 
+                  :key="project.id" 
+                  class="project-card"
+                  @click="goToProjectDetail(project.id)"
+                >
                   <div class="project-icon blue-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M9 3H5C3.89543 3 3 3.89543 3 5V9C3 10.1046 3.89543 11 5 11H9C10.1046 11 11 10.1046 11 9V5C11 3.89543 10.1046 3 9 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -128,47 +136,18 @@
                     </svg>
                   </div>
                   <div class="project-content">
-                    <h3 class="project-title">量子计算算法优化研究</h3>
-                    <p class="project-description">量子计算算法优化研究</p>
+                    <h3 class="project-title">{{ project.title }}</h3>
+                    <p class="project-description">{{ project.description }}</p>
                     <div class="project-meta">
-                      <span class="status-badge status-inprogress">进行中</span>
-                      <span class="progress-text">65% 完成</span>
+                      <span :class="['status-badge', `status-${project.status}`]">{{ getStatusText(project.status) }}</span>
+                      <span class="progress-text">{{ project.progress }}% 完成</span>
                     </div>
                   </div>
                 </div>
-
-                <div class="project-card">
-                  <div class="project-icon multi-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M20 8V14M17 11H23" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="project-content">
-                    <h3 class="project-title">多模态医学影像数据平台</h3>
-                    <p class="project-description">多模态医学影像数据平台</p>
-                    <div class="project-meta">
-                      <span class="status-badge status-ongoing">进行时</span>
-                      <span class="progress-text">45% 完成</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="project-card">
-                  <div class="project-icon weather-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 15H21M3 9H21M9 3V21M15 3V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="project-content">
-                    <h3 class="project-title">气候变化预测模型研究</h3>
-                    <p class="project-description">气候变化预测模型研究</p>
-                    <div class="project-meta">
-                      <span class="status-badge status-completed">已完成</span>
-                      <span class="progress-text">100% 完成</span>
-                    </div>
-                  </div>
+                
+                <!-- 如果没有项目，显示提示 -->
+                <div v-if="myProjects.length === 0" class="no-projects">
+                  <p>暂无参与的项目</p>
                 </div>
               </div>
             </div>
@@ -207,6 +186,7 @@
 import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
 import { authAPI } from '@/api/auth'
+import { projectAPI } from '@/api/project'
 
 export default {
   name: 'Home',
@@ -224,7 +204,9 @@ export default {
         avatar: ''
       },
       showModal: false,
-      modalMessage: ''
+      modalMessage: '',
+      myProjects: [], // 我参与的项目列表
+      isLoadingProjects: false // 是否正在加载项目
     }
   },
   mounted() {
@@ -233,6 +215,9 @@ export default {
     
     // 加载全局用户信息
     this.loadGlobalUserInfo()
+    
+    // 加载我参与的项目
+    this.loadMyProjects()
     
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
@@ -382,6 +367,133 @@ export default {
     },
     goToLogin() {
       this.$router.push('/login')
+    },
+    async loadMyProjects() {
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
+      const userInfo = localStorage.getItem('user_info')
+      const isAuthenticated = !!(token && userInfo)
+      
+      if (!isAuthenticated) {
+        console.log('用户未登录，不加载项目数据')
+        // 如果用户未登录，使用示例数据
+        this.myProjects = this.getDefaultProjects()
+        return
+      }
+      
+      this.isLoadingProjects = true
+      
+      try {
+        console.log('开始加载我参与的项目...')
+        
+        // 调用API获取我参与的项目
+        const response = await projectAPI.getMyProjects(0, 5) // 获取前5个项目
+        
+        console.log('我参与的项目API响应:', response)
+        
+        // 处理API返回的数据，兼容多种数据结构
+        let projects = []
+        if (Array.isArray(response)) {
+          // 直接是数组
+          projects = response
+        } else if (response && response.data) {
+          // 有data字段
+          if (Array.isArray(response.data)) {
+            projects = response.data
+          } else if (Array.isArray(response.data.content)) {
+            // Spring分页数据
+            projects = response.data.content
+          } else if (Array.isArray(response.data.list)) {
+            // 自定义list字段
+            projects = response.data.list
+          } else if (Array.isArray(response.data.records)) {
+            // 自定义records字段
+            projects = response.data.records
+          }
+        }
+        
+        if (projects.length > 0) {
+          this.myProjects = projects.map(project => ({
+            id: project.id || project.projectId || project.project_id,
+            title: project.title || project.name || project.projectName || '未命名项目',
+            description: project.description || project.desc || '',
+            status: this.mapStatus(project.status),
+            progress: this.calculateProgress(project.status)
+          }))
+          
+          console.log('成功加载项目:', this.myProjects)
+        } else {
+          console.log('未获取到项目数据，使用示例数据')
+          this.myProjects = this.getDefaultProjects()
+        }
+      } catch (error) {
+        console.error('加载项目失败:', error)
+        // 如果加载失败，使用示例数据
+        this.myProjects = this.getDefaultProjects()
+      } finally {
+        this.isLoadingProjects = false
+      }
+    },
+    getDefaultProjects() {
+      // 返回默认的示例项目数据
+      return [
+        {
+          id: 1,
+          title: '量子计算算法优化研究',
+          description: '量子计算算法优化研究',
+          status: 'in-progress',
+          progress: 65
+        },
+        {
+          id: 2,
+          title: '多模态医学影像数据平台',
+          description: '多模态医学影像数据平台',
+          status: 'in-progress',
+          progress: 45
+        },
+        {
+          id: 3,
+          title: '气候变化预测模型研究',
+          description: '气候变化预测模型研究',
+          status: 'completed',
+          progress: 100
+        }
+      ]
+    },
+    mapStatus(status) {
+      // 将后端状态映射到前端状态
+      const statusMap = {
+        'ACTIVE': 'in-progress',
+        'COMPLETED': 'completed',
+        'PAUSED': 'in-progress',
+        'ARCHIVED': 'completed',
+        '进行中': 'in-progress',
+        '已完成': 'completed',
+        '已暂停': 'in-progress'
+      }
+      return statusMap[status] || 'in-progress'
+    },
+    calculateProgress(status) {
+      // 根据状态计算进度
+      if (status === 'completed' || status === 'Completed' || status === '已完成') {
+        return 100
+      } else if (status === 'ACTIVE' || status === 'Paused' || status === '进行中') {
+        return 50 // 默认进行中状态显示50%
+      }
+      return 0
+    },
+    getStatusText(status) {
+      const statusMap = {
+        'in-progress': '进行中',
+        'completed': '已完成',
+        'pending': '待开始',
+        'paused': '已暂停'
+      }
+      return statusMap[status] || '进行中'
+    },
+    goToProjectDetail(projectId) {
+      console.log('跳转到项目详情:', projectId)
+      this.$router.push(`/project-detail/${projectId}`)
     }
   }
 }
@@ -857,6 +969,13 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.loading-projects,
+.no-projects {
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-secondary);
 }
 
 .project-meta {
