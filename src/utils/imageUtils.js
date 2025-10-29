@@ -12,11 +12,11 @@ export function normalizeProjectCoverUrl(url) {
     return null
   }
 
-  // 如果已经是完整的HTTP/HTTPS URL，直接返回
+  // 如果已经是完整的HTTP/HTTPS URL
   if (url.startsWith('http://') || url.startsWith('https://')) {
-    // 但如果包含localhost，则认为是错误的URL，返回null
+    // 过滤掉无效的URL
     if (url.includes('localhost')) {
-      console.warn('检测到包含localhost的无效URL:', url)
+      console.warn('检测到无效URL:', url, '- 将返回null使用默认图片')
       return null
     }
     return url

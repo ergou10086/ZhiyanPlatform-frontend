@@ -102,7 +102,14 @@
         <div v-else class="grid">
           <div v-for="(project, index) in paginatedProjects" :key="project.id" class="card" @click="viewProjectDetail(project)">
             <div class="card-media" :class="`gradient-${(project.id % 6) + 1}`">
-              <img v-if="project.image" :src="project.image" :alt="project.title" class="project-image" />
+              <img 
+                v-if="project.image" 
+                :src="project.image" 
+                :alt="project.title" 
+                class="project-image"
+                @error="handleImageError($event, project)"
+              />
+              <span v-else class="placeholder-text">{{ project.title }}</span>
             </div>
             <div class="card-body">
               <div class="card-title-row">
@@ -599,6 +606,17 @@ export default {
       this.selectedStatus = ''
       this.currentPage = 1
     },
+    /**
+     * 处理图片加载错误
+     * 当图片加载失败时，隐藏图片显示渐变背景
+     */
+    handleImageError(event, project) {
+      console.warn(`项目图片加载失败: ${project.title}, URL:`, project.image)
+      // 隐藏失败的图片，显示渐变背景和项目名称
+      event.target.style.display = 'none'
+      // 清空project.image，让v-else生效
+      this.$set(project, 'image', null)
+    },
     createNewProject() {
       // 检查用户是否已登录
       const token = localStorage.getItem('access_token')
@@ -932,6 +950,14 @@ export default {
 .card-media span {
   position: relative;
   z-index: 2;
+}
+
+.placeholder-text {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 20px;
+  line-height: 1.4;
 }
 
 .card-body { 
