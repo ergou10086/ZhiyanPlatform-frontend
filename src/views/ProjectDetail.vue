@@ -843,13 +843,9 @@ export default {
       return tasks
     },
     isProjectManager() {
-      // 判断当前用户是否是项目创建人（只有创建人才能编辑项目）
-      const currentUserId = this.getCurrentUserId()
-      if (!currentUserId || !this.project) {
-        return false
-      }
-      // 比较当前用户ID和项目创建者ID
-      return this.project.created_by === currentUserId || this.project.creatorId === currentUserId
+      // 判断当前用户是否是项目负责人
+      const currentUserName = this.getCurrentUserName()
+      return this.project && this.project.manager === currentUserName
     },
     // 获取今天的日期，格式为 YYYY-MM-DD
     today() {
