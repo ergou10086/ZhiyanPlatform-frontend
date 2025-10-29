@@ -2,7 +2,7 @@
   <div class="ai-assistant-container">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
-
+    
     <!-- 顶部导航栏 -->
     <div class="top-header">
       <div class="header-left">

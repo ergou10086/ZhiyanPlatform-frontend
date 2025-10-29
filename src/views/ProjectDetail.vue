@@ -1354,6 +1354,14 @@ export default {
               avatar: member.avatar || null
             }))
           }
+
+          // 将团队成员数量写入缓存，供项目广场读取显示
+          try {
+            const cacheKey = `project_member_count_${projectId}`
+            localStorage.setItem(cacheKey, String(this.teamMembers.length))
+          } catch (e) {
+            console.warn('写入成员数量缓存失败:', e?.message || e)
+          }
         }
       } catch (error) {
         console.error('加载团队成员失败:', error)

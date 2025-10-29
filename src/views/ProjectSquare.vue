@@ -410,6 +410,24 @@ export default {
                 normalized: imageUrl
               })
               
+              // 调试：输出后端人数相关字段，便于定位
+              console.log('项目成员字段检查:', project.id, {
+                memberCount: project.memberCount,
+                teamMemberCount: project.teamMemberCount,
+                membersCount: project.membersCount,
+                participantCount: project.participantCount,
+                participantsCount: project.participantsCount,
+                memberNum: project.memberNum,
+                membersNum: project.membersNum,
+                memberSize: project.memberSize,
+                membersSize: project.membersSize,
+                userCount: project.userCount,
+                usersCount: project.usersCount,
+                teamSize: project.teamSize,
+                teamMembersLen: Array.isArray(project.teamMembers) ? project.teamMembers.length : undefined,
+                membersLen: Array.isArray(project.members) ? project.members.length : undefined
+              })
+
               return {
                 id: project.id,
                 name: project.name,
@@ -417,7 +435,8 @@ export default {
                 description: project.description || '暂无描述',
                 status: this.getStatusDisplay(project.status),
                 visibility: project.visibility,
-                teamSize: project.teamSize || 1,
+                // 规范化后的团队人数（尽可能从后端字段解析）
+                teamSize: this.getNumericMemberCount(project) || 1,
                 dataAssets: project.description || '暂无描述',
                 direction: project.description || '暂无描述',
                 aiCore: '待定',
@@ -436,7 +455,16 @@ export default {
                 updatedAt: project.updatedAt,
                 // 保留localStorage中的其他数据（如任务、团队成员等）
                 tasks: localProject?.tasks || [],
-                teamMembers: localProject?.teamMembers || [],
+                // 如果后端返回成员列表/数量，则优先使用
+                teamMembers: (
+                  project.teamMembers ||
+                  project.members ||
+                  project.participants ||
+                  project.users ||
+                  project.userList ||
+                  localProject?.teamMembers ||
+                  []
+                ),
                 inviteSlots: localProject?.inviteSlots || []
               }
             })
@@ -454,6 +482,50 @@ export default {
             console.log('项目数据示例:', this.projects[0])
             console.log('所有项目的状态:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status, visibility: p.visibility, imageUrl: p.imageUrl })))
           }
+          
+          // 为每个项目获取真实成员数量
+          console.log('开始并行获取所有项目的成员数量...')
+          const memberCountPromises = this.projects.map(async (project) => {
+            try {
+              const memberResponse = await projectAPI.getProjectMembers(project.id, 0, 1000) // 获取所有成员
+              let memberCount = 0
+              
+              if (memberResponse && memberResponse.code === 200) {
+                if (memberResponse.data && memberResponse.data.content) {
+                  // Spring Data Page对象
+                  memberCount = memberResponse.data.content.length
+                  project.teamMembers = memberResponse.data.content
+                } else if (Array.isArray(memberResponse.data)) {
+                  // 直接返回数组
+                  memberCount = memberResponse.data.length
+                  project.teamMembers = memberResponse.data
+                }
+              }
+              
+              // 更新项目的成员数量
+              project.memberCount = memberCount
+              
+              // 同时写入缓存，供后续使用
+              if (memberCount > 0) {
+                try {
+                  localStorage.setItem(`project_member_count_${project.id}`, String(memberCount))
+                } catch (e) {
+                  console.warn(`写入项目 ${project.id} 成员数量缓存失败:`, e)
+                }
+              }
+              
+              console.log(`项目 ${project.id} (${project.name}) 成员数量: ${memberCount}`)
+              return { projectId: project.id, memberCount }
+            } catch (error) {
+              console.warn(`获取项目 ${project.id} 成员数量失败:`, error)
+              // 失败时保持默认值
+              return { projectId: project.id, memberCount: 1 }
+            }
+          })
+          
+          // 等待所有成员数量获取完成
+          await Promise.all(memberCountPromises)
+          console.log('所有项目的成员数量获取完成')
           
           // 保存合并后的数据到localStorage
           // 这样可以确保显示的都是数据库中真实存在的公开项目，同时保留本地的图片和其他数据
@@ -525,6 +597,24 @@ export default {
       }
       return statusMap[status] || status || '进行中'
     },
+    // 将后端的各种人数字段标准化为数字
+    getNumericMemberCount(project) {
+      const candidates = [
+        'memberCount', 'teamMemberCount', 'membersCount',
+        'participantCount', 'participantsCount',
+        'memberNum', 'membersNum',
+        'memberSize', 'membersSize',
+        'userCount', 'usersCount',
+        'teamSize'
+      ]
+      for (const key of candidates) {
+        if (project && project[key] !== undefined && project[key] !== null) {
+          const n = typeof project[key] === 'string' ? parseInt(project[key], 10) : project[key]
+          if (!isNaN(n) && n > 0) return n
+        }
+      }
+      return undefined
+    },
     setUserAvatar(url) {
       this.userAvatar = url
       localStorage.setItem('userAvatar', url)
@@ -564,12 +654,45 @@ export default {
       return 'steady'
     },
     getTeamSize(project) {
-      // 计算真实的团队成员数量
-      if (project.teamMembers && project.teamMembers.length > 0) {
+      // 0) 优先读取项目详情缓存的人数（由 ProjectDetail 写入）
+      try {
+        const cached = localStorage.getItem(`project_member_count_${project.id}`)
+        const cachedNum = cached ? parseInt(cached, 10) : NaN
+        if (!isNaN(cachedNum) && cachedNum > 0) return cachedNum
+      } catch (e) {}
+
+      // 1) 其次使用后端直接返回的数字字段（尽量兼容）
+      const numeric = (
+        project.memberCount ||
+        project.teamMemberCount ||
+        project.membersCount ||
+        project.participantCount ||
+        project.participantsCount ||
+        project.memberNum ||
+        project.membersNum ||
+        project.teamSize
+      )
+      if (typeof numeric === 'number' && !isNaN(numeric) && numeric > 0) {
+        return numeric
+      }
+      // 2) 再使用成员数组长度
+      if (Array.isArray(project.teamMembers) && project.teamMembers.length > 0) {
         return project.teamMembers.length
       }
-      // 如果没有团队成员信息，返回默认值
-      return project.teamSize || 1
+      if (Array.isArray(project.members) && project.members.length > 0) {
+        return project.members.length
+      }
+      if (Array.isArray(project.participants) && project.participants.length > 0) {
+        return project.participants.length
+      }
+      if (Array.isArray(project.users) && project.users.length > 0) {
+        return project.users.length
+      }
+      if (Array.isArray(project.userList) && project.userList.length > 0) {
+        return project.userList.length
+      }
+      // 3) 兜底
+      return 1
     },
     formatDateRange(startDate, endDate) {
       if (!startDate || !endDate) return ''
