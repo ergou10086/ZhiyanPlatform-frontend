@@ -627,17 +627,18 @@
           <div class="search-results" v-if="searchedUsers.length > 0">
             <div class="search-results-header">
               <span class="results-count">找到 {{ searchedUsers.length }} 个用户</span>
+              <span class="selected-count" v-if="selectedUserIds.length > 0">已选 {{ selectedUserIds.length }} 人</span>
             </div>
             <div class="user-list">
               <div 
                 v-for="user in searchedUsers" 
-                :key="user.userId" 
+                :key="user.id || user.userId" 
                 class="user-item"
-                :class="{ 'user-selected': selectedUserId === user.userId }"
+                :class="{ 'user-selected': selectedUserIds.includes(user.id || user.userId) }"
                 @click="selectUser(user)"
               >
                 <div class="user-avatar">
-                  <img v-if="user.avatar" :src="user.avatar" alt="用户头像" />
+                  <img v-if="user.avatarUrl || user.avatar" :src="user.avatarUrl || user.avatar" alt="用户头像" />
                   <div v-else class="avatar-placeholder">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -646,10 +647,10 @@
                   </div>
                 </div>
                 <div class="user-info">
-                  <div class="user-name">{{ user.username || user.name }}</div>
-                  <div class="user-email">{{ user.email || 'ID: ' + user.userId }}</div>
+                  <div class="user-name">{{ user.name || user.username }}</div>
+                  <div class="user-email">{{ user.email || 'ID: ' + (user.id || user.userId) }}</div>
                 </div>
-                <div class="user-select-indicator" v-if="selectedUserId === user.userId">
+                <div class="user-select-indicator" v-if="selectedUserIds.includes(user.id || user.userId)">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M20 6L9 17L4 12" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -682,9 +683,9 @@
           <button 
             class="btn primary" 
             @click="confirmInvite" 
-            :disabled="!selectedUserId || isInviting"
+            :disabled="selectedUserIds.length === 0 || isInviting"
           >
-            <span v-if="!isInviting">确定邀请</span>
+            <span v-if="!isInviting">确定邀请{{ selectedUserIds.length > 0 ? ' (' + selectedUserIds.length + ')' : '' }}</span>
             <span v-else>邀请中...</span>
           </button>
         </div>
@@ -811,7 +812,7 @@ export default {
       inviteMemberModalOpen: false, // 邀请成员弹窗
       userSearchKeyword: '', // 用户搜索关键词
       searchedUsers: [], // 搜索到的用户列表
-      selectedUserId: null, // 选中的用户ID
+      selectedUserIds: [], // 选中的用户ID数组（支持多选）
       isSearching: false, // 搜索中状态
       isInviting: false, // 邀请中状态
       hasSearched: false, // 是否已经搜索过
@@ -1184,14 +1185,14 @@ export default {
       this.inviteMemberModalOpen = true
       this.userSearchKeyword = ''
       this.searchedUsers = []
-      this.selectedUserId = null
+      this.selectedUserIds = [] // 清空选中的用户列表
       this.hasSearched = false
     },
     closeInviteMemberModal() {
       this.inviteMemberModalOpen = false
       this.userSearchKeyword = ''
       this.searchedUsers = []
-      this.selectedUserId = null
+      this.selectedUserIds = [] // 清空选中的用户列表
       this.hasSearched = false
       this.isSearching = false
       this.isInviting = false
@@ -1217,7 +1218,7 @@ export default {
     },
     async searchUsers() {
       if (!this.userSearchKeyword.trim()) {
-        this.showToastMessage('请输入搜索关键词')
+        this.showSuccessToast('请输入搜索关键词')
         return
       }
       
@@ -1243,13 +1244,13 @@ export default {
           this.hasSearched = true
           console.log('搜索到的用户:', this.searchedUsers)
         } else {
-          this.showToastMessage(response?.msg || '搜索失败')
+          this.showSuccessToast(response?.msg || '搜索失败')
           this.searchedUsers = []
           this.hasSearched = true
         }
       } catch (error) {
         console.error('搜索用户失败:', error)
-        this.showToastMessage('搜索用户失败: ' + (error.message || '网络错误'))
+        this.showSuccessToast('搜索用户失败: ' + (error.message || '网络错误'))
         this.searchedUsers = []
         this.hasSearched = true
       } finally {
@@ -1257,12 +1258,23 @@ export default {
       }
     },
     selectUser(user) {
-      this.selectedUserId = user.userId
-      console.log('选中用户:', user)
+      // 后端返回的字段是 id，不是 userId
+      const userId = user.id || user.userId
+      const index = this.selectedUserIds.indexOf(userId)
+      
+      if (index > -1) {
+        // 已选中，则取消选中
+        this.selectedUserIds.splice(index, 1)
+        console.log('取消选中用户:', user.name, '当前已选:', this.selectedUserIds.length)
+      } else {
+        // 未选中，则添加到选中列表
+        this.selectedUserIds.push(userId)
+        console.log('选中用户:', user.name, '当前已选:', this.selectedUserIds.length)
+      }
     },
     async confirmInvite() {
-      if (!this.selectedUserId) {
-        this.showToastMessage('请先选择要邀请的用户')
+      if (this.selectedUserIds.length === 0) {
+        this.showSuccessToast('请先选择要邀请的用户')
         return
       }
       
@@ -1272,26 +1284,46 @@ export default {
         const { projectAPI } = await import('@/api/project')
         const projectId = this.$route.params.id
         
-        // 调用邀请接口
-        const response = await projectAPI.inviteMember(projectId, {
-          userId: this.selectedUserId,
-          role: 'MEMBER' // 默认角色为普通成员
-        })
+        // 批量邀请用户
+        let successCount = 0
+        let failCount = 0
         
-        console.log('邀请成员响应:', response)
+        for (const userId of this.selectedUserIds) {
+          try {
+            const response = await projectAPI.inviteMember(projectId, {
+              userId: userId,
+              role: 'MEMBER' // 默认角色为普通成员
+            })
+            
+            if (response && response.code === 200) {
+              successCount++
+            } else {
+              failCount++
+              console.error('邀请用户失败:', userId, response?.msg)
+            }
+          } catch (error) {
+            failCount++
+            console.error('邀请用户异常:', userId, error)
+          }
+        }
         
-        if (response && response.code === 200) {
-          this.showToastMessage('邀请成功！')
+        // 显示邀请结果
+        if (successCount > 0 && failCount === 0) {
+          this.showSuccessToast(`成功邀请 ${successCount} 位用户！`)
+        } else if (successCount > 0 && failCount > 0) {
+          this.showSuccessToast(`成功邀请 ${successCount} 位，失败 ${failCount} 位`)
+        } else {
+          this.showSuccessToast('邀请失败，请重试')
+        }
+        
+        if (successCount > 0) {
           this.closeInviteMemberModal()
-          
           // 重新加载团队成员列表
           this.loadTeamMembers()
-        } else {
-          this.showToastMessage(response?.msg || '邀请失败')
         }
       } catch (error) {
         console.error('邀请成员失败:', error)
-        this.showToastMessage('邀请失败: ' + (error.message || '网络错误'))
+        this.showSuccessToast('邀请失败: ' + (error.message || '网络错误'))
       } finally {
         this.isInviting = false
       }
@@ -3702,12 +3734,16 @@ export default {
 
 .search-results {
   margin-top: 20px;
+  min-height: 300px; /* 固定最小高度，防止抖动 */
 }
 
 .search-results-header {
   padding: 8px 0;
   border-bottom: 2px solid #e9ecef;
   margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .results-count {
@@ -3716,12 +3752,23 @@ export default {
   font-weight: 500;
 }
 
+.selected-count {
+  font-size: 14px;
+  color: #007bff;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: #e3f2fd;
+  border-radius: 12px;
+}
+
 .user-list {
   max-height: 400px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* 使用 transform 代替其他可能导致重排的属性 */
+  will-change: transform;
 }
 
 .user-item {
@@ -3731,8 +3778,11 @@ export default {
   border: 2px solid #e9ecef;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  /* 只对需要过渡的属性进行过渡，避免 all */
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
   background: white;
+  /* 固定高度，防止内容变化时抖动 */
+  min-height: 64px;
 }
 
 .user-item:hover {
