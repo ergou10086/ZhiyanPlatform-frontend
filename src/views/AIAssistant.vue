@@ -623,7 +623,29 @@ export default {
       }
     })
   },
-    
+  beforeDestroy() {
+    document.removeEventListener('click', this.handleClickOutside)
+    document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
+    window.removeEventListener('focus', this.syncTaskStatusChanges)
+
+    // 清理全局事件监听器
+    this.$root.$off('taskStatusChanged')
+
+    // 清理定时器
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer)
+    }
+  },
+  methods: {
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen
+    },
+    closeSidebar() {
+      this.sidebarOpen = false
+    },
+    toggleProjectDropdown() {
+      this.showProjectDropdown = !this.showProjectDropdown
+    },
     switchProject(project) {
       this.currentProject = { ...project }
       this.showProjectDropdown = false
@@ -1067,21 +1089,9 @@ export default {
         this.showProjectDropdown = false
         this.filterDropdownOpen = false
       }
-    },
-    beforeDestroy() {
-      document.removeEventListener('click', this.handleClickOutside)
-      document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
-      window.removeEventListener('focus', this.syncTaskStatusChanges)
-
-      // 清理全局事件监听器
-      this.$root.$off('taskStatusChanged')
-
-      // 清理定时器
-      if (this.syncTimer) {
-        clearInterval(this.syncTimer)
-      }
     }
   }
+}
 
 </script>
 

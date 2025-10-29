@@ -10,8 +10,13 @@
 </template>
 
 <script>
+import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
+
 export default {
   name: 'App',
+  components: {
+    GlobalUserProfile
+  },
   computed: {
     isAuthPage() {
       // 判断当前路由是否为认证相关页面
