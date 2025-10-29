@@ -155,8 +155,10 @@
         </div>
       </div>
 
-      <!-- 右侧边栏 -->
-      <RightSidebar />
+      <!-- 右侧边栏放入同一行，和左侧两块底部对齐 -->
+      <div class="right-sidebar-column">
+        <RightSidebar />
+      </div>
     </div>
 
     <!-- 自定义弹窗 -->
@@ -795,6 +797,9 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
 }
 
 .work-item {
@@ -879,7 +884,7 @@ export default {
 }
 
 .work-items .section-card {
-  height: 100%;
+  height: 500px;
   display: flex;
   flex-direction: column;
 }
@@ -889,7 +894,7 @@ export default {
 }
 
 .my-projects .section-card {
-  height: 100%;
+  height: 500px;
   display: flex;
   flex-direction: column;
 }
@@ -899,6 +904,16 @@ export default {
   flex-direction: column;
   gap: var(--space-4);
   flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* 右侧栏列，与左侧两块统一高度 */
+.right-sidebar-column {
+  height: 500px;
+  display: flex;
+  min-width: 320px;
+  max-width: 360px;
 }
 
 .project-card {
@@ -1013,6 +1028,13 @@ export default {
   font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-medium);
+}
+
+/* 让右侧我的工作日历与左侧两块底部对齐（500px） */
+::v-deep .right-sidebar {
+  height: 780px;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 1200px) {
