@@ -1023,19 +1023,24 @@ export default {
             visibility: apiProject.visibility || 'PRIVATE',
             imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
             image: normalizeProjectCoverUrl(apiProject.imageUrl),
-            manager: this.getCurrentUserName(),
+            manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
             category: apiProject.category || '其他',
             aiCore: '待定',
             tags: apiProject.tags || [],
             tasks: [],
-            created_by: apiProject.creatorId || 1
+            created_by: apiProject.creatorId || 1,
+            creatorName: apiProject.creatorName || '未知' // 保存创建者名称
           }
           
           console.log('项目加载完成，最新imageUrl:', this.project.imageUrl)
+          console.log('项目创建者:', apiProject.creatorName, '负责人设置为:', this.project.manager)
           
           // 加载团队成员（从localStorage或使用默认值）
-          this.loadTeamMembers()
+          // 加载完团队成员后，会更新负责人为项目拥有者
+          await this.loadTeamMembers()
+          // 加载完团队成员后，更新负责人为项目拥有者（如果有的话）
+          this.updateManagerFromTeamMembers()
           
           // 加载任务数据
           this.loadProjectTasks()
@@ -1078,13 +1083,14 @@ export default {
             visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
             imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || 'https://via.placeholder.com/400x225?text=Project+Image',
             image: normalizeProjectCoverUrl(foundProject.image || foundProject.imageUrl),
-            manager: this.getCurrentUserName(), // 从用户信息获取负责人
+            manager: foundProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: foundProject.teamSize,
             category: foundProject.category,
             aiCore: foundProject.aiCore,
             tags: foundProject.tags || [],
             tasks: foundProject.tasks || [],
-            created_by: foundProject.created_by || 1 // 添加创建人字段
+            created_by: foundProject.created_by || 1, // 添加创建人字段
+            creatorName: foundProject.creatorName || '未知' // 保存创建者名称
           }
           
           console.log('加载的项目数据 - ID:', this.project.id, 'startDate:', this.project.startDate, 'endDate:', this.project.endDate)
@@ -1097,10 +1103,11 @@ export default {
           // 这里不再从localStorage加载任务，以确保数据是最新的
           
           // 加载团队成员数据
-          this.teamMembers = foundProject.teamMembers || [
-            { id: 1, name: this.getCurrentUserName(), role: '项目负责人', avatar: null }
-          ]
+          this.teamMembers = foundProject.teamMembers || []
           this.inviteSlots = foundProject.inviteSlots || []
+          
+          // 从团队成员中查找项目拥有者，更新负责人
+          this.updateManagerFromTeamMembers()
           
         } else {
           console.log('未找到项目，ID:', projectId)
@@ -1354,10 +1361,44 @@ export default {
               avatar: member.avatar || null
             }))
           }
+
+          // 将团队成员数量写入缓存，供项目广场读取显示
+          try {
+            const cacheKey = `project_member_count_${projectId}`
+            localStorage.setItem(cacheKey, String(this.teamMembers.length))
+          } catch (e) {
+            console.warn('写入成员数量缓存失败:', e?.message || e)
+          }
+          
+          // 加载完团队成员后，更新负责人为项目拥有者（如果有的话）
+          this.updateManagerFromTeamMembers()
         }
       } catch (error) {
         console.error('加载团队成员失败:', error)
         // 失败时保留原有数据
+      }
+    },
+    updateManagerFromTeamMembers() {
+      // 从团队成员中查找项目拥有者
+      // 可能的角色名称：OWNER, PROJECT_OWNER, 项目负责人, 项目拥有者
+      const ownerRoles = ['OWNER', 'PROJECT_OWNER', '项目负责人', '项目拥有者', '负责人']
+      
+      const owner = this.teamMembers.find(member => {
+        const role = (member.role || '').toUpperCase()
+        return ownerRoles.some(ownerRole => role === ownerRole.toUpperCase() || role.includes(ownerRole.toUpperCase()))
+      })
+      
+      if (owner) {
+        // 如果找到了项目拥有者，使用其名称作为负责人
+        this.project.manager = owner.name
+        console.log('从团队成员中找到项目拥有者:', owner.name, '角色:', owner.role)
+      } else if (this.project.creatorName && this.project.creatorName !== '未知') {
+        // 如果没找到拥有者，使用创建者名称
+        this.project.manager = this.project.creatorName
+        console.log('使用项目创建者作为负责人:', this.project.creatorName)
+      } else {
+        // 如果都没有，保持默认值或显示未知
+        console.log('未找到项目拥有者，负责人保持为:', this.project.manager)
       }
     },
     removeTeamMember(memberId) {
