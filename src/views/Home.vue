@@ -17,147 +17,144 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 左侧内容 -->
-      <div class="content-left">
-        <!-- 快捷操作 -->
-        <div class="quick-actions">
-          <div class="section-card">
-            <h2 class="section-title">快捷操作</h2>
-            <div class="action-cards">
-            <div class="action-card" @click="handleNewProject">
-              <div class="card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <span class="card-label">新建项目</span>
+      <!-- 快捷操作 - 独立顶部一行 -->
+      <div class="quick-actions">
+        <div class="section-card">
+          <h2 class="section-title">快捷操作</h2>
+          <div class="action-cards">
+          <div class="action-card" @click="handleNewProject">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-            <div class="action-card" @click="handleProjectSquare">
-              <div class="card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="8.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="2"/>
-                  <path d="M20 8V6C20 4.93913 19.5786 3.92172 18.8284 3.17157C18.0783 2.42143 17.0609 2 16 2H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <span class="card-label">项目广场</span>
-            </div>
-            <div class="action-card" @click="handleKnowledgeBase">
-              <div class="card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 3H21V21H3V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M9 9H15V15H9V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <span class="card-label">知识库</span>
-            </div>
-            <div class="action-card" @click="handleAIAssistant">
-              <div class="card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <span class="card-label">AI实验分析助手</span>
-            </div>
-            </div>
+            <span class="card-label">新建项目</span>
           </div>
-        </div>
-
-        <!-- 工作项和我参与的项目布局 -->
-        <div class="work-items-container">
-          <!-- 工作项 -->
-          <div class="work-items">
-            <div class="section-card">
-              <div class="section-header">
-                <h2 class="section-title">工作项</h2>
-              </div>
-              <div class="work-item-list">
-              <div class="work-item high-priority">
-                <div class="priority-bar"></div>
-                <div class="item-content">
-                  <h3 class="item-title">智能推荐系统优化</h3>
-                  <p class="item-description">重构推荐算法模块,提升准确率</p>
-                  <div class="item-meta">
-                    <span class="priority">高优先级</span>
-                    <span class="deadline">截止:2023-06-15</span>
-                  </div>
-                </div>
-              </div>
-              <div class="work-item medium-priority">
-                <div class="priority-bar"></div>
-                <div class="item-content">
-                  <h3 class="item-title">用户界面改版</h3>
-                  <p class="item-description">重新设计用户交互流程</p>
-                  <div class="item-meta">
-                    <span class="priority">中优先级</span>
-                    <span class="deadline">截止:2023-06-20</span>
-                  </div>
-                </div>
-              </div>
-              <div class="work-item low-priority">
-                <div class="priority-bar"></div>
-                <div class="item-content">
-                  <h3 class="item-title">数据库性能优化</h3>
-                  <p class="item-description">优化查询索引,提升响应速度</p>
-                  <div class="item-meta">
-                    <span class="priority">低优先级</span>
-                    <span class="deadline">截止:2023-06-30</span>
-                  </div>
-                </div>
-              </div>
-              </div>
+          <div class="action-card" @click="handleProjectSquare">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="8.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+                <path d="M20 8V6C20 4.93913 19.5786 3.92172 18.8284 3.17157C18.0783 2.42143 17.0609 2 16 2H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+            <span class="card-label">项目广场</span>
           </div>
-
-          <!-- 我参与的项目 -->
-          <div class="my-projects">
-            <div class="section-card">
-              <h2 class="section-title">我参与的项目</h2>
-              <div v-if="isLoadingProjects" class="loading-projects">
-                <p>正在加载项目...</p>
-              </div>
-              <div v-else class="project-list">
-                <div 
-                  v-for="project in myProjects" 
-                  :key="project.id" 
-                  class="project-card"
-                  @click="goToProjectDetail(project.id)"
-                >
-                  <div class="project-icon blue-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 3H5C3.89543 3 3 3.89543 3 5V9C3 10.1046 3.89543 11 5 11H9C10.1046 11 11 10.1046 11 9V5C11 3.89543 10.1046 3 9 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M19 3H15C13.8954 3 13 3.89543 13 5V9C13 10.1046 13.8954 11 15 11H19C20.1046 11 21 10.1046 21 9V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M9 13H5C3.89543 13 3 13.8954 3 15V19C3 20.1046 3.89543 21 5 21H9C10.1046 21 11 20.1046 11 19V15C11 13.8954 10.1046 13 9 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M19 13H15C13.8954 13 13 13.8954 13 15V19C13 20.1046 13.8954 21 15 21H19C20.1046 21 21 20.1046 21 19V15C21 13.8954 20.1046 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="project-content">
-                    <h3 class="project-title">{{ project.title }}</h3>
-                    <p class="project-description">{{ project.description }}</p>
-                    <div class="project-meta">
-                      <span :class="['status-badge', `status-${project.status}`]">{{ getStatusText(project.status) }}</span>
-                      <span class="progress-text">{{ project.progress }}% 完成</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- 如果没有项目，显示提示 -->
-                <div v-if="myProjects.length === 0" class="no-projects">
-                  <p>暂无参与的项目</p>
-                </div>
-              </div>
+          <div class="action-card" @click="handleKnowledgeBase">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 3H21V21H3V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 9H15V15H9V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
+            <span class="card-label">知识库</span>
+          </div>
+          <div class="action-card" @click="handleAIAssistant">
+            <div class="card-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <span class="card-label">AI实验分析助手</span>
+          </div>
           </div>
         </div>
       </div>
 
-      <!-- 右侧边栏放入同一行，和左侧两块底部对齐 -->
-      <div class="right-sidebar-column">
-        <RightSidebar />
+      <!-- 工作项、我参与的项目、日历 - 三列布局在同一行 -->
+      <div class="three-column-row">
+        <!-- 工作项 -->
+        <div class="work-items">
+          <div class="section-card">
+            <div class="section-header">
+              <h2 class="section-title">工作项</h2>
+            </div>
+            <div class="work-item-list">
+            <div class="work-item high-priority">
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <h3 class="item-title">智能推荐系统优化</h3>
+                <p class="item-description">重构推荐算法模块,提升准确率</p>
+                <div class="item-meta">
+                  <span class="priority">高优先级</span>
+                  <span class="deadline">截止:2023-06-15</span>
+                </div>
+              </div>
+            </div>
+            <div class="work-item medium-priority">
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <h3 class="item-title">用户界面改版</h3>
+                <p class="item-description">重新设计用户交互流程</p>
+                <div class="item-meta">
+                  <span class="priority">中优先级</span>
+                  <span class="deadline">截止:2023-06-20</span>
+                </div>
+              </div>
+            </div>
+            <div class="work-item low-priority">
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <h3 class="item-title">数据库性能优化</h3>
+                <p class="item-description">优化查询索引,提升响应速度</p>
+                <div class="item-meta">
+                  <span class="priority">低优先级</span>
+                  <span class="deadline">截止:2023-06-30</span>
+                </div>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 我参与的项目 -->
+        <div class="my-projects">
+          <div class="section-card">
+            <h2 class="section-title">我参与的项目</h2>
+            <div v-if="isLoadingProjects" class="loading-projects">
+              <p>正在加载项目...</p>
+            </div>
+            <div v-else class="project-list">
+              <div 
+                v-for="project in myProjects" 
+                :key="project.id" 
+                class="project-card"
+                @click="goToProjectDetail(project.id)"
+              >
+                <div class="project-icon blue-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 3H5C3.89543 3 3 3.89543 3 5V9C3 10.1046 3.89543 11 5 11H9C10.1046 11 11 10.1046 11 9V5C11 3.89543 10.1046 3 9 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19 3H15C13.8954 3 13 3.89543 13 5V9C13 10.1046 13.8954 11 15 11H19C20.1046 11 21 10.1046 21 9V5C21 3.89543 20.1046 3 19 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 13H5C3.89543 13 3 13.8954 3 15V19C3 20.1046 3.89543 21 5 21H9C10.1046 21 11 20.1046 11 19V15C11 13.8954 10.1046 13 9 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19 13H15C13.8954 13 13 13.8954 13 15V19C13 20.1046 13.8954 21 15 21H19C20.1046 21 21 20.1046 21 19V15C21 13.8954 20.1046 13 19 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="project-content">
+                  <h3 class="project-title">{{ project.title }}</h3>
+                  <p class="project-description">{{ project.description }}</p>
+                  <div class="project-meta">
+                    <span :class="['status-badge', `status-${project.status}`]">{{ getStatusText(project.status) }}</span>
+                    <span class="progress-text">{{ project.progress }}% 完成</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 如果没有项目，显示提示 -->
+              <div v-if="myProjects.length === 0" class="no-projects">
+                <p>暂无参与的项目</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧边栏（日历和任务提醒） -->
+        <div class="right-sidebar-column">
+          <RightSidebar />
+        </div>
       </div>
     </div>
 
@@ -664,15 +661,33 @@ export default {
 .main-content {
   flex: 1;
   display: flex;
+  flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
 }
 
-.content-left {
-  flex: 1;
+/* 快捷操作 - 宽度限制与三列中的两列对齐 */
+.quick-actions {
+  width: calc(100% - 340px - var(--space-6)); /* 总宽度减去日历宽度和一个gap */
+}
+
+/* 三列在同一行：工作项、我参与的项目、日历 */
+.three-column-row {
   display: flex;
-  flex-direction: column;
   gap: var(--space-6);
+  align-items: flex-start;
+  position: relative;
+}
+
+/* 日历往上移动，与快捷操作顶部对齐 */
+.three-column-row .right-sidebar-column {
+  position: relative;
+  margin-top: calc(-1 * (var(--space-6) + 254px)); /* 往上移动快捷操作高度+gap */
+}
+
+/* 设置日历高度，让下边框与我参与的项目对齐 */
+::v-deep .right-sidebar-column .right-sidebar {
+  height: calc(258px + var(--space-6) + 500px); /* 快捷操作高度 + gap + 我参与的项目高度 */
 }
 
 .section-card {
@@ -872,15 +887,10 @@ export default {
   color: #666;
 }
 
-/* 工作项和项目容器布局 */
-.work-items-container {
-  display: flex;
-  gap: var(--space-6);
-  align-items: stretch;
-}
-
+/* 工作项 */
 .work-items {
-  flex: 0 0 60%; /* 工作项占60%宽度 */
+  flex: 1;
+  min-width: 0;
 }
 
 .work-items .section-card {
@@ -889,8 +899,10 @@ export default {
   flex-direction: column;
 }
 
+/* 我参与的项目 */
 .my-projects {
-  flex: 1; /* 我参与的项目占剩余40%宽度 */
+  flex: 1;
+  min-width: 0;
 }
 
 .my-projects .section-card {
@@ -908,12 +920,11 @@ export default {
   min-height: 0;
 }
 
-/* 右侧栏列，与左侧两块统一高度 */
+/* 右侧栏列，日历 */
 .right-sidebar-column {
-  height: 500px;
+  flex: 0 0 340px;
   display: flex;
-  min-width: 320px;
-  max-width: 360px;
+  width: 340px;
 }
 
 .project-card {
@@ -1030,24 +1041,35 @@ export default {
   font-weight: var(--font-medium);
 }
 
-/* 让右侧我的工作日历与左侧两块底部对齐（500px） */
+/* 让右侧我的工作日历自适应高度 */
 ::v-deep .right-sidebar {
-  height: 780px;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 @media (max-width: 1200px) {
-  .work-items-container {
+  .quick-actions {
+    width: 100%;
+  }
+  
+  .three-column-row {
     flex-direction: column;
   }
   
-  .work-items {
+  .three-column-row .right-sidebar-column {
+    margin-top: 0; /* 移动端取消负margin */
+  }
+  
+  .work-items,
+  .my-projects {
     flex: 1;
   }
   
-  .main-content {
-    flex-direction: column;
+  .right-sidebar-column {
+    flex: 1;
+    max-width: 100%;
+    width: 100%;
   }
   
   .action-cards {
@@ -1055,7 +1077,7 @@ export default {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1000px) {
   .main-content {
     padding: 16px;
     gap: 20px;

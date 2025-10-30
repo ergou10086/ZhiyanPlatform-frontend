@@ -535,7 +535,7 @@ export default {
 
 .main-content {
   flex: 1;
-  padding: 20px 24px 28px;
+  padding: 40px 24px 28px; /* 增加顶部padding从20px到40px */
 }
 
 .content-layout.leftbar { 
@@ -544,7 +544,7 @@ export default {
 }
 .left-options { 
   position: fixed; 
-  top: 80px; 
+  top: 100px; /* 从80px增加到100px */
   left: 20px; 
   width: 200px; 
   z-index: 100;
@@ -567,9 +567,9 @@ export default {
   min-width: 0; 
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 40px - 28px);
+  height: calc(100vh - 64px - 60px - 28px); /* 调整高度计算 */
   margin-left: 240px; /* 为固定侧边栏留出空间 */
-  padding: 20px;
+  padding: 40px 20px 20px; /* 增加顶部padding从20px到40px */
   background: #f8f9fa;
   border-radius: 12px;
   overflow-y: auto;

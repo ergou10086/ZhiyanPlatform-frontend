@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="project-create-container">
     <!-- 侧边栏弹窗 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
