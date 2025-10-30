@@ -1,9 +1,17 @@
 import axios from 'axios'
 import config from '@/config'
 
-// 创建axios实例 - 使用Vue代理，不指定baseURL
+/**
+ * 项目服务API客户端
+ * 
+ * 注意：所有项目相关的API请求都通过Vue开发服务器的代理转发到8095端口（项目服务）
+ * 代理配置在 vue.config.js 中：
+ * - /zhiyan/api/projects → http://localhost:8095
+ * 
+ * 使用相对路径（baseURL为空），让代理服务器处理路由
+ */
 const api = axios.create({
-  baseURL: '', // 使用相对路径，通过Vue代理转发
+  baseURL: '', // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
   timeout: config.api.timeout,
   withCredentials: true
   // ✅ 不设置默认 Content-Type，让 Axios 根据数据类型自动处理

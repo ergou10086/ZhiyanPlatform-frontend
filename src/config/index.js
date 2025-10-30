@@ -6,7 +6,8 @@ const config = {
     // 默认API基础URL
     baseURL: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
-      : 'http://localhost:8091', // 默认端口8091
+      : 'http://localhost:' +
+        '8091', // 默认端口8091
     timeout: 10000,
     // 多端口配置
     endpoints: {
