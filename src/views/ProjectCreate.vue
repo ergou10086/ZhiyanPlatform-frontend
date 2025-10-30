@@ -908,12 +908,40 @@ export default {
         
         console.log('表单数据:', this.formData)
         
+        // ✅ 如果有图片，先上传到MinIO
+        let imageUrl = 'https://via.placeholder.com/400x225?text=Project+Image' // 默认图片
+
+        if (this.projectImage && this.projectImage.startsWith('data:image')) {
+          console.log('检测到base64图片，先上传到MinIO...')
+          try {
+            // 将base64转为Blob
+            const blob = await this.dataURLtoBlob(this.projectImage)
+            const file = new File([blob], 'project-image.jpg', { type: 'image/jpeg' })
+
+            // 上传到MinIO
+            const { projectAPI } = await import('@/api/project')
+            const uploadResponse = await projectAPI.uploadProjectImage(file, null)
+
+            console.log('图片上传响应:', uploadResponse)
+
+            if (uploadResponse && uploadResponse.code === 200 && uploadResponse.data && uploadResponse.data.imageUrl) {
+              imageUrl = uploadResponse.data.imageUrl
+              console.log('✅ 图片上传成功，URL:', imageUrl)
+            } else {
+              console.warn('⚠️ 图片上传失败，使用默认图片')
+            }
+          } catch (error) {
+            console.error('❌ 上传图片到MinIO失败:', error)
+            // 继续使用默认图片
+          }
+        }
+
         // 调用后端API创建项目
         const createProjectData = {
           name: this.formData.projectName,
           description: this.formData.projectDescription,
           visibility: this.formData.visibility, // 使用用户选择的可见性
-          imageUrl: this.projectImage || 'https://via.placeholder.com/400x225?text=Project+Image', // 添加必需的imageUrl字段
+          imageUrl: imageUrl, // 使用上传后的MinIO URL
           startDate: this.formData.startDate,
           endDate: this.formData.endDate
         }
@@ -951,7 +979,7 @@ export default {
           // 添加前端显示需要的字段
           title: response.data.name, // 保留title字段用于前端显示
           status: this.getStatusDisplay(response.data.status), // 转换为中文状态显示
-          teamSize: 1,
+          teamSize: 1, // 初始团队大小为1（创建者）
           dataAssets: this.formData.projectDescription || '暂无描述',
           direction: this.formData.projectDescription || '暂无描述',
           aiCore: '待定',
@@ -1032,6 +1060,24 @@ export default {
       } finally {
         this.isSubmitting = false
       }
+    },
+    // 将base64 DataURL转换为Blob
+    async dataURLtoBlob(dataURL) {
+      return new Promise((resolve, reject) => {
+        try {
+          const arr = dataURL.split(',')
+          const mime = arr[0].match(/:(.*?);/)[1]
+          const bstr = atob(arr[1])
+          let n = bstr.length
+          const u8arr = new Uint8Array(n)
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n)
+          }
+          resolve(new Blob([u8arr], { type: mime }))
+        } catch (error) {
+          reject(error)
+        }
+      })
     }
   }
 }
