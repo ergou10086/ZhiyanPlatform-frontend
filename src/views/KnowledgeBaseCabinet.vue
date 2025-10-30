@@ -4,8 +4,10 @@
       <!-- 左侧列表 -->
       <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
         <div class="toolbar">
-          <button class="btn primary small" @click="createNewDocument" v-if="!sidebarCollapsed">+ 新建文档</button>
-          <button class="btn secondary small" @click="createNewFolder" v-if="!sidebarCollapsed">+ 新建文件夹</button>
+          <div class="toolbar-buttons" v-if="!sidebarCollapsed">
+            <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
+            <button class="btn secondary small" @click="createNewFolder">+ 新建文件夹</button>
+          </div>
           <input class="search" type="text" placeholder="搜索文档" v-if="!sidebarCollapsed" />
         </div>
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
@@ -118,6 +120,8 @@
 </template>
 
 <script>
+import '@/assets/styles/KnowledgeBaseCabinet.css'
+
 export default {
   name: 'KnowledgeBaseCabinet',
   props: {
@@ -426,7 +430,7 @@ export default {
 .cabinet-view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 40px);
+  height: 100%; /* 占据父容器的全部高度 */
   animation: fadeInUp 0.6s ease-out;
   padding: 0;
   margin: 0;
@@ -512,21 +516,23 @@ export default {
 }
 .toolbar { 
   display: flex; 
+  flex-direction: column;
   gap: 10px; 
-  align-items: center; 
   margin-bottom: 16px; 
-  flex-shrink: 0; 
-  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.toolbar-buttons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 .search { 
-  flex: 1; 
-  min-width: 0;
+  width: 100%;
   height: 36px; 
   border: 2px solid #e5e7eb; 
   border-radius: 10px; 
   padding: 0 12px; 
   font-size: 13px; 
-  max-width: 200px;
   transition: all 0.3s ease;
   background: white;
 }

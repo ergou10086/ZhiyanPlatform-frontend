@@ -189,6 +189,7 @@
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
+import '@/assets/styles/ProjectSquare.css'
 
 export default {
   name: 'ProjectSquare',
