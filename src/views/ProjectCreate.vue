@@ -910,20 +910,20 @@ export default {
         
         // ✅ 如果有图片，先上传到MinIO
         let imageUrl = 'https://via.placeholder.com/400x225?text=Project+Image' // 默认图片
-        
+
         if (this.projectImage && this.projectImage.startsWith('data:image')) {
           console.log('检测到base64图片，先上传到MinIO...')
           try {
             // 将base64转为Blob
             const blob = await this.dataURLtoBlob(this.projectImage)
             const file = new File([blob], 'project-image.jpg', { type: 'image/jpeg' })
-            
+
             // 上传到MinIO
             const { projectAPI } = await import('@/api/project')
             const uploadResponse = await projectAPI.uploadProjectImage(file, null)
-            
+
             console.log('图片上传响应:', uploadResponse)
-            
+
             if (uploadResponse && uploadResponse.code === 200 && uploadResponse.data && uploadResponse.data.imageUrl) {
               imageUrl = uploadResponse.data.imageUrl
               console.log('✅ 图片上传成功，URL:', imageUrl)
@@ -935,7 +935,7 @@ export default {
             // 继续使用默认图片
           }
         }
-        
+
         // 调用后端API创建项目
         const createProjectData = {
           name: this.formData.projectName,

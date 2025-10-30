@@ -1,28 +1,14 @@
 <template>
   <div class="cabinet-view">
-    <div class="page-header">
-      <h1 class="page-title">
-        <span class="title-text">知识柜 · 团队文档中心</span>
-        <div class="title-decoration"></div>
-      </h1>
-      <p class="page-subtitle">
-        <svg class="subtitle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-          <path d="M12 16V12M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        集中管理团队知识文档，协作编辑，版本追踪
-      </p>
-    </div>
-
-    <div class="cabinet-layout">
+    <div class="cabinet-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- 左侧列表 -->
-      <div class="list-pane">
+      <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
         <div class="toolbar">
-          <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
-          <button class="btn secondary small" @click="createNewFolder">+ 新建文件夹</button>
-          <input class="search" type="text" placeholder="搜索文档" />
+          <button class="btn primary small" @click="createNewDocument" v-if="!sidebarCollapsed">+ 新建文档</button>
+          <button class="btn secondary small" @click="createNewFolder" v-if="!sidebarCollapsed">+ 新建文件夹</button>
+          <input class="search" type="text" placeholder="搜索文档" v-if="!sidebarCollapsed" />
         </div>
-        <div v-for="folder in folders" :key="folder.id" class="folder-section">
+        <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
@@ -36,10 +22,17 @@
                 @click="activeId=doc.id">{{ doc.title }}</li>
           </ul>
         </div>
+        <!-- 折叠按钮 -->
+        <button class="collapse-btn" @click="toggleSidebar" :title="sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
+               :class="{ 'rotated': sidebarCollapsed }">
+            <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
 
       <!-- 右侧编辑区 -->
-      <div class="editor-pane">
+      <div class="editor-pane" :class="{ 'expanded': sidebarCollapsed }">
         <div class="doc-meta">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
@@ -146,6 +139,7 @@ export default {
       hasUnsavedChanges: false,
       autoSaveTimer: null,
       isEditing: false,
+      sidebarCollapsed: false, // 左侧面板折叠状态
       folders: [
         { id: 1, name: '项目管理规范', description: '项目管理和规范相关文档', expanded: true },
         { id: 2, name: '会议纪要', description: '会议记录和纪要', expanded: true },
@@ -233,8 +227,7 @@ export default {
     },
 
     confirmNewFolder() {
-      if (!this.newFolderName.trim()) return
-      
+      if (!this.newFolderName.trim()) return      
       const newFolder = {
         id: Date.now(),
         name: this.newFolderName.trim(),
@@ -253,6 +246,10 @@ export default {
         folder.expanded = !folder.expanded
         this.saveToLocalStorage()
       }
+    },
+
+    toggleSidebar() {
+      this.sidebarCollapsed = !this.sidebarCollapsed
     },
 
     getDocsInFolder(folderId) {
@@ -429,8 +426,10 @@ export default {
 .cabinet-view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 40px - 28px);
+  height: calc(100vh - 64px - 40px);
   animation: fadeInUp 0.6s ease-out;
+  padding: 0;
+  margin: 0;
 }
 
 @keyframes fadeInUp {
@@ -444,93 +443,19 @@ export default {
   }
 }
 
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.page-header {
-  margin-bottom: 24px;
-  animation: fadeInDown 0.6s ease-out;
-}
-
-.page-title {
-  position: relative;
-  margin: 0 0 16px 0;
-  display: inline-block;
-}
-
-.title-text {
-  font-size: 32px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.5px;
-}
-
-.title-decoration {
-  position: absolute;
-  bottom: -8px;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(90deg, #5EB6E4 0%, #A7C6ED 50%, transparent 100%);
-  border-radius: 2px;
-}
-
-.page-subtitle {
-  font-size: 15px;
-  color: #64748b;
-  line-height: 1.8;
-  margin: 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 16px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-left: 3px solid #5EB6E4;
-  border-radius: 8px;
-}
-
-.subtitle-icon {
-  flex-shrink: 0;
-  color: #5EB6E4;
-  margin-top: 2px;
-}
-
-.section-card { 
-  background: #fff; 
-  border: 1px solid #e5e7eb; 
-  border-radius: 16px; 
-  padding: 16px; 
-  margin-bottom: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-}
-.section-title { 
-  font-size: 16px; 
-  font-weight: 700; 
-  color: #1e293b; 
-}
-.section-subtitle { 
-  color: #6b7280; 
-  font-size: 12px; 
-  margin-top: 6px; 
-}
-
 .cabinet-layout { 
   display: grid; 
   grid-template-columns: 260px 1fr; 
-  gap: 16px; 
+  gap: 12px; 
   flex: 1; /* 占据剩余空间 */
   min-height: 0; /* 允许grid子元素收缩 */
+  height: 100%; /* 占据全部高度 */
+  transition: grid-template-columns 0.3s ease;
+  position: relative;
+}
+
+.cabinet-layout.sidebar-collapsed {
+  grid-template-columns: 60px 1fr;
 }
 
 .list-pane { 
@@ -543,7 +468,45 @@ export default {
   min-height: 0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
+
+.list-pane.collapsed {
+  padding: 16px 8px;
+  align-items: center;
+}
+
+.collapse-btn {
+  position: absolute;
+  bottom: 16px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #64748b;
+  z-index: 10;
+}
+
+.collapse-btn:hover {
+  background: #f1f5f9;
+  border-color: #5EB6E4;
+  color: #5EB6E4;
+  transform: scale(1.1);
+}
+
+.collapse-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
 .list-pane:hover {
   box-shadow: 0 8px 15px -5px rgba(0, 0, 0, 0.15);
 }
@@ -609,7 +572,7 @@ export default {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border: 1px solid #e5e7eb;
   border-radius: 16px;
-  padding: 20px;
+  padding: 8px;
   display: flex; 
   flex-direction: column; 
   min-height: 0;
@@ -620,13 +583,13 @@ export default {
   box-shadow: 0 8px 15px -5px rgba(0, 0, 0, 0.15);
 }
 .doc-meta { 
-  padding: 6px 4px 16px; 
+  padding: 2px 0 6px; 
   flex-shrink: 0;
-  border-bottom: 2px solid #e5e7eb;
-  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 6px;
 }
 .doc-title { 
-  font-size: 18px; 
+  font-size: 16px; 
   font-weight: 700; 
   color: #1e293b;
   background: linear-gradient(135deg, #1e293b 0%, #5EB6E4 100%);
@@ -636,15 +599,15 @@ export default {
 }
 .doc-updated { 
   color: #64748b; 
-  font-size: 13px; 
-  margin-top: 8px;
+  font-size: 12px; 
+  margin-top: 4px;
   font-weight: 500;
 }
 .editor { 
   flex: 1; 
   border: 1px solid #e5e7eb; 
-  border-radius: 10px; 
-  padding: 10px; 
+  border-radius: 8px; 
+  padding: 8px; 
   font-size: 13px; 
   resize: none; /* 禁用resize，使用flex布局控制高度 */
   min-height: 0; /* 允许flex子元素收缩 */
@@ -661,7 +624,7 @@ export default {
   background-color: #fff;
   color: #111827;
 }
-.editor-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-shrink: 0; }
+.editor-footer { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-shrink: 0; padding-top: 6px; }
 .flex-spacer { flex: 1; }
 
 .btn { 
