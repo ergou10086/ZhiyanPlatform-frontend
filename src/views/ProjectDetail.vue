@@ -860,10 +860,20 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', this.loadUserAvatar)
+    
+    // 🎯 监听精确的头像更新事件
+    this.$eventBus.on(
+      this.$EventTypes.USER_AVATAR_UPDATED, 
+      this.handleAvatarUpdated,
+      { debounce: 300 } // 300ms防抖，避免频繁更新
+    )
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     this.$root.$off('userInfoUpdated', this.loadUserAvatar)
+    
+    // 取消事件监听
+    this.$eventBus.off(this.$EventTypes.USER_AVATAR_UPDATED, this.handleAvatarUpdated)
   },
   methods: {
     openTaskListModal() {
@@ -1349,19 +1359,22 @@ export default {
           // 处理成员数据
           if (response.data && response.data.content) {
             this.teamMembers = response.data.content.map(member => ({
-              id: member.userId,
+              id: String(member.userId),  // 确保 id 是字符串
               name: member.username || member.name || '未知用户',
               role: member.roleName || member.role || '成员',
               avatar: member.avatar || null
             }))
           } else if (Array.isArray(response.data)) {
             this.teamMembers = response.data.map(member => ({
-              id: member.userId,
+              id: String(member.userId),  // 确保 id 是字符串
               name: member.username || member.name || '未知用户',
               role: member.roleName || member.role || '成员',
               avatar: member.avatar || null
             }))
           }
+          
+          console.log('✅ 团队成员加载完成:', this.teamMembers.length, '人')
+          console.log('成员ID列表:', this.teamMembers.map(m => m.id))
 
           // 将团队成员数量写入缓存，供项目广场读取显示
           try {
@@ -1377,6 +1390,31 @@ export default {
       } catch (error) {
         console.error('加载团队成员失败:', error)
         // 失败时保留原有数据
+      }
+    },
+    handleAvatarUpdated({ userId, avatarUrl }) {
+      // 💡 局部更新：只更新该用户的头像，无需重新请求整个成员列表
+      console.log('🔔 ProjectDetail收到头像更新事件:', {
+        userId,
+        userIdType: typeof userId,
+        avatarUrl: avatarUrl.substring(0, 50) + '...',
+        teamMembersCount: this.teamMembers.length,
+        teamMemberIds: this.teamMembers.map(m => ({ id: m.id, type: typeof m.id }))
+      })
+      
+      // userId 和 member.id 都已经是字符串，直接比较
+      const member = this.teamMembers.find(m => m.id === userId)
+      if (member) {
+        console.log('✅ 找到成员:', member.name)
+        console.log('更新前的头像:', member.avatar?.substring(0, 50))
+        this.$set(member, 'avatar', avatarUrl)
+        console.log(`✅ 已更新团队成员 ${member.name}(${userId}) 的头像`)
+        console.log('更新后的头像:', member.avatar?.substring(0, 50))
+        // 强制Vue更新视图
+        this.$forceUpdate()
+      } else {
+        console.warn(`⚠️ 用户 ${userId} 不在当前项目成员列表中`)
+        console.warn('当前成员列表:', this.teamMembers.map(m => ({ id: m.id, name: m.name })))
       }
     },
     updateManagerFromTeamMembers() {
