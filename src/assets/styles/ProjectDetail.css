@@ -126,7 +126,7 @@
 
 .main-content {
   flex: 1;
-  padding: 40px 24px 28px; /* 增加顶部padding从20px到40px */
+  padding: 80px 24px 28px; /* 增加顶部padding，让项目卡片往下移，显示更多上边框 */
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -137,28 +137,41 @@
   border: 1px solid #e9ecef;
   border-radius: 12px;
   padding: 24px;
+  margin-top: 16px; /* 增加顶部间距，让上边框更清晰可见 */
 }
 
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 20px;
+  gap: 32px;
+  position: relative;
 }
 
 .project-info {
   flex: 1;
+  min-width: 0;
+}
+
+/* 右侧区域：包含图片和按钮 */
+.project-right-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 16px;
+  flex-shrink: 0;
+  min-width: 300px;
 }
 
 .project-image-section {
-  margin-bottom: 24px;
+  margin-bottom: 0;
+  align-self: flex-end;
 }
 
 .project-image-container {
   position: relative;
-  width: 100%;
-  max-width: 600px;
-  height: 300px;
+  width: 300px;
+  height: 200px;
   background: #f8f9fa;
   border: 1px solid #e9ecef;
   border-radius: 8px;
@@ -301,6 +314,8 @@
   display: flex;
   gap: 12px;
   flex-shrink: 0;
+  margin-top: 24px; /* 按钮往下移，不顶格 */
+  align-self: flex-end;
 }
 
 .section-card {

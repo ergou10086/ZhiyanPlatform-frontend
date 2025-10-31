@@ -70,7 +70,36 @@
       <div class="project-card">
         <div class="project-header">
           <div class="project-info">
-            <!-- 项目图片区域 -->
+            <h1 class="project-title">{{ project.title }}</h1>
+            <div class="project-meta">
+              <div class="meta-item">
+                <span class="meta-label">项目简介：</span>
+                <span class="meta-value">{{ project.description }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">项目周期：</span>
+                <span class="meta-value">{{ project.period }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">当前状态：</span>
+                <span class="status-badge" :class="statusClass(project.status)">{{ getStatusDisplay(project.status) }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">负责人：</span>
+                <span class="meta-value">{{ project.manager }}</span>
+              </div>
+              <div class="meta-item" v-if="project.tags && project.tags.length > 0">
+                <span class="meta-label">项目标签：</span>
+                <div class="tags-container">
+                  <span v-for="(tag, index) in project.tags" :key="index" class="tag">{{ tag }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 右侧区域：图片和按钮 -->
+          <div class="project-right-section">
+            <!-- 项目图片区域 - 放在右下角 -->
             <div class="project-image-section">
               <div class="project-image-container">
                 <img 
@@ -106,46 +135,22 @@
               />
             </div>
             
-            <h1 class="project-title">{{ project.title }}</h1>
-            <div class="project-meta">
-              <div class="meta-item">
-                <span class="meta-label">项目简介：</span>
-                <span class="meta-value">{{ project.description }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">项目周期：</span>
-                <span class="meta-value">{{ project.period }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">当前状态：</span>
-                <span class="status-badge" :class="statusClass(project.status)">{{ getStatusDisplay(project.status) }}</span>
-              </div>
-              <div class="meta-item">
-                <span class="meta-label">负责人：</span>
-                <span class="meta-value">{{ project.manager }}</span>
-              </div>
-              <div class="meta-item" v-if="project.tags && project.tags.length > 0">
-                <span class="meta-label">项目标签：</span>
-                <div class="tags-container">
-                  <span v-for="(tag, index) in project.tags" :key="index" class="tag">{{ tag }}</span>
+            <!-- 操作按钮 - 往下移 -->
+            <div class="project-actions" v-if="isProjectManager">
+              <button class="btn secondary" @click="editProject">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                编辑项目
+              </button>
+              <button class="btn btn-danger" @click="deleteProject">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                删除项目
+              </button>
             </div>
-          </div>
-            </div>
-          </div>
-          <div class="project-actions" v-if="isProjectManager">
-            <button class="btn secondary" @click="editProject">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              编辑项目
-            </button>
-            <button class="btn btn-danger" @click="deleteProject">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              删除项目
-            </button>
           </div>
         </div>
       </div>
