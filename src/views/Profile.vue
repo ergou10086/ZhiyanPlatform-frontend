@@ -418,6 +418,13 @@ export default {
         this.setupAvatarCropInteraction()
       }
       
+      // 🛡️ 修复：添加图片加载错误处理
+      img.onerror = (error) => {
+        console.error('图片加载失败:', error)
+        alert('图片加载失败，请重新选择')
+        this.closeAvatarCropModal()
+      }
+      
       img.src = this.originalAvatarData
     },
     updateAvatarCropSelection() {
@@ -544,6 +551,13 @@ export default {
         
         // 转换为Blob以便上传
         canvas.toBlob(async (blob) => {
+          // 🛡️ 修复：检查blob是否为null
+          if (!blob) {
+            console.error('Canvas转Blob失败')
+            alert('图片处理失败，请重试')
+            return
+          }
+          
           try {
             // 先关闭裁剪模态框
             this.closeAvatarCropModal()
@@ -573,7 +587,16 @@ export default {
             // 更新本地状态
             this.userInfo.avatar = finalAvatar
             this.userAvatar = finalAvatar
-            localStorage.setItem('userAvatar', finalAvatar)
+            
+            // 🛡️ 修复：添加localStorage异常捕获
+            try {
+              localStorage.setItem('userAvatar', finalAvatar)
+            } catch (e) {
+              console.error('保存头像到localStorage失败:', e)
+              if (e.name === 'QuotaExceededError') {
+                console.warn('localStorage空间已满')
+              }
+            }
             
             // 更新user_info中的头像信息
             const savedUserInfo = localStorage.getItem('user_info')
@@ -587,6 +610,9 @@ export default {
                 console.log('头像已更新到user_info')
               } catch (error) {
                 console.error('更新user_info头像失败:', error)
+                if (error.name === 'QuotaExceededError') {
+                  console.warn('localStorage空间已满，请清理浏览器缓存')
+                }
               }
             }
             
@@ -612,13 +638,31 @@ export default {
             
           } catch (error) {
             console.error('上传头像失败:', error)
-            alert('头像上传失败: ' + (error.msg || error.message || '未知错误'))
+            
+            // 🛡️ 修复：添加重试机制
+            const errorMsg = error.msg || error.message || '未知错误'
+            const retry = confirm(`头像上传失败: ${errorMsg}\n\n是否重试？`)
+            
+            if (retry) {
+              // 重新触发上传
+              this.applyAvatarCrop()
+              return
+            }
             
             // 即使上传失败，也先用本地base64显示
             const localAvatar = canvas.toDataURL('image/jpeg', 0.9)
             this.userInfo.avatar = localAvatar
             this.userAvatar = localAvatar
-            localStorage.setItem('userAvatar', localAvatar)
+            
+            // 🛡️ 修复：添加localStorage异常捕获
+            try {
+              localStorage.setItem('userAvatar', localAvatar)
+            } catch (e) {
+              console.error('保存头像到localStorage失败:', e)
+              if (e.name === 'QuotaExceededError') {
+                console.warn('localStorage空间已满')
+              }
+            }
             
             // 更新user_info
             const savedUserInfo = localStorage.getItem('user_info')
@@ -629,6 +673,9 @@ export default {
                 localStorage.setItem('user_info', JSON.stringify(userData))
               } catch (e) {
                 console.error('更新user_info失败:', e)
+                if (e.name === 'QuotaExceededError') {
+                  console.warn('localStorage空间已满，请清理浏览器缓存')
+                }
               }
             }
             
@@ -637,6 +684,13 @@ export default {
           }
         }, 'image/jpeg', 0.9)
       }
+      
+      // 🛡️ 修复：添加图片加载错误处理
+      img.onerror = (error) => {
+        console.error('裁切图片加载失败:', error)
+        alert('图片处理失败，请重试')
+      }
+      
       img.src = this.originalAvatarData
     },
     // 头像相关方法
@@ -650,20 +704,25 @@ export default {
     },
     handleAvatarUpload(event) {
       const file = event.target.files[0]
-      if (file) {
+      if (!file) return
+      
+      try {
         // 检查文件类型
         if (!file.type.startsWith('image/')) {
-          this.showErrorModal('请选择图片文件')
+          alert('请选择图片文件')
+          this.$refs.avatarUpload.value = ''
           return
         }
         
         // 检查文件大小 (5MB)
         if (file.size > 5 * 1024 * 1024) {
-          this.showErrorModal('图片文件大小不能超过5MB')
+          alert('图片文件大小不能超过5MB')
+          this.$refs.avatarUpload.value = ''
           return
         }
         
         const reader = new FileReader()
+        
         reader.onload = (e) => {
           this.originalAvatarData = e.target.result
           // 立即显示圆形裁切模态
@@ -672,7 +731,19 @@ export default {
             this.initAvatarCropCanvas()
           })
         }
+        
+        // 🛡️ 修复：添加错误处理
+        reader.onerror = (error) => {
+          console.error('文件读取失败:', error)
+          alert('文件读取失败，请重新选择图片')
+          this.$refs.avatarUpload.value = ''
+        }
+        
         reader.readAsDataURL(file)
+      } catch (error) {
+        console.error('处理文件失败:', error)
+        alert('处理文件失败: ' + error.message)
+        this.$refs.avatarUpload.value = ''
       }
     },
     // 昵称编辑方法

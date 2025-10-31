@@ -199,6 +199,15 @@ export const taskAPI = {
   },
 
   /**
+   * 接取任务
+   * @param {Number} taskId - 任务ID
+   */
+  claimTask(taskId) {
+    console.log('[taskAPI.claimTask] 接取任务, ID:', taskId)
+    return api.post(`/zhiyan/api/projects/tasks/${taskId}/claim`)
+  },
+
+  /**
    * 获取我的任务
    * @param {Number} page - 页码
    * @param {Number} size - 每页数量
