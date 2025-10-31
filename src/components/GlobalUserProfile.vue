@@ -80,11 +80,17 @@ export default {
     window.addEventListener('storage', this.handleStorageChange)
     // 监听自定义事件，实现同页面实时更新
     this.$root.$on('userInfoUpdated', this.loadGlobalUserInfo)
+    
+    // 🎯 监听精确的头像更新事件
+    this.$eventBus.on(this.$EventTypes.USER_AVATAR_UPDATED, this.handleAvatarUpdated)
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     window.removeEventListener('storage', this.handleStorageChange)
     this.$root.$off('userInfoUpdated', this.loadGlobalUserInfo)
+    
+    // 取消事件监听
+    this.$eventBus.off(this.$EventTypes.USER_AVATAR_UPDATED, this.handleAvatarUpdated)
   },
   methods: {
     loadGlobalUserInfo() {
@@ -131,6 +137,24 @@ export default {
       // 监听localStorage中user_info的变化
       if (event.key === 'user_info') {
         this.loadGlobalUserInfo()
+      }
+    },
+    handleAvatarUpdated({ userId, avatarUrl }) {
+      // 只在是当前用户时更新头像
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userData = JSON.parse(savedUserInfo)
+          const currentUserId = userData.id || userData.userId
+          
+          if (String(currentUserId) === String(userId)) {
+            // 💡 直接更新头像，无需重新请求
+            this.$set(this.globalUserInfo, 'avatar', avatarUrl)
+            console.log('✅ GlobalUserProfile头像已更新')
+          }
+        } catch (error) {
+          console.error('处理头像更新事件失败:', error)
+        }
       }
     },
     handleClickOutside(event) {

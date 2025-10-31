@@ -7,8 +7,22 @@ import Card from './components/Card.vue'
 import Input from './components/Input.vue'
 import authStore from './store/auth'
 import tokenManager from './utils/tokenManager'
+import EventBus from './utils/eventBus'
 
 Vue.config.productionTip = false
+
+// 注册事件总线
+Vue.use(EventBus)
+
+// 开发环境：启用事件调试
+if (process.env.NODE_ENV === 'development') {
+  const { eventBus } = require('./utils/eventBus')
+  const originalEmit = eventBus.emit.bind(eventBus)
+  eventBus.emit = function(eventType, data) {
+    console.log(`📢 [EventBus] ${eventType}`, data)
+    return originalEmit(eventType, data)
+  }
+}
 
 // 全局注册组件
 Vue.component('GlobalUserProfile', GlobalUserProfile)

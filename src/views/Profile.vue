@@ -212,6 +212,7 @@
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import '@/assets/styles/Profile.css'
+import { avatarAPI } from '@/api/avatar'
 
 export default {
   name: 'Profile',
@@ -230,6 +231,8 @@ export default {
       isLoggedIn: false,
       showModal: false,
       modalMessage: '',
+      showToast: false,
+      toastMessage: '',
       showAvatarCropModal: false,
       originalAvatarData: null,
       avatarCropData: {
@@ -523,7 +526,7 @@ export default {
       
       // 获取原始图片的实际尺寸
       const img = new Image()
-      img.onload = () => {
+      img.onload = async () => {
         // 计算裁切区域在原图中的实际位置和尺寸
         const canvasWidth = this.$refs.avatarCropCanvas.width
         const canvasHeight = this.$refs.avatarCropCanvas.height
@@ -539,28 +542,100 @@ export default {
           0, 0, avatarSize, avatarSize
         )
         
-        // 转换为DataURL并更新头像
-        const croppedAvatar = canvas.toDataURL('image/jpeg', 0.9)
-        this.userInfo.avatar = croppedAvatar
-        this.userAvatar = croppedAvatar
-        localStorage.setItem('userAvatar', croppedAvatar)
-        
-        // 更新user_info中的头像信息
-        const savedUserInfo = localStorage.getItem('user_info')
-        if (savedUserInfo) {
+        // 转换为Blob以便上传
+        canvas.toBlob(async (blob) => {
           try {
-            const userData = JSON.parse(savedUserInfo)
-            userData.avatar = croppedAvatar
-            localStorage.setItem('user_info', JSON.stringify(userData))
-            console.log('头像已更新到user_info:', userData.avatar)
+            // 先关闭裁剪模态框
+            this.closeAvatarCropModal()
+            
+            // 创建File对象
+            const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
+            console.log('准备上传头像到后端，文件大小:', file.size, 'bytes')
+            
+            // 调用后端API上传头像
+            const response = await avatarAPI.uploadAvatar(file)
+            console.log('头像上传成功，后端响应:', response)
+            
+            // 获取后端返回的头像URL
+            let avatarUrl = ''
+            if (response.code === 200 && response.data) {
+              // 优先使用 cdnUrl（驼峰命名），其次是 minioUrl
+              avatarUrl = response.data.cdnUrl || response.data.minioUrl || ''
+              console.log('后端返回的头像URL:', avatarUrl)
+              console.log('响应数据详情:', response.data)
+            } else {
+              console.warn('后端响应异常:', response)
+            }
+            
+            // 如果后端返回了URL，使用后端URL；否则使用本地base64
+            const finalAvatar = avatarUrl || canvas.toDataURL('image/jpeg', 0.9)
+            
+            // 更新本地状态
+            this.userInfo.avatar = finalAvatar
+            this.userAvatar = finalAvatar
+            localStorage.setItem('userAvatar', finalAvatar)
+            
+            // 更新user_info中的头像信息
+            const savedUserInfo = localStorage.getItem('user_info')
+            let currentUserId = this.userInfo.id
+            if (savedUserInfo) {
+              try {
+                const userData = JSON.parse(savedUserInfo)
+                userData.avatar = finalAvatar
+                currentUserId = userData.id || userData.userId || currentUserId
+                localStorage.setItem('user_info', JSON.stringify(userData))
+                console.log('头像已更新到user_info')
+              } catch (error) {
+                console.error('更新user_info头像失败:', error)
+              }
+            }
+            
+            // 🎯 使用精确事件通知其他组件
+            const eventData = {
+              userId: String(currentUserId),  // 确保 userId 是字符串
+              avatarUrl: finalAvatar,
+              timestamp: Date.now()
+            }
+            console.log('📤 发送头像更新事件:', {
+              userId: eventData.userId,
+              userIdType: typeof eventData.userId,
+              avatarUrl: eventData.avatarUrl.substring(0, 50) + '...',
+              timestamp: eventData.timestamp
+            })
+            this.$eventBus.emit(this.$EventTypes.USER_AVATAR_UPDATED, eventData)
+            
+            // 触发全局更新事件（兼容旧代码）
+            this.$root.$emit('userInfoUpdated')
+            
+            // 显示成功提示
+            this.showSuccessToast('头像上传成功！')
+            
           } catch (error) {
-            console.error('更新user_info头像失败:', error)
+            console.error('上传头像失败:', error)
+            alert('头像上传失败: ' + (error.msg || error.message || '未知错误'))
+            
+            // 即使上传失败，也先用本地base64显示
+            const localAvatar = canvas.toDataURL('image/jpeg', 0.9)
+            this.userInfo.avatar = localAvatar
+            this.userAvatar = localAvatar
+            localStorage.setItem('userAvatar', localAvatar)
+            
+            // 更新user_info
+            const savedUserInfo = localStorage.getItem('user_info')
+            if (savedUserInfo) {
+              try {
+                const userData = JSON.parse(savedUserInfo)
+                userData.avatar = localAvatar
+                localStorage.setItem('user_info', JSON.stringify(userData))
+              } catch (e) {
+                console.error('更新user_info失败:', e)
+              }
+            }
+            
+            // 触发更新
+            this.$root.$emit('userInfoUpdated')
           }
-        }
-        
-        // 触发全局更新事件
-        this.$root.$emit('userInfoUpdated')
-        this.closeAvatarCropModal()
+        }, 'image/jpeg', 0.9)
       }
       img.src = this.originalAvatarData
     },
