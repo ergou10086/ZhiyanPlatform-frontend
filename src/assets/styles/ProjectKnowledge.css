@@ -67,17 +67,17 @@
 
 .knowledge-base-container .main-content {
   flex: 1;
-  padding: 40px 24px 28px;
+  padding: 0 24px;
 }
 
 .knowledge-base-container .content-layout.leftbar { 
   display: block;
-  height: calc(100vh - 64px - 40px - 28px);
+  height: calc(100vh - 64px);
 }
 
 .knowledge-base-container .left-options { 
   position: fixed; 
-  top: 100px;
+  top: 104px;
   left: 20px; 
   width: 200px; 
   z-index: 100;
@@ -89,7 +89,7 @@
   border-radius: 16px; 
   padding: 16px; 
   margin-bottom: 12px; 
-  height: calc(100vh - 64px - 40px - 28px);
+  height: calc(100vh - 104px - 20px);
   display: flex; 
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -154,10 +154,10 @@
   min-width: 0; 
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px - 5px);
+  height: calc(100vh - 64px);
   margin-left: 240px;
   margin-top: 0;
-  padding: 60px 20px 20px 20px;
+  padding: 40px 20px 20px 20px;
   background: #f8f9fa;
   border-radius: 12px;
   overflow-y: auto;
@@ -168,6 +168,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  justify-content: flex-start;
 }
 
 .knowledge-base-container .kb-header {

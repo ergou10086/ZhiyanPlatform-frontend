@@ -172,12 +172,16 @@
 .profile-container .main-content {
   flex: 1;
   margin-top: 64px; /* 为固定页眉留出空间 */
-  padding: 40px 80px;
+  padding: 40px 24px;
   background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .profile-container .profile-content {
-  max-width: 1600px;
+  max-width: 50%;
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -192,7 +196,7 @@
 .profile-container .info-card {
   background: white;
   border-radius: 12px;
-  padding: 50px 200px;
+  padding: 32px 32px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: none;
@@ -386,7 +390,7 @@
   font-size: 16px;
   font-weight: 600;
   color: #2c3e50;
-  margin: 0 0 12px 0;
+  margin: 0 0 16px 0;
   text-align: left;
 }
 
@@ -394,8 +398,9 @@
   font-size: 14px;
   color: #6c757d;
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.8;
   text-align: left;
+  min-height: 24px;
 }
 
 
@@ -436,12 +441,12 @@
 
 .profile-container .intro-textarea {
   width: 100%;
-  min-height: 120px;
-  padding: 12px;
+  min-height: 160px;
+  padding: 16px;
   border: 2px solid #e9ecef;
   border-radius: 6px;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.8;
   resize: vertical;
   outline: none;
   font-family: inherit;
@@ -488,8 +493,10 @@
 }
 
 .profile-container .intro-content {
-  line-height: 1.6;
+  line-height: 1.8;
   white-space: pre-wrap;
+  min-height: 80px;
+  padding: 16px 0;
 }
 
 .profile-container .login-prompt-card {

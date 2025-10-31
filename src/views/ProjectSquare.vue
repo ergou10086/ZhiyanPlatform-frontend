@@ -243,6 +243,9 @@ export default {
     // 清理旧的图片 URL（包含 localhost 的错误 URL）
     this.cleanupOldImageUrls()
     
+    // 尝试恢复保存的页码
+    this.restorePageNumber()
+    
     this.loadUserAvatar()
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
@@ -253,6 +256,10 @@ export default {
     // 当页面被激活时（从其他页面返回），重新加载项目数据
     // 这样可以获取到最新上传的图片
     console.log('页面被激活，重新加载项目数据')
+    
+    // 恢复保存的页码
+    this.restorePageNumber()
+    
     this.loadProjects()
   },
   beforeDestroy() {
@@ -724,11 +731,15 @@ export default {
       this.selectedStatus = s
       this.statusOpen = false
       this.currentPage = 1
+      // 重置时清除保存的页码
+      localStorage.removeItem('projectSquare_page')
     },
     resetFilters() {
       this.searchText = ''
       this.selectedStatus = ''
       this.currentPage = 1
+      // 重置时清除保存的页码
+      localStorage.removeItem('projectSquare_page')
     },
     /**
      * 处理图片加载错误
@@ -754,13 +765,20 @@ export default {
       }
     },
     goPrev() {
-      if (this.currentPage > 1) this.currentPage--
+      if (this.currentPage > 1) {
+        this.currentPage--
+        this.savePageNumber()
+      }
     },
     goNext() {
-      if (this.currentPage < this.totalPages) this.currentPage++
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+        this.savePageNumber()
+      }
     },
     goPage(p) {
       this.currentPage = p
+      this.savePageNumber()
     },
     viewProjectDetail(project) {
       // 检查用户是否已登录
@@ -769,11 +787,38 @@ export default {
       const isAuthenticated = !!(token && userInfo)
       
       if (isAuthenticated) {
+        // 保存当前页码
+        this.savePageNumber()
+        
         // 跳转到项目详情页面
         this.$router.push(`/project-detail/${project.id}`)
       } else {
         // 游客显示登录提示弹窗
         this.showLoginModal('请先登录才能查看项目详情')
+      }
+    },
+    savePageNumber() {
+      // 保存当前页码到 localStorage
+      try {
+        localStorage.setItem('projectSquare_page', String(this.currentPage))
+        console.log('保存页码:', this.currentPage)
+      } catch (error) {
+        console.error('保存页码失败:', error)
+      }
+    },
+    restorePageNumber() {
+      // 从 localStorage 恢复页码
+      try {
+        const savedPage = localStorage.getItem('projectSquare_page')
+        if (savedPage) {
+          const pageNum = parseInt(savedPage, 10)
+          if (!isNaN(pageNum) && pageNum > 0) {
+            this.currentPage = pageNum
+            console.log('恢复页码:', this.currentPage)
+          }
+        }
+      } catch (error) {
+        console.error('恢复页码失败:', error)
       }
     },
     showLoginModal(message) {

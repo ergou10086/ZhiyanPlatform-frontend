@@ -312,7 +312,8 @@
   flex-direction: column;
   gap: var(--space-4);
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 
@@ -326,6 +327,8 @@
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-normal);
   border: 1px solid var(--border-primary);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .home-container .work-item:hover {
@@ -356,6 +359,8 @@
 
 .home-container .item-content {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .home-container .item-title {
@@ -400,8 +405,9 @@
 
 /* 我参与的项目 */
 .home-container .my-projects {
-  flex: 1;
+  flex: 0 1 450px;
   min-width: 0;
+  max-width: 600px;
 }
 
 .home-container .my-projects .section-card {
@@ -417,6 +423,7 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
+  padding-top: 4px; /* 为卡片上移留出空间 */
 }
 
 /* 右侧栏列，日历 */
@@ -428,13 +435,15 @@
 
 .home-container .project-card {
   display: flex;
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  padding-right: var(--space-4);
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .home-container .project-card:hover {
@@ -444,9 +453,9 @@
 }
 
 .home-container .project-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
@@ -474,23 +483,30 @@
 .home-container .project-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .home-container .project-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  margin: 0 0 var(--space-2) 0;
+  margin: 0 0 4px 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
 }
 
 .home-container .project-description {
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  margin: 0 0 var(--space-3) 0;
-  line-height: var(--leading-relaxed);
+  margin: 0 0 6px 0;
+  line-height: 1.4;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -506,8 +522,14 @@
 .home-container .project-meta {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-3);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  margin: 0;
+  margin-left: auto;
+  padding: 0;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .home-container .status-badge {
@@ -538,6 +560,8 @@
   font-size: var(--text-sm);
   color: var(--text-secondary);
   font-weight: var(--font-medium);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* 让右侧我的工作日历自适应高度 */
