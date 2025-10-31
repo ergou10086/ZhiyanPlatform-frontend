@@ -88,7 +88,7 @@
             <ul class="meta-list">
               <li>
                 <span class="meta-label">团队规模：</span>
-                <span class="meta-value">{{ getTeamSize(project) }}人</span>
+                <span class="meta-value">{{ getTeamSizeDisplay(project) }}人</span>
               </li>
               <li v-if="project.startDate && project.endDate">
                 <span class="meta-label">项目周期：</span>
@@ -124,6 +124,7 @@
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
+import { projectAPI } from '@/api/project'
 import '@/assets/styles/KnowledgeBase.css'
 
 export default {
@@ -175,7 +176,7 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
-    loadUserProjects() {
+    async loadUserProjects() {
       // 从localStorage加载用户创建的项目
       const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
       
@@ -220,7 +221,7 @@ export default {
       const markedCreatedProjects = createdProjects.map(project => ({
         ...project,
         status: project.status || '进行中',
-        teamSize: this.getTeamSize(project),
+        teamSize: this.getTeamSize(project), // 先使用缓存或默认值
         startDate: project.startDate || project.createdAt,
         endDate: project.endDate || project.updatedAt,
         tags: project.tags || [],
@@ -230,17 +231,127 @@ export default {
       // 合并用户创建的项目和参与的项目
       this.joinedProjects = [...markedCreatedProjects, ...defaultJoinedProjects]
       
+      // 为所有项目并行获取真实的团队成员数量
+      console.log('开始为知识库项目获取真实团队成员数量...')
+      const memberCountPromises = this.joinedProjects.map(async (project) => {
+        if (!project.id) {
+          console.warn('项目缺少ID，跳过:', project)
+          return
+        }
+        try {
+          const teamSize = await this.getTeamSize(project.id)
+          // 使用 Vue.set 确保响应式更新
+          this.$set(project, 'memberCount', teamSize)
+          this.$set(project, 'teamSize', teamSize) // 同时更新 teamSize 以兼容现有代码
+          console.log(`✅ 项目 ${project.id} (${project.title}) 团队规模:`, teamSize)
+        } catch (error) {
+          console.warn(`获取项目 ${project.id} 成员数量失败:`, error)
+        }
+      })
+      
+      // 等待所有成员数量获取完成
+      await Promise.all(memberCountPromises)
+      console.log('所有项目的成员数量获取完成')
+      
+      // 强制触发响应式更新
+      this.$forceUpdate()
+      
       console.log('用户创建的项目数量:', markedCreatedProjects.length)
       console.log('默认参与项目数量:', defaultJoinedProjects.length)
       console.log('知识库总项目数量:', this.joinedProjects.length)
       console.log('知识库项目列表:', this.joinedProjects)
     },
     
-    // 获取团队规模
-    getTeamSize(project) {
+    // 显示用的团队规模（同步获取，优先使用缓存）
+    getTeamSizeDisplay(project) {
+      // 优先使用已设置的 memberCount 或 teamSize
+      if (project.memberCount) return project.memberCount
       if (project.teamSize) return project.teamSize
-      if (project.team && Array.isArray(project.team)) return project.team.length
-      return 1 // 默认1人
+      
+      // 从缓存读取（同步，快速）
+      try {
+        const cached = localStorage.getItem(`project_member_count_${project.id}`)
+        const cachedNum = cached ? parseInt(cached, 10) : NaN
+        if (!isNaN(cachedNum) && cachedNum > 0) {
+          return cachedNum
+        }
+      } catch (e) {}
+      
+      // 兜底
+      return 1
+    },
+    
+    /**
+     * 获取团队规模（和项目广场使用相同的方法）
+     * 优先级：1. 缓存 2. API 获取 3. 项目对象中的值 4. 兜底返回 1
+     */
+    async getTeamSize(projectIdOrProject) {
+      // 支持传入 projectId 或 project 对象
+      const projectId = typeof projectIdOrProject === 'object' ? projectIdOrProject.id : projectIdOrProject
+      const project = typeof projectIdOrProject === 'object' ? projectIdOrProject : null
+      
+      if (!projectId) {
+        // 如果没有 projectId，尝试从 project 对象获取
+        if (project) {
+          if (project.teamSize) return project.teamSize
+          if (project.memberCount) return project.memberCount
+          if (project.team && Array.isArray(project.team)) return project.team.length
+        }
+        return 1
+      }
+      
+      // 1) 优先从缓存读取（由 ProjectDetail、ProjectSquare 或 ProjectKnowledge 写入）
+      try {
+        const cached = localStorage.getItem(`project_member_count_${projectId}`)
+        const cachedNum = cached ? parseInt(cached, 10) : NaN
+        if (!isNaN(cachedNum) && cachedNum > 0) {
+          console.log(`从缓存读取项目 ${projectId} 的团队成员数量:`, cachedNum)
+          return cachedNum
+        }
+      } catch (e) {
+        console.warn('读取团队成员数量缓存失败:', e)
+      }
+      
+      // 2) 缓存没有，调用 API 获取
+      try {
+        console.log('从API获取项目', projectId, '的团队成员数量')
+        const response = await projectAPI.getProjectMembers(projectId, 0, 1000)
+        
+        if (response && response.code === 200) {
+          let memberCount = 0
+          if (response.data && response.data.content) {
+            // Spring Data Page对象
+            memberCount = response.data.content.length
+          } else if (Array.isArray(response.data)) {
+            // 直接返回数组
+            memberCount = response.data.length
+          }
+          
+          // 写入缓存，供后续使用
+          if (memberCount > 0) {
+            try {
+              localStorage.setItem(`project_member_count_${projectId}`, String(memberCount))
+              console.log(`✅ 已缓存项目 ${projectId} 的团队成员数量:`, memberCount)
+            } catch (e) {
+              console.warn('写入成员数量缓存失败:', e?.message || e)
+            }
+          }
+          
+          return memberCount > 0 ? memberCount : 1
+        }
+      } catch (error) {
+        console.warn(`获取项目 ${projectId} 成员数量失败:`, error)
+      }
+      
+      // 3) API 失败，尝试从 project 对象获取
+      if (project) {
+        if (project.memberCount) return project.memberCount
+        if (project.teamSize) return project.teamSize
+        if (project.team && Array.isArray(project.team)) return project.team.length
+      }
+      
+      // 4) 兜底返回 1
+      return 1
     },
     
     // 格式化日期范围

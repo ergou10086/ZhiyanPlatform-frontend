@@ -73,59 +73,100 @@
 
 .main-content {
   flex: 1;
-  padding: 80px 24px 28px; /* 包含固定页眉的64px空间，让项目卡片往下移，显示更多上边框 */
+  padding: 70px 24px 28px; /* 包含固定页眉的64px空间，让项目卡片往下移，显示更多上边框 */
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 32px; /* 增大项目介绍和任务列表之间的距离 */
 }
 
 .project-card {
   background: #fff;
   border: 1px solid #e9ecef;
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 24px;
-  margin-top: 16px; /* 增加顶部间距，让上边框更清晰可见 */
+  margin-top: 16px;
+  margin-bottom: 20px !important; /* 直接设置底部间距，确保与任务列表之间有足够距离 */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
 }
 
-.project-header {
+.project-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* 顶部：标题和按钮 */
+.project-header-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 32px;
-  position: relative;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* 主体内容：项目信息和图片并排 */
+.project-body {
+  display: grid;
+  grid-template-columns: 2fr 280px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .project-body {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .project-image-container {
+    height: 240px;
+    max-width: 100%;
+  }
+  
+  .project-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .project-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 
 .project-info {
-  flex: 1;
   min-width: 0;
-}
-
-/* 右侧区域：包含图片和按钮 */
-.project-right-section {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 16px;
-  flex-shrink: 0;
-  min-width: 300px;
 }
 
 .project-image-section {
-  margin-bottom: 0;
-  align-self: flex-end;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .project-image-container {
   position: relative;
-  width: 300px;
-  height: 200px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
   background: #f8f9fa;
   border: 1px solid #e9ecef;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.project-image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .project-image {
@@ -173,22 +214,64 @@
 }
 
 .project-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  color: #333;
-  margin: 0 0 16px 0;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.project-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* 第一行项目信息 */
+.project-meta-top {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 20px;
+  align-items: start;
+  margin-bottom: 16px;
+}
+
+/* 第二行项目信息（往上放一些） */
+.project-meta-bottom {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 20px;
+  align-items: start;
+  margin-top: 50px;
+}
+
+@media (max-width: 1200px) {
+  .project-meta-top,
+  .project-meta-bottom {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .project-meta-bottom {
+    margin-top: 24px;
+  }
 }
 
 .meta-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 8px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background-color 0.2s ease;
+  border-radius: 6px;
+  margin: 0 -8px;
+}
+
+.meta-item:hover {
+  background-color: #fafafa;
+}
+
+.meta-item:last-child {
+  border-bottom: none;
 }
 
 .tags-container {
@@ -208,14 +291,18 @@
 }
 
 .meta-label {
-  color: #6c757d;
+  color: #64748b;
   font-size: 14px;
-  min-width: 80px;
+  font-weight: 600;
+  min-width: 90px;
+  flex-shrink: 0;
 }
 
 .meta-value {
-  color: #333;
+  color: #1e293b;
   font-size: 14px;
+  line-height: 1.6;
+  flex: 1;
 }
 
 .status-badge {
@@ -261,8 +348,6 @@
   display: flex;
   gap: 12px;
   flex-shrink: 0;
-  margin-top: 24px; /* 按钮往下移，不顶格 */
-  align-self: flex-end;
 }
 
 .section-card {

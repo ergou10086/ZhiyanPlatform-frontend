@@ -57,7 +57,7 @@
                   </svg>
                 </div>
               </div>
-              <div class="stat-value">{{ totalAchievements }}</div>
+              <div class="stat-value">{{ achievementsCount }}</div>
               <div class="stat-desc">较上月增长 12%</div>
             </div>
 
@@ -84,8 +84,8 @@
                   </svg>
                 </div>
               </div>
-              <div class="stat-value">12</div>
-              <div class="stat-desc">在线 8 人</div>
+              <div class="stat-value">{{ teamMembersCount }}</div>
+              <div class="stat-desc">在线 {{ onlineMembersCount }} 人</div>
             </div>
           </div>
 
@@ -132,6 +132,8 @@
 import KnowledgeBaseCatalog from './KnowledgeBaseCatalog.vue'
 import KnowledgeBaseCabinet from './KnowledgeBaseCabinet.vue'
 import KnowledgeBaseAI from './KnowledgeBaseAI.vue'
+import { knowledgeAPI } from '@/api/knowledge'
+import { projectAPI } from '@/api/project'
 import '@/assets/styles/ProjectKnowledge.css'
 
 export default {
@@ -146,6 +148,10 @@ export default {
       activeTab: 'home',
       projectId: null,
       projectName: '加载中...',
+      achievementsCount: 0,
+      documentsCount: 0,
+      teamMembersCount: 0,
+      onlineMembersCount: 0,
       activities: [
         { id: 1, type: 'doc', text: '张伟上传了论文《基于AI的教育个性化推荐系统研究》', time: '2小时前' },
         { id: 2, type: 'update', text: '李梦更新了知识文档《项目管理规范V2.1》', time: '3小时前' },
@@ -163,14 +169,9 @@ export default {
     }
   },
   computed: {
-    // 计算成果总数（从成果目录获取）
-    totalAchievements() {
-      return this.archiveRows.length + this.getUploadedFilesCount()
-    },
-    
-    // 计算知识文档总数（从知识柜获取）
+    // 计算知识文档总数（使用从后端或缓存获取的真实数据）
     totalDocuments() {
-      return this.getDocumentsCount()
+      return this.documentsCount > 0 ? this.documentsCount : this.getDocumentsCount()
     },
     
     // 计算正在编辑的文档数
@@ -180,11 +181,45 @@ export default {
   },
   mounted() {
     this.projectId = this.$route.params.id
+    console.log('ProjectKnowledge mounted, projectId:', this.projectId)
     this.loadProjectName()
     // 组件挂载时加载本地存储的数据
     this.loadFromLocalStorage()
     // 初始化项目特定的示例数据
     this.initializeProjectData()
+    
+    // 立即从缓存读取团队规模和文档数量（同步，不会被异步问题影响）
+    if (this.projectId) {
+      try {
+        // 读取团队规模
+        const cached = localStorage.getItem(`project_member_count_${this.projectId}`)
+        const cachedNum = cached ? parseInt(cached, 10) : NaN
+        if (!isNaN(cachedNum) && cachedNum > 0) {
+          this.teamMembersCount = cachedNum
+          this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)
+          console.log('从缓存读取团队成员数量:', this.teamMembersCount)
+        }
+        
+        // 读取知识文档数量
+        const docsStorageKey = `knowledgeBaseDocs_${this.projectId}`
+        const docsSaved = localStorage.getItem(docsStorageKey)
+        if (docsSaved) {
+          const docsData = JSON.parse(docsSaved)
+          if (docsData.docs && Array.isArray(docsData.docs)) {
+            this.documentsCount = docsData.docs.length
+            console.log('从缓存读取知识文档数量:', this.documentsCount)
+          }
+        }
+      } catch (e) {
+        console.warn('读取缓存失败:', e)
+      }
+    }
+    
+    // 使用 nextTick 确保 projectId 已经设置
+    this.$nextTick(() => {
+      // 加载真实统计数据（会更新缓存中的数据）
+      this.loadStats()
+    })
   },
   beforeDestroy() {
     // 组件销毁前保存数据
@@ -245,8 +280,8 @@ export default {
       // 自动保存到本地存储
       this.saveToLocalStorage()
       
-      // 更新统计数字
-      this.updateStats()
+      // 更新统计数字（重新加载成果总数）
+      this.loadAchievementsCount()
     },
     
     handleDocumentCreated(doc) {
@@ -261,6 +296,9 @@ export default {
       
       // 自动保存到本地存储
       this.saveToLocalStorage()
+      
+      // 重新加载文档数量
+      this.loadDocumentsCount()
       
       // 更新统计数字
       this.updateStats()
@@ -279,8 +317,8 @@ export default {
       // 自动保存到本地存储
       this.saveToLocalStorage()
       
-      // 更新统计数字
-      this.updateStats()
+      // 更新统计数字（重新加载成果总数）
+      this.loadAchievementsCount()
     },
     
     handleFileEdited(file) {
@@ -296,14 +334,204 @@ export default {
       // 自动保存到本地存储
       this.saveToLocalStorage()
       
-      // 更新统计数字
-      this.updateStats()
+      // 编辑不改变成果总数，所以不需要重新加载
+    },
+    
+    async loadStats() {
+      // 并行加载成果总数、知识文档数量和团队成员数量
+      await Promise.all([
+        this.loadAchievementsCount(),
+        this.loadDocumentsCount(),
+        this.loadTeamMembersCount()
+      ])
+    },
+    
+    /**
+     * 从后端加载成果总数
+     */
+    async loadAchievementsCount() {
+      if (!this.projectId) {
+        console.warn('projectId为空，无法加载成果总数')
+        return
+      }
+      
+      try {
+        console.log('加载成果总数, projectId:', this.projectId)
+        const response = await knowledgeAPI.getProjectAchievements(this.projectId, 0, 1)
+        console.log('成果总数响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          // 获取总数（totalElements 或 total）
+          this.achievementsCount = response.data.totalElements || response.data.total || 0
+          console.log('成果总数:', this.achievementsCount)
+        } else {
+          console.warn('成果总数响应格式异常:', response)
+          this.achievementsCount = 0
+        }
+      } catch (error) {
+        console.error('加载成果总数失败:', error)
+        this.achievementsCount = 0
+      }
+    },
+    
+    /**
+     * 加载知识文档数量（从知识柜的localStorage获取真实数据）
+     */
+    loadDocumentsCount() {
+      if (!this.projectId) {
+        console.warn('projectId为空，无法加载文档数量')
+        this.documentsCount = 0
+        return
+      }
+      
+      try {
+        const storageKey = `knowledgeBaseDocs_${this.projectId}`
+        const saved = localStorage.getItem(storageKey)
+        if (saved) {
+          const data = JSON.parse(saved)
+          const count = data.docs && Array.isArray(data.docs) ? data.docs.length : 0
+          this.documentsCount = count
+          console.log('✅ 知识文档数量加载完成:', this.documentsCount, '篇')
+        } else {
+          // 如果没有存储的数据，初始化为0
+          this.documentsCount = 0
+          console.log('知识柜暂无文档数据')
+        }
+      } catch (error) {
+        console.error('加载文档数量失败:', error)
+        this.documentsCount = 0
+      }
+    },
+    
+    /**
+     * 获取团队规模（和项目广场使用相同的方法）
+     * 优先级：1. 缓存 2. API 获取 3. 兜底返回 1
+     */
+    async getTeamSize(projectId) {
+      if (!projectId) {
+        return 1
+      }
+      
+      // 1) 优先从缓存读取（由 ProjectDetail 或 ProjectSquare 写入）
+      try {
+        const cached = localStorage.getItem(`project_member_count_${projectId}`)
+        const cachedNum = cached ? parseInt(cached, 10) : NaN
+        if (!isNaN(cachedNum) && cachedNum > 0) {
+          console.log(`从缓存读取项目 ${projectId} 的团队成员数量:`, cachedNum)
+          return cachedNum
+        }
+      } catch (e) {
+        console.warn('读取团队成员数量缓存失败:', e)
+      }
+      
+      // 2) 缓存没有，调用 API 获取
+      try {
+        console.log('从API获取项目', projectId, '的团队成员数量')
+        const response = await projectAPI.getProjectMembers(projectId, 0, 1000)
+        
+        if (response && response.code === 200) {
+          let memberCount = 0
+          if (response.data && response.data.content) {
+            // Spring Data Page对象
+            memberCount = response.data.content.length
+          } else if (Array.isArray(response.data)) {
+            // 直接返回数组
+            memberCount = response.data.length
+          }
+          
+          // 写入缓存，供后续使用
+          if (memberCount > 0) {
+            try {
+              localStorage.setItem(`project_member_count_${projectId}`, String(memberCount))
+              console.log(`✅ 已缓存项目 ${projectId} 的团队成员数量:`, memberCount)
+            } catch (e) {
+              console.warn('写入成员数量缓存失败:', e?.message || e)
+            }
+          }
+          
+          return memberCount > 0 ? memberCount : 1
+        }
+      } catch (error) {
+        console.warn(`获取项目 ${projectId} 成员数量失败:`, error)
+      }
+      
+      // 3) 兜底返回 1
+      return 1
+    },
+    
+    /**
+     * 从后端加载团队成员数量和在线人数
+     */
+    async loadTeamMembersCount() {
+      const projectId = this.projectId || this.$route.params.id
+      if (!projectId) {
+        console.warn('projectId为空，无法加载团队成员数量')
+        this.teamMembersCount = 1
+        this.onlineMembersCount = 0
+        return
+      }
+      
+      // 使用和项目广场相同的方法获取团队规模
+      this.teamMembersCount = await this.getTeamSize(projectId)
+      
+      // 获取团队成员详情以计算在线人数
+      try {
+        const response = await projectAPI.getProjectMembers(projectId, 0, 1000)
+        if (response && response.code === 200) {
+          let members = []
+          if (response.data && response.data.content) {
+            members = response.data.content
+          } else if (Array.isArray(response.data)) {
+            members = response.data
+          }
+          
+          // 检查成员数据中是否有在线状态字段
+          // 可能的字段名：isOnline, is_online, online, onlineStatus, status === 'ONLINE' 等
+          const onlineCount = members.filter(member => {
+            // 检查各种可能的在线状态字段
+            if (member.isOnline === true || member.is_online === true || member.online === true) {
+              return true
+            }
+            if (member.onlineStatus === 'ONLINE' || member.onlineStatus === 'online') {
+              return true
+            }
+            if (member.status === 'ONLINE' || member.status === 'online' || member.status === 'active') {
+              return true
+            }
+            // 如果后端没有提供在线状态字段，返回 false（不计算为在线）
+            return false
+          }).length
+          
+          // 如果后端提供了在线状态，使用真实数据；否则使用模拟数据
+          if (members.length > 0 && (members[0].hasOwnProperty('isOnline') || 
+                                      members[0].hasOwnProperty('is_online') || 
+                                      members[0].hasOwnProperty('online') ||
+                                      members[0].hasOwnProperty('onlineStatus') ||
+                                      members[0].hasOwnProperty('status'))) {
+            this.onlineMembersCount = onlineCount
+            console.log('✅ 使用真实的在线人数:', this.onlineMembersCount, '人（总人数:', this.teamMembersCount, '人）')
+          } else {
+            // 后端没有提供在线状态，使用模拟数据（67% 的成员在线）
+            this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)
+            console.log('⚠️ 后端未提供在线状态，使用模拟数据:', this.onlineMembersCount, '人（总人数:', this.teamMembersCount, '人）')
+          }
+        } else {
+          // API 调用失败，使用模拟数据
+          this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)
+          console.log('⚠️ API调用失败，使用模拟在线人数:', this.onlineMembersCount, '人')
+        }
+      } catch (error) {
+        console.warn('获取团队成员详情失败，使用模拟在线人数:', error)
+        // 出错时使用模拟数据
+        this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)
+      }
+      
+      console.log('✅ 团队成员数量加载完成:', this.teamMembersCount, '人, 在线:', this.onlineMembersCount, '人')
     },
     
     updateStats() {
-      // 模拟更新统计数字
-      // 在实际应用中，这里会从服务器获取最新数据
-      console.log('更新统计数据')
+      // 重新加载统计数据
+      this.loadStats()
     },
     
     // 本地存储方法

@@ -12,9 +12,9 @@
           </svg>
         </button>
         <button class="back-btn" @click="goToHome" title="返回首页">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
+                </svg>
         </button>
         <span class="page-title">项目广场</span>
       </div>
@@ -74,10 +74,10 @@
                 @error="handleImageError($event, project)"
               />
               <span v-else class="placeholder-text">{{ project.title }}</span>
-            </div>
-            <div class="card-body">
-              <div class="card-title-row">
-                <h3 class="card-title">{{ project.title }}</h3>
+          </div>
+          <div class="card-body">
+            <div class="card-title-row">
+              <h3 class="card-title">{{ project.title }}</h3>
                 <div class="badge-group">
                   <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,22 +85,22 @@
                       <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </span>
-                  <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
                 </div>
-              </div>
-              <ul class="meta-list">
-                <li>
+            </div>
+            <ul class="meta-list">
+              <li>
                   <span class="meta-label">创建者：</span>
                   <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
-                </li>
-                <li>
+              </li>
+              <li>
                   <span class="meta-label">团队规模：</span>
                   <span class="meta-value">{{ getTeamSize(project) }}人</span>
-                </li>
+              </li>
                 <li v-if="project.startDate && project.endDate">
                   <span class="meta-label">项目周期：</span>
                   <span class="meta-value">{{ formatDateRange(project.startDate, project.endDate) }}</span>
-                </li>
+              </li>
                 <li v-if="project.tags && project.tags.length > 0">
                   <span class="meta-label">标签：</span>
                   <span class="meta-value">
@@ -108,17 +108,17 @@
                       {{ tag }}{{ index < project.tags.length - 1 ? '、' : '' }}
                     </span>
                   </span>
-                </li>
-              </ul>
-            </div>
+              </li>
+            </ul>
           </div>
         </div>
+      </div>
 
-        <div class="pagination">
-          <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
-          <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
-          <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
-        </div>
+      <div class="pagination">
+        <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
+        <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
+        <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
+      </div>
       </div>
     </div>
 
@@ -444,38 +444,54 @@ export default {
                 if (memberResponse.data && memberResponse.data.content) {
                   // Spring Data Page对象
                   memberCount = memberResponse.data.content.length
-                  project.teamMembers = memberResponse.data.content
+                  this.$set(project, 'teamMembers', memberResponse.data.content)
                 } else if (Array.isArray(memberResponse.data)) {
                   // 直接返回数组
                   memberCount = memberResponse.data.length
-                  project.teamMembers = memberResponse.data
+                  this.$set(project, 'teamMembers', memberResponse.data)
                 }
               }
               
-              // 更新项目的成员数量
-              project.memberCount = memberCount
+              // 使用 Vue.set 更新项目的成员数量，确保响应式
+              const finalCount = memberCount > 0 ? memberCount : 1
+              this.$set(project, 'memberCount', finalCount)
               
-              // 同时写入缓存，供后续使用
-              if (memberCount > 0) {
-                try {
-                  localStorage.setItem(`project_member_count_${project.id}`, String(memberCount))
-                } catch (e) {
-                  console.warn(`写入项目 ${project.id} 成员数量缓存失败:`, e)
-                }
+              // 同时写入缓存，供后续使用（优先读取缓存，因为它是同步的）
+              try {
+                localStorage.setItem(`project_member_count_${project.id}`, String(finalCount))
+                console.log(`✅ 已更新项目 ${project.id} 的成员数量:`, finalCount, '缓存已写入')
+              } catch (e) {
+                console.warn(`写入项目 ${project.id} 成员数量缓存失败:`, e)
               }
               
-              console.log(`项目 ${project.id} (${project.name}) 成员数量: ${memberCount}`)
-              return { projectId: project.id, memberCount }
+              console.log(`项目 ${project.id} (${project.name}) 成员数量:`, finalCount)
+              return { projectId: project.id, memberCount: finalCount }
             } catch (error) {
               console.warn(`获取项目 ${project.id} 成员数量失败:`, error)
-              // 失败时保持默认值
+              // 失败时从缓存读取，如果缓存也没有则使用默认值
+              try {
+                const cached = localStorage.getItem(`project_member_count_${project.id}`)
+                const cachedNum = cached ? parseInt(cached, 10) : NaN
+                if (!isNaN(cachedNum) && cachedNum > 0) {
+                  this.$set(project, 'memberCount', cachedNum)
+                  return { projectId: project.id, memberCount: cachedNum }
+                }
+              } catch (e) {
+                console.warn('读取缓存失败:', e)
+              }
+              // 使用默认值并更新
+              this.$set(project, 'memberCount', 1)
               return { projectId: project.id, memberCount: 1 }
             }
           })
           
           // 等待所有成员数量获取完成
-          await Promise.all(memberCountPromises)
-          console.log('所有项目的成员数量获取完成')
+          const memberCountResults = await Promise.all(memberCountPromises)
+          console.log('所有项目的成员数量获取完成:', memberCountResults)
+          
+          // 强制触发响应式更新
+          this.$forceUpdate()
+          console.log('✅ 已完成团队规模数据更新，已触发视图刷新')
           
           // 保存合并后的数据到localStorage
           // 这样可以确保显示的都是数据库中真实存在的公开项目，同时保留本地的图片和其他数据
@@ -571,16 +587,33 @@ export default {
       return 'steady'
     },
     getTeamSize(project) {
-      // 0) 优先读取项目详情缓存的人数（由 ProjectDetail 写入）
+      // 0) 优先读取缓存（同步，不会被异步问题影响）
+      // 因为 loadProjects 会立即写入缓存，所以缓存是最快的
       try {
         const cached = localStorage.getItem(`project_member_count_${project.id}`)
         const cachedNum = cached ? parseInt(cached, 10) : NaN
-        if (!isNaN(cachedNum) && cachedNum > 0) return cachedNum
-      } catch (e) {}
+        if (!isNaN(cachedNum) && cachedNum > 0) {
+          // 同时更新 project.memberCount 以保持一致性
+          if (project.memberCount !== cachedNum) {
+            this.$set(project, 'memberCount', cachedNum)
+          }
+          return cachedNum
+        }
+      } catch (e) {
+        console.warn('读取缓存失败:', e)
+      }
+      
+      // 1) 其次使用项目中已设置的 memberCount（由 loadProjects 中的 API 获取）
+      // 这是最新的数据，应该优先使用
+      if (project.memberCount !== undefined && project.memberCount !== null) {
+        const num = typeof project.memberCount === 'number' ? project.memberCount : parseInt(project.memberCount, 10)
+        if (!isNaN(num) && num > 0) {
+          return num
+        }
+      }
 
-      // 1) 其次使用后端直接返回的数字字段（尽量兼容）
+      // 2) 其次使用后端直接返回的其他数字字段（尽量兼容）
       const numeric = (
-        project.memberCount ||
         project.teamMemberCount ||
         project.membersCount ||
         project.participantCount ||
@@ -592,7 +625,8 @@ export default {
       if (typeof numeric === 'number' && !isNaN(numeric) && numeric > 0) {
         return numeric
       }
-      // 2) 再使用成员数组长度
+      
+      // 3) 再使用成员数组长度
       if (Array.isArray(project.teamMembers) && project.teamMembers.length > 0) {
         return project.teamMembers.length
       }
@@ -608,7 +642,15 @@ export default {
       if (Array.isArray(project.userList) && project.userList.length > 0) {
         return project.userList.length
       }
-      // 3) 兜底
+      
+      // 4) 最后读取缓存（作为备用，但通常已经在步骤0中读取了）
+      try {
+        const cached = localStorage.getItem(`project_member_count_${project.id}`)
+        const cachedNum = cached ? parseInt(cached, 10) : NaN
+        if (!isNaN(cachedNum) && cachedNum > 0) return cachedNum
+      } catch (e) {}
+      
+      // 4) 兜底
       return 1
     },
     formatDateRange(startDate, endDate) {
