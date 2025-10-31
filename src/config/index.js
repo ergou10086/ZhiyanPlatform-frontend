@@ -6,15 +6,18 @@ const config = {
     // 默认API基础URL
     baseURL: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
-      : 'http://localhost:' +
-        '8091', // 默认端口8091
+      : 'http://localhost:8091', // 默认端口8091（认证服务）
     timeout: 10000,
-    // 多端口配置
+    // 多端口配置（微服务架构）
     endpoints: {
       // 认证服务 (8091)
       auth: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
         : 'http://localhost:8091',
+      // 知识库服务 (8093)
+      knowledge: process.env.NODE_ENV === 'production' 
+        ? 'https://your-production-api.com' 
+        : 'http://localhost:8093',
       // 项目服务 (8095)
       project: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
@@ -50,5 +53,10 @@ const config = {
 export const API_BASE_URL = config.api.baseURL
 export const MINIO_BASE_URL = config.minio.baseURL
 export const MINIO_BUCKET = config.minio.bucket
+
+// 导出各个服务的端点
+export const AUTH_API_URL = config.api.endpoints.auth
+export const KNOWLEDGE_API_URL = config.api.endpoints.knowledge
+export const PROJECT_API_URL = config.api.endpoints.project
 
 export default config
