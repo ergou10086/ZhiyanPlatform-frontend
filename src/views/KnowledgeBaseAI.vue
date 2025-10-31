@@ -29,6 +29,46 @@
         </div>
       </div>
       <div class="composer">
+        <div class="file-menu-wrapper">
+          <button 
+            class="file-select-btn" 
+            @click.stop.prevent="toggleFileMenu"
+            :disabled="isSending"
+            title="选择文件"
+            type="button"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 13H16M8 17H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <!-- 下拉菜单 -->
+          <div v-if="showFileMenu" class="file-dropdown-menu">
+            <div class="dropdown-item" @click="openFileDialogFromArchive">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>从成果档案打开文件</span>
+            </div>
+            <div class="dropdown-item" @click="openFileUpload">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 10L12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>从本地上传文档</span>
+            </div>
+          </div>
+        </div>
+        <!-- 隐藏的文件输入 -->
+        <input 
+          ref="fileInput" 
+          type="file" 
+          multiple
+          style="display: none" 
+          @change="handleFileUpload"
+        />
         <input 
           class="composer-input" 
           type="text" 
@@ -49,12 +89,71 @@
           <div v-else class="loading-spinner"></div>
         </button>
       </div>
+
+      <!-- 文件选择弹窗 -->
+      <div v-if="showFileDialog" class="file-dialog-overlay" @click="closeFileDialog">
+        <div class="file-dialog" @click.stop>
+          <div class="file-dialog-header">
+            <h3>选择成果目录文件</h3>
+            <button class="close-btn" @click="closeFileDialog">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="file-dialog-body">
+            <div v-if="loadingFiles" class="loading-container">
+              <div class="loading-spinner"></div>
+              <p>正在加载文件列表...</p>
+            </div>
+            <div v-else-if="files.length === 0" class="empty-state">
+              <p>成果目录中暂无文件</p>
+            </div>
+            <div v-else class="file-list">
+              <div 
+                v-for="file in files" 
+                :key="file.id" 
+                class="file-item"
+                :class="{ 'selected': selectedFiles.includes(file.id) }"
+                @click="toggleFileSelection(file.id)"
+              >
+                <div class="file-info">
+                  <div class="file-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <div class="file-details">
+                    <div class="file-name">{{ file.name || file.title || '未命名文件' }}</div>
+                    <div class="file-meta">
+                      <span class="file-type">{{ file.type || '未知类型' }}</span>
+                      <span v-if="file.fileCount" class="file-count">{{ file.fileCount }}个文件</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="file-checkbox" :class="{ 'checked': selectedFiles.includes(file.id) }">
+                  <svg v-if="selectedFiles.includes(file.id)" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="file-dialog-footer">
+            <button class="btn secondary" @click="closeFileDialog">取消</button>
+            <button class="btn primary" @click="confirmFileSelection" :disabled="selectedFiles.length === 0">
+              确认选择 ({{ selectedFiles.length }})
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
 import '@/assets/styles/KnowledgeBaseAI.css'
+import { knowledgeAPI } from '@/api/knowledge'
 
 export default {
   name: 'KnowledgeBaseAI',
@@ -68,16 +167,25 @@ export default {
     return {
       inputMessage: '',
       isSending: false,
-      messages: []
+      messages: [],
+      showFileDialog: false,
+      showFileMenu: false,
+      files: [],
+      loadingFiles: false,
+      selectedFiles: []
     }
   },
   mounted() {
     // 组件挂载时加载本地存储的消息
     this.loadMessagesFromStorage()
+    // 点击外部关闭下拉菜单
+    document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
     // 组件销毁前保存消息
     this.saveMessagesToStorage()
+    // 移除事件监听
+    document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
     sendMessage() {
@@ -209,6 +317,124 @@ export default {
       }
       
       return projectMessagesMap[projectId] || []
+    },
+    
+    // 切换文件菜单显示
+    toggleFileMenu() {
+      this.showFileMenu = !this.showFileMenu
+    },
+    
+    // 从成果档案打开文件
+    async openFileDialogFromArchive() {
+      this.showFileMenu = false
+      this.showFileDialog = true
+      this.selectedFiles = []
+      if (this.files.length === 0 && this.projectId) {
+        await this.loadFiles()
+      }
+    },
+    
+    // 打开文件上传
+    openFileUpload() {
+      this.showFileMenu = false
+      this.$refs.fileInput.click()
+    },
+    
+    // 处理文件上传
+    handleFileUpload(event) {
+      const files = Array.from(event.target.files)
+      if (files.length > 0) {
+        console.log('选择了本地文件:', files)
+        // 将文件名添加到输入框
+        const fileNames = files.map(file => file.name).join('、')
+        const fileInfo = `我已上传以下文档：${fileNames}`
+        this.inputMessage = this.inputMessage.trim() 
+          ? `${this.inputMessage}\n\n${fileInfo}`
+          : fileInfo
+        
+        // 这里可以添加文件上传到后端的逻辑
+        // TODO: 实现文件上传功能
+      }
+      // 清空文件输入
+      this.$refs.fileInput.value = ''
+    },
+    
+    // 关闭文件选择弹窗
+    closeFileDialog() {
+      this.showFileDialog = false
+      this.selectedFiles = []
+    },
+    
+    // 加载成果目录文件列表
+    async loadFiles() {
+      if (!this.projectId) {
+        console.warn('项目ID不存在，无法加载文件列表')
+        return
+      }
+      
+      this.loadingFiles = true
+      try {
+        const response = await knowledgeAPI.getProjectAchievements(this.projectId, 0, 1000)
+        console.log('获取成果列表响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          if (Array.isArray(response.data)) {
+            this.files = response.data
+          } else if (response.data.content && Array.isArray(response.data.content)) {
+            this.files = response.data.content
+          } else {
+            this.files = []
+          }
+          console.log('加载成果文件列表成功，数量:', this.files.length)
+        } else {
+          this.files = []
+          console.warn('获取成果列表失败:', response)
+        }
+      } catch (error) {
+        console.error('加载成果文件列表失败:', error)
+        this.files = []
+      } finally {
+        this.loadingFiles = false
+      }
+    },
+    
+    // 切换文件选择状态
+    toggleFileSelection(fileId) {
+      const index = this.selectedFiles.indexOf(fileId)
+      if (index > -1) {
+        this.selectedFiles.splice(index, 1)
+      } else {
+        this.selectedFiles.push(fileId)
+      }
+    },
+    
+    // 确认选择文件
+    confirmFileSelection() {
+      if (this.selectedFiles.length === 0) return
+      
+      const selectedFileNames = this.files
+        .filter(file => this.selectedFiles.includes(file.id))
+        .map(file => file.name || file.title || '未命名文件')
+        .join('、')
+      
+      // 将选中的文件信息添加到输入框
+      const fileInfo = `请参考以下成果目录文件：${selectedFileNames}`
+      this.inputMessage = this.inputMessage.trim() 
+        ? `${this.inputMessage}\n\n${fileInfo}`
+        : fileInfo
+      
+      // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
+      console.log('选中的文件ID:', this.selectedFiles)
+      console.log('选中的文件:', this.files.filter(file => this.selectedFiles.includes(file.id)))
+      
+      this.closeFileDialog()
+    },
+    
+    // 处理点击外部关闭下拉菜单
+    handleClickOutside(event) {
+      if (this.showFileMenu && !event.target.closest('.file-menu-wrapper')) {
+        this.showFileMenu = false
+      }
     }
   }
 }
