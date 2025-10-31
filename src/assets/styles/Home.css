@@ -6,6 +6,10 @@
 }
 
 .home-container .top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-primary);
   height: 64px;
@@ -14,8 +18,6 @@
   justify-content: space-between;
   align-items: center;
   box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
   z-index: var(--z-sticky);
 }
 
@@ -48,6 +50,12 @@
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(-1px);
 }
 
 .home-container .header-right {
@@ -163,6 +171,7 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
+  padding-top: calc(var(--space-6) + 64px); /* 为固定页眉留出空间 */
 }
 
 /* 快捷操作 - 宽度限制与三列中的两列对齐 */

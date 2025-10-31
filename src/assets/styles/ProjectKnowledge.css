@@ -42,6 +42,12 @@
   font-size: 18px;
   font-weight: 600;
   color: #333;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(-1px);
 }
 
 .knowledge-base-container .header-right {

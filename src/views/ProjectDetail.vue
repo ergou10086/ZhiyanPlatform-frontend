@@ -18,42 +18,6 @@
         </button>
         <span class="page-title">项目详情</span>
       </div>
-      <div class="header-right">
-        <div class="user-area">
-          <div class="user-profile" @click="toggleUserMenu">
-            <div class="user-avatar">
-              <img v-if="userAvatar" :src="userAvatar" alt="用户头像" />
-              <div v-else class="avatar-placeholder">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-            </div>
-            <span class="username">{{ getCurrentUserName() }}</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'rotate': userMenuOpen }">
-              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-          <div class="user-menu" v-if="userMenuOpen">
-            <div class="menu-item" @click="goToProfile">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              个人信息
-            </div>
-            <div class="menu-item" @click="logout">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              退出登录
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- 主要内容区域 -->
@@ -800,8 +764,6 @@ export default {
   name: 'ProjectDetail',
   data() {
     return {
-      userMenuOpen: false,
-      userAvatar: null,
       taskTypeOpen: false,
       selectedTaskType: '',
       statusDropdownOpen: false,
@@ -898,11 +860,8 @@ export default {
     }
   },
   mounted() {
-    this.loadUserAvatar()
     this.loadProject() // loadProject方法会自动调用loadProjectTasks
     document.addEventListener('click', this.handleClickOutside)
-    // 监听用户信息更新事件
-    this.$root.$on('userInfoUpdated', this.loadUserAvatar)
     
     // 🎯 监听精确的头像更新事件
     this.$eventBus.on(
@@ -913,7 +872,6 @@ export default {
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
-    this.$root.$off('userInfoUpdated', this.loadUserAvatar)
     
     // 取消事件监听
     this.$eventBus.off(this.$EventTypes.USER_AVATAR_UPDATED, this.handleAvatarUpdated)
@@ -1915,35 +1873,10 @@ export default {
       }
     },
     handleClickOutside(event) {
-      if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
-        this.userMenuOpen = false
-      }
       if (!event.target.closest('.dropdown')) {
         this.taskTypeOpen = false
         this.statusDropdownOpen = false
       }
-    },
-    toggleUserMenu() {
-      this.userMenuOpen = !this.userMenuOpen
-    },
-    loadUserAvatar() {
-      // 优先从user_info获取头像
-      const savedUserInfo = localStorage.getItem('user_info')
-      if (savedUserInfo) {
-        try {
-          const userData = JSON.parse(savedUserInfo)
-          if (userData.avatar) {
-            this.userAvatar = userData.avatar
-            return
-          }
-        } catch (error) {
-          console.error('解析用户信息失败:', error)
-        }
-      }
-      
-      // 如果user_info中没有头像，则从userAvatar获取
-      const savedAvatar = localStorage.getItem('userAvatar')
-      if (savedAvatar) this.userAvatar = savedAvatar
     },
     getCurrentUserId() {
       // 从localStorage获取当前用户ID
@@ -2107,35 +2040,6 @@ export default {
       
       alert(`您已成功接取任务: ${task.title}`)
       console.log(`任务 ${task.title} 已被 ${currentUser} 接取`)
-    },
-    goToProfile() {
-      this.userMenuOpen = false
-      this.$router.push('/profile')
-    },
-    logout() {
-      this.userMenuOpen = false
-      
-      // 清除所有认证信息
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('remember_me_token')
-      localStorage.removeItem('user_info')
-      localStorage.removeItem('userAvatar')
-      localStorage.removeItem('globalUserInfo')
-      
-      // 清除所有以userData_开头的用户数据
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('userData_')) {
-          localStorage.removeItem(key)
-        }
-      })
-      
-      this.showSuccessToast('退出登录成功！')
-      
-      // 延迟跳转到登录页面，让用户看到提示
-      setTimeout(() => {
-      this.$router.push('/login')
-      }, 1000)
     },
     statusClass(status) {
       // 处理项目状态类名
