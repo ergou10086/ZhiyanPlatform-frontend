@@ -750,10 +750,38 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
+    </div>
+
+    <!-- 图片裁切Modal -->
+    <div v-if="showCropModal" class="crop-modal-overlay">
+      <div class="crop-modal-content" @click.stop>
+        <div class="crop-modal-header">
+          <h3>裁切项目图片</h3>
+          <p class="crop-hint">请拖拽选择裁切区域，确保比例与项目广场显示一致</p>
+        </div>
+        <div class="crop-modal-body">
+          <div class="crop-container">
+            <canvas ref="cropCanvas" class="crop-canvas"></canvas>
+            <div class="crop-overlay" ref="cropOverlay">
+              <div class="crop-selection" ref="cropSelection">
+                <!-- 调整大小的控制点 -->
+                <div class="resize-handle resize-handle-nw" data-handle="nw"></div>
+                <div class="resize-handle resize-handle-ne" data-handle="ne"></div>
+                <div class="resize-handle resize-handle-sw" data-handle="sw"></div>
+                <div class="resize-handle resize-handle-se" data-handle="se"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="crop-modal-footer">
+          <button class="btn-cancel" @click="closeCropModal">重新选择图片</button>
+          <button class="btn-confirm" @click="applyCrop">完成裁切</button>
+        </div>
       </div>
     </div>
   </div>
@@ -817,7 +845,17 @@ export default {
       isSearching: false, // 搜索中状态
       isInviting: false, // 邀请中状态
       hasSearched: false, // 是否已经搜索过
-      searchDebounceTimer: null // 搜索防抖定时器
+      searchDebounceTimer: null, // 搜索防抖定时器
+      // 图片裁切相关
+      showCropModal: false, // 是否显示裁切模态框
+      originalImage: null, // 原始图片对象
+      originalImageData: null, // 原始图片数据（DataURL）
+      cropData: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      }
     }
   },
   computed: {
@@ -2126,52 +2164,70 @@ export default {
       const file = event.target.files[0]
       if (!file) return
       
+      // 验证文件类型
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+      if (!allowedTypes.includes(file.type)) {
+        alert('只支持以下图片格式: jpg, png, gif, webp, bmp')
+        this.$refs.projectImageUpload.value = ''
+        return
+      }
+      
+      // 验证文件大小（5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        alert('文件大小不能超过5MB')
+        this.$refs.projectImageUpload.value = ''
+        return
+      }
+      
+      // 创建预览URL并立即进入裁切模式
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.originalImageData = e.target.result
+        // 立即显示裁切模态，用户必须完成裁切
+        this.showCropModal = true
+        this.$nextTick(() => {
+          this.initCropCanvas()
+        })
+      }
+      reader.readAsDataURL(file)
+    },
+    async uploadCroppedImage(imageDataUrl) {
       try {
-        // 验证文件类型
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
-        if (!allowedTypes.includes(file.type)) {
-          alert('只支持以下图片格式: jpg, png, gif, webp, bmp')
-          return
-        }
-        
-        // 验证文件大小（5MB）
-        if (file.size > 5 * 1024 * 1024) {
-          alert('文件大小不能超过5MB')
-          return
-        }
+        // 将DataURL转换为Blob
+        const blob = await this.dataURLToBlob(imageDataUrl)
         
         // 导入项目API
         const { projectAPI } = await import('@/api/project')
         
-        console.log('[handleProjectImageUpload] 开始上传项目图片:', file.name)
+        console.log('[uploadCroppedImage] 开始上传裁切后的项目图片')
         
         // 上传图片
-        const response = await projectAPI.uploadProjectImage(file, this.project.id)
+        const response = await projectAPI.uploadProjectImage(blob, this.project.id)
         
-        console.log('[handleProjectImageUpload] API返回结果:', response)
-        console.log('[handleProjectImageUpload] 返回结果类型:', typeof response)
-        console.log('[handleProjectImageUpload] 返回结果完整信息:', JSON.stringify(response, null, 2))
+        console.log('[uploadCroppedImage] API返回结果:', response)
+        console.log('[uploadCroppedImage] 返回结果类型:', typeof response)
+        console.log('[uploadCroppedImage] 返回结果完整信息:', JSON.stringify(response, null, 2))
         
         // ✅ 调试：打印响应的所有字段
         if (response) {
-          console.log('[handleProjectImageUpload] response.code:', response.code)
-          console.log('[handleProjectImageUpload] response.msg:', response.msg)
-          console.log('[handleProjectImageUpload] response.data:', response.data)
+          console.log('[uploadCroppedImage] response.code:', response.code)
+          console.log('[uploadCroppedImage] response.msg:', response.msg)
+          console.log('[uploadCroppedImage] response.data:', response.data)
           
           if (response.data) {
-            console.log('[handleProjectImageUpload] response.data.imageUrl:', response.data.imageUrl)
-            console.log('[handleProjectImageUpload] response.data所有字段:', Object.keys(response.data))
+            console.log('[uploadCroppedImage] response.data.imageUrl:', response.data.imageUrl)
+            console.log('[uploadCroppedImage] response.data所有字段:', Object.keys(response.data))
           }
         }
         
         if (response && response.code === 200 && response.data) {
           // 更新项目图片URL
           const imageUrl = response.data.imageUrl
-          console.log('[handleProjectImageUpload] 提取到的imageUrl:', imageUrl)
+          console.log('[uploadCroppedImage] 提取到的imageUrl:', imageUrl)
           
           if (!imageUrl) {
-            console.warn('[handleProjectImageUpload] ⚠️ 警告：imageUrl 为空或不存在！')
-            console.warn('[handleProjectImageUpload] response.data 的所有字段:', response.data)
+            console.warn('[uploadCroppedImage] ⚠️ 警告：imageUrl 为空或不存在！')
+            console.warn('[uploadCroppedImage] response.data 的所有字段:', response.data)
             alert('上传成功但未获取到图片URL')
             return
           }
@@ -2180,7 +2236,7 @@ export default {
           this.$set(this.project, 'imageUrl', imageUrl)
           this.$set(this.project, 'image', imageUrl)
           
-          console.log('[handleProjectImageUpload] 项目对象已更新:', {
+          console.log('[uploadCroppedImage] 项目对象已更新:', {
             imageUrl: this.project.imageUrl,
             image: this.project.image
           })
@@ -2191,26 +2247,26 @@ export default {
           // ✅ 强制Vue重新渲染（以防万一）
           this.$forceUpdate()
           
-          console.log('[handleProjectImageUpload] ✅ 强制更新Vue视图')
-          console.log('[handleProjectImageUpload] ✅ 图片URL已设置:', imageUrl)
+          console.log('[uploadCroppedImage] ✅ 强制更新Vue视图')
+          console.log('[uploadCroppedImage] ✅ 图片URL已设置:', imageUrl)
           
           this.showSuccessToast('项目图片上传成功！')
-          console.log('[handleProjectImageUpload] 项目图片上传成功，URL:', imageUrl)
+          console.log('[uploadCroppedImage] 项目图片上传成功，URL:', imageUrl)
         } else {
-          console.error('[handleProjectImageUpload] ❌ 响应不符合预期')
-          console.error('[handleProjectImageUpload] response:', response)
+          console.error('[uploadCroppedImage] ❌ 响应不符合预期')
+          console.error('[uploadCroppedImage] response:', response)
           alert('上传失败: ' + (response?.msg || '未知错误'))
         }
       } catch (error) {
-        console.error('[handleProjectImageUpload] 上传项目图片失败:', error)
+        console.error('[uploadCroppedImage] 上传项目图片失败:', error)
         
         // ✅ 增强的错误处理
         if (error && error.status === 403) {
-          console.error('[handleProjectImageUpload] ❌ 403 Forbidden - 认证失败')
-          console.error('[handleProjectImageUpload] 可能原因: JWT token 过期或无效')
+          console.error('[uploadCroppedImage] ❌ 403 Forbidden - 认证失败')
+          console.error('[uploadCroppedImage] 可能原因: JWT token 过期或无效')
           const token = localStorage.getItem('access_token')
           if (!token) {
-            console.error('[handleProjectImageUpload] 🔴 Token 为空')
+            console.error('[uploadCroppedImage] 🔴 Token 为空')
             alert('登录已过期，请重新登录')
           } else {
             alert('认证失败，请重新登录')
@@ -2218,12 +2274,255 @@ export default {
         } else {
           alert('上传项目图片失败，请稍后重试')
         }
-      } finally {
-        // 清空输入，允许重复选择同一文件
-        if (this.$refs.projectImageUpload) {
-          this.$refs.projectImageUpload.value = ''
-        }
       }
+    },
+    closeCropModal() {
+      // 如果用户取消裁切，清空文件输入
+      this.$refs.projectImageUpload.value = ''
+      this.showCropModal = false
+      this.originalImage = null
+      this.originalImageData = null
+    },
+    initCropCanvas() {
+      const canvas = this.$refs.cropCanvas
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        // 设置画布尺寸，保持图片比例
+        const maxWidth = 600
+        const maxHeight = 400
+        let { width, height } = img
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width *= ratio
+          height *= ratio
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        canvas.style.width = width + 'px'
+        canvas.style.height = height + 'px'
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // 保存原始图片数据
+        this.originalImage = img
+        
+        // 初始化裁切区域（项目广场比例：约16:9）
+        const cropRatio = 16 / 9
+        const cropWidth = Math.min(width * 0.8, height * cropRatio * 0.8)
+        const cropHeight = cropWidth / cropRatio
+        
+        this.cropData = {
+          x: (width - cropWidth) / 2,
+          y: (height - cropHeight) / 2,
+          width: cropWidth,
+          height: cropHeight
+        }
+        
+        this.updateCropSelection()
+        this.setupCropInteraction()
+      }
+      
+      img.src = this.originalImageData
+    },
+    updateCropSelection() {
+      const selection = this.$refs.cropSelection
+      if (selection) {
+        selection.style.left = this.cropData.x + 'px'
+        selection.style.top = this.cropData.y + 'px'
+        selection.style.width = this.cropData.width + 'px'
+        selection.style.height = this.cropData.height + 'px'
+      }
+    },
+    setupCropInteraction() {
+      const selection = this.$refs.cropSelection
+      const overlay = this.$refs.cropOverlay
+      const canvas = this.$refs.cropCanvas
+      
+      if (!selection || !overlay || !canvas) return
+      
+      let isDragging = false
+      let isResizing = false
+      let resizeHandle = null
+      let startX = 0
+      let startY = 0
+      let startCropX = 0
+      let startCropY = 0
+      let startCropWidth = 0
+      let startCropHeight = 0
+      
+      const cropRatio = 16 / 9
+      
+      const startDrag = (e) => {
+        if (e.target.classList.contains('resize-handle')) {
+          isResizing = true
+          resizeHandle = e.target.dataset.handle
+        } else {
+          isDragging = true
+        }
+        
+        const rect = canvas.getBoundingClientRect()
+        startX = e.clientX - rect.left
+        startY = e.clientY - rect.top
+        startCropX = this.cropData.x
+        startCropY = this.cropData.y
+        startCropWidth = this.cropData.width
+        startCropHeight = this.cropData.height
+      }
+      
+      const drag = (e) => {
+        if (!isDragging && !isResizing) return
+        
+        const rect = canvas.getBoundingClientRect()
+        const currentX = e.clientX - rect.left
+        const currentY = e.clientY - rect.top
+        
+        const deltaX = currentX - startX
+        const deltaY = currentY - startY
+        
+        if (isDragging) {
+          // 移动裁切框
+          const newX = Math.max(0, Math.min(canvas.width - this.cropData.width, startCropX + deltaX))
+          const newY = Math.max(0, Math.min(canvas.height - this.cropData.height, startCropY + deltaY))
+          
+          this.cropData.x = newX
+          this.cropData.y = newY
+        } else if (isResizing) {
+          // 调整裁切框大小
+          let newWidth = startCropWidth
+          let newHeight = startCropHeight
+          let newX = startCropX
+          let newY = startCropY
+          
+          if (resizeHandle === 'se') {
+            // 右下角调整
+            newWidth = Math.max(50, Math.min(canvas.width - startCropX, startCropWidth + deltaX))
+            newHeight = newWidth / cropRatio
+            if (startCropY + newHeight > canvas.height) {
+              newHeight = canvas.height - startCropY
+              newWidth = newHeight * cropRatio
+            }
+          } else if (resizeHandle === 'sw') {
+            // 左下角调整
+            newWidth = Math.max(50, Math.min(startCropX + startCropWidth, startCropWidth - deltaX))
+            newHeight = newWidth / cropRatio
+            newX = startCropX + startCropWidth - newWidth
+            if (newX < 0) {
+              newX = 0
+              newWidth = startCropX + startCropWidth
+              newHeight = newWidth / cropRatio
+            }
+          } else if (resizeHandle === 'ne') {
+            // 右上角调整
+            newWidth = Math.max(50, Math.min(canvas.width - startCropX, startCropWidth + deltaX))
+            newHeight = newWidth / cropRatio
+            newY = startCropY + startCropHeight - newHeight
+            if (newY < 0) {
+              newY = 0
+              newHeight = startCropY + startCropHeight
+              newWidth = newHeight * cropRatio
+            }
+          } else if (resizeHandle === 'nw') {
+            // 左上角调整
+            newWidth = Math.max(50, Math.min(startCropX + startCropWidth, startCropWidth - deltaX))
+            newHeight = newWidth / cropRatio
+            newX = startCropX + startCropWidth - newWidth
+            newY = startCropY + startCropHeight - newHeight
+            if (newX < 0) {
+              newX = 0
+              newWidth = startCropX + startCropWidth
+              newHeight = newWidth / cropRatio
+              newY = startCropY + startCropHeight - newHeight
+            }
+            if (newY < 0) {
+              newY = 0
+              newHeight = startCropY + startCropHeight
+              newWidth = newHeight * cropRatio
+              newX = startCropX + startCropWidth - newWidth
+            }
+          }
+          
+          this.cropData.x = newX
+          this.cropData.y = newY
+          this.cropData.width = newWidth
+          this.cropData.height = newHeight
+        }
+        
+        this.updateCropSelection()
+      }
+      
+      const endDrag = () => {
+        isDragging = false
+        isResizing = false
+        resizeHandle = null
+      }
+      
+      selection.addEventListener('mousedown', startDrag)
+      document.addEventListener('mousemove', drag)
+      document.addEventListener('mouseup', endDrag)
+      
+      // 清理事件监听器
+      this.$once('hook:beforeDestroy', () => {
+        selection.removeEventListener('mousedown', startDrag)
+        document.removeEventListener('mousemove', drag)
+        document.removeEventListener('mouseup', endDrag)
+      })
+    },
+    applyCrop() {
+      if (!this.originalImage) return
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      // 设置裁切后的画布尺寸（项目广场比例）
+      const targetRatio = 16 / 9
+      const targetWidth = 400
+      const targetHeight = targetWidth / targetRatio
+      
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+      
+      // 计算裁切区域在原图中的位置和尺寸
+      const sourceX = (this.cropData.x / this.$refs.cropCanvas.width) * this.originalImage.width
+      const sourceY = (this.cropData.y / this.$refs.cropCanvas.height) * this.originalImage.height
+      const sourceWidth = (this.cropData.width / this.$refs.cropCanvas.width) * this.originalImage.width
+      const sourceHeight = (this.cropData.height / this.$refs.cropCanvas.height) * this.originalImage.height
+      
+      // 绘制裁切后的图片
+      ctx.drawImage(
+        this.originalImage,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, targetWidth, targetHeight
+      )
+      
+      // 转换为DataURL并上传
+      const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9)
+      this.closeCropModal()
+      
+      // 上传裁切后的图片
+      this.uploadCroppedImage(imageDataUrl)
+    },
+    dataURLToBlob(dataURL) {
+      return new Promise((resolve, reject) => {
+        try {
+          const arr = dataURL.split(',')
+          const mime = arr[0].match(/:(.*?);/)[1]
+          const bstr = atob(arr[1])
+          let n = bstr.length
+          const u8arr = new Uint8Array(n)
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n)
+          }
+          const blob = new Blob([u8arr], { type: mime })
+          resolve(blob)
+        } catch (error) {
+          reject(error)
+        }
+      })
     },
     showSuccessToast(message) {
       this.toastMessage = message
