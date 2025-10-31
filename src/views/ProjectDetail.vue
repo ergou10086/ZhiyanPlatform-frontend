@@ -32,10 +32,31 @@
       <div v-if="project">
       <!-- 项目信息卡片 -->
       <div class="project-card">
-        <div class="project-header">
+        <!-- 顶部：标题和操作按钮 -->
+        <div class="project-header-top">
+          <h1 class="project-title">{{ project.title }}</h1>
+          <div class="project-actions" v-if="isProjectManager">
+            <button class="btn secondary" @click="editProject">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              编辑项目
+            </button>
+            <button class="btn btn-danger" @click="deleteProject">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              删除项目
+            </button>
+          </div>
+        </div>
+        
+        <!-- 主体内容：项目信息和图片并排 -->
+        <div class="project-body">
           <div class="project-info">
-            <h1 class="project-title">{{ project.title }}</h1>
-            <div class="project-meta">
+            <!-- 第一行：项目简介和项目周期 -->
+            <div class="project-meta-top">
               <div class="meta-item">
                 <span class="meta-label">项目简介：</span>
                 <span class="meta-value">{{ project.description }}</span>
@@ -44,6 +65,10 @@
                 <span class="meta-label">项目周期：</span>
                 <span class="meta-value">{{ project.period }}</span>
               </div>
+            </div>
+            
+            <!-- 第二行：当前状态和负责人（往下放，填充空白） -->
+            <div class="project-meta-bottom">
               <div class="meta-item">
                 <span class="meta-label">当前状态：</span>
                 <span class="status-badge" :class="statusClass(project.status)">{{ getStatusDisplay(project.status) }}</span>
@@ -61,60 +86,40 @@
             </div>
           </div>
           
-          <!-- 右侧区域：图片和按钮 -->
-          <div class="project-right-section">
-            <!-- 项目图片区域 - 放在右下角 -->
-            <div class="project-image-section">
-              <div class="project-image-container">
-                <img 
-                  v-if="project.imageUrl || project.image" 
-                  :src="project.imageUrl || project.image" 
-                  alt="项目图片" 
-                  class="project-image"
-                  @load="onImageLoad"
-                  @error="onImageError"
-                />
-                <div v-else class="project-image-placeholder">
-                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19Z" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M3 18L8 13L14 19M14 12L21 3" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <!-- 项目管理员可以上传图片 -->
-                <div v-if="isProjectManager" class="project-image-overlay" @click="triggerImageUpload">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 5V19M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <span>上传图片</span>
-                </div>
-              </div>
-              <!-- 隐藏的图片上传输入 -->
-              <input 
-                ref="projectImageUpload" 
-                type="file" 
-                accept="image/*" 
-                @change="handleProjectImageUpload" 
-                style="display: none"
+          <!-- 项目图片区域 -->
+          <div class="project-image-section">
+            <div class="project-image-container">
+              <img 
+                v-if="project.imageUrl || project.image" 
+                :src="project.imageUrl || project.image" 
+                alt="项目图片" 
+                class="project-image"
+                @load="onImageLoad"
+                @error="onImageError"
               />
-            </div>
-            
-            <!-- 操作按钮 - 往下移 -->
-            <div class="project-actions" v-if="isProjectManager">
-              <button class="btn secondary" @click="editProject">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <div v-else class="project-image-placeholder">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 19V5C21 3.89543 20.1046 3 19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19Z" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M3 18L8 13L14 19M14 12L21 3" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                编辑项目
-              </button>
-              <button class="btn btn-danger" @click="deleteProject">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </div>
+              <!-- 项目管理员可以上传图片 -->
+              <div v-if="isProjectManager" class="project-image-overlay" @click="triggerImageUpload">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                删除项目
-              </button>
+                <span>上传图片</span>
+              </div>
             </div>
+            <!-- 隐藏的图片上传输入 -->
+            <input 
+              ref="projectImageUpload" 
+              type="file" 
+              accept="image/*" 
+              @change="handleProjectImageUpload" 
+              style="display: none"
+            />
           </div>
         </div>
       </div>
