@@ -299,6 +299,7 @@
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
+import { projectAPI } from '@/api/project'
 import '@/assets/styles/AIAssistant.css'
 export default {
   name: 'AIAssistant',
@@ -701,60 +702,121 @@ export default {
         this.tasks.splice(0, this.tasks.length)
       }
     },
-    loadUserProjects() {
-      console.log('开始加载用户项目...')
+    async loadUserProjects() {
+      console.log('开始加载用户参加的项目...')
 
-      // 从localStorage加载用户创建的项目
-      const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-      console.log('从localStorage加载的项目:', createdProjects)
-
-      // 将用户创建的项目添加到可用项目列表中
-      const userProjects = createdProjects.map(project => ({
-        id: project.id, // 使用原始的雪花ID
-        title: project.title,
-        description: project.description || project.title,
-        lead: project.lead || '您',
-        progress: Math.floor(Math.random() * 100) // 模拟进度
-      }))
-
-      console.log('处理后的用户项目:', userProjects)
-
-      // 为每个用户项目加载任务数据
-      userProjects.forEach(project => {
-        const projectId = project.id
-
-        console.log(`处理项目 ${project.title} (ID: ${projectId})`)
-
-        // 从localStorage加载该项目的任务
-        const projectTasks = this.loadTasksFromProject(projectId)
-
-        if (projectTasks.length > 0) {
-          // 如果有任务，使用这些任务
-          this.projectTasks[projectId] = projectTasks.map((task, index) => ({
-            id: task.id || `${projectId}_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 使用真实ID或生成唯一ID
-            title: task.title,
-            description: task.description || '任务描述',
-            assignee: task.assignee || '项目负责人',
-            status: task.status || 'in-progress',
-            checked: false,
-            published: task.published !== false // 默认为已发布，除非明确标记为未发布
-          }))
-          console.log(`项目 ${project.title} 加载了 ${projectTasks.length} 个任务`)
-        } else {
-          // 如果没有任务，显示空列表
-          this.projectTasks[projectId] = []
-          console.log(`项目 ${project.title} 没有任务`)
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
+      const userInfo = localStorage.getItem('user_info')
+      const isAuthenticated = !!(token && userInfo)
+      
+      if (!isAuthenticated) {
+        console.log('用户未登录，使用默认项目数据')
+        // 如果用户未登录，保持默认项目
+        return
+      }
+      
+      try {
+        // 调用API获取我参与的项目（和首页一样）
+        const response = await projectAPI.getMyProjects(0, 100) // 获取用户参加的所有项目
+        
+        console.log('我参加的项目API响应:', response)
+        
+        // 处理API返回的数据，兼容多种数据结构
+        let projects = []
+        if (Array.isArray(response)) {
+          // 直接是数组
+          projects = response
+        } else if (response && response.data) {
+          // 有data字段
+          if (Array.isArray(response.data)) {
+            projects = response.data
+          } else if (Array.isArray(response.data.content)) {
+            // Spring分页数据
+            projects = response.data.content
+          } else if (Array.isArray(response.data.list)) {
+            // 自定义list字段
+            projects = response.data.list
+          } else if (Array.isArray(response.data.records)) {
+            // 自定义records字段
+            projects = response.data.records
+          }
         }
-      })
-
-      // 合并默认项目和用户项目（避免重复添加）
-      // 先保留默认项目
-      const defaultProjects = this.availableProjects.filter(p => p.id <= 4)
-      // 然后合并用户项目，避免重复
-      this.availableProjects = [...defaultProjects, ...userProjects]
-
-      console.log('最终可用项目列表:', this.availableProjects)
-      console.log('最终项目任务数据:', this.projectTasks)
+        
+        if (projects.length > 0) {
+          // 转换项目数据格式
+          const userProjects = projects.map(project => {
+            const projectId = project.id || project.projectId || project.project_id
+            
+            // 计算进度（如果有progress字段就用，否则根据status计算）
+            let progress = project.progress || 0
+            if (!progress && project.status) {
+              if (project.status === 'COMPLETED' || project.status === 'Completed' || project.status === '已完成') {
+                progress = 100
+              } else if (project.status === 'ACTIVE' || project.status === 'Paused' || project.status === '进行中') {
+                progress = 50 // 默认进行中状态显示50%
+              } else {
+                progress = 0
+              }
+            }
+            
+            return {
+              id: projectId,
+              title: project.title || project.name || project.projectName || '未命名项目',
+              description: project.description || project.desc || project.title || '',
+              lead: project.lead || project.creatorName || project.manager || '项目负责人',
+              progress: progress
+            }
+          })
+          
+          console.log('成功加载用户参加的项目:', userProjects)
+          
+          // 为每个用户项目加载任务数据
+          userProjects.forEach(project => {
+            const projectId = project.id
+            console.log(`处理项目 ${project.title} (ID: ${projectId})`)
+            
+            // 从localStorage或API加载该项目的任务
+            const projectTasks = this.loadTasksFromProject(projectId)
+            
+            if (projectTasks.length > 0) {
+              this.projectTasks[projectId] = projectTasks.map((task, index) => ({
+                id: task.id || `${projectId}_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                title: task.title,
+                description: task.description || '任务描述',
+                assignee: task.assignee || '项目负责人',
+                status: task.status || 'in-progress',
+                checked: false,
+                published: task.published !== false
+              }))
+              console.log(`项目 ${project.title} 加载了 ${projectTasks.length} 个任务`)
+            } else {
+              this.projectTasks[projectId] = []
+              console.log(`项目 ${project.title} 没有任务`)
+            }
+          })
+          
+          // 更新可用项目列表（只使用用户参加的项目）
+          this.availableProjects = userProjects
+          
+          // 如果当前项目不在列表中，设置为第一个项目
+          if (this.availableProjects.length > 0) {
+            const currentProjectExists = this.availableProjects.find(p => String(p.id) === String(this.currentProject.id))
+            if (!currentProjectExists) {
+              this.currentProject = { ...this.availableProjects[0] }
+              // 加载新项目的任务
+              this.loadProjectTasks(this.currentProject.id)
+            }
+          }
+          
+          console.log('最终可用项目列表:', this.availableProjects)
+        } else {
+          console.log('未获取到项目数据，保持默认项目')
+        }
+      } catch (error) {
+        console.error('加载用户参加的项目失败:', error)
+        // 加载失败时保持默认项目
+      }
     },
 
     // 从项目加载任务数据

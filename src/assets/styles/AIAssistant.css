@@ -935,6 +935,8 @@
 /* 底部操作栏 */
 .ai-assistant-container .bottom-actions {
   display: flex;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
   gap: 16px;
   padding: 20px;
@@ -945,9 +947,11 @@
 
 .ai-assistant-container .action-btn {
   display: flex;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 12px 24px;
   border: 1px solid #e9ecef;
   border-radius: 8px;
   background: white;
@@ -956,6 +960,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 .ai-assistant-container .action-btn:hover {
