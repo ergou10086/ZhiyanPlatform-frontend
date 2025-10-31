@@ -154,8 +154,7 @@ export default {
     }
   },
   mounted() {
-    // 组件加载时获取任务
-    this.loadUpcomingTasks()
+    // 任务数据通过计算属性 urgentTasks 自动获取，无需手动加载
   },
   methods: {
     previousMonth() {

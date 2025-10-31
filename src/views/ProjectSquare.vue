@@ -216,11 +216,8 @@ export default {
       localStorage.removeItem('projectSquare_page')
     }
     
-    this.loadUserAvatar()
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
-    // 监听用户信息更新事件
-    this.$root.$on('userInfoUpdated', this.loadUserAvatar)
   },
   activated() {
     // 当页面被激活时（从其他页面返回），重新加载项目数据
