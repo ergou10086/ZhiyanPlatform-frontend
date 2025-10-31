@@ -1572,9 +1572,11 @@
 .user-list {
   max-height: 400px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding-top: 4px; /* 为成员项上移留出空间 */
   /* 使用 transform 代替其他可能导致重排的属性 */
   will-change: transform;
 }
@@ -1591,12 +1593,15 @@
   background: white;
   /* 固定高度，防止内容变化时抖动 */
   min-height: 64px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .user-item:hover {
   background: #f8f9fa;
   border-color: #007bff;
-  transform: translateX(4px);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
 }
 
 .user-item.user-selected {

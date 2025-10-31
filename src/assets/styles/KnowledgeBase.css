@@ -304,6 +304,7 @@
   min-height: 0;
   overflow-y: auto;
   align-content: start;
+  padding-top: 10px; /* 为卡片上移留出空间 */
   padding-bottom: 20px;
 }
 
