@@ -1027,6 +1027,19 @@
               </svg>
               添加文件到此成果
             </button>
+            <div class="status-selector">
+              <label>成果状态：</label>
+              <select 
+                v-model="viewingFile.status" 
+                @change="handleStatusChange"
+                class="status-select"
+              >
+                <option value="draft">草稿</option>
+                <option value="under_review">审核中</option>
+                <option value="published">已发布</option>
+                <option value="obsolete">已归档</option>
+              </select>
+            </div>
           </div>
           <div class="footer-right">
           <button class="btn secondary" @click="closeViewDialog">关闭</button>
@@ -1162,7 +1175,7 @@ import {
 } from '@/utils/catalogHelpers'
 import { saveToLocalStorage, loadFromLocalStorage, updateFileContentInStorage } from '@/utils/catalogStorage'
 import { downloadFile, downloadSingleFile, downloadAllFiles, loadTextFile, loadImageFile, loadPdfFile, getFileInfo, testArrayBufferConversion } from '@/utils/catalogFileHandler'
-import { knowledgeAPI } from '@/api/knowledge'
+import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 
 export default {
@@ -2193,6 +2206,87 @@ export default {
     // 格式化文件大小（包装工具函数）
     formatFileSize(bytes) {
       return formatFileSize(bytes)
+    },
+    
+    // 处理成果状态变更
+    async handleStatusChange() {
+      if (!this.viewingFile || !this.viewingFile.id) {
+        return
+      }
+      
+      try {
+        console.log('更新成果状态:', {
+          achievementId: this.viewingFile.id,
+          newStatus: this.viewingFile.status
+        })
+        
+        // 调用后端API更新状态
+        const response = await knowledgeAPI.updateAchievementStatus(
+          this.viewingFile.id,
+          this.viewingFile.status
+        )
+        
+        console.log('状态更新响应:', response)
+        
+        if (response && response.code === 200) {
+          // 更新本地列表中的状态
+          const uploadedIndex = this.uploadedFiles.findIndex(item => item.id === this.viewingFile.id)
+          if (uploadedIndex !== -1) {
+            this.uploadedFiles[uploadedIndex].status = this.viewingFile.status
+          }
+          
+          // 如果处于搜索状态，也更新搜索结果
+          if (this.isSearching) {
+            const searchIndex = this.searchResults.findIndex(item => item.id === this.viewingFile.id)
+            if (searchIndex !== -1) {
+              this.searchResults[searchIndex].status = this.viewingFile.status
+            }
+          }
+          
+          alert('成果状态已更新为：' + STATUS_DISPLAY[this.viewingFile.status])
+        } else {
+          throw new Error(response.msg || '状态更新失败')
+        }
+      } catch (error) {
+        console.error('更新成果状态失败:', error)
+        alert('状态更新失败: ' + (error.message || '请重试'))
+        
+        // 恢复原状态（从列表中获取）
+        const original = this.uploadedFiles.find(item => item.id === this.viewingFile.id)
+        if (original) {
+          this.viewingFile.status = original.status
+        }
+      }
+    },
+    
+    // 获取成果详情（完整信息）
+    async fetchAchievementDetail(achievementId) {
+      try {
+        console.log('获取成果详情:', achievementId)
+        
+        const response = await knowledgeAPI.getAchievementDetail(achievementId)
+        console.log('成果详情响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          return convertFromDTO(response.data)
+        } else {
+          throw new Error(response.msg || '获取详情失败')
+        }
+      } catch (error) {
+        console.error('获取成果详情失败:', error)
+        alert('获取详情失败: ' + (error.message || '请重试'))
+        return null
+      }
+    },
+    
+    // 获取状态显示文本
+    getStatusDisplay(status) {
+      return STATUS_DISPLAY[status] || status
+    },
+    
+    // 获取状态样式类
+    getStatusClass(status) {
+      return STATUS_CLASS[status] || ''
     }
   }
 }
@@ -2224,5 +2318,78 @@ export default {
   font-weight: 600;
   color: #111827;
   word-break: break-all;
+}
+
+/* 状态选择器样式 */
+.status-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 16px;
+}
+
+.status-selector label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.status-select {
+  height: 36px;
+  padding: 0 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.status-select:hover {
+  border-color: #9ca3af;
+}
+
+.status-select:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* 状态徽章样式（用于列表显示） */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.status-badge.status-review {
+  background: #dbeafe;
+  color: #1e3a8a;
+  border: 1px solid #3b82f6;
+}
+
+.status-badge.status-published {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.status-badge.status-obsolete {
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #9ca3af;
 }
 </style>

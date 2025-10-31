@@ -92,6 +92,30 @@ export const TYPE_DISPLAY = {
   'custom': '自定义成果'
 }
 
+// 成果状态枚举
+export const ACHIEVEMENT_STATUS = {
+  DRAFT: 'draft',           // 草稿
+  UNDER_REVIEW: 'under_review',  // 审核中
+  PUBLISHED: 'published',   // 已发布
+  OBSOLETE: 'obsolete'      // 已过时/归档
+}
+
+// 成果状态显示
+export const STATUS_DISPLAY = {
+  'draft': '草稿',
+  'under_review': '审核中',
+  'published': '已发布',
+  'obsolete': '已归档'
+}
+
+// 成果状态样式类
+export const STATUS_CLASS = {
+  'draft': 'status-draft',
+  'under_review': 'status-review',
+  'published': 'status-published',
+  'obsolete': 'status-obsolete'
+}
+
 // 知识库成果管理 API
 export const knowledgeAPI = {
   /**
