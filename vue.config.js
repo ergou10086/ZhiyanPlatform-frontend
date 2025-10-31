@@ -38,6 +38,44 @@ module.exports = {
           '^/zhiyan': ''
         }
       },
+      // ✅ 知识库成果文件API - 转发到8093端口（知识库服务）
+      // URL示例：/zhiyan/achievement/file/* → http://localhost:8093/zhiyan/achievement/file/*
+      // 包含：上传文件、下载文件、删除文件等
+      '/zhiyan/achievement/file': {
+        target: 'http://localhost:8093',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+      },
+      // ✅ 知识库成果详情API - 转发到8093端口（知识库服务）
+      // URL示例：/zhiyan/achievement/detail/* → http://localhost:8093/zhiyan/achievement/detail/*
+      '/zhiyan/achievement/detail': {
+        target: 'http://localhost:8093',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+      },
+      // ✅ 知识库成果搜索API - 转发到8093端口（知识库服务）
+      // URL示例：/zhiyan/achievement/search/* → http://localhost:8093/zhiyan/achievement/search/*
+      '/zhiyan/achievement/search': {
+        target: 'http://localhost:8093',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+      },
+      // ✅ 知识库相关API - 转发到8093端口（知识库服务）
+      // URL示例：/zhiyan/achievement/* → http://localhost:8093/zhiyan/achievement/*
+      // 注意：这个规则必须放在其他 /zhiyan/achievement/* 规则之后，作为默认规则
+      '/zhiyan/achievement': {
+        target: 'http://localhost:8093',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+      },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/api/auth/login → http://localhost:8091/api/auth/login
       '/zhiyan/api/auth': {

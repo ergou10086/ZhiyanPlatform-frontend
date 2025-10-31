@@ -396,7 +396,7 @@
             <button 
               class="btn primary" 
               @click="confirmUpload" 
-              :disabled="!achievementForm.name.trim() || achievementForm.files.length === 0"
+              :disabled="(!isAddingToExisting && !achievementForm.name.trim()) || achievementForm.files.length === 0"
             >
               确认上传
             </button>
@@ -1145,7 +1145,7 @@
 </template>
 
 <script>
-import { EventBus, EVENTS } from '@/utils/eventBus'
+import { eventBus, EventTypes } from '@/utils/eventBus'
 import { 
   formatFileSize, 
   getFileIcon, 
@@ -1162,6 +1162,8 @@ import {
 } from '@/utils/catalogHelpers'
 import { saveToLocalStorage, loadFromLocalStorage, updateFileContentInStorage } from '@/utils/catalogStorage'
 import { downloadFile, downloadSingleFile, downloadAllFiles, loadTextFile, loadImageFile, loadPdfFile, getFileInfo, testArrayBufferConversion } from '@/utils/catalogFileHandler'
+import { knowledgeAPI } from '@/api/knowledge'
+import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1191,6 +1193,9 @@ export default {
       totalItems: 0,
       // 搜索相关
       searchText: '',
+      searchResults: [], // 搜索结果
+      isSearching: false, // 是否处于搜索状态
+      searchDebounceTimer: null, // 防抖定时器
       // 添加文件到现有成果相关
       isAddingToExisting: false,
       targetAchievementId: null,
@@ -1256,48 +1261,21 @@ export default {
     }
   },
   computed: {
-    // 合并原有数据和上传的数据
+    // 只显示从后端加载的数据（不再合并模拟数据）
     allFiles() {
-      return [...this.archiveRows, ...this.uploadedFiles]
+      // 如果有后端数据，只显示后端数据
+      // 否则显示archiveRows（兼容没有projectId的情况）
+      return this.uploadedFiles.length > 0 ? this.uploadedFiles : this.archiveRows
     },
     
     // 搜索过滤后的数据
     filteredFiles() {
-      if (!this.searchText.trim()) {
-        return this.allFiles
+      // 如果处于搜索状态，返回搜索结果
+      if (this.isSearching && this.searchText.trim()) {
+        return this.searchResults
       }
-      
-      const searchTerm = this.searchText.toLowerCase().trim()
-      return this.allFiles.filter(file => {
-        // 搜索成果名称
-        const nameMatch = file.name && file.name.toLowerCase().includes(searchTerm)
-        // 搜索类型
-        const typeMatch = file.type && file.type.toLowerCase().includes(searchTerm)
-        // 搜索上传者
-        const uploaderMatch = file.uploader && file.uploader.toLowerCase().includes(searchTerm)
-        // 搜索详细描述字段（根据类型）
-        let detailMatch = false
-        if (file.type === '论文') {
-          detailMatch = (file.paperAuthors && file.paperAuthors.toLowerCase().includes(searchTerm)) ||
-                       (file.paperTitle && file.paperTitle.toLowerCase().includes(searchTerm)) ||
-                       (file.journalName && file.journalName.toLowerCase().includes(searchTerm))
-        } else if (file.type === '专利') {
-          detailMatch = (file.patentNumber && file.patentNumber.toLowerCase().includes(searchTerm)) ||
-                       (file.patentName && file.patentName.toLowerCase().includes(searchTerm)) ||
-                       (file.inventors && file.inventors.toLowerCase().includes(searchTerm))
-        } else if (file.type === '数据集') {
-          detailMatch = (file.datasetName && file.datasetName.toLowerCase().includes(searchTerm)) ||
-                       (file.datasetFormat && file.datasetFormat.toLowerCase().includes(searchTerm))
-        } else if (file.type === '模型文件') {
-          detailMatch = (file.modelName && file.modelName.toLowerCase().includes(searchTerm)) ||
-                       (file.modelFramework && file.modelFramework.toLowerCase().includes(searchTerm))
-        } else if (file.type === '实验报告') {
-          detailMatch = (file.reportName && file.reportName.toLowerCase().includes(searchTerm)) ||
-                       (file.reportType && file.reportType.toLowerCase().includes(searchTerm))
-        }
-        
-        return nameMatch || typeMatch || uploaderMatch || detailMatch
-      })
+      // 否则返回所有文件
+      return this.allFiles
     },
     
     // 分页后的数据
@@ -1336,25 +1314,68 @@ export default {
       return pages
     }
   },
-  mounted() {
-    // 组件挂载时加载本地存储的数据
+  async mounted() {
+    // 加载成果列表（从后端加载真实数据）
+    await this.loadAchievements()
+    
+    // 注意：不再从localStorage加载数据，只保存分页状态
     const loaded = loadFromLocalStorage(this.projectId)
-    if (loaded) {
-      this.uploadedFiles = loaded.uploadedFiles
+    if (loaded && loaded.currentPage) {
       this.currentPage = loaded.currentPage
     }
   },
   watch: {
     showArchivePanel(newVal) {
       // 当面板状态变化时，通知全局用户信息框
-      EventBus.$emit(EVENTS.ARCHIVE_PANEL_TOGGLE, newVal)
+      eventBus.emit(EventTypes.ARCHIVE_PANEL_TOGGLE, newVal)
     }
   },
   beforeDestroy() {
     // 组件销毁前保存数据
     saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
+    
+    // 清除搜索防抖定时器
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer)
+      this.searchDebounceTimer = null
+    }
   },
   methods: {
+    /**
+     * 从后端加载成果列表
+     */
+    async loadAchievements() {
+      if (!this.projectId) {
+        console.warn('projectId为空，无法加载成果列表')
+        return
+      }
+      
+      try {
+        console.log('加载成果列表, projectId:', this.projectId)
+        
+        // 调用API获取成果列表
+        const response = await knowledgeAPI.getProjectAchievements(this.projectId, 0, 50)
+        console.log('成果列表加载成功:', response)
+        
+        // response是R对象，结构为 { code, msg, data }
+        if (response && response.code === 200 && response.data) {
+          // data是Page对象，包含content数组
+          const achievements = response.data.content || []
+          this.uploadedFiles = achievements.map(dto => convertFromDTO(dto))
+          
+          console.log('转换后的成果列表:', this.uploadedFiles)
+        } else {
+          console.warn('成果列表响应格式异常:', response)
+          // 失败时设置为空数组，不使用默认数据
+          this.uploadedFiles = []
+        }
+      } catch (error) {
+        console.error('加载成果列表失败:', error)
+        // 失败时设置为空数组，不使用默认数据
+        this.uploadedFiles = []
+      }
+    },
+    
     uploadFile(type) {
       this.currentFileType = type
       this.fileAccept = getFileAccept(type)
@@ -1451,125 +1472,74 @@ export default {
     async confirmUpload() {
       if ((this.isAddingToExisting || this.achievementForm.name.trim()) && this.achievementForm.files.length > 0) {
         try {
-          // 转换文件为 ArrayBuffer 以便保存到 localStorage
-          const filesWithBuffer = await Promise.all(
-            this.achievementForm.files.map(async (fileData, index) => {
-              const arrayBuffer = await fileData.file.arrayBuffer()
-              return {
-                id: Date.now() + index,
-                name: fileData.name,
-                originalFileName: fileData.name,
-                size: fileData.size,
-                type: fileData.type,
-                fileBuffer: arrayBuffer, // 保存 ArrayBuffer
-                file: fileData.file // 保留原始 File 对象用于当前会话
-              }
-            })
-          )
-          
           // 检查是否为现有成果添加文件
-          console.log('检查添加文件状态:', {
-            isAddingToExisting: this.isAddingToExisting,
-            targetAchievementId: this.targetAchievementId,
-            uploadedFilesCount: this.uploadedFiles.length
-          })
-          
           if (this.isAddingToExisting && this.targetAchievementId) {
             // 为现有成果添加文件
-            const targetIndex = this.uploadedFiles.findIndex(item => item.id === this.targetAchievementId)
-            console.log('查找目标成果:', { targetIndex, targetId: this.targetAchievementId })
+            console.log('为现有成果添加文件, achievementId:', this.targetAchievementId)
             
-            if (targetIndex !== -1) {
-              // 将新文件添加到现有成果的文件列表中
-              this.uploadedFiles[targetIndex].files.push(...filesWithBuffer)
-              this.uploadedFiles[targetIndex].fileCount = this.uploadedFiles[targetIndex].files.length
-              
-              // 更新成果时间
-              this.uploadedFiles[targetIndex].time = new Date().toLocaleString('zh-CN')
-              
-              // 触发文件编辑事件（因为成果被修改了）
-              this.$emit('file-edited', this.uploadedFiles[targetIndex])
-              
-              // 重置状态
-              this.resetAchievementForm()
-              this.isAddingToExisting = false
-              this.targetAchievementId = null
-              this.showUploadDialog = false
-              
-              // 自动保存到本地存储
-              saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
-              
-              alert(`已成功添加${this.achievementForm.files.length}个文件到成果"${this.uploadedFiles[targetIndex].name}"中！`)
-              return
-            }
+            // 准备文件对象列表（只保留真实的File对象）
+            const files = this.achievementForm.files.map(f => f.file)
+            
+            // 调用批量上传API
+            const response = await knowledgeAPI.uploadFilesBatch(files, this.targetAchievementId)
+            console.log('批量上传文件成功:', response)
+            
+            // 刷新成果列表（重新加载当前页数据）
+            await this.loadAchievements()
+            
+            // 重置状态
+            this.resetAchievementForm()
+            this.isAddingToExisting = false
+            this.targetAchievementId = null
+            this.showUploadDialog = false
+            
+            alert(`已成功添加${files.length}个文件到成果中！`)
+            return
           }
           
-          // 创建新成果记录
-          const newAchievement = {
-            id: Date.now(),
-            name: this.achievementForm.name,
-            type: this.currentFileType,
-            uploader: '当前用户',
-            time: new Date().toLocaleString('zh-CN'),
-            typeCls: this.getTypeClass(this.currentFileType),
-            // 根据类型保存相应的字段
-            ...(this.currentFileType === '论文' && {
-              paperAuthors: this.achievementForm.paperAuthors,
-              paperTitle: this.achievementForm.paperTitle,
-              journalName: this.achievementForm.journalName,
-              publishYear: this.achievementForm.publishYear,
-              volume: this.achievementForm.volume,
-              issue: this.achievementForm.issue
-            }),
-            ...(this.currentFileType === '专利' && {
-              patentNumber: this.achievementForm.patentNumber,
-              patentType: this.achievementForm.patentType,
-              patentName: this.achievementForm.patentName,
-              inventors: this.achievementForm.inventors,
-              applicants: this.achievementForm.applicants
-            }),
-            ...(this.currentFileType === '数据集' && {
-              datasetVersion: this.achievementForm.datasetVersion,
-              datasetName: this.achievementForm.datasetName,
-              datasetFormat: this.achievementForm.datasetFormat,
-              datasetSize: this.achievementForm.datasetSize,
-              datasetSource: this.achievementForm.datasetSource
-            }),
-            ...(this.currentFileType === '模型文件' && {
-              modelFramework: this.achievementForm.modelFramework,
-              modelName: this.achievementForm.modelName,
-              modelVersion: this.achievementForm.modelVersion,
-              modelType: this.achievementForm.modelType,
-              hyperparameters: this.achievementForm.hyperparameters
-            }),
-            ...(this.currentFileType === '实验报告' && {
-              reportType: this.achievementForm.reportType,
-              reportName: this.achievementForm.reportName,
-              reportDate: this.achievementForm.reportDate
-            }),
-            files: filesWithBuffer,
-            fileCount: this.achievementForm.files.length
+          // 创建新成果
+          console.log('创建新成果, projectId:', this.projectId)
+          
+          // 1. 准备成果创建数据
+          const createDTO = convertToCreateDTO(this.achievementForm, this.projectId, this.currentFileType)
+          console.log('创建成果DTO:', createDTO)
+          
+          // 2. 调用创建成果API
+          const createResponse = await knowledgeAPI.createAchievement(createDTO)
+          console.log('创建成果响应:', createResponse)
+          
+          // response是R对象，检查code
+          if (createResponse.code !== 200 || !createResponse.data) {
+            throw new Error(createResponse.msg || '创建成果失败')
           }
           
-          this.uploadedFiles.push(newAchievement)
-          this.$emit('file-uploaded', newAchievement)
+          const achievement = createResponse.data
+          const achievementId = achievement.id
           
-          // 重置状态
+          // 3. 批量上传文件
+          const files = this.achievementForm.files.map(f => f.file)
+          console.log('准备批量上传文件, 数量:', files.length)
+          
+          const uploadResponse = await knowledgeAPI.uploadFilesBatch(files, achievementId)
+          console.log('批量上传文件成功:', uploadResponse)
+          
+          // 4. 刷新成果列表
+          await this.loadAchievements()
+          
+          // 5. 重置状态
           this.resetAchievementForm()
           this.isAddingToExisting = false
           this.targetAchievementId = null
           this.showUploadDialog = false
           
-          // 跳转到最后一页显示新上传的文件
+          // 6. 跳转到最后一页显示新上传的成果
           this.goToLastPage()
           
-          // 自动保存到本地存储
-          saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
+          alert(`成果"${this.achievementForm.name}"创建成功！已上传${files.length}个文件。`)
           
-          alert(`成果"${this.achievementForm.name}"上传成功！已添加${this.achievementForm.files.length}个文件到成果档案中。`)
         } catch (error) {
-          console.error('文件上传失败:', error)
-          alert('文件上传失败，请重试')
+          console.error('上传失败:', error)
+          alert('上传失败: ' + (error.message || '请重试'))
         }
       }
     },
@@ -1587,13 +1557,70 @@ export default {
     
     // 搜索相关方法
     onSearchInput() {
-      // 搜索时重置到第一页
-      this.currentPage = 1
+      // 清除之前的防抖定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+      }
+      
+      // 如果搜索框为空，清除搜索状态
+      if (!this.searchText.trim()) {
+        this.clearSearch()
+        return
+      }
+      
+      // 设置防抖定时器，500ms后执行搜索
+      this.searchDebounceTimer = setTimeout(() => {
+        this.performSearch()
+      }, 500)
+    },
+    
+    /**
+     * 执行搜索
+     */
+    async performSearch() {
+      if (!this.searchText.trim() || !this.projectId) {
+        return
+      }
+      
+      try {
+        console.log('执行搜索, 关键词:', this.searchText)
+        this.isSearching = true
+        
+        // 调用后端搜索API
+        const response = await knowledgeAPI.searchAchievements(this.searchText, 0, 50)
+        console.log('搜索响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          // 将搜索结果转换为前端格式
+          const achievements = response.data.content || []
+          this.searchResults = achievements.map(dto => convertFromDTO(dto))
+          
+          console.log('搜索结果:', this.searchResults)
+          
+          // 重置到第一页
+          this.currentPage = 1
+        } else {
+          console.warn('搜索响应格式异常:', response)
+          this.searchResults = []
+        }
+      } catch (error) {
+        console.error('搜索失败:', error)
+        this.searchResults = []
+        alert('搜索失败: ' + (error.message || '请重试'))
+      }
     },
     
     clearSearch() {
       this.searchText = ''
+      this.searchResults = []
+      this.isSearching = false
       this.currentPage = 1
+      
+      // 清除防抖定时器
+      if (this.searchDebounceTimer) {
+        clearTimeout(this.searchDebounceTimer)
+        this.searchDebounceTimer = null
+      }
     },
     
     // 获取目标成果名称
@@ -1876,56 +1903,73 @@ export default {
     },
     
     // 保存描述修改
-    saveDescriptionChanges() {
+    async saveDescriptionChanges() {
       if (!this.viewingFile) return
       
-      // 更新viewingFile的数据
-      if (this.viewingFile.type === '论文') {
-        this.viewingFile.paperAuthors = this.editForm.paperAuthors
-        this.viewingFile.paperTitle = this.editForm.paperTitle
-        this.viewingFile.journalName = this.editForm.journalName
-        this.viewingFile.publishYear = this.editForm.publishYear
-        this.viewingFile.volume = this.editForm.volume
-        this.viewingFile.issue = this.editForm.issue
-      } else if (this.viewingFile.type === '专利') {
-        this.viewingFile.patentNumber = this.editForm.patentNumber
-        this.viewingFile.patentType = this.editForm.patentType
-        this.viewingFile.patentName = this.editForm.patentName
-        this.viewingFile.inventors = this.editForm.inventors
-        this.viewingFile.applicants = this.editForm.applicants
-      } else if (this.viewingFile.type === '数据集') {
-        this.viewingFile.datasetVersion = this.editForm.datasetVersion
-        this.viewingFile.datasetName = this.editForm.datasetName
-        this.viewingFile.datasetFormat = this.editForm.datasetFormat
-        this.viewingFile.datasetSize = this.editForm.datasetSize
-        this.viewingFile.datasetSource = this.editForm.datasetSource
-      } else if (this.viewingFile.type === '模型文件') {
-        this.viewingFile.modelFramework = this.editForm.modelFramework
-        this.viewingFile.modelName = this.editForm.modelName
-        this.viewingFile.modelVersion = this.editForm.modelVersion
-        this.viewingFile.modelType = this.editForm.modelType
-        this.viewingFile.hyperparameters = this.editForm.hyperparameters
-      } else if (this.viewingFile.type === '实验报告') {
-        this.viewingFile.reportType = this.editForm.reportType
-        this.viewingFile.reportName = this.editForm.reportName
-        this.viewingFile.reportDate = this.editForm.reportDate
+      try {
+        console.log('保存成果详情修改, ID:', this.viewingFile.id, '类型:', this.viewingFile.type)
+        
+        // 将编辑表单转换为后端字段更新对象
+        const fieldUpdates = convertEditFormToFieldUpdates(this.editForm, this.viewingFile.type)
+        console.log('字段更新对象:', fieldUpdates)
+        
+        // 调用后端API更新成果详情
+        const response = await knowledgeAPI.updateDetailFields(this.viewingFile.id, fieldUpdates)
+        console.log('更新成果详情响应:', response)
+        
+        if (response && response.code === 200) {
+          // 更新viewingFile的数据
+          if (this.viewingFile.type === '论文') {
+            this.viewingFile.paperAuthors = this.editForm.paperAuthors
+            this.viewingFile.paperTitle = this.editForm.paperTitle
+            this.viewingFile.journalName = this.editForm.journalName
+            this.viewingFile.publishYear = this.editForm.publishYear
+            this.viewingFile.volume = this.editForm.volume
+            this.viewingFile.issue = this.editForm.issue
+          } else if (this.viewingFile.type === '专利') {
+            this.viewingFile.patentNumber = this.editForm.patentNumber
+            this.viewingFile.patentType = this.editForm.patentType
+            this.viewingFile.patentName = this.editForm.patentName
+            this.viewingFile.inventors = this.editForm.inventors
+            this.viewingFile.applicants = this.editForm.applicants
+          } else if (this.viewingFile.type === '数据集') {
+            this.viewingFile.datasetVersion = this.editForm.datasetVersion
+            this.viewingFile.datasetName = this.editForm.datasetName
+            this.viewingFile.datasetFormat = this.editForm.datasetFormat
+            this.viewingFile.datasetSize = this.editForm.datasetSize
+            this.viewingFile.datasetSource = this.editForm.datasetSource
+          } else if (this.viewingFile.type === '模型文件') {
+            this.viewingFile.modelFramework = this.editForm.modelFramework
+            this.viewingFile.modelName = this.editForm.modelName
+            this.viewingFile.modelVersion = this.editForm.modelVersion
+            this.viewingFile.modelType = this.editForm.modelType
+            this.viewingFile.hyperparameters = this.editForm.hyperparameters
+          } else if (this.viewingFile.type === '实验报告') {
+            this.viewingFile.reportType = this.editForm.reportType
+            this.viewingFile.reportName = this.editForm.reportName
+            this.viewingFile.reportDate = this.editForm.reportDate
+          }
+          
+          // 同步更新已上传列表中的对应记录
+          const uploadedIndex = this.uploadedFiles.findIndex(item => item.id === this.viewingFile.id)
+          if (uploadedIndex !== -1) {
+            this.$set(this.uploadedFiles, uploadedIndex, { ...this.viewingFile })
+          }
+          
+          // 触发编辑事件，通知父组件
+          this.$emit('file-edited', this.viewingFile)
+          
+          // 切回只读模式
+          this.isEditingDescription = false
+          
+          alert('成果详细描述已更新')
+        } else {
+          throw new Error(response.msg || '更新失败')
+        }
+      } catch (error) {
+        console.error('保存成果详情失败:', error)
+        alert('保存失败: ' + (error.message || '请重试'))
       }
-      
-      // 同步更新已上传列表中的对应记录
-      const uploadedIndex = this.uploadedFiles.findIndex(item => item.id === this.viewingFile.id)
-      if (uploadedIndex !== -1) {
-        this.$set(this.uploadedFiles, uploadedIndex, { ...this.viewingFile })
-      }
-      
-      // 持久化保存
-      saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
-      
-      // 触发编辑事件，通知父组件
-      this.$emit('file-edited', this.viewingFile)
-      
-      // 切回只读模式
-      this.isEditingDescription = false
-      this.$message && this.$message.success && this.$message.success('成果详细描述已更新')
     },
     
     // 取消编辑模式
@@ -2019,24 +2063,45 @@ export default {
     },
     
     
-    deleteFile(file) {
+    async deleteFile(file) {
       if (confirm(`确定要删除成果"${file.name}"吗？此操作不可撤销。`)) {
-        // 从上传的文件列表中删除
-        const uploadedIndex = this.uploadedFiles.findIndex(f => f.id === file.id)
-        if (uploadedIndex !== -1) {
-          // 触发删除事件，通知父组件
-          this.$emit('file-deleted', file)
+        try {
+          console.log('删除成果, ID:', file.id)
           
-          this.uploadedFiles.splice(uploadedIndex, 1)
-          // 保存到本地存储
-          saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
-          // 如果当前页没有数据了，跳转到上一页
-          if (this.paginatedFiles.length === 0 && this.currentPage > 1) {
-            this.currentPage = this.currentPage - 1
+          // 调用后端API删除成果
+          const response = await knowledgeAPI.deleteAchievement(file.id)
+          console.log('删除成果响应:', response)
+          
+          if (response && response.code === 200) {
+            // 从本地列表中删除
+            const uploadedIndex = this.uploadedFiles.findIndex(f => f.id === file.id)
+            if (uploadedIndex !== -1) {
+              this.uploadedFiles.splice(uploadedIndex, 1)
+            }
+            
+            // 如果处于搜索状态，也从搜索结果中删除
+            if (this.isSearching) {
+              const searchIndex = this.searchResults.findIndex(f => f.id === file.id)
+              if (searchIndex !== -1) {
+                this.searchResults.splice(searchIndex, 1)
+              }
+            }
+            
+            // 触发删除事件，通知父组件
+            this.$emit('file-deleted', file)
+            
+            // 如果当前页没有数据了，跳转到上一页
+            if (this.paginatedFiles.length === 0 && this.currentPage > 1) {
+              this.currentPage = this.currentPage - 1
+            }
+            
+            alert('成果删除成功！')
+          } else {
+            throw new Error(response.msg || '删除失败')
           }
-          alert('成果删除成功！')
-        } else {
-          alert('无法删除此成果，请刷新页面后重试。')
+        } catch (error) {
+          console.error('删除成果失败:', error)
+          alert('删除失败: ' + (error.message || '请重试'))
         }
       }
     },

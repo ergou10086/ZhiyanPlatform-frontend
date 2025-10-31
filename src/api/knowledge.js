@@ -21,8 +21,15 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     
-    console.log('知识库API请求:', config.method?.toUpperCase(), config.url)
-    console.log('请求数据:', config.data)
+    // 对于FormData，不要手动设置Content-Type，让浏览器自动设置
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+      console.log('知识库API请求 (FormData):', config.method?.toUpperCase(), config.url)
+      console.log('FormData 包含', config.data.getAll('files')?.length || 0, '个文件')
+    } else {
+      console.log('知识库API请求:', config.method?.toUpperCase(), config.url)
+      console.log('请求数据:', config.data)
+    }
     
     return config
   },
@@ -64,6 +71,27 @@ api.interceptors.response.use(
   }
 )
 
+// 前端类型到后端枚举的映射
+export const TYPE_MAPPING = {
+  '论文': 'paper',
+  '专利': 'patent',
+  '数据集': 'dataset',
+  '算法模型': 'model',
+  '模型文件': 'model',
+  '报告': 'report',
+  '实验报告': 'report'
+}
+
+// 后端枚举到前端显示的映射
+export const TYPE_DISPLAY = {
+  'paper': '论文',
+  'patent': '专利',
+  'dataset': '数据集',
+  'model': '模型文件',
+  'report': '实验报告',
+  'custom': '自定义成果'
+}
+
 // 知识库成果管理 API
 export const knowledgeAPI = {
   /**
@@ -78,13 +106,30 @@ export const knowledgeAPI = {
    */
   createAchievement(achievementData) {
     console.log('[knowledgeAPI.createAchievement] 创建成果, 数据:', achievementData)
+    // 将前端类型映射为后端枚举
+    if (TYPE_MAPPING[achievementData.type]) {
+      achievementData.type = TYPE_MAPPING[achievementData.type]
+    }
     return api.post('/zhiyan/achievement/create', achievementData)
+  },
+  
+  /**
+   * 根据项目ID查询成果列表
+   * @param {Number} projectId - 项目ID
+   * @param {Number} page - 页码（从0开始）
+   * @param {Number} size - 每页数量
+   */
+  getProjectAchievements(projectId, page = 0, size = 20) {
+    console.log('[knowledgeAPI.getProjectAchievements] 获取项目成果列表, 项目ID:', projectId)
+    return api.get(`/zhiyan/achievement/search/project/${projectId}`, {
+      params: { page, size, sortBy: 'createdAt', sortOrder: 'DESC' }
+    })
   },
 
   /**
    * 更新成果状态
    * @param {Number} achievementId - 成果ID
-   * @param {String} status - 成果状态 (DRAFT/PUBLISHED/ARCHIVED)
+   * @param {String} status - 成果状态 (draft/under_review/published/obsolete)
    */
   updateAchievementStatus(achievementId, status) {
     console.log('[knowledgeAPI.updateAchievementStatus] 更新成果状态, ID:', achievementId, '状态:', status)
@@ -112,19 +157,6 @@ export const knowledgeAPI = {
   },
 
   /**
-   * 获取项目的成果列表
-   * @param {Number} projectId - 项目ID
-   * @param {Number} page - 页码
-   * @param {Number} size - 每页数量
-   */
-  getProjectAchievements(projectId, page = 0, size = 20) {
-    console.log('[knowledgeAPI.getProjectAchievements] 获取项目成果列表, 项目ID:', projectId)
-    return api.get(`/zhiyan/achievement/search/project/${projectId}`, {
-      params: { page, size }
-    })
-  },
-
-  /**
    * 搜索成果
    * @param {String} keyword - 搜索关键词
    * @param {Number} page - 页码
@@ -144,6 +176,74 @@ export const knowledgeAPI = {
   queryAchievements(queryData) {
     console.log('[knowledgeAPI.queryAchievements] 组合查询成果, 查询条件:', queryData)
     return api.post(`/zhiyan/achievement/search/query`, queryData)
+  },
+
+  /**
+   * 上传单个成果文件
+   * @param {File} file - 文件对象
+   * @param {Number} achievementId - 成果ID
+   */
+  uploadFile(file, achievementId) {
+    console.log('[knowledgeAPI.uploadFile] 上传单个文件, achievementId:', achievementId, 'fileName:', file?.name)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('achievementId', achievementId)
+    return api.post('/zhiyan/achievement/file/upload', formData)
+  },
+
+  /**
+   * 批量上传成果文件
+   * @param {File[]} files - 文件数组
+   * @param {Number} achievementId - 成果ID
+   */
+  uploadFilesBatch(files, achievementId) {
+    console.log('[knowledgeAPI.uploadFilesBatch] 批量上传文件, achievementId:', achievementId, 'fileCount:', files?.length)
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+    formData.append('achievementId', achievementId)
+    return api.post('/zhiyan/achievement/file/upload/batch', formData)
+  },
+
+  /**
+   * 获取成果文件列表
+   * @param {Number} achievementId - 成果ID
+   */
+  getAchievementFiles(achievementId) {
+    console.log('[knowledgeAPI.getAchievementFiles] 获取成果文件列表, achievementId:', achievementId)
+    return api.get(`/zhiyan/achievement/file/${achievementId}/files`)
+  },
+
+  /**
+   * 删除成果文件
+   * @param {Number} fileId - 文件ID
+   */
+  deleteFile(fileId) {
+    console.log('[knowledgeAPI.deleteFile] 删除文件, fileId:', fileId)
+    return api.delete(`/zhiyan/achievement/file/${fileId}`)
+  },
+
+  /**
+   * 获取文件下载URL
+   * @param {Number} fileId - 文件ID
+   * @param {Number} expirySeconds - 过期时间（秒）
+   */
+  getFileDownloadUrl(fileId, expirySeconds = 3600) {
+    console.log('[knowledgeAPI.getFileDownloadUrl] 获取文件下载URL, fileId:', fileId)
+    return api.get(`/zhiyan/achievement/file/${fileId}/download-url`, {
+      params: { expirySeconds }
+    })
+  },
+
+  /**
+   * 批量更新成果详情字段
+   * @param {Number} achievementId - 成果ID
+   * @param {Object} fieldUpdates - 要更新的字段（键值对）
+   */
+  updateDetailFields(achievementId, fieldUpdates) {
+    console.log('[knowledgeAPI.updateDetailFields] 更新成果详情字段, achievementId:', achievementId, 'fields:', fieldUpdates)
+    return api.patch(`/zhiyan/achievement/detail/${achievementId}/fields`, fieldUpdates)
   }
 }
 

@@ -26,6 +26,7 @@ export const EventTypes = {
   KNOWLEDGE_CREATED: 'knowledge:created',
   KNOWLEDGE_UPDATED: 'knowledge:updated',
   KNOWLEDGE_DELETED: 'knowledge:deleted',
+  ARCHIVE_PANEL_TOGGLE: 'archive:panel:toggle',
   
   // Wiki相关
   WIKI_PAGE_CREATED: 'wiki:page:created',
