@@ -152,13 +152,156 @@
         </div>
       </div>
     </div>
+
+    <!-- 项目选择弹窗 -->
+    <div v-if="showProjectSelectDialog" class="file-dialog-overlay ai-view" @click="closeProjectSelectDialog">
+      <div class="file-dialog" @click.stop>
+        <div class="file-dialog-header">
+          <div class="header-content">
+            <h3>选择项目</h3>
+            <p class="header-subtitle">请选择要查看成果目录的项目</p>
+          </div>
+          <button class="close-btn" @click="closeProjectSelectDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="file-dialog-body">
+          <div v-if="availableProjects.length === 0" class="empty-state">
+            <div class="empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="empty-text">暂无项目</p>
+          </div>
+          <div v-else class="file-list-container">
+            <div class="file-list">
+              <div
+                v-for="project in availableProjects"
+                :key="project.id"
+                class="file-card"
+                :class="{ 'selected': selectedProjectForFiles && selectedProjectForFiles.id === project.id }"
+                @click="selectProjectForFiles(project)"
+              >
+                <div class="file-card-content">
+                  <div class="file-card-main">
+                    <div class="file-name-wrapper">
+                      <div class="file-name">{{ project.title || project.name || '未命名项目' }}</div>
+                      <div class="file-badge-group">
+                        <span v-if="project.description" class="file-type-badge">{{ project.description }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="file-select-indicator" :class="{ 'active': selectedProjectForFiles && selectedProjectForFiles.id === project.id }">
+                    <div class="checkmark-circle">
+                      <svg v-if="selectedProjectForFiles && selectedProjectForFiles.id === project.id" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="file-dialog-footer">
+          <button class="btn-cancel" @click="closeProjectSelectDialog">取消</button>
+          <button
+            class="btn-confirm"
+            @click="confirmProjectSelection"
+            :disabled="!selectedProjectForFiles"
+            :class="{ 'disabled': !selectedProjectForFiles }"
+          >
+            <span>确认选择</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文件选择弹窗 -->
+    <div v-if="showFileDialog" class="file-dialog-overlay ai-view" @click="closeFileDialog">
+      <div class="file-dialog" @click.stop>
+        <div class="file-dialog-header">
+          <div class="header-content">
+            <h3>选择成果目录文件</h3>
+            <p class="header-subtitle" v-if="selectedFiles.length > 0">已选择 {{ selectedFiles.length }} 项</p>
+          </div>
+          <button class="close-btn" @click="closeFileDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="file-dialog-body">
+          <div v-if="loadingFiles" class="loading-container">
+            <div class="loading-spinner-large"></div>
+            <p class="loading-text">正在加载文件列表...</p>
+          </div>
+          <div v-else-if="files.length === 0" class="empty-state">
+            <div class="empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="empty-text">成果目录中暂无文件</p>
+          </div>
+          <div v-else class="file-list-container">
+            <div class="file-list">
+              <div
+                v-for="file in files"
+                :key="file.id"
+                class="file-card"
+                :class="{ 'selected': selectedFiles.includes(file.id) }"
+                @click="toggleFileSelection(file.id)"
+              >
+                <div class="file-card-content">
+                  <div class="file-card-main">
+                    <div class="file-name-wrapper">
+                      <div class="file-name">{{ file.name || file.title || '未命名文件' }}</div>
+                      <div class="file-badge-group">
+                        <span class="file-type-badge">{{ file.type || '未知类型' }}</span>
+                        <span v-if="file.fileCount" class="file-count-badge">{{ file.fileCount }}个文件</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="file-select-indicator" :class="{ 'active': selectedFiles.includes(file.id) }">
+                    <div class="checkmark-circle">
+                      <svg v-if="selectedFiles.includes(file.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="file-dialog-footer">
+          <button class="btn-cancel" @click="closeFileDialog">取消</button>
+          <button
+            class="btn-confirm"
+            @click="confirmFileSelection"
+            :disabled="selectedFiles.length === 0"
+            :class="{ 'disabled': selectedFiles.length === 0 }"
+          >
+            <span>确认选择</span>
+            <span v-if="selectedFiles.length > 0" class="selected-count">{{ selectedFiles.length }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
+import { knowledgeAPI } from '@/api/knowledge'
 import '@/assets/styles/AIAssistant.css'
+import '@/assets/styles/KnowledgeBaseAI.css'
 export default {
   name: 'AIAssistant',
   components: {
@@ -177,6 +320,8 @@ export default {
       isSending: false,
       showFileMenu: false,
       showFileDialog: false,
+      showProjectSelectDialog: false,
+      selectedProjectForFiles: null,
       files: [],
       selectedFiles: [],
       loadingFiles: false,
@@ -1076,11 +1221,12 @@ export default {
     // 从成果档案打开文件
     async openFileDialogFromArchive() {
       this.showFileMenu = false
-      this.showFileDialog = true
-      this.selectedFiles = []
-      if (this.files.length === 0 && this.currentProject && this.currentProject.id) {
-        await this.loadFiles()
-      }
+      
+      // 必须先选择项目（每次都弹出项目选择弹窗）
+      this.showProjectSelectDialog = true
+      this.selectedProjectForFiles = null
+      // 清空之前的文件列表，确保重新选择项目后会重新加载
+      this.files = []
     },
     
     // 打开文件上传
@@ -1110,26 +1256,75 @@ export default {
       }
     },
     
-    // 关闭文件选择弹窗
+    // 关闭项目选择弹窗
+    closeProjectSelectDialog() {
+      this.showProjectSelectDialog = false
+      this.selectedProjectForFiles = null
+    },
+    
+    // 选择项目
+    selectProjectForFiles(project) {
+      this.selectedProjectForFiles = project
+    },
+    
+    // 确认项目选择
+    async confirmProjectSelection() {
+      if (!this.selectedProjectForFiles) return
+      
+      console.log('确认选择项目:', this.selectedProjectForFiles)
+      
+      // 先保存项目ID（在关闭弹窗前保存）
+      const projectId = this.selectedProjectForFiles.id
+      
+      // 关闭项目选择弹窗
+      this.closeProjectSelectDialog()
+      
+      // 打开文件选择弹窗（完全按照KnowledgeBaseAI.vue的openFileDialogFromArchive方式）
+      this.showFileDialog = true
+      this.selectedFiles = []
+      
+      // 每次选择项目后都重新加载文件（确保显示的是选中项目的成果）
+      if (projectId) {
+        await this.loadFiles(projectId)
+      }
+    },
+    
+    // 关闭文件选择弹窗（完全按照KnowledgeBaseAI.vue的方式）
     closeFileDialog() {
       this.showFileDialog = false
       this.selectedFiles = []
     },
     
-    // 加载成果目录文件列表
-    async loadFiles() {
-      if (!this.currentProject || !this.currentProject.id) {
+    // 加载成果目录文件列表（完全照搬KnowledgeBaseAI.vue的方法）
+    async loadFiles(projectId) {
+      if (!projectId) {
         console.warn('项目ID不存在，无法加载文件列表')
         return
       }
       
       this.loadingFiles = true
       try {
-        // 这里需要使用 knowledgeAPI，需要导入
-        // 暂时先注释，等确认 API 接口后实现
-        // const response = await knowledgeAPI.getProjectAchievements(this.currentProject.id, 0, 1000)
-        console.log('加载成果文件列表（功能待实现）')
-        this.files = []
+        const response = await knowledgeAPI.getProjectAchievements(projectId, 0, 1000)
+        console.log('获取成果列表响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          if (Array.isArray(response.data)) {
+            this.files = response.data
+          } else if (response.data.content && Array.isArray(response.data.content)) {
+            this.files = response.data.content
+          } else {
+            this.files = []
+          }
+          console.log('加载成果文件列表成功，数量:', this.files.length)
+          // 调试：打印第一个文件的详细信息
+          if (this.files.length > 0) {
+            console.log('第一个成果文件:', this.files[0])
+            console.log('文件字段:', Object.keys(this.files[0]))
+          }
+        } else {
+          this.files = []
+          console.warn('获取成果列表失败:', response)
+        }
       } catch (error) {
         console.error('加载成果文件列表失败:', error)
         this.files = []
@@ -1148,7 +1343,7 @@ export default {
       }
     },
     
-    // 确认选择文件
+    // 确认选择文件（完全照搬KnowledgeBaseAI.vue的方法）
     confirmFileSelection() {
       if (this.selectedFiles.length === 0) return
       
