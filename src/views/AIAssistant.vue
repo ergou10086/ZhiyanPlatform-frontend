@@ -23,181 +23,27 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M23 4V10H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M20.49 15A9 9 0 1 1 5.64 5.64L23 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          </svg>
           </button>
-        </div>
+      </div>
     </div>
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <!-- 项目概览区域 -->
-      <div class="project-overview">
-        <div class="project-header">
-        <div class="project-info">
-            <h1 class="project-title">
-              <span class="title-text">{{ currentProject.title }}</span>
-              <div class="title-decoration"></div>
-            </h1>
-          <div class="project-details">
-              <div class="project-name">
-                <svg class="detail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="currentColor"/>
-                </svg>
-                {{ currentProject.description }}
-              </div>
-              <div class="project-lead">
-                <svg class="detail-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                负责人: {{ currentProject.lead }}
-              </div>
-          </div>
-        </div>
-        <div class="project-progress">
-          <div class="progress-label">项目进度</div>
-          <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: currentProject.progress + '%' }"></div>
-          </div>
-            <div class="progress-text">{{ currentProject.progress }}% 完成</div>
-          </div>
-          <div class="project-switcher">
-            <button class="switch-btn" @click="toggleProjectDropdown">
-              <span class="current-project">{{ currentProject.title }}</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-            </button>
-            <div v-if="showProjectDropdown" class="project-dropdown">
-              <div class="dropdown-header">选择项目</div>
-              <div
-                v-for="project in availableProjects"
-                :key="project.id"
-                class="project-option"
-                :class="{ active: project.id === currentProject.id }"
-                @click="switchProject(project)"
-              >
-                <div class="project-info">
-                  <div class="project-name">{{ project.title }}</div>
-                  <div class="project-lead">{{ project.lead }}</div>
-        </div>
-                <div class="project-progress-small">
-                  <div class="progress-bar-small">
-                    <div class="progress-fill-small" :style="{ width: project.progress + '%' }"></div>
-                  </div>
-                  <span class="progress-text-small">{{ project.progress }}%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-      </div>
-    </div>
-
-      <!-- 任务管理和AI对话左右布局 -->
-      <div class="task-and-chat-container">
-      <!-- 任务管理区域 -->
-      <div class="task-management">
-        <div class="task-header">
-          <div class="filter-dropdown" @click.stop>
-            <button class="dropdown-button" @click="toggleFilterDropdown">
-              {{ getFilterText() }}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div v-if="filterDropdownOpen" class="dropdown-menu">
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'all' }"
-                @click="setFilterAndClose('all')"
-              >
-                全部状态
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'published' }"
-                @click="setFilterAndClose('published')"
-              >
-                已发布
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'in-progress' }"
-                @click="setFilterAndClose('in-progress')"
-              >
-                进行中
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'completed' }"
-                @click="setFilterAndClose('completed')"
-              >
-                已完成
-              </div>
-              <div
-                class="dropdown-item"
-                :class="{ active: activeFilter === 'paused' }"
-                @click="setFilterAndClose('paused')"
-              >
-                已暂停
-              </div>
-            </div>
-          </div>
-          <div class="search-box">
-            <input
-              type="text"
-              placeholder="搜索任务..."
-              :value="searchQuery"
-              @input="updateSearchQuery"
-            />
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
-              <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-
-        <div class="task-grid">
-          <div
-            v-for="task in filteredTasks"
-            :key="task.id"
-            class="task-card"
-            :class="{ 'unpublished': !isTaskPublished(task) }"
-          >
-            <div class="task-header">
-              <input
-                type="checkbox"
-                :checked="task.checked"
-                @change="toggleTaskCheckbox(task.id)"
-              />
-              <div class="task-title">
-                {{ task.title }}
-                <span v-if="!isTaskPublished(task)" class="unpublished-badge">未发布</span>
-              </div>
-              <div class="task-status" :class="getStatusClass(task.status)">
-                {{ getStatusText(task.status) }}
-              </div>
-            </div>
-            <div class="task-description">{{ task.description }}</div>
-            <div class="task-assignee">
-              <div class="assignee-avatar">{{ task.assignee.charAt(0) }}</div>
-              <span>{{ task.assignee }}</span>
-            </div>
-            <div v-if="!isTaskPublished(task)" class="task-actions">
-              <button
-                class="publish-btn"
-                @click="updateTaskPublishStatus(task.id, true)"
-                title="发布任务"
-              >
-                发布
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <h1 class="page-main-title">AI 实验分析助手</h1>
       <!-- AI对话区域 -->
       <div class="ai-chat-section">
-        <div class="ai-dialog-title">AI对话框</div>
+        <div class="chat-header">
+          <div class="ai-dialog-title">AI对话框</div>
+          <button class="view-history-btn" @click="viewChatHistory" title="查看聊天记录">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M3 12H7M17 12H21M12 3V7M12 17V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>查看记录</span>
+          </button>
+        </div>
         <div class="chat-container">
           <div
             v-for="message in chatMessages"
@@ -211,87 +57,99 @@
         </div>
 
         <div class="user-input-area">
+          <div class="file-menu-wrapper">
+            <button 
+              class="file-select-btn" 
+              @click.stop.prevent="toggleFileMenu"
+              :disabled="isSending"
+              title="选择文件"
+              type="button"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 13H16M8 17H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <!-- 下拉菜单 -->
+            <div v-if="showFileMenu" class="file-dropdown-menu">
+              <div class="dropdown-item" @click="openFileDialogFromArchive">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>从成果档案打开文件</span>
+              </div>
+              <div class="dropdown-item" @click="openFileUpload">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M7 10L12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>从本地上传文档</span>
+              </div>
+            </div>
+          </div>
+          <!-- 隐藏的文件输入 -->
+          <input 
+            ref="fileInput" 
+            type="file" 
+            multiple
+            style="display: none" 
+            @change="handleFileUpload"
+          />
           <input
             type="text"
             placeholder="输入您的问题..."
             v-model="userMessage"
             @keyup.enter="sendMessage"
+            :disabled="isSending"
           />
-          <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim()">发送</button>
+          <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim() || isSending">发送</button>
         </div>
       </div>
-      </div>
+    </div>
 
-      <!-- AI分析建议区域 -->
-      <div class="ai-suggestions">
-        <h3 class="suggestions-title">AI分析建议</h3>
-        <div class="suggestions-grid">
-          <div class="suggestion-card">
-            <div class="suggestion-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">优化建议</div>
-              <div class="suggestion-text">建议调整激光功率参数至4.2W以提升纠缠态制备效率</div>
-            </div>
+    <!-- 聊天记录模态框 -->
+    <div v-if="showChatHistoryModal" class="chat-history-modal-overlay" @click="closeChatHistoryModal">
+      <div class="chat-history-modal" @click.stop>
+        <div class="modal-header">
+          <h3>聊天记录</h3>
+          <button class="close-btn" @click="closeChatHistoryModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div v-if="chatSessions.length === 0" class="empty-state">
+            <p>暂无聊天记录</p>
           </div>
-
-          <div class="suggestion-card">
-            <div class="suggestion-icon warning">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">风险预警</div>
-              <div class="suggestion-text">检测到环境温度波动可能影响实验稳定性</div>
-            </div>
-          </div>
-
-          <div class="suggestion-card">
-            <div class="suggestion-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 3V21H21M7 16L12 11L16 15L20 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="suggestion-content">
-              <div class="suggestion-title">进度反馈</div>
-              <div class="suggestion-text">所选任务平均完成度78%,预计还需3天完成</div>
+          <div v-else class="chat-sessions-list">
+            <div
+              v-for="session in chatSessions"
+              :key="session.id"
+              class="chat-session-item"
+              :class="{ active: session.id === currentChatSessionId }"
+              @click="loadChatSession(session.id)"
+            >
+              <div class="session-info">
+                <div class="session-title">{{ session.title || `聊天记录 ${session.id}` }}</div>
+                <div class="session-meta">
+                  <span class="session-date">{{ formatDate(session.updatedAt) }}</span>
+                  <span class="session-count">{{ session.messageCount }} 条消息</span>
+                </div>
+              </div>
+              <button class="delete-session-btn" @click.stop="deleteChatSession(session.id)" title="删除记录">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- 底部操作栏 -->
-      <div class="bottom-actions">
-        <button class="action-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16L21 8V19C21 20.1046 20.1046 21 19 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M7 3V8H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          保存分析
-        </button>
-        <button class="action-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          导出报告
-        </button>
-        <button class="action-btn primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M4 12V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M16 6L12 2L8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 2V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          分享结果
-        </button>
+        <div class="modal-footer">
+          <button class="btn-primary" @click="createNewChatSession">新建聊天</button>
+        </div>
       </div>
     </div>
   </div>
@@ -316,6 +174,15 @@ export default {
       chatMessages: [],
       showProjectDropdown: false,
       syncTimer: null,
+      isSending: false,
+      showFileMenu: false,
+      showFileDialog: false,
+      files: [],
+      selectedFiles: [],
+      loadingFiles: false,
+      showChatHistoryModal: false,
+      chatSessions: [], // 聊天会话列表
+      currentChatSessionId: null, // 当前聊天会话ID
       currentProject: {
         id: 1,
         title: '量子计算算法优化研究',
@@ -561,6 +428,24 @@ export default {
     // 调试localStorage数据
     this.debugLocalStorage()
     
+    // 加载聊天会话列表
+    this.loadChatSessionsFromStorage()
+    
+    // 尝试恢复上次的聊天会话
+    const lastChatSessionId = localStorage.getItem('lastChatSessionId')
+    if (lastChatSessionId) {
+      const sessionId = parseInt(lastChatSessionId)
+      const session = this.chatSessions.find(s => s.id === sessionId)
+      if (session) {
+        this.currentChatSessionId = sessionId
+        this.chatMessages = session.messages ? [...session.messages] : []
+        console.log('已恢复上次的聊天会话:', sessionId)
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
+      }
+    }
+    
     // 先加载用户项目
     this.loadUserProjects()
     
@@ -625,6 +510,12 @@ export default {
     })
   },
   beforeDestroy() {
+    // 页面销毁前保存当前会话
+    if (this.currentChatSessionId && this.chatMessages.length > 0) {
+      this.saveCurrentChatSession()
+      localStorage.setItem('lastChatSessionId', String(this.currentChatSessionId))
+    }
+    
     document.removeEventListener('click', this.handleClickOutside)
     document.removeEventListener('visibilitychange', this.syncTaskStatusChanges)
     window.removeEventListener('focus', this.syncTaskStatusChanges)
@@ -1099,21 +990,38 @@ export default {
     },
     sendMessage() {
       console.log('sendMessage called, userMessage:', this.userMessage)
-      if (!this.userMessage.trim()) {
-        console.log('Message is empty, not sending')
+      if (!this.userMessage.trim() || this.isSending) {
+        console.log('Message is empty or already sending, not sending')
         return
       }
 
+      // 如果没有当前会话，创建一个新的
+      if (!this.currentChatSessionId) {
+        this.currentChatSessionId = Date.now()
+      }
+
       console.log('Adding user message to chat')
+      const messageContent = this.userMessage.trim()
+      
       // 添加用户消息
       const userMsg = {
         id: Date.now(),
         type: 'user',
-        content: this.userMessage.trim(),
+        content: messageContent,
         timestamp: new Date()
       }
       this.chatMessages.push(userMsg)
       console.log('Chat messages after adding user message:', this.chatMessages)
+
+      // 保存当前会话
+      this.saveCurrentChatSession()
+
+      // 清空输入框
+      this.userMessage = ''
+      console.log('Input cleared')
+      
+      // 设置发送状态
+      this.isSending = true
 
       // 模拟AI回复
       setTimeout(() => {
@@ -1124,21 +1032,24 @@ export default {
           content: '目前功能仍在开发',
           timestamp: new Date()
         }
-      this.chatMessages.push(aiMsg)
-      console.log('Chat messages after adding AI response:', this.chatMessages)
+        this.chatMessages.push(aiMsg)
+        console.log('Chat messages after adding AI response:', this.chatMessages)
+        
+        // 保存会话（包含AI回复）
+        this.saveCurrentChatSession()
+        
+        // 滚动到最新消息
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
+        // 重置发送状态
+        this.isSending = false
+      }, 1000)
+
       // 滚动到最新消息
       this.$nextTick(() => {
         this.scrollToBottom()
       })
-    }, 1000)
-
-    // 清空输入框
-    this.userMessage = ''
-    console.log('Input cleared')
-    // 滚动到最新消息
-    this.$nextTick(() => {
-      this.scrollToBottom()
-    })
     },
     scrollToBottom() {
       const chatContainer = this.$el.querySelector('.chat-container')
@@ -1151,6 +1062,281 @@ export default {
         this.showProjectDropdown = false
         this.filterDropdownOpen = false
       }
+      // 处理文件菜单点击外部关闭
+      if (this.showFileMenu && !event.target.closest('.file-menu-wrapper')) {
+        this.showFileMenu = false
+      }
+    },
+    
+    // 切换文件菜单显示
+    toggleFileMenu() {
+      this.showFileMenu = !this.showFileMenu
+    },
+    
+    // 从成果档案打开文件
+    async openFileDialogFromArchive() {
+      this.showFileMenu = false
+      this.showFileDialog = true
+      this.selectedFiles = []
+      if (this.files.length === 0 && this.currentProject && this.currentProject.id) {
+        await this.loadFiles()
+      }
+    },
+    
+    // 打开文件上传
+    openFileUpload() {
+      this.showFileMenu = false
+      this.$refs.fileInput.click()
+    },
+    
+    // 处理文件上传
+    handleFileUpload(event) {
+      const files = Array.from(event.target.files)
+      if (files.length > 0) {
+        console.log('选择了本地文件:', files)
+        // 将文件名添加到输入框
+        const fileNames = files.map(file => file.name).join('、')
+        const fileInfo = `我已上传以下文档：${fileNames}`
+        this.userMessage = this.userMessage.trim() 
+          ? `${this.userMessage}\n\n${fileInfo}`
+          : fileInfo
+        
+        // 这里可以添加文件上传到后端的逻辑
+        // TODO: 实现文件上传功能
+      }
+      // 清空文件输入
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
+    },
+    
+    // 关闭文件选择弹窗
+    closeFileDialog() {
+      this.showFileDialog = false
+      this.selectedFiles = []
+    },
+    
+    // 加载成果目录文件列表
+    async loadFiles() {
+      if (!this.currentProject || !this.currentProject.id) {
+        console.warn('项目ID不存在，无法加载文件列表')
+        return
+      }
+      
+      this.loadingFiles = true
+      try {
+        // 这里需要使用 knowledgeAPI，需要导入
+        // 暂时先注释，等确认 API 接口后实现
+        // const response = await knowledgeAPI.getProjectAchievements(this.currentProject.id, 0, 1000)
+        console.log('加载成果文件列表（功能待实现）')
+        this.files = []
+      } catch (error) {
+        console.error('加载成果文件列表失败:', error)
+        this.files = []
+      } finally {
+        this.loadingFiles = false
+      }
+    },
+    
+    // 切换文件选择状态
+    toggleFileSelection(fileId) {
+      const index = this.selectedFiles.indexOf(fileId)
+      if (index > -1) {
+        this.selectedFiles.splice(index, 1)
+      } else {
+        this.selectedFiles.push(fileId)
+      }
+    },
+    
+    // 确认选择文件
+    confirmFileSelection() {
+      if (this.selectedFiles.length === 0) return
+      
+      const selectedFileNames = this.files
+        .filter(file => this.selectedFiles.includes(file.id))
+        .map(file => file.name || file.title || '未命名文件')
+        .join('、')
+      
+      // 将选中的文件信息添加到输入框
+      const fileInfo = `请参考以下成果目录文件：${selectedFileNames}`
+      this.userMessage = this.userMessage.trim() 
+        ? `${this.userMessage}\n\n${fileInfo}`
+        : fileInfo
+      
+      // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
+      console.log('选中的文件ID:', this.selectedFiles)
+      console.log('选中的文件:', this.files.filter(file => this.selectedFiles.includes(file.id)))
+      
+      this.closeFileDialog()
+    },
+    
+    // 查看聊天记录
+    viewChatHistory() {
+      this.loadChatSessionsFromStorage()
+      this.showChatHistoryModal = true
+    },
+    
+    // 关闭聊天记录模态框
+    closeChatHistoryModal() {
+      this.showChatHistoryModal = false
+    },
+    
+    // 从localStorage加载聊天会话列表
+    loadChatSessionsFromStorage() {
+      try {
+        const saved = localStorage.getItem('aiChatSessions')
+        if (saved) {
+          this.chatSessions = JSON.parse(saved)
+          // 按更新时间倒序排列
+          this.chatSessions.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+        } else {
+          this.chatSessions = []
+        }
+      } catch (error) {
+        console.error('加载聊天会话失败:', error)
+        this.chatSessions = []
+      }
+    },
+    
+    // 保存聊天会话列表到localStorage
+    saveChatSessionsToStorage() {
+      try {
+        localStorage.setItem('aiChatSessions', JSON.stringify(this.chatSessions))
+      } catch (error) {
+        console.error('保存聊天会话失败:', error)
+      }
+    },
+    
+    // 创建新的聊天会话
+    createNewChatSession() {
+      // 如果有当前会话，先保存它
+      if (this.currentChatSessionId && this.chatMessages.length > 0) {
+        this.saveCurrentChatSession()
+      }
+      
+      // 创建新会话
+      const newSessionId = Date.now()
+      const newSession = {
+        id: newSessionId,
+        title: '新聊天',
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messageCount: 0
+      }
+      
+      this.chatSessions.unshift(newSession)
+      this.currentChatSessionId = newSessionId
+      this.chatMessages = []
+      localStorage.setItem('lastChatSessionId', String(newSessionId))
+      this.saveChatSessionsToStorage()
+      this.closeChatHistoryModal()
+      
+      console.log('创建新聊天会话:', newSessionId)
+    },
+    
+    // 加载指定的聊天会话
+    loadChatSession(sessionId) {
+      const session = this.chatSessions.find(s => s.id === sessionId)
+      if (!session) {
+        console.warn('未找到聊天会话:', sessionId)
+        return
+      }
+      
+      // 保存当前会话（如果有）
+      if (this.currentChatSessionId && this.currentChatSessionId !== sessionId && this.chatMessages.length > 0) {
+        this.saveCurrentChatSession()
+      }
+      
+      // 加载选中的会话
+      this.currentChatSessionId = sessionId
+      this.chatMessages = session.messages ? [...session.messages] : []
+      localStorage.setItem('lastChatSessionId', String(sessionId))
+      
+      this.closeChatHistoryModal()
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+      
+      console.log('加载聊天会话:', sessionId, '消息数量:', this.chatMessages.length)
+    },
+    
+    // 保存当前聊天会话
+    saveCurrentChatSession() {
+      if (!this.currentChatSessionId) return
+      
+      const sessionIndex = this.chatSessions.findIndex(s => s.id === this.currentChatSessionId)
+      if (sessionIndex === -1) {
+        // 如果会话不存在，创建新会话
+        const newSession = {
+          id: this.currentChatSessionId,
+          title: this.generateSessionTitle(),
+          messages: [...this.chatMessages],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messageCount: this.chatMessages.length
+        }
+        this.chatSessions.unshift(newSession)
+      } else {
+        // 更新现有会话
+        this.chatSessions[sessionIndex].messages = [...this.chatMessages]
+        this.chatSessions[sessionIndex].updatedAt = new Date().toISOString()
+        this.chatSessions[sessionIndex].messageCount = this.chatMessages.length
+        // 如果没有标题，生成一个
+        if (!this.chatSessions[sessionIndex].title || this.chatSessions[sessionIndex].title === '新聊天') {
+          this.chatSessions[sessionIndex].title = this.generateSessionTitle()
+        }
+      }
+      
+      this.saveChatSessionsToStorage()
+    },
+    
+    // 生成会话标题（使用第一条用户消息的前20个字符）
+    generateSessionTitle() {
+      const firstUserMessage = this.chatMessages.find(msg => msg.type === 'user')
+      if (firstUserMessage && firstUserMessage.content) {
+        const title = firstUserMessage.content.trim()
+        return title.length > 20 ? title.substring(0, 20) + '...' : title
+      }
+      return '新聊天'
+    },
+    
+    // 删除聊天会话
+    deleteChatSession(sessionId) {
+      if (!confirm('确定要删除这条聊天记录吗？')) {
+        return
+      }
+      
+      const index = this.chatSessions.findIndex(s => s.id === sessionId)
+      if (index !== -1) {
+        this.chatSessions.splice(index, 1)
+        this.saveChatSessionsToStorage()
+        
+        // 如果删除的是当前会话，清空聊天消息
+        if (sessionId === this.currentChatSessionId) {
+          this.currentChatSessionId = null
+          this.chatMessages = []
+          localStorage.removeItem('lastChatSessionId')
+        }
+      }
+    },
+    
+    // 格式化日期
+    formatDate(dateString) {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      const now = new Date()
+      const diff = now - date
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(diff / 3600000)
+      const days = Math.floor(diff / 86400000)
+      
+      if (minutes < 1) return '刚刚'
+      if (minutes < 60) return `${minutes}分钟前`
+      if (hours < 24) return `${hours}小时前`
+      if (days < 7) return `${days}天前`
+      
+      return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
     }
   }
 }
