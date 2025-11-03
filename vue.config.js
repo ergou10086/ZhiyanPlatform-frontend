@@ -88,6 +88,30 @@ module.exports = {
           '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/coze/*
         }
       },
+      // ✅ Dify AI相关API - 转发到8097端口（Dify AI服务）
+      // URL示例：/zhiyan/api/ai/* → http://localhost:8097/api/ai/*
+      '/zhiyan/api/ai': {
+        target: 'http://localhost:8097',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug',
+        pathRewrite: {
+          '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/ai/*
+        },
+        // ✅ 关键配置：禁用代理缓冲，支持流式响应（SSE）
+        onProxyRes: function (proxyRes, req, res) {
+          // 对于流式接口，设置响应头确保数据不被缓冲
+          if (req.url.includes('/stream')) {
+            proxyRes.headers['X-Accel-Buffering'] = 'no'; // 禁用 Nginx 缓冲
+            delete proxyRes.headers['content-length']; // 删除 content-length，避免缓冲
+          }
+        },
+        // ✅ 禁用自动解压，避免缓冲
+        selfHandleResponse: false,
+        // ✅ 设置超时时间（0表示无限制）
+        timeout: 0
+      },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/api/auth/login → http://localhost:8091/api/auth/login
       '/zhiyan/api/auth': {

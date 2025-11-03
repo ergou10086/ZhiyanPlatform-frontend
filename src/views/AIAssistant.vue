@@ -300,6 +300,7 @@
 import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
+import difyAPI from '@/api/dify'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
 export default {
@@ -328,6 +329,7 @@ export default {
       showChatHistoryModal: false,
       chatSessions: [], // 聊天会话列表
       currentChatSessionId: null, // 当前聊天会话ID
+      difyConversationId: null, // Dify对话上下文ID
       currentProject: {
         id: 1,
         title: '量子计算算法优化研究',
@@ -536,15 +538,10 @@ export default {
     filteredTasks() {
       let filtered = this.tasks
 
-      console.log('当前任务列表:', filtered)
-      console.log('当前过滤器:', this.activeFilter)
-      console.log('任务数量:', filtered.length)
-
       // 按状态筛选
       if (this.activeFilter === 'published') {
         // 只显示已发布的任务
         filtered = filtered.filter(task => this.isTaskPublished(task))
-        console.log('已发布任务数量:', filtered.length)
       } else if (this.activeFilter !== 'all') {
         // 其他状态筛选
         filtered = filtered.filter(task => task.status === this.activeFilter)
@@ -627,32 +624,21 @@ export default {
       }
     })
 
-    // 设置定时器定期同步任务状态（每30秒）
-    this.syncTimer = setInterval(() => {
-      this.syncTaskStatusChanges()
-    }, 30000)
+    // 【临时禁用】自动同步功能，避免日志刷屏
+    // 用户可以手动点击"同步任务状态"按钮进行同步
+    
+    // this.syncTimer = setInterval(() => {
+    //   this.syncTaskStatusChanges()
+    // }, 60000)
 
-    // 监听页面可见性变化，当页面重新获得焦点时同步
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.syncTaskStatusChanges()
-      }
-    })
-
-    // 监听窗口焦点变化
-    window.addEventListener('focus', () => {
-      this.syncTaskStatusChanges()
-    })
-
-    // 监听任务状态变化事件
-    this.$root.$on('taskStatusChanged', (data) => {
-      console.log('收到任务状态变化通知:', data)
-      // 如果变化的是当前项目的任务，立即同步
-      if (data.projectId === this.currentProject.id) {
-        console.log('当前项目任务状态发生变化，立即同步')
-        this.syncTaskStatusChanges()
-      }
-    })
+    // // 监听任务状态变化事件
+    // this.$root.$on('taskStatusChanged', (data) => {
+    //   console.log('收到任务状态变化通知:', data)
+    //   if (data.projectId === this.currentProject.id) {
+    //     console.log('当前项目任务状态发生变化，立即同步')
+    //     this.syncTaskStatusChanges()
+    //   }
+    // })
   },
   beforeDestroy() {
     // 页面销毁前保存当前会话
@@ -696,50 +682,37 @@ export default {
         progress: project.progress
       }))
   
-      // 重新加载项目任务数据
+      // 重新加载项目任务数据（只调用一次）
       this.loadProjectTasks(project.id)
-      // 检查是否是用户项目（判断ID是否为字符串且是雪花ID）
-      // 雪花ID通常是19位数字，而默认项目的ID是1,2,3,4
-      const isCustomProject = String(project.id).length > 5
-      if (isCustomProject) {
-        this.loadUserProjects()
-        this.loadProjectTasks(project.id)
-      }
     },
 
     // 同步任务状态变化
     syncTaskStatusChanges() {
-      console.log('同步任务状态变化...')
+      console.log('[同步] 同步任务状态变化...')
 
-      // 重新加载用户项目数据（确保获取最新的项目信息）
-      this.loadUserProjects()
-
-      // 重新加载当前项目的任务数据
+      // 只重新加载当前项目的任务数据（不需要重新加载所有项目列表）
       this.loadProjectTasks(this.currentProject.id)
 
-      console.log('任务状态同步完成，当前任务数量:', this.tasks.length)
-      console.log('当前任务状态详情:', this.tasks.map(t => ({ title: t.title, status: t.status, statusText: this.getStatusText(t.status) })))
+      console.log('[同步] 任务状态同步完成，当前任务数量:', this.tasks.length)
     },
     loadProjectTasks(projectId) {
       // 根据项目ID加载对应的任务数据
-      console.log(`加载项目 ${projectId} 的任务数据`)
+      console.log(`[任务加载] 加载项目 ${projectId} 的任务`)
 
       // 从项目加载任务数据
       const projectTasks = this.loadTasksFromProject(projectId)
 
       if (projectTasks && projectTasks.length > 0) {
-        console.log(`找到 ${projectTasks.length} 个任务`)
-        console.log('任务详情:', projectTasks)
-
+        console.log(`[任务加载] 找到 ${projectTasks.length} 个任务`)
         // 更新任务列表，保持响应式
         this.tasks.splice(0, this.tasks.length, ...projectTasks)
       } else {
-        console.log('没有找到任务数据')
+        console.log(`[任务加载] 项目 ${projectId} 没有任务`)
         this.tasks.splice(0, this.tasks.length)
       }
     },
     async loadUserProjects() {
-      console.log('开始加载用户参加的项目...')
+      console.log('[项目加载] 开始加载用户参加的项目...')
 
       // 检查用户是否已登录
       const token = localStorage.getItem('access_token')
@@ -747,7 +720,7 @@ export default {
       const isAuthenticated = !!(token && userInfo)
       
       if (!isAuthenticated) {
-        console.log('用户未登录，使用默认项目数据')
+        console.log('[项目加载] 用户未登录，使用默认项目数据')
         // 如果用户未登录，保持默认项目
         return
       }
@@ -805,32 +778,10 @@ export default {
             }
           })
           
-          console.log('成功加载用户参加的项目:', userProjects)
+          console.log(`[项目加载] 成功加载 ${userProjects.length} 个用户项目`)
           
-          // 为每个用户项目加载任务数据
-          userProjects.forEach(project => {
-            const projectId = project.id
-            console.log(`处理项目 ${project.title} (ID: ${projectId})`)
-            
-            // 从localStorage或API加载该项目的任务
-            const projectTasks = this.loadTasksFromProject(projectId)
-            
-            if (projectTasks.length > 0) {
-              this.projectTasks[projectId] = projectTasks.map((task, index) => ({
-                id: task.id || `${projectId}_${index}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                title: task.title,
-                description: task.description || '任务描述',
-                assignee: task.assignee || '项目负责人',
-                status: task.status || 'in-progress',
-                checked: false,
-                published: task.published !== false
-              }))
-              console.log(`项目 ${project.title} 加载了 ${projectTasks.length} 个任务`)
-            } else {
-              this.projectTasks[projectId] = []
-              console.log(`项目 ${project.title} 没有任务`)
-            }
-          })
+          // 不在这里为所有项目加载任务，避免产生大量日志
+          // 任务会在切换到具体项目时按需加载
           
           // 更新可用项目列表（只使用用户参加的项目）
           this.availableProjects = userProjects
@@ -857,46 +808,33 @@ export default {
 
     // 从项目加载任务数据
     loadTasksFromProject(projectId) {
-      console.log(`开始加载项目 ${projectId} 的任务数据`)
-
       // 首先尝试从项目广场的任务存储格式加载（直接从项目的tasks字段）
       const projectSquareTasks = this.loadTasksFromProjectSquare(projectId)
       if (projectSquareTasks.length > 0) {
-        console.log(`从项目广场加载了 ${projectSquareTasks.length} 个任务`)
         return projectSquareTasks
       }
 
       // 如果是默认项目，从projectTasks中加载
       if (this.projectTasks[projectId]) {
-        console.log(`从默认项目数据加载了 ${this.projectTasks[projectId].length} 个任务`)
         return this.projectTasks[projectId]
       }
 
-      console.log(`项目 ${projectId} 没有找到任务数据`)
       return []
     },
 
     // 从项目广场加载任务数据
     loadTasksFromProjectSquare(projectId) {
-      console.log(`尝试从项目广场加载项目 ${projectId} 的任务`)
-
       // 获取项目信息
       const projects = JSON.parse(localStorage.getItem('projects') || '[]')
       // 使用字符串比较，避免类型不一致导致找不到项目
       const project = projects.find(p => String(p.id) === String(projectId))
 
       if (!project) {
-        console.log(`未找到项目 ${projectId}`)
         return []
       }
 
-      console.log(`找到项目: ${project.title}`)
-      console.log(`项目数据:`, project)
-
       // 直接从项目的tasks字段获取任务
       if (project.tasks && Array.isArray(project.tasks) && project.tasks.length > 0) {
-        console.log(`从项目 ${project.title} 的tasks字段找到 ${project.tasks.length} 个任务`)
-        console.log(`任务数据:`, project.tasks)
 
         // 转换任务格式以匹配AI助手的显示格式
         return project.tasks.map(task => ({
@@ -911,7 +849,6 @@ export default {
         }))
       }
 
-      console.log(`项目 ${project.title} 没有tasks字段或任务为空`)
       return []
     },
 
@@ -1133,7 +1070,7 @@ export default {
     getStatusClass(status) {
       return status
     },
-    sendMessage() {
+    async sendMessage() {
       console.log('sendMessage called, userMessage:', this.userMessage)
       if (!this.userMessage.trim() || this.isSending) {
         console.log('Message is empty or already sending, not sending')
@@ -1168,33 +1105,89 @@ export default {
       // 设置发送状态
       this.isSending = true
 
-      // 模拟AI回复
-      setTimeout(() => {
-        console.log('Adding AI response')
-        const aiMsg = {
-          id: Date.now() + 1,
-          type: 'ai',
-          content: '目前功能仍在开发',
-          timestamp: new Date()
-        }
-        this.chatMessages.push(aiMsg)
-        console.log('Chat messages after adding AI response:', this.chatMessages)
-        
-        // 保存会话（包含AI回复）
-        this.saveCurrentChatSession()
-        
-        // 滚动到最新消息
-        this.$nextTick(() => {
-          this.scrollToBottom()
-        })
-        // 重置发送状态
-        this.isSending = false
-      }, 1000)
+      // 创建一个AI消息占位符用于流式响应
+      const aiMsg = {
+        id: Date.now() + 1,
+        type: 'ai',
+        content: '',
+        timestamp: new Date()
+      }
+      this.chatMessages.push(aiMsg)
+      const aiMessageIndex = this.chatMessages.length - 1
 
       // 滚动到最新消息
       this.$nextTick(() => {
         this.scrollToBottom()
       })
+
+      try {
+        // 获取用户ID作为Dify的user标识
+        const userId = localStorage.getItem('userId') || 'default-user'
+        
+        console.log('[AI助手] 开始调用Dify API, user:', userId, 'conversationId:', this.difyConversationId)
+        
+        // 调用Dify流式API（通过后端代理）
+        await difyAPI.sendChatMessageStream(
+          messageContent,
+          this.difyConversationId,
+          // onMessage回调：接收流式消息片段
+          (answerDelta, data) => {
+            console.log('[AI助手] 收到Dify消息片段:', answerDelta, '当前总长度:', this.chatMessages[aiMessageIndex].content.length)
+            // 追加内容到AI消息 - 使用Vue.set确保响应式更新
+            const currentContent = this.chatMessages[aiMessageIndex].content
+            this.$set(this.chatMessages[aiMessageIndex], 'content', currentContent + answerDelta)
+            console.log('[AI助手] 更新后总长度:', this.chatMessages[aiMessageIndex].content.length)
+            // 滚动到底部
+            this.$nextTick(() => {
+              this.scrollToBottom()
+            })
+          },
+          // onEnd回调：流结束
+          (data) => {
+            console.log('Dify响应完成')
+            // 保存conversation_id以便后续对话能保持上下文
+            if (data && data.conversation_id) {
+              this.difyConversationId = data.conversation_id
+              console.log('保存Dify对话ID:', this.difyConversationId)
+            }
+            
+            // 保存会话（包含AI回复）
+            this.saveCurrentChatSession()
+            
+            // 重置发送状态
+            this.isSending = false
+            
+            // 最终滚动到最新消息
+            this.$nextTick(() => {
+              this.scrollToBottom()
+            })
+          },
+          // onError回调：错误处理
+          (error) => {
+            console.error('Dify API错误:', error)
+            this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。'
+            this.isSending = false
+            
+            // 保存会话（包含错误消息）
+            this.saveCurrentChatSession()
+            
+            this.$nextTick(() => {
+              this.scrollToBottom()
+            })
+          }
+        )
+      } catch (error) {
+        console.error('发送消息失败:', error)
+        this.chatMessages[aiMessageIndex].content = '抱歉，发送消息时出现错误，请稍后再试。'
+        this.isSending = false
+        
+        // 保存会话（包含错误消息）
+        this.saveCurrentChatSession()
+        
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
+      }
     },
     scrollToBottom() {
       const chatContainer = this.$el.querySelector('.chat-container')
@@ -1423,6 +1416,7 @@ export default {
       this.chatSessions.unshift(newSession)
       this.currentChatSessionId = newSessionId
       this.chatMessages = []
+      this.difyConversationId = null // 重置Dify对话ID，开始新的对话上下文
       localStorage.setItem('lastChatSessionId', String(newSessionId))
       this.saveChatSessionsToStorage()
       this.closeChatHistoryModal()
@@ -1446,6 +1440,7 @@ export default {
       // 加载选中的会话
       this.currentChatSessionId = sessionId
       this.chatMessages = session.messages ? [...session.messages] : []
+      this.difyConversationId = null // 切换会话时重置Dify对话ID，开始新的对话上下文
       localStorage.setItem('lastChatSessionId', String(sessionId))
       
       this.closeChatHistoryModal()
