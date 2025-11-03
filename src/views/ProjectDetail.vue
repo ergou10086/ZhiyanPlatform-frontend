@@ -729,7 +729,7 @@
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
-    </div>
+      </div>
 
     <!-- 图片裁切Modal -->
     <div v-if="showCropModal" class="crop-modal-overlay">
@@ -2078,20 +2078,20 @@ export default {
       const file = event.target.files[0]
       if (!file) return
       
-      // 验证文件类型
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
-      if (!allowedTypes.includes(file.type)) {
-        alert('只支持以下图片格式: jpg, png, gif, webp, bmp')
+        // 验证文件类型
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']
+        if (!allowedTypes.includes(file.type)) {
+          alert('只支持以下图片格式: jpg, png, gif, webp, bmp')
         this.$refs.projectImageUpload.value = ''
-        return
-      }
-      
-      // 验证文件大小（5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        alert('文件大小不能超过5MB')
+          return
+        }
+        
+        // 验证文件大小（5MB）
+        if (file.size > 5 * 1024 * 1024) {
+          alert('文件大小不能超过5MB')
         this.$refs.projectImageUpload.value = ''
-        return
-      }
+          return
+        }
       
       // 创建预览URL并立即进入裁切模式
       const reader = new FileReader()
@@ -2192,7 +2192,7 @@ export default {
     },
     closeCropModal() {
       // 如果用户取消裁切，清空文件输入
-      this.$refs.projectImageUpload.value = ''
+          this.$refs.projectImageUpload.value = ''
       this.showCropModal = false
       this.originalImage = null
       this.originalImageData = null
