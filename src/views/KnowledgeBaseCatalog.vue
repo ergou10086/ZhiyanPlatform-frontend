@@ -1177,6 +1177,7 @@ import { saveToLocalStorage, loadFromLocalStorage, updateFileContentInStorage } 
 import { downloadFile, downloadSingleFile, downloadAllFiles, loadTextFile, loadImageFile, loadPdfFile, getFileInfo, testArrayBufferConversion } from '@/utils/catalogFileHandler'
 import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
+import { projectAPI } from '@/api/project'
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1374,7 +1375,28 @@ export default {
         if (response && response.code === 200 && response.data) {
           // data是Page对象，包含content数组
           const achievements = response.data.content || []
+          
+          // 调试：打印原始DTO数据结构，查看上传者信息在哪个字段
+          if (achievements.length > 0) {
+            console.log('📋 原始成果DTO示例（第一个）:', achievements[0])
+            console.log('📋 DTO所有字段:', Object.keys(achievements[0]))
+            console.log('📋 上传者相关字段:', {
+              creatorName: achievements[0].creatorName,
+              creator: achievements[0].creator,
+              createdBy: achievements[0].createdBy,
+              uploader: achievements[0].uploader,
+              username: achievements[0].username,
+              userName: achievements[0].userName,
+              creatorInfo: achievements[0].creatorInfo,
+              creatorUser: achievements[0].creatorUser,
+              createdByUser: achievements[0].createdByUser
+            })
+          }
+          
           this.uploadedFiles = achievements.map(dto => convertFromDTO(dto))
+          
+          // 对于uploader为null的记录，异步获取用户名
+          await this.fetchMissingCreatorNames()
           
           console.log('转换后的成果列表:', this.uploadedFiles)
         } else {
@@ -1387,6 +1409,112 @@ export default {
         // 失败时设置为空数组，不使用默认数据
         this.uploadedFiles = []
       }
+    },
+    
+    /**
+     * 异步获取缺失的上传者姓名
+     * 通过项目成员列表获取，避免权限问题
+     */
+    async fetchMissingCreatorNames() {
+      // 找出所有需要获取用户名的成果（uploader为null/undefined/'未知用户'且有creatorId）
+      const achievementsNeedingFetch = this.uploadedFiles.filter(
+        file => (!file.uploader || file.uploader === '未知用户') && file.creatorId
+      )
+      
+      if (achievementsNeedingFetch.length === 0) {
+        console.log('🔍 没有需要获取上传者姓名的成果')
+        return
+      }
+      
+      if (!this.projectId) {
+        console.warn('⚠️ projectId为空，无法获取项目成员列表')
+        return
+      }
+      
+      console.log(`🔍 需要获取 ${achievementsNeedingFetch.length} 个上传者姓名`)
+      console.log('🔍 需要获取的成果列表:', achievementsNeedingFetch.map(f => ({ id: f.id, name: f.name, creatorId: f.creatorId, uploader: f.uploader })))
+      
+      // 获取唯一的creatorId列表（避免重复查找）
+      const uniqueCreatorIds = [...new Set(achievementsNeedingFetch.map(f => String(f.creatorId)))]
+      console.log('🔍 唯一的creatorId列表:', uniqueCreatorIds)
+      
+      // 创建用户ID到用户名的映射（使用字符串作为key）
+      const userIdToNameMap = new Map()
+      
+      try {
+        // 通过项目成员列表获取用户信息（这个接口应该是可用的）
+        console.log(`📡 开始获取项目成员列表: projectId=${this.projectId}`)
+        const response = await projectAPI.getProjectMembers(this.projectId, 0, 1000)
+        
+        console.log('📡 项目成员列表API响应:', response)
+        
+        if (response && response.code === 200) {
+          let members = []
+          if (response.data && response.data.content) {
+            members = response.data.content
+          } else if (Array.isArray(response.data)) {
+            members = response.data
+          }
+          
+          console.log(`📋 获取到 ${members.length} 个项目成员`)
+          
+          // 遍历成员列表，建立ID到姓名的映射
+          members.forEach(member => {
+            const memberId = String(member.userId || member.id)
+            const memberName = member.username || member.name || member.nickname
+            if (memberName && memberName.trim() !== '') {
+              userIdToNameMap.set(memberId, memberName)
+              console.log(`✅ 添加成员映射: ID=${memberId}, 姓名="${memberName}"`)
+            }
+          })
+          
+          console.log('📋 成员映射表:', Array.from(userIdToNameMap.entries()))
+        } else {
+          console.warn('⚠️ 获取项目成员列表失败:', response)
+        }
+      } catch (error) {
+        console.error('❌ 获取项目成员列表异常:', error)
+      }
+      
+      // 如果映射表为空，说明无法获取成员信息
+      if (userIdToNameMap.size === 0) {
+        console.warn('⚠️ 无法获取项目成员信息，无法解析上传者姓名')
+        return
+      }
+      
+      // 更新成果列表中的上传者姓名
+      let updateCount = 0
+      // 使用数组索引更新，确保响应式
+      for (let index = 0; index < this.uploadedFiles.length; index++) {
+        const achievement = this.uploadedFiles[index]
+        const creatorIdStr = String(achievement.creatorId)
+        
+        // 如果这个成果需要更新且我们在成员列表中找到了对应的用户名
+        if ((!achievement.uploader || achievement.uploader === '未知用户') && userIdToNameMap.has(creatorIdStr)) {
+          const userName = userIdToNameMap.get(creatorIdStr)
+          
+          // 创建新对象并替换，确保响应式更新
+          const updatedAchievement = {
+            ...achievement,
+            uploader: userName
+          }
+          
+          // 使用Vue.set替换数组中的元素
+          this.$set(this.uploadedFiles, index, updatedAchievement)
+          
+          updateCount++
+          console.log(`✅✅✅ [${index + 1}] 更新成果上传者: "${achievement.name}" (ID: ${achievement.id}) -> "${userName}" (creatorId: ${creatorIdStr})`)
+        } else if ((!achievement.uploader || achievement.uploader === '未知用户') && achievement.creatorId) {
+          console.warn(`⚠️ 未在成员列表中找到creatorId: ${creatorIdStr}, 成果: ${achievement.name}`)
+        }
+      }
+      
+      console.log(`✅ 所有上传者姓名获取完成，共更新 ${updateCount} 条记录`)
+      console.log('📋 更新后的uploadedFiles:', this.uploadedFiles.map(f => ({ id: f.id, name: f.name, uploader: f.uploader, creatorId: f.creatorId })))
+      
+      // 在下一个tick中强制更新视图
+      await this.$nextTick()
+      this.$forceUpdate()
     },
     
     uploadFile(type) {
