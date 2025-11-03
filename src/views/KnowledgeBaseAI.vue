@@ -154,6 +154,7 @@
 <script>
 import '@/assets/styles/KnowledgeBaseAI.css'
 import { knowledgeAPI } from '@/api/knowledge'
+import { cozeAPI } from '@/api/coze'
 
 export default {
   name: 'KnowledgeBaseAI',
@@ -172,23 +173,34 @@ export default {
       showFileMenu: false,
       files: [],
       loadingFiles: false,
-      selectedFiles: []
+      selectedFiles: [],
+      selectedLocalFiles: [], // 选中的本地文件
+      selectedKnowledgeFileIds: [], // 选中的知识库文件ID
+      conversationId: null, // 对话ID，用于维持会话
+      currentStreamController: null // 当前流式响应的控制器
     }
   },
   mounted() {
-    // 组件挂载时加载本地存储的消息
+    // 组件挂载时加载本地存储的消息和对话ID
     this.loadMessagesFromStorage()
+    this.loadConversationId()
     // 点击外部关闭下拉菜单
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
-    // 组件销毁前保存消息
+    // 关闭当前的流式连接
+    if (this.currentStreamController) {
+      this.currentStreamController.close()
+      this.currentStreamController = null
+    }
+    // 组件销毁前保存消息和对话ID
     this.saveMessagesToStorage()
+    this.saveConversationId()
     // 移除事件监听
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
-    sendMessage() {
+    async sendMessage() {
       if (!this.inputMessage.trim() || this.isSending) return
       
       const userMessage = {
@@ -197,9 +209,34 @@ export default {
         content: this.inputMessage.trim()
       }
       
+      // 记录用户发送的文件信息（如果有）
+      if (this.selectedLocalFiles.length > 0 || this.selectedKnowledgeFileIds.length > 0) {
+        const fileInfo = []
+        if (this.selectedLocalFiles.length > 0) {
+          fileInfo.push(`本地文件: ${this.selectedLocalFiles.map(f => f.name).join(', ')}`)
+        }
+        if (this.selectedKnowledgeFileIds.length > 0) {
+          const selectedFileNames = this.files
+            .filter(file => this.selectedKnowledgeFileIds.includes(file.id))
+            .map(file => file.name || file.title || '未命名文件')
+          fileInfo.push(`知识库文件: ${selectedFileNames.join(', ')}`)
+        }
+        userMessage.content += '\n\n[' + fileInfo.join(' | ') + ']'
+      }
+      
       this.messages.push(userMessage)
+      const query = this.inputMessage.trim()
       this.inputMessage = ''
       this.isSending = true
+      
+      // 创建AI回复消息占位符
+      const aiMessageId = Date.now() + 1
+      const aiMessage = {
+        id: aiMessageId,
+        type: 'left',
+        content: ''
+      }
+      this.messages.push(aiMessage)
       
       // 保存消息到本地存储
       this.saveMessagesToStorage()
@@ -209,11 +246,167 @@ export default {
         this.scrollToBottom()
       })
       
-      // 模拟发送状态（暂时不接AI，所以只是显示发送状态）
-      setTimeout(() => {
+      try {
+        // 准备本地文件和知识库文件ID
+        const localFiles = this.selectedLocalFiles.length > 0 ? this.selectedLocalFiles : null
+        const knowledgeFileIds = this.selectedKnowledgeFileIds.length > 0 ? this.selectedKnowledgeFileIds.map(id => {
+          // 确保ID是数字类型
+          const numId = typeof id === 'string' ? parseInt(id, 10) : id
+          return isNaN(numId) ? null : numId
+        }).filter(id => id !== null) : null
+        
+        // 清空选中的文件
+        this.selectedLocalFiles = []
+        this.selectedKnowledgeFileIds = []
+        
+        // 判断是否需要调用带文件的接口
+        if (localFiles || knowledgeFileIds) {
+          // 调用带文件的流式对话接口
+          this.currentStreamController = await cozeAPI.chatStreamWithFiles(
+            query,
+            this.conversationId,
+            localFiles,
+            knowledgeFileIds,
+            null, // customVariables
+            (message) => {
+              // 处理流式消息
+              this.handleStreamMessage(message, aiMessage)
+            },
+            (error) => {
+              // 处理错误
+              this.handleStreamError(error, aiMessage)
+            },
+            () => {
+              // 流式响应完成
+              this.handleStreamComplete(aiMessage)
+            }
+          )
+        } else {
+          // 调用不带文件的流式对话接口
+          this.currentStreamController = await cozeAPI.chatStream(
+            query,
+            this.conversationId,
+            null, // customVariables
+            (message) => {
+              // 处理流式消息
+              this.handleStreamMessage(message, aiMessage)
+            },
+            (error) => {
+              // 处理错误
+              this.handleStreamError(error, aiMessage)
+            },
+            () => {
+              // 流式响应完成
+              this.handleStreamComplete(aiMessage)
+            }
+          )
+        }
+      } catch (error) {
+        console.error('发送消息失败:', error)
+        aiMessage.content = '抱歉，发送消息时发生错误：' + (error.message || '未知错误')
         this.isSending = false
-        console.log('消息已发送（AI功能暂未接入）:', userMessage.content)
-      }, 1000)
+        this.saveMessagesToStorage()
+      }
+    },
+    
+    /**
+     * 处理流式消息
+     */
+    handleStreamMessage(message, aiMessage) {
+      console.log('收到流式消息:', message)
+      
+      // 根据事件类型处理
+      const event = message.event
+      
+      // 保存对话ID（如果有）
+      if (message.conversationId || message.conversation_id) {
+        this.conversationId = message.conversationId || message.conversation_id
+        this.saveConversationId()
+      }
+      
+      // 处理不同类型的消息
+      if (event === 'conversation.chat.created') {
+        // 对话创建
+        console.log('对话已创建, conversationId:', this.conversationId)
+      } else if (event === 'conversation.message.delta') {
+        // 消息增量（流式文本块）
+        const content = message.content
+        if (content && message.role === 'assistant') {
+          // 追加新内容
+          aiMessage.content += content
+          
+          // 实时滚动到底部
+          this.$nextTick(() => {
+            this.scrollToBottom()
+          })
+        }
+      } else if (event === 'conversation.message.completed') {
+        // 消息完成
+        console.log('消息已完成')
+        // 如果消息已完成，确保内容已保存
+        if (message.content && message.role === 'assistant') {
+          // 如果content存在，可能是完整内容，确保设置
+          if (message.content && !aiMessage.content) {
+            aiMessage.content = message.content
+          }
+        }
+        this.saveMessagesToStorage()
+      } else if (event === 'conversation.chat.completed') {
+        // 对话完成
+        console.log('对话已完成')
+      } else if (event === 'conversation.chat.failed') {
+        // 对话失败
+        console.error('对话失败:', message.errorMessage || message.error_message)
+        aiMessage.content = aiMessage.content || '抱歉，AI对话失败：' + (message.errorMessage || message.error_message || '未知错误')
+        this.isSending = false
+        this.currentStreamController = null
+        this.saveMessagesToStorage()
+      } else if (event === 'done') {
+        // 结束标记
+        console.log('流式响应结束')
+      } else if (event === 'error') {
+        // 错误
+        console.error('流式响应错误:', message.errorMessage || message.error_message)
+        aiMessage.content = aiMessage.content || '抱歉，AI响应时发生错误：' + (message.errorMessage || message.error_message || '未知错误')
+        this.isSending = false
+        this.currentStreamController = null
+        this.saveMessagesToStorage()
+      }
+      
+      // 实时保存消息（对于增量更新）
+      if (event === 'conversation.message.delta') {
+        this.saveMessagesToStorage()
+      }
+    },
+    
+    /**
+     * 处理流式响应错误
+     */
+    handleStreamError(error, aiMessage) {
+      console.error('流式响应错误:', error)
+      aiMessage.content = aiMessage.content || '抱歉，AI响应时发生错误：' + (error.message || '未知错误')
+      this.isSending = false
+      this.currentStreamController = null
+      this.saveMessagesToStorage()
+    },
+    
+    /**
+     * 处理流式响应完成
+     */
+    handleStreamComplete(aiMessage) {
+      console.log('流式响应完成')
+        this.isSending = false
+      this.currentStreamController = null
+      
+      // 如果AI消息为空，添加一个提示
+      if (!aiMessage.content || aiMessage.content.trim() === '') {
+        aiMessage.content = '抱歉，AI没有返回任何内容。'
+      }
+      
+      this.saveMessagesToStorage()
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
     },
     
     scrollToBottom() {
@@ -229,6 +422,31 @@ export default {
         console.log(`AI对话数据已保存到本地存储 (项目ID: ${this.projectId})`)
       } catch (error) {
         console.error('保存消息失败:', error)
+      }
+    },
+    
+    saveConversationId() {
+      try {
+        const storageKey = this.projectId ? `aiConversationId_${this.projectId}` : 'aiConversationId'
+        if (this.conversationId) {
+          localStorage.setItem(storageKey, this.conversationId)
+          console.log(`对话ID已保存: ${this.conversationId}`)
+        }
+      } catch (error) {
+        console.error('保存对话ID失败:', error)
+      }
+    },
+    
+    loadConversationId() {
+      try {
+        const storageKey = this.projectId ? `aiConversationId_${this.projectId}` : 'aiConversationId'
+        const saved = localStorage.getItem(storageKey)
+        if (saved) {
+          this.conversationId = saved
+          console.log(`对话ID已加载: ${this.conversationId}`)
+        }
+      } catch (error) {
+        console.error('加载对话ID失败:', error)
       }
     },
     
@@ -345,15 +563,15 @@ export default {
       const files = Array.from(event.target.files)
       if (files.length > 0) {
         console.log('选择了本地文件:', files)
-        // 将文件名添加到输入框
+        // 保存选中的本地文件
+        this.selectedLocalFiles = files
+        
+        // 将文件名添加到输入框提示
         const fileNames = files.map(file => file.name).join('、')
-        const fileInfo = `我已上传以下文档：${fileNames}`
+        const fileInfo = `[已选择本地文件: ${fileNames}]`
         this.inputMessage = this.inputMessage.trim() 
           ? `${this.inputMessage}\n\n${fileInfo}`
           : fileInfo
-        
-        // 这里可以添加文件上传到后端的逻辑
-        // TODO: 实现文件上传功能
       }
       // 清空文件输入
       this.$refs.fileInput.value = ''
@@ -363,6 +581,24 @@ export default {
     closeFileDialog() {
       this.showFileDialog = false
       this.selectedFiles = []
+    },
+    
+    // 清除对话历史
+    clearConversation() {
+      if (confirm('确定要清除当前对话历史吗？')) {
+        this.messages = []
+        this.conversationId = null
+        this.selectedLocalFiles = []
+        this.selectedKnowledgeFileIds = []
+        this.saveMessagesToStorage()
+        this.saveConversationId()
+        // 关闭当前流式连接
+        if (this.currentStreamController) {
+          this.currentStreamController.close()
+          this.currentStreamController = null
+        }
+        this.isSending = false
+      }
     },
     
     // 加载成果目录文件列表
@@ -409,23 +645,63 @@ export default {
     },
     
     // 确认选择文件
-    confirmFileSelection() {
+    async confirmFileSelection() {
       if (this.selectedFiles.length === 0) return
       
-      const selectedFileNames = this.files
-        .filter(file => this.selectedFiles.includes(file.id))
-        .map(file => file.name || file.title || '未命名文件')
-        .join('、')
+      // 获取选中的成果对象
+      const selectedAchievements = this.files.filter(file => this.selectedFiles.includes(file.id))
       
-      // 将选中的文件信息添加到输入框
-      const fileInfo = `请参考以下成果目录文件：${selectedFileNames}`
+      // 收集所有成果的文件ID
+      const allFileIds = []
+      const selectedFileNames = []
+      
+      try {
+        // 为每个选中的成果获取文件列表
+        for (const achievement of selectedAchievements) {
+          try {
+            // 获取成果详情（包含文件列表）
+            const detailResponse = await knowledgeAPI.getAchievementDetail(achievement.id)
+            if (detailResponse && detailResponse.code === 200 && detailResponse.data) {
+              const files = detailResponse.data.files || []
+              // 提取文件ID并添加到列表
+              files.forEach(file => {
+                if (file.id) {
+                  const fileId = typeof file.id === 'string' ? parseInt(file.id, 10) : file.id
+                  if (!isNaN(fileId)) {
+                    allFileIds.push(fileId)
+                  }
+                }
+              })
+              
+              // 记录文件名
+              if (files.length > 0) {
+                const fileNames = files.map(f => f.fileName || '未命名文件').join(', ')
+                selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: ${fileNames}`)
+              } else {
+                selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 无文件`)
+              }
+            }
+          } catch (error) {
+            console.error(`获取成果 ${achievement.id} 的文件列表失败:`, error)
+            selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 获取文件失败`)
+          }
+        }
+        
+        // 保存选中的知识库文件ID
+        this.selectedKnowledgeFileIds = allFileIds
+        
+        // 将选中的文件信息添加到输入框提示
+        const fileInfo = `[已选择知识库文件: ${selectedFileNames.join(' | ')}]`
       this.inputMessage = this.inputMessage.trim() 
         ? `${this.inputMessage}\n\n${fileInfo}`
         : fileInfo
       
-      // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
-      console.log('选中的文件ID:', this.selectedFiles)
-      console.log('选中的文件:', this.files.filter(file => this.selectedFiles.includes(file.id)))
+        console.log('选中的知识库文件ID:', this.selectedKnowledgeFileIds)
+        console.log('选中的成果:', selectedAchievements)
+      } catch (error) {
+        console.error('确认文件选择失败:', error)
+        this.$message && this.$message.error('获取文件信息失败，请重试')
+      }
       
       this.closeFileDialog()
     },

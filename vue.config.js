@@ -76,6 +76,18 @@ module.exports = {
         ws: true,
         logLevel: 'debug'
       },
+      // ✅ Coze AI相关API - 转发到8094端口（Coze AI服务）
+      // URL示例：/zhiyan/api/coze/* → http://localhost:8094/api/coze/*
+      '/zhiyan/api/coze': {
+        target: 'http://localhost:8094',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug',
+        pathRewrite: {
+          '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/coze/*
+        }
+      },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/api/auth/login → http://localhost:8091/api/auth/login
       '/zhiyan/api/auth': {

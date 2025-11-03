@@ -150,7 +150,8 @@ export const projectAPI = {
   getMyCreatedProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyCreatedProjects] 获取我创建的项目')
     return api.get('/zhiyan/api/projects/my-created', {
-      params: { page, size }
+      params: { page, size },
+      timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
   },
 
@@ -162,7 +163,8 @@ export const projectAPI = {
   getMyProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyProjects] 获取我参与的项目')
     return api.get('/zhiyan/api/projects/my-projects', {
-      params: { page, size }
+      params: { page, size },
+      timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
   },
 
@@ -174,7 +176,8 @@ export const projectAPI = {
   getPublicActiveProjects(page = 0, size = 10) {
     console.log('[projectAPI.getPublicActiveProjects] 获取公开项目')
     return api.get('/zhiyan/api/projects/public/active', {
-      params: { page, size }
+      params: { page, size },
+      timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
   },
 
@@ -295,7 +298,8 @@ export const projectAPI = {
   getProjectMembers(projectId, page = 0, size = 20) {
     console.log('[projectAPI.getProjectMembers] 获取项目成员, 项目ID:', projectId)
     return api.get(`/zhiyan/api/projects/${projectId}/members`, {
-      params: { page, size }
+      params: { page, size },
+      timeout: 60000 // 成员列表查询可能需要更长时间，设置为60秒
     })
   },
 

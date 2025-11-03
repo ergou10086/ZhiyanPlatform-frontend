@@ -7,7 +7,7 @@ const config = {
     baseURL: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
       : 'http://localhost:8091', // 默认端口8091（认证服务）
-    timeout: 10000,
+    timeout: 60000, // 默认30秒，对于列表查询等操作可能需要更长时间
     // 多端口配置（微服务架构）
     endpoints: {
       // 认证服务 (8091)
