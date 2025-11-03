@@ -237,30 +237,32 @@ export default {
   transform: translateY(-1px);
 }
 
-.user-avatar {
+.global-user-profile .user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   overflow: hidden;
-  background-color: #f0f0f0;
+  background-color: #e9ecef !important;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.user-avatar img {
+.global-user-profile .user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-placeholder {
+.global-user-profile .user-avatar .avatar-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  background-color: #e9ecef !important;
+  background: #e9ecef !important;
+  color: #6c757d !important;
 }
 
 .username {
