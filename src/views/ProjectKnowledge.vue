@@ -233,8 +233,27 @@ export default {
       if (this.activeTab === tab) return
       this.activeTab = tab
     },
-    loadProjectName() {
-      // 从localStorage获取项目数据
+    async loadProjectName() {
+      // 优先从后端API获取最新的项目数据
+      if (!this.projectId) {
+        this.projectName = '加载中...'
+        return
+      }
+      
+      try {
+        const response = await projectAPI.getProjectById(this.projectId)
+        
+        if (response && response.code === 200 && response.data) {
+          // 使用API返回的最新数据
+          this.projectName = response.data.name || '未知项目'
+          console.log('从API获取到项目名称:', this.projectName)
+          return
+        }
+      } catch (error) {
+        console.error('从API加载项目失败，回退到localStorage:', error)
+      }
+      
+      // 如果API失败，从localStorage加载项目数据（作为后备）
       const savedProjects = localStorage.getItem('projects')
       console.log('项目知识库 - 正在加载项目ID:', this.projectId, '类型:', typeof this.projectId)
       console.log('localStorage中的项目数据:', savedProjects)

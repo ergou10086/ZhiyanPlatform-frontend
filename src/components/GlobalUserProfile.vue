@@ -214,7 +214,7 @@ export default {
   position: fixed;
   top: 8px;
   right: 20px;
-  z-index: 9999;
+  z-index: 10003; /* 高于主题切换按钮，确保在右侧 */
 }
 
 .user-profile {

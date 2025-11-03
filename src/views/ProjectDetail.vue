@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="project-detail-container">
     <!-- 加载状态 -->
     <div v-if="isLoading" class="loading-container">
@@ -77,12 +77,35 @@
                 <span class="meta-label">负责人：</span>
                 <span class="meta-value">{{ project.manager }}</span>
               </div>
+              <div class="meta-item">
+                <span class="meta-label">任务数量：</span>
+                <span class="meta-value">{{ taskCount }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">参与人数：</span>
+                <span class="meta-value">{{ participantCount }}</span>
+              </div>
               <div class="meta-item" v-if="project.tags && project.tags.length > 0">
                 <span class="meta-label">项目标签：</span>
                 <div class="tags-container">
                   <span v-for="(tag, index) in project.tags" :key="index" class="tag">{{ tag }}</span>
                 </div>
               </div>
+            </div>
+            <!-- 信息区操作按钮 -->
+            <div class="info-actions">
+              <button
+                class="btn primary"
+                @click="goToProjectKnowledge"
+              >
+                知识库
+              </button>
+              <button
+                class="btn"
+                @click="goToAIAssistant"
+              >
+                AI实验分析助手
+              </button>
             </div>
           </div>
           
@@ -175,12 +198,19 @@
                     </svg>
                   </button>
                   <div class="task-status-menu" v-if="task.showStatusMenu">
-                    <button @click="changeTaskStatus(task, '待接取')" class="status-option" :class="{ active: task.status === '待接取' }">待接取</button>
+                    <!-- ✅ 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
                     <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
-                    <button @click="changeTaskStatus(task, '暂停')" class="status-option" :class="{ active: task.status === '暂停' }">暂停</button>
+                    <button @click="changeTaskStatus(task, '阻塞')" class="status-option" :class="{ active: task.status === '阻塞' }">阻塞</button>
                     <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                   </div>
                 </div>
+                <button class="task-assign-manager-btn" @click="openAssignTaskModal(task)" title="分配任务">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
                 <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -205,7 +235,7 @@
                 </span>
               </div>
             </div>
-            <div v-if="task.status === '待接取'" class="task-assign-section" @click.stop>
+            <div v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" class="task-assign-section" @click.stop>
               <button @click="assignTask(task)" class="assign-btn">接取任务</button>
           </div>
           </div>
@@ -459,9 +489,9 @@
                       </svg>
                     </button>
                     <div class="task-status-menu" v-if="task.showStatusMenu">
-                      <button @click="changeTaskStatus(task, '待接取')" class="status-option" :class="{ active: task.status === '待接取' }">待接取</button>
+                      <!-- ✅ 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
                       <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
-                      <button @click="changeTaskStatus(task, '暂停')" class="status-option" :class="{ active: task.status === '暂停' }">暂停</button>
+                      <button @click="changeTaskStatus(task, '阻塞')" class="status-option" :class="{ active: task.status === '阻塞' }">阻塞</button>
                       <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                     </div>
                   </div>
@@ -489,7 +519,7 @@
                   </span>
                 </div>
               </div>
-              <div v-if="task.status === '待接取'" class="task-item-assign" @click.stop>
+              <div v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" class="task-item-assign" @click.stop>
                 <button @click="assignTask(task)" class="assign-btn">接取任务</button>
               </div>
             </div>
@@ -726,6 +756,67 @@
     </div>
     </div>
 
+    <!-- 分配任务模态框 -->
+    <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click="closeAssignTaskModal">
+      <div class="modal-content assign-task-modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">分配任务</h3>
+          <button class="modal-close" @click="closeAssignTaskModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="assign-task-info">
+            <h4 class="assign-task-title">{{ taskToAssign.title }}</h4>
+            <p class="assign-task-description">{{ taskToAssign.description || '暂无描述' }}</p>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label">选择负责人</label>
+            <div class="member-select-list">
+              <div 
+                v-for="member in teamMembers" 
+                :key="member.id" 
+                class="member-select-item"
+                :class="{ selected: selectedAssigneeId === member.id }"
+                @click="selectedAssigneeId = member.id"
+              >
+                <div class="member-select-avatar">
+                  <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
+                  <div v-else class="avatar-placeholder">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="member-select-info">
+                  <div class="member-select-name">{{ member.name }}</div>
+                  <div class="member-select-role">{{ member.role }}</div>
+                </div>
+                <div class="member-select-indicator" v-if="selectedAssigneeId === member.id">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div v-if="teamMembers.length === 0" class="empty-members-hint">
+              <p>暂无团队成员，请先邀请成员加入项目</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="closeAssignTaskModal" class="btn secondary">取消</button>
+          <button @click="confirmAssignTask" class="btn primary" :disabled="!selectedAssigneeId">确认分配</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
@@ -827,7 +918,11 @@ export default {
         y: 0,
         width: 0,
         height: 0
-      }
+      },
+      // 分配任务相关
+      assignTaskModalOpen: false, // 分配任务模态框
+      taskToAssign: null, // 待分配的任务
+      selectedAssigneeId: null // 选中的负责人ID
     }
   },
   computed: {
@@ -852,6 +947,18 @@ export default {
         tasks = tasks.filter(task => task.priority === this.selectedTaskType)
       }
       return tasks
+    },
+    taskCount() {
+      return Array.isArray(this.tasks) ? this.tasks.length : 0
+    },
+    participantCount() {
+      if (Array.isArray(this.teamMembers) && this.teamMembers.length > 0) {
+        return this.teamMembers.length
+      }
+      if (this.project && typeof this.project.teamSize === 'number') {
+        return this.project.teamSize
+      }
+      return 0
     },
     isProjectManager() {
       // 判断当前用户是否是项目负责人
@@ -943,24 +1050,36 @@ export default {
           const currentUserId = this.getCurrentUserId()
           const currentUserName = this.getCurrentUserName()
           
-          this.tasks = taskList.map(task => ({
-            id: task.id,
-            title: task.title,
-            description: task.description || '',
-            date: task.dueDate || task.due_date || '',
-            due_date: task.dueDate || task.due_date,
-            dueDate: task.dueDate || task.due_date,
-            priority: this.getPriorityDisplay(task.priority || 'MEDIUM'),
-            priority_value: task.priority || 'MEDIUM',
-            status: this.getStatusDisplay(task.status || 'PENDING'),
-            status_value: task.status || 'PENDING',
-            assignee_id: task.assigneeIds || task.assignee_id || [],
-            assignee_name: task.assigneeNames ? task.assigneeNames.join(', ') : '',
-            created_by: task.creatorId || task.createdBy || task.created_by || currentUserId,
-            // 如果后端返回的创建人是"未知用户"（auth服务不可用），使用本地用户信息
-            created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
-            showStatusMenu: false // 初始化状态菜单为关闭
-          }))
+          this.tasks = taskList.map(task => {
+            // ✅ 解析执行者信息（后端返回的是TaskDetailDTO.assignees数组）
+            let assigneeIds = []
+            let assigneeNames = ''
+            
+            if (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0) {
+              // 后端返回的是 assignees: [{userId, userName, email, avatarUrl}]
+              assigneeIds = task.assignees.map(a => Number(a.userId))
+              assigneeNames = task.assignees.map(a => a.userName).join(', ')
+            }
+            
+            return {
+              id: task.id,
+              title: task.title,
+              description: task.description || '',
+              date: task.dueDate || task.due_date || '',
+              due_date: task.dueDate || task.due_date,
+              dueDate: task.dueDate || task.due_date,
+              priority: this.getPriorityDisplay(task.priority || 'MEDIUM'),
+              priority_value: task.priority || 'MEDIUM',
+              status: this.getStatusDisplay(task.status || 'TODO'),
+              status_value: task.status || 'TODO',
+              assignee_id: assigneeIds,
+              assignee_name: assigneeNames,
+              created_by: task.createdBy || currentUserId,
+              // 如果后端返回的创建人是"未知用户"（auth服务不可用），使用本地用户信息
+              created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
+              showStatusMenu: false // 初始化状态菜单为关闭
+            }
+          })
           
           console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
           
@@ -1189,6 +1308,32 @@ export default {
     goBack() {
       this.$router.go(-1)
     },
+    goToProjectKnowledge() {
+      const projectId = this.$route.params.id || this.project?.id
+      console.log('跳转到项目知识库，项目ID:', projectId, '路由路径:', `/project-knowledge/${projectId}`)
+      if (!projectId) {
+        console.error('项目ID为空，无法跳转')
+        alert('项目ID无效，无法跳转到知识库')
+        return
+      }
+      // 使用路由名称跳转，更可靠
+      this.$router.push({
+        name: 'ProjectKnowledge',
+        params: { id: String(projectId) }
+      }).catch(err => {
+        // 如果路由名称失败，回退到路径跳转
+        if (err.name !== 'NavigationDuplicated') {
+          console.error('路由跳转失败:', err)
+          this.$router.push(`/project-knowledge/${projectId}`).catch(e => {
+            console.error('路径跳转也失败:', e)
+          })
+        }
+      })
+    },
+    goToAIAssistant() {
+      const projectId = this.project?.id || this.$route.params.id
+      this.$router.push({ path: '/ai-assistant', query: { projectId } })
+    },
     addTeamMember() {
       const name = prompt('请输入成员姓名:')
       if (name && name.trim()) {
@@ -1368,14 +1513,14 @@ export default {
               id: String(member.userId),  // 确保 id 是字符串
               name: member.username || member.name || '未知用户',
               role: member.roleName || member.role || '成员',
-              avatar: member.avatar || null
+              avatar: this.parseAvatarUrl(member.avatar)
             }))
           } else if (Array.isArray(response.data)) {
             this.teamMembers = response.data.map(member => ({
               id: String(member.userId),  // 确保 id 是字符串
               name: member.username || member.name || '未知用户',
               role: member.roleName || member.role || '成员',
-              avatar: member.avatar || null
+              avatar: this.parseAvatarUrl(member.avatar)
             }))
           }
           
@@ -1941,39 +2086,50 @@ export default {
     getStatusDisplay(status) {
       // 将数据库的英文状态转换为中文显示
       const statusMap = {
+        // 项目状态
         'PLANNING': '规划中',
         'ONGOING': '进行中',
         'COMPLETED': '已完成',
         'ARCHIVED': '已归档',
-        // 兼容旧数据和任务状态
-        'PENDING': '待接取',
+        // 任务状态（后端枚举：TODO, IN_PROGRESS, BLOCKED, DONE）
+        'TODO': '待接取',
         'IN_PROGRESS': '进行中',
-        'PAUSED': '暂停',
+        'BLOCKED': '阻塞',
+        'DONE': '完成',
+        // 兼容旧数据
+        'PENDING': '待接取',
         'CANCELLED': '已取消'
       }
       return statusMap[status] || status || '未知'
     },
     getStatusValue(status) {
       // 将中文状态转换为数据库的英文枚举值
-      // 如果已经是枚举值，直接返回
-      if (status && status.toUpperCase() === status && !status.includes('中') && !status.includes('完') && !status.includes('档')) {
-        return status
-      }
-      
       const reverseMap = {
         // 项目状态映射
         '规划中': 'PLANNING',
-        '进行中': 'ONGOING',
+        '进行中': 'IN_PROGRESS',
         '已完成': 'COMPLETED',
         '已归档': 'ARCHIVED',
-        // 兼容任务状态和旧状态
-        '待接取': 'PENDING',
-        '暂停': 'PAUSED',
-        '已暂停': 'PAUSED',
-        '已取消': 'CANCELLED',
-        '完成': 'COMPLETED'
+        // 任务状态映射（后端枚举：TODO, IN_PROGRESS, BLOCKED, DONE）
+        '待接取': 'TODO',
+        '阻塞': 'BLOCKED',
+        '完成': 'DONE',
+        '已取消': 'CANCELLED'
       }
-      return reverseMap[status] || status || 'ONGOING'
+      
+      // ✅ 先检查是否在映射表中
+      if (reverseMap[status]) {
+        return reverseMap[status]
+      }
+      
+      // ✅ 如果已经是大写枚举值（如 TODO, IN_PROGRESS），直接返回
+      const validEnums = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'PLANNING', 'ONGOING', 'COMPLETED', 'ARCHIVED', 'CANCELLED']
+      if (status && validEnums.includes(status.toUpperCase())) {
+        return status.toUpperCase()
+      }
+      
+      // ✅ 默认返回TODO
+      return 'TODO'
     },
     toggleTaskStatusDropdown(task) {
       // 关闭其他任务的状态菜单
@@ -2032,19 +2188,125 @@ export default {
         this.$set(task, 'showStatusMenu', false)
       }
     },
-    assignTask(task) {
-      // 接取任务
-      const currentUser = this.getCurrentUserName()
-      task.assignee_name = currentUser
-      task.assignee_id = 1 // 假设当前用户ID为1
-      task.status = '进行中'
-      task.status_value = 'ONGOING'
+    async assignTask(task) {
+      // 普通成员接取任务（使用专门的claimTask接口）
+      const confirmed = confirm(`确认接取任务"${task.title}"吗？`)
+      if (!confirmed) return
       
-      // 保存到localStorage
-      this.saveProjectData()
+      try {
+        const currentUserId = this.getCurrentUserId()
+        const currentUserName = this.getCurrentUserName()
+        
+        console.log('[assignTask] 开始接取任务, ID:', task.id, '当前状态:', task.status)
+        
+        // ✅ 调用后端专门的接取任务API
+        const { taskAPI } = await import('@/api/task')
+        const response = await taskAPI.claimTask(task.id)
+        
+        console.log('[assignTask] 后端返回:', response)
+        
+        if (response && response.code === 200) {
+          console.log('[assignTask] ✅ 任务接取成功')
+          
+          // ✅ 添加延迟确保数据库事务完成
+          await new Promise(resolve => setTimeout(resolve, 300))
+          
+          // ✅ 重新从后端加载最新的任务列表
+          await this.loadProjectTasks()
+          
+          // ✅ 强制Vue更新视图
+          this.$nextTick(() => {
+            this.$forceUpdate()
+          })
+          
+          this.showSuccessToast(`成功接取任务: ${task.title}`)
+          
+          // ✅ 验证数据是否更新
+          const updatedTask = this.tasks.find(t => t.id === task.id)
+          console.log('[assignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
+          
+          if (updatedTask && updatedTask.status === '待接取') {
+            console.warn('[assignTask] ⚠️ 状态未更新，再次尝试加载')
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await this.loadProjectTasks()
+            this.$forceUpdate()
+          }
+        } else {
+          alert('接取任务失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[assignTask] 接取任务失败:', error)
+        alert('接取任务失败，请稍后重试')
+      }
+    },
+    // 打开分配任务模态框
+    openAssignTaskModal(task) {
+      this.taskToAssign = task
+      this.selectedAssigneeId = null
+      this.assignTaskModalOpen = true
+    },
+    // 关闭分配任务模态框
+    closeAssignTaskModal() {
+      this.assignTaskModalOpen = false
+      this.taskToAssign = null
+      this.selectedAssigneeId = null
+    },
+    // 确认分配任务
+    async confirmAssignTask() {
+      if (!this.selectedAssigneeId || !this.taskToAssign) return
       
-      alert(`您已成功接取任务: ${task.title}`)
-      console.log(`任务 ${task.title} 已被 ${currentUser} 接取`)
+      const selectedMember = this.teamMembers.find(m => m.id === this.selectedAssigneeId)
+      if (!selectedMember) {
+        alert('未找到选中的成员')
+        return
+      }
+      
+      try {
+        console.log('[confirmAssignTask] 开始分配任务, ID:', this.taskToAssign.id, '当前状态:', this.taskToAssign.status)
+        
+        // 调用后端API分配任务
+        const { taskAPI } = await import('@/api/task')
+        const response = await taskAPI.assignTask(this.taskToAssign.id, [this.selectedAssigneeId])
+        
+        console.log('[confirmAssignTask] 后端返回:', response)
+        
+        if (response && response.code === 200) {
+          console.log('[confirmAssignTask] ✅ 任务分配成功')
+          
+          // ✅ 添加延迟确保数据库事务完成
+          await new Promise(resolve => setTimeout(resolve, 300))
+          
+          // ✅ 重新从后端加载最新的任务列表
+          await this.loadProjectTasks()
+          
+          // ✅ 强制Vue更新视图
+          this.$nextTick(() => {
+            this.$forceUpdate()
+          })
+          
+          this.showSuccessToast(`成功将任务"${this.taskToAssign.title}"分配给 ${selectedMember.name}`)
+          
+          // ✅ 保存任务ID以便后续验证（因为closeAssignTaskModal会清空taskToAssign）
+          const assignedTaskId = this.taskToAssign.id
+          this.closeAssignTaskModal()
+          
+          // ✅ 验证数据是否更新
+          const updatedTask = this.tasks.find(t => t.id === assignedTaskId)
+          console.log('[confirmAssignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
+          
+          if (updatedTask && updatedTask.status === '待接取') {
+            console.warn('[confirmAssignTask] ⚠️ 状态未更新，再次尝试加载')
+            await new Promise(resolve => setTimeout(resolve, 500))
+            await this.loadProjectTasks()
+            this.$forceUpdate()
+          }
+        } else {
+          alert('分配任务失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('[confirmAssignTask] 分配任务失败:', error)
+        alert('分配任务失败，请稍后重试')
+      }
     },
     statusClass(status) {
       // 处理项目状态类名
@@ -2479,8 +2741,44 @@ export default {
             console.error('❌ 这通常表示CORS或网络问题')
           })
       }
+    },
+    /**
+     * 解析头像URL
+     * 后端返回的avatar可能是JSON字符串格式: {"sizes":{"256":"http://...","original":"http://..."}}
+     * 需要解析并提取original尺寸的URL
+     */
+    parseAvatarUrl(avatar) {
+      if (!avatar) {
+        return null
+      }
+      
+      // 如果已经是普通URL字符串，直接返回
+      if (typeof avatar === 'string' && (avatar.startsWith('http://') || avatar.startsWith('https://'))) {
+        return avatar
+      }
+      
+      // 如果是JSON字符串，尝试解析
+      if (typeof avatar === 'string') {
+        try {
+          const avatarObj = JSON.parse(avatar)
+          // 优先使用original尺寸，其次使用256尺寸
+          if (avatarObj.sizes) {
+            return avatarObj.sizes.original || avatarObj.sizes['256'] || avatarObj.sizes['512'] || null
+          }
+          return null
+        } catch (e) {
+          console.warn('解析头像URL失败:', e, '原始数据:', avatar)
+          return null
+        }
+      }
+      
+      // 如果是对象，直接提取URL
+      if (typeof avatar === 'object' && avatar.sizes) {
+        return avatar.sizes.original || avatar.sizes['256'] || avatar.sizes['512'] || null
+      }
+      
+      return null
     }
   }
 }
 </script>
-   
