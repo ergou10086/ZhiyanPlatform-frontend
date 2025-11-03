@@ -1,5 +1,5 @@
 <template>
-  <div class="home-container">
+  <div class="home-container" :class="{ 'dark-mode': isDarkMode }">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
@@ -12,6 +12,18 @@
            </svg>
          </button>
          <span class="page-title">首页</span>
+       </div>
+       <div class="header-right">
+         <!-- 主题切换按钮 -->
+         <button class="theme-toggle-btn" @click="toggleTheme" :title="isDarkMode ? '切换到白天模式' : '切换到黑夜模式'">
+           <svg v-if="!isDarkMode" class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+             <path d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+           </svg>
+           <svg v-else class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+           </svg>
+         </button>
        </div>
      </div>
 
@@ -153,7 +165,7 @@
 
         <!-- 右侧边栏（日历和任务提醒） -->
         <div class="right-sidebar-column">
-          <RightSidebar />
+          <RightSidebar :isDarkMode="isDarkMode" />
         </div>
       </div>
     </div>
@@ -206,7 +218,9 @@ export default {
       showModal: false,
       modalMessage: '',
       myProjects: [], // 我参与的项目列表
-      isLoadingProjects: false // 是否正在加载项目
+      isLoadingProjects: false, // 是否正在加载项目
+      isDarkMode: false, // 黑夜模式状态
+      isTransitioning: false // 切换动画状态
     }
   },
   mounted() {
@@ -218,6 +232,9 @@ export default {
     
     // 加载我参与的项目
     this.loadMyProjects()
+    
+    // 加载主题设置
+    this.loadTheme()
     
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
@@ -313,6 +330,71 @@ export default {
     },
     closeSidebar() {
       this.sidebarOpen = false
+    },
+    loadTheme() {
+      // 从localStorage加载主题设置
+      const savedTheme = localStorage.getItem('theme')
+      if (savedTheme === 'dark') {
+        this.isDarkMode = true
+        document.documentElement.classList.add('dark-mode')
+      } else {
+        this.isDarkMode = false
+        document.documentElement.classList.remove('dark-mode')
+      }
+    },
+    toggleTheme(event) {
+      // 防止重复点击
+      if (this.isTransitioning) return
+      
+      // 获取点击位置（按钮中心）
+      const rect = event.currentTarget.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      
+      // 计算需要覆盖整个屏幕的半径（使用屏幕对角线）
+      const maxRadius = Math.sqrt(
+        Math.pow(window.innerWidth, 2) + Math.pow(window.innerHeight, 2)
+      ) * 1.2
+      
+      // 创建圆形遮罩
+      const circle = document.createElement('div')
+      circle.className = 'theme-transition-circle'
+      circle.style.left = x + 'px'
+      circle.style.top = y + 'px'
+      document.body.appendChild(circle)
+      
+      // 开始过渡动画
+      this.isTransitioning = true
+      
+      // 使用 requestAnimationFrame 确保动画流畅
+      requestAnimationFrame(() => {
+        const isToDark = !this.isDarkMode
+        
+        // 添加扩展动画类
+        requestAnimationFrame(() => {
+          circle.classList.add(isToDark ? 'expand-dark' : 'expand-light')
+        })
+        
+        // 在动画中期切换主题（动画进行到约50%时）
+        setTimeout(() => {
+          this.isDarkMode = !this.isDarkMode
+          localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light')
+          
+          if (this.isDarkMode) {
+            document.documentElement.classList.add('dark-mode')
+          } else {
+            document.documentElement.classList.remove('dark-mode')
+          }
+        }, 425) // 动画进行到一半时切换主题（约50%）
+        
+        // 动画结束后清理
+        setTimeout(() => {
+          if (circle.parentNode) {
+            circle.remove()
+          }
+          this.isTransitioning = false
+        }, 900)
+      })
     },
     handleNewProject() {
       console.log('新建项目')

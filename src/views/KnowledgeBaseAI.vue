@@ -93,56 +93,77 @@
       <!-- 文件选择弹窗 -->
       <div v-if="showFileDialog" class="file-dialog-overlay" @click="closeFileDialog">
         <div class="file-dialog" @click.stop>
+          <!-- 顶部标题栏 -->
           <div class="file-dialog-header">
-            <h3>选择成果目录文件</h3>
+            <div class="header-content">
+              <h3>选择成果目录文件</h3>
+              <p class="header-subtitle" v-if="selectedFiles.length > 0">已选择 {{ selectedFiles.length }} 项</p>
+            </div>
             <button class="close-btn" @click="closeFileDialog">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
           </div>
+
+          <!-- 内容区域 -->
           <div class="file-dialog-body">
             <div v-if="loadingFiles" class="loading-container">
-              <div class="loading-spinner"></div>
-              <p>正在加载文件列表...</p>
+              <div class="loading-spinner-large"></div>
+              <p class="loading-text">正在加载文件列表...</p>
             </div>
             <div v-else-if="files.length === 0" class="empty-state">
-              <p>成果目录中暂无文件</p>
+              <div class="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <p class="empty-text">成果目录中暂无文件</p>
             </div>
-            <div v-else class="file-list">
-              <div 
-                v-for="file in files" 
-                :key="file.id" 
-                class="file-item"
-                :class="{ 'selected': selectedFiles.includes(file.id) }"
-                @click="toggleFileSelection(file.id)"
-              >
-                <div class="file-info">
-                  <div class="file-icon">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </div>
-                  <div class="file-details">
-                    <div class="file-name">{{ file.name || file.title || '未命名文件' }}</div>
-                    <div class="file-meta">
-                      <span class="file-type">{{ file.type || '未知类型' }}</span>
-                      <span v-if="file.fileCount" class="file-count">{{ file.fileCount }}个文件</span>
+            <div v-else class="file-list-container">
+              <div class="file-list">
+                <div 
+                  v-for="file in files" 
+                  :key="file.id" 
+                  class="file-card"
+                  :class="{ 'selected': selectedFiles.includes(file.id) }"
+                  @click="toggleFileSelection(file.id)"
+                >
+                  <div class="file-card-content">
+                    <div class="file-card-main">
+                      <div class="file-name-wrapper">
+                        <div class="file-name">{{ file.name || file.title || '未命名文件' }}</div>
+                        <div class="file-badge-group">
+                          <span class="file-type-badge">{{ file.type || '未知类型' }}</span>
+                          <span v-if="file.fileCount" class="file-count-badge">{{ file.fileCount }}个文件</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="file-select-indicator" :class="{ 'active': selectedFiles.includes(file.id) }">
+                      <div class="checkmark-circle">
+                        <svg v-if="selectedFiles.includes(file.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="file-checkbox" :class="{ 'checked': selectedFiles.includes(file.id) }">
-                  <svg v-if="selectedFiles.includes(file.id)" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- 底部操作栏 -->
           <div class="file-dialog-footer">
-            <button class="btn secondary" @click="closeFileDialog">取消</button>
-            <button class="btn primary" @click="confirmFileSelection" :disabled="selectedFiles.length === 0">
-              确认选择 ({{ selectedFiles.length }})
+            <button class="btn-cancel" @click="closeFileDialog">取消</button>
+            <button 
+              class="btn-confirm" 
+              @click="confirmFileSelection" 
+              :disabled="selectedFiles.length === 0"
+              :class="{ 'disabled': selectedFiles.length === 0 }"
+            >
+              <span>确认选择</span>
+              <span v-if="selectedFiles.length > 0" class="selected-count">{{ selectedFiles.length }}</span>
             </button>
           </div>
         </div>

@@ -337,10 +337,55 @@
 .ai-assistant-container .main-content {
   flex: 1;
   margin-top: 64px;
-  padding: var(--space-6);
+  padding: var(--space-4) var(--space-6) var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--space-4);
+}
+
+.ai-assistant-container .page-main-title {
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 var(--space-4) 0;
+  padding: 8px 0;
+  position: relative;
+  animation: fadeInDown 0.6s ease-out;
+}
+
+.ai-assistant-container .page-main-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #0044CC 0%, #5EB6E4 100%);
+  border-radius: 2px;
+  animation: slideInLeft 0.8s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    width: 0;
+  }
+  to {
+    width: 60px;
+  }
 }
 
 /* 项目概览区域 */
@@ -705,33 +750,97 @@
 
 /* AI对话区域 */
 .ai-assistant-container .ai-chat-section {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border-radius: 20px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 50%, #ffffff 100%);
+  border-radius: 24px;
   padding: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border: 1px solid #e3e8ef;
+  box-shadow: 0 8px 24px rgba(0, 68, 204, 0.12), 0 2px 8px rgba(94, 182, 228, 0.08);
+  border: 2px solid rgba(94, 182, 228, 0.2);
   height: 500px;
   flex: 1;
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   animation: bounceInUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s backwards;
+  overflow: hidden;
 }
 
 .ai-assistant-container .ai-chat-section:hover {
-  box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(0, 68, 204, 0.18), 0 4px 12px rgba(94, 182, 228, 0.12);
+  transform: translateY(-4px);
+  border-color: rgba(94, 182, 228, 0.4);
 }
 
-.ai-assistant-container .ai-dialog-title {
+.ai-assistant-container .chat-header {
   position: absolute;
   top: 24px;
   left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 10;
+}
+
+.ai-assistant-container .ai-dialog-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
-  z-index: 10;
+  color: #0044CC;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.ai-assistant-container .view-history-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2ff 100%);
+  border: 1px solid rgba(94, 182, 228, 0.3);
+  border-radius: 12px;
+  color: #0044CC;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ai-assistant-container .view-history-btn:hover {
+  background: linear-gradient(135deg, #e3f2ff 0%, #d4e9ff 100%);
+  border-color: #5EB6E4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.15);
+}
+
+.ai-assistant-container .view-history-btn:active {
+  transform: translateY(0);
+}
+
+.ai-assistant-container .view-history-btn svg {
+  flex-shrink: 0;
+}
+
+.ai-assistant-container .ai-dialog-title::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0, 68, 204, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
 }
 
 .ai-assistant-container .chat-container {
@@ -740,9 +849,13 @@
   gap: 16px;
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 8px;
   padding-bottom: 80px;
-  padding-top: 50px;
+  padding-top: 60px;
+  margin-top: 50px;
+  max-height: calc(500px - 150px);
+  min-height: 0;
 }
 
 /* 自定义滚动条样式 */
@@ -751,74 +864,200 @@
 }
 
 .ai-assistant-container .chat-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #f0f7ff;
   border-radius: 3px;
 }
 
 .ai-assistant-container .chat-container::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: linear-gradient(180deg, #0044CC 0%, #5EB6E4 100%);
   border-radius: 3px;
+  transition: background 0.3s ease;
 }
 
 .ai-assistant-container .chat-container::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: linear-gradient(180deg, #003399 0%, #0044CC 100%);
+  box-shadow: 0 0 4px rgba(0, 68, 204, 0.4);
 }
 
 .ai-assistant-container .ai-message {
   display: flex;
   justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
 }
 
 .ai-assistant-container .user-message {
   display: flex;
   justify-content: flex-end;
+  width: 100%;
+  min-width: 0;
 }
 
 .ai-assistant-container .message-bubble {
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 100%);
   padding: 12px 16px;
   border-radius: 18px;
   max-width: 70%;
+  min-width: fit-content;
+  width: fit-content;
   font-size: 14px;
   color: #333;
   line-height: 1.4;
+  border: 1px solid rgba(94, 182, 228, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 68, 204, 0.08);
+  animation: slideInLeft 0.3s ease-out;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .ai-assistant-container .user-bubble {
-  background: #007bff;
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
   color: white;
   padding: 12px 16px;
   border-radius: 18px;
   max-width: 70%;
+  min-width: fit-content;
+  width: fit-content;
   font-size: 14px;
   line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  animation: slideInRight 0.3s ease-out;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .ai-assistant-container .user-input-area {
   display: flex;
   gap: 12px;
-  padding: 16px 0 0 0;
-  border-top: 1px solid #e9ecef;
+  padding: 20px;
+  border-top: 2px solid rgba(94, 182, 228, 0.2);
   flex-shrink: 0;
-  background: white;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 247, 255, 0.95) 100%);
+  backdrop-filter: blur(10px);
   position: absolute;
   bottom: 20px;
   left: 40px;
   right: 40px;
+  align-items: center;
+  border-radius: 16px;
+  box-shadow: 0 -4px 16px rgba(0, 68, 204, 0.08);
+}
+
+.ai-assistant-container .file-menu-wrapper {
+  position: relative;
+  z-index: 10;
+}
+
+/* 文件选择按钮样式 */
+.ai-assistant-container .file-select-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #f1f5f9 100%);
+  color: #64748b;
+  border: 2px solid #e5e7eb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.ai-assistant-container .file-select-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #e3f2ff 0%, #d4e9ff 100%);
+  border-color: #5EB6E4;
+  color: #0044CC;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.2);
+}
+
+.ai-assistant-container .file-select-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 文件下拉菜单样式 */
+.ai-assistant-container .file-dropdown-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  min-width: 220px;
+  padding: 8px;
+  z-index: 1000;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-assistant-container .file-dropdown-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ai-assistant-container .file-dropdown-menu .dropdown-item:hover {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2ff 100%);
+  color: #0044CC;
+}
+
+.ai-assistant-container .file-dropdown-menu .dropdown-item svg {
+  flex-shrink: 0;
+  color: inherit;
 }
 
 .ai-assistant-container .user-input-area input {
   flex: 1;
-  padding: 12px 16px;
-  border: 1px solid #e9ecef;
+  padding: 12px 20px;
+  border: 2px solid rgba(94, 182, 228, 0.3);
   border-radius: 24px;
   font-size: 14px;
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 68, 204, 0.05);
 }
 
 .ai-assistant-container .user-input-area input:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: #5EB6E4;
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.15), 0 0 0 3px rgba(94, 182, 228, 0.1);
 }
 
 .ai-assistant-container .send-btn {
@@ -835,9 +1074,9 @@
 }
 
 .ai-assistant-container .send-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
+  background: linear-gradient(135deg, #003399 0%, #002266 100%);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 68, 204, 0.5), 0 0 20px rgba(94, 182, 228, 0.3);
 }
 
 .ai-assistant-container .send-btn:disabled {
@@ -1071,4 +1310,210 @@
   .ai-assistant-container .bottom-actions {
     flex-direction: column;
   }
+}
+
+/* 聊天记录模态框样式 */
+.chat-history-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.chat-history-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  overflow: hidden;
+}
+
+.chat-history-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.chat-history-modal .modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.chat-history-modal .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  color: white;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.chat-history-modal .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+.chat-history-modal .modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.chat-history-modal .empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.chat-history-modal .empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.chat-history-modal .chat-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-history-modal .chat-session-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.chat-history-modal .chat-session-item:hover {
+  background: #e9ecef;
+  border-color: #007bff;
+  transform: translateX(4px);
+}
+
+.chat-history-modal .chat-session-item.active {
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.chat-history-modal .session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-history-modal .session-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-history-modal .session-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.chat-history-modal .session-date {
+  display: flex;
+  align-items: center;
+}
+
+.chat-history-modal .session-count {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: white;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.chat-history-modal .delete-session-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  color: #94a3b8;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.chat-history-modal .chat-session-item:hover .delete-session-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.chat-history-modal .delete-session-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.chat-history-modal .modal-footer {
+  display: flex;
+  justify-content: center;
+  padding: 20px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f8f9fa;
+}
+
+.chat-history-modal .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.chat-history-modal .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.chat-history-modal .btn-primary:active {
+  transform: translateY(0);
 }

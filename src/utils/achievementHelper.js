@@ -5,6 +5,7 @@
 
 import { TYPE_MAPPING, TYPE_DISPLAY } from '@/api/knowledge'
 import { getTypeClass } from '@/utils/catalogHelpers'
+import { authAPI } from '@/api/auth'
 
 /**
  * 将前端成果表单数据转换为后端DTO
@@ -71,12 +72,52 @@ export function convertToCreateDTO(formData, projectId, fileType) {
  * @returns {Object} 前端显示数据
  */
 export function convertFromDTO(dto) {
+  // 尝试从多个可能的字段获取上传者信息（字符串类型）
+  // 注意：如果creatorName是null（不是undefined），需要特殊处理
+  let uploader = null
+  
+  // 优先使用creatorName（但要排除null和空字符串）
+  if (dto.creatorName && typeof dto.creatorName === 'string' && dto.creatorName.trim() !== '') {
+    uploader = dto.creatorName
+  } else {
+    // 尝试其他字段
+    uploader = dto.creator || 
+               dto.uploader ||
+               dto.username ||
+               dto.userName
+  }
+  
+  // 检查是否有嵌套的用户对象
+  if (!uploader || uploader === '未知用户' || (typeof uploader === 'string' && uploader.trim && uploader.trim() === '')) {
+    // 尝试从嵌套对象获取
+    if (dto.creatorUser && typeof dto.creatorUser === 'object') {
+      uploader = dto.creatorUser.name || dto.creatorUser.username || dto.creatorUser.nickname
+    } else if (dto.createdByUser && typeof dto.createdByUser === 'object') {
+      uploader = dto.createdByUser.name || dto.createdByUser.username || dto.createdByUser.nickname
+    } else if (dto.creatorInfo && typeof dto.creatorInfo === 'object') {
+      uploader = dto.creatorInfo.name || dto.creatorInfo.username || dto.creatorInfo.nickname
+    }
+  }
+  
+  // 如果仍然没有上传者信息，但有creatorId，设置为'未知用户'（组件会异步获取）
+  // 如果没有creatorId也没有uploader，也设置为'未知用户'
+  if (!uploader || uploader === '未知用户' || (typeof uploader === 'string' && uploader.trim() === '')) {
+    // 如果有creatorId，组件会异步获取，这里先设置为'未知用户'
+    uploader = '未知用户'
+  }
+  
+  // 确保uploader不是undefined或null（统一处理为字符串）
+  if (!uploader) {
+    uploader = '未知用户'
+  }
+  
   const frontendData = {
     id: dto.id,
     name: dto.title,
     type: TYPE_DISPLAY[dto.type] || dto.type,
     typeCls: getTypeClass(TYPE_DISPLAY[dto.type] || dto.type),
-    uploader: dto.creatorName || '未知用户',
+    uploader: uploader,
+    creatorId: dto.creatorId, // 保存creatorId以便异步获取用户名
     time: formatDateTime(dto.createdAt),
     fileCount: dto.fileCount || 0,
     files: [] // 列表DTO不包含文件列表，留空

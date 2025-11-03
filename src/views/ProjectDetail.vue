@@ -77,12 +77,35 @@
                 <span class="meta-label">负责人：</span>
                 <span class="meta-value">{{ project.manager }}</span>
               </div>
+              <div class="meta-item">
+                <span class="meta-label">任务数量：</span>
+                <span class="meta-value">{{ taskCount }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">参与人数：</span>
+                <span class="meta-value">{{ participantCount }}</span>
+              </div>
               <div class="meta-item" v-if="project.tags && project.tags.length > 0">
                 <span class="meta-label">项目标签：</span>
                 <div class="tags-container">
                   <span v-for="(tag, index) in project.tags" :key="index" class="tag">{{ tag }}</span>
                 </div>
               </div>
+            </div>
+            <!-- 信息区操作按钮 -->
+            <div class="info-actions">
+              <button
+                class="btn primary"
+                @click="goToProjectKnowledge"
+              >
+                知识库
+              </button>
+              <button
+                class="btn"
+                @click="goToAIAssistant"
+              >
+                AI实验分析助手
+              </button>
             </div>
           </div>
           
@@ -925,6 +948,18 @@ export default {
       }
       return tasks
     },
+    taskCount() {
+      return Array.isArray(this.tasks) ? this.tasks.length : 0
+    },
+    participantCount() {
+      if (Array.isArray(this.teamMembers) && this.teamMembers.length > 0) {
+        return this.teamMembers.length
+      }
+      if (this.project && typeof this.project.teamSize === 'number') {
+        return this.project.teamSize
+      }
+      return 0
+    },
     isProjectManager() {
       // 判断当前用户是否是项目负责人
       const currentUserName = this.getCurrentUserName()
@@ -1272,6 +1307,32 @@ export default {
     },
     goBack() {
       this.$router.go(-1)
+    },
+    goToProjectKnowledge() {
+      const projectId = this.$route.params.id || this.project?.id
+      console.log('跳转到项目知识库，项目ID:', projectId, '路由路径:', `/project-knowledge/${projectId}`)
+      if (!projectId) {
+        console.error('项目ID为空，无法跳转')
+        alert('项目ID无效，无法跳转到知识库')
+        return
+      }
+      // 使用路由名称跳转，更可靠
+      this.$router.push({
+        name: 'ProjectKnowledge',
+        params: { id: String(projectId) }
+      }).catch(err => {
+        // 如果路由名称失败，回退到路径跳转
+        if (err.name !== 'NavigationDuplicated') {
+          console.error('路由跳转失败:', err)
+          this.$router.push(`/project-knowledge/${projectId}`).catch(e => {
+            console.error('路径跳转也失败:', e)
+          })
+        }
+      })
+    },
+    goToAIAssistant() {
+      const projectId = this.project?.id || this.$route.params.id
+      this.$router.push({ path: '/ai-assistant', query: { projectId } })
     },
     addTeamMember() {
       const name = prompt('请输入成员姓名:')
