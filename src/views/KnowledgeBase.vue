@@ -232,7 +232,6 @@ export default {
       this.$forceUpdate()
       
       console.log('用户创建的项目数量:', markedCreatedProjects.length)
-      console.log('默认参与项目数量:', defaultJoinedProjects.length)
       console.log('知识库总项目数量:', this.joinedProjects.length)
       console.log('知识库项目列表:', this.joinedProjects)
     },
