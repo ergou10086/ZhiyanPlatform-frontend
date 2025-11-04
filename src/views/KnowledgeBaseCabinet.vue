@@ -144,35 +144,13 @@ export default {
       autoSaveTimer: null,
       isEditing: false,
       sidebarCollapsed: false, // 左侧面板折叠状态
-      folders: [
-        { id: 1, name: '项目管理规范', description: '项目管理和规范相关文档', expanded: true },
-        { id: 2, name: '会议纪要', description: '会议记录和纪要', expanded: true },
-        { id: 3, name: '培训资料', description: '培训和学习资料', expanded: true }
-      ],
-      docs: [
-        { 
-          id: 1, 
-          title: '项目管理规范 v2.1', 
-          updated: '2023年11月15日',
-          content: `项目管理规范 v2.1\n更新日期：2023年11月15日\n1. 项目启动阶段...\n(此处为示例内容，可替换为真实文档内容。)`
-        },
-        { 
-          id: 2, 
-          title: '项目管理规范 v2.0', 
-          updated: '2023年10月15日',
-          content: `项目管理规范 v2.0\n更新日期：2023年10月15日\n1. 项目启动阶段...\n(此处为示例内容，可替换为真实文档内容。)`
-        },
-        { 
-          id: 3, 
-          title: '项目管理规范 v1.9', 
-          updated: '2023年09月15日',
-          content: `项目管理规范 v1.9\n更新日期：2023年09月15日\n1. 项目启动阶段...\n(此处为示例内容，可替换为真实文档内容。)`
-        }
-      ]
+      folders: [],
+      docs: []
     }
   },
   computed: {
     activeDoc() {
+      if (!this.docs || this.docs.length === 0) return null
       return this.docs.find(d => d.id === this.activeId) || this.docs[0]
     },
     activeDocContent: {

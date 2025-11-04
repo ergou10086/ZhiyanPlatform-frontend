@@ -1,5 +1,20 @@
 <template>
-  <div class="global-user-profile" :class="{ 'floating': floating }">
+  <div class="global-user-profile" :class="{ 'floating': floating }">    <!-- 主题切换按钮 - 在用户信息左侧 -->
+    <button 
+      v-if="showThemeToggle" 
+      class="theme-toggle-btn" 
+      @click="handleThemeToggle" 
+      :title="isDarkMode ? '切换到白天模式' : '切换到黑夜模式'"
+    >
+      <svg v-if="!isDarkMode" class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <svg v-else class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    
     <div class="user-profile" @click="toggleUserMenu">
       <div class="user-avatar">
         <img v-if="globalUserInfo.avatar" :src="globalUserInfo.avatar" alt="用户头像" />
@@ -59,8 +74,17 @@ export default {
     floating: {
       type: Boolean,
       default: false
+    },
+    showThemeToggle: {
+      type: Boolean,
+      default: false
+    },
+    isDarkMode: {
+      type: Boolean,
+      default: false
     }
   },
+  emits: ['theme-toggle'],
   data() {
     return {
       userMenuOpen: false,
@@ -158,9 +182,13 @@ export default {
       }
     },
     handleClickOutside(event) {
-      if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
+      if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu') && !event.target.closest('.theme-toggle-btn')) {
         this.userMenuOpen = false
       }
+    },
+    handleThemeToggle(event) {
+      // 触发主题切换事件
+      this.$emit('theme-toggle', event)
     },
     toggleUserMenu() {
       this.userMenuOpen = !this.userMenuOpen
@@ -214,7 +242,11 @@ export default {
   position: fixed;
   top: 8px;
   right: 20px;
-  z-index: 10003; /* 高于主题切换按钮，确保在右侧 */
+  z-index: 10003;
+  display: flex;
+  align-items: center;
+  gap: 12px; /* 切换按钮和用户信息之间的间距 */
+  /* 切换按钮在模板中已经放在用户信息之前，所以不需要反转 */
 }
 
 .user-profile {
@@ -269,6 +301,7 @@ export default {
   font-weight: 500;
   color: #333;
   font-size: 14px;
+  /* 不限制用户名长度，允许完整显示 */
 }
 
 .user-menu {
@@ -327,6 +360,67 @@ export default {
   transition: transform 0.3s ease;
 }
 
+/* 主题切换按钮样式 */
+.global-user-profile .theme-toggle-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55), 
+              box-shadow 0.3s ease, 
+              background 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  color: #f59e0b;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+.global-user-profile .theme-toggle-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.3) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.global-user-profile .theme-toggle-btn:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+  background: #e2e8f0;
+}
+
+.global-user-profile .theme-toggle-btn:hover::before {
+  width: 120%;
+  height: 120%;
+}
+
+.global-user-profile .theme-toggle-btn:active {
+  transform: scale(0.92) rotate(-5deg);
+}
+
+.global-user-profile .theme-icon {
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.global-user-profile .theme-toggle-btn:hover .theme-icon {
+  transform: rotate(360deg) scale(1.1);
+}
+
+.global-user-profile .theme-toggle-btn:active .theme-icon {
+  transform: rotate(360deg) scale(0.9);
+}
+
 /* 成功提示Toast样式 */
 .success-toast {
   position: fixed;
@@ -361,5 +455,28 @@ export default {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+</style>
+
+<style>
+/* 全局样式：黑夜模式下的切换按钮 */
+.dark-mode .global-user-profile .theme-toggle-btn {
+  background: #334155 !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2) !important;
+}
+
+.dark-mode .global-user-profile .theme-toggle-btn::before {
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%) !important;
+}
+
+.dark-mode .global-user-profile .theme-toggle-btn:hover {
+  background: #475569 !important;
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4) !important;
+  transform: scale(1.1) rotate(-5deg) !important;
+}
+
+.dark-mode .global-user-profile .theme-toggle-btn:active {
+  transform: scale(0.92) rotate(5deg) !important;
 }
 </style>

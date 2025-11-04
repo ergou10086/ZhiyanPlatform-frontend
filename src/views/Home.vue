@@ -1,81 +1,70 @@
 <template>
-  <div class="home-container" :class="{ 'dark-mode': isDarkMode }">
+  <div class="home-container">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
-     <!-- 顶部导航栏 -->
-     <div class="top-header">
-       <div class="header-left">
-         <button class="menu-btn" @click="toggleSidebar">
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-             <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-           </svg>
-         </button>
-         <span class="page-title">首页</span>
-       </div>
-       <div class="header-right">
-         <!-- 主题切换按钮 -->
-         <button class="theme-toggle-btn" @click="toggleTheme" :title="isDarkMode ? '切换到白天模式' : '切换到黑夜模式'">
-           <svg v-if="!isDarkMode" class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
-             <path d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-           </svg>
-           <svg v-else class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-           </svg>
-         </button>
-       </div>
-     </div>
+    <!-- 顶部导航栏 -->
+    <div class="top-header">
+      <div class="header-left">
+        <button class="menu-btn" @click="toggleSidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <span class="page-title">首页</span>
+      </div>
+       <!-- header-right 已移除，切换按钮现在在 GlobalUserProfile 组件内部 -->
+    </div>
 
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 快捷操作 - 独立顶部一行 -->
-      <div class="quick-actions">
-        <div class="section-card">
-          <h2 class="section-title">快捷操作</h2>
-          <div class="action-cards">
-          <div class="action-card" @click="handleNewProject">
-            <div class="card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+        <div class="quick-actions">
+          <div class="section-card">
+            <h2 class="section-title">快捷操作</h2>
+            <div class="action-cards">
+            <div class="action-card" @click="handleNewProject">
+              <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="card-label">新建项目</span>
             </div>
-            <span class="card-label">新建项目</span>
-          </div>
-          <div class="action-card" @click="handleProjectSquare">
-            <div class="card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <circle cx="8.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="2"/>
-                <path d="M20 8V6C20 4.93913 19.5786 3.92172 18.8284 3.17157C18.0783 2.42143 17.0609 2 16 2H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            <div class="action-card" @click="handleProjectSquare">
+              <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="8.5" cy="7.5" r="2.5" stroke="currentColor" stroke-width="2"/>
+                  <path d="M20 8V6C20 4.93913 19.5786 3.92172 18.8284 3.17157C18.0783 2.42143 17.0609 2 16 2H14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="card-label">项目广场</span>
             </div>
-            <span class="card-label">项目广场</span>
-          </div>
-          <div class="action-card" @click="handleKnowledgeBase">
-            <div class="card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 3H21V21H3V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M9 9H15V15H9V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            <div class="action-card" @click="handleKnowledgeBase">
+              <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 3H21V21H3V3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 9H15V15H9V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="card-label">知识库</span>
             </div>
-            <span class="card-label">知识库</span>
-          </div>
-          <div class="action-card" @click="handleAIAssistant">
-            <div class="card-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            <div class="action-card" @click="handleAIAssistant">
+              <div class="card-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <span class="card-label">AI实验分析助手</span>
             </div>
-            <span class="card-label">AI实验分析助手</span>
-          </div>
+            </div>
           </div>
         </div>
-      </div>
 
       <!-- 工作项、我参与的项目、日历 - 三列布局在同一行 -->
       <div class="three-column-row">
@@ -165,7 +154,7 @@
 
         <!-- 右侧边栏（日历和任务提醒） -->
         <div class="right-sidebar-column">
-          <RightSidebar :isDarkMode="isDarkMode" />
+          <RightSidebar />
         </div>
       </div>
     </div>
@@ -212,15 +201,13 @@ export default {
       userMenuOpen: false,
       userAvatar: null, // 用户头像URL，可以从localStorage或API获取
       globalUserInfo: {
-        nickname: '张伟',
+        nickname: '',
         avatar: ''
       },
       showModal: false,
       modalMessage: '',
       myProjects: [], // 我参与的项目列表
-      isLoadingProjects: false, // 是否正在加载项目
-      isDarkMode: false, // 黑夜模式状态
-      isTransitioning: false // 切换动画状态
+      isLoadingProjects: false // 是否正在加载项目
     }
   },
   mounted() {
@@ -232,10 +219,7 @@ export default {
     
     // 加载我参与的项目
     this.loadMyProjects()
-    
-    // 加载主题设置
-    this.loadTheme()
-    
+
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
   },
@@ -331,71 +315,6 @@ export default {
     closeSidebar() {
       this.sidebarOpen = false
     },
-    loadTheme() {
-      // 从localStorage加载主题设置
-      const savedTheme = localStorage.getItem('theme')
-      if (savedTheme === 'dark') {
-        this.isDarkMode = true
-        document.documentElement.classList.add('dark-mode')
-      } else {
-        this.isDarkMode = false
-        document.documentElement.classList.remove('dark-mode')
-      }
-    },
-    toggleTheme(event) {
-      // 防止重复点击
-      if (this.isTransitioning) return
-      
-      // 获取点击位置（按钮中心）
-      const rect = event.currentTarget.getBoundingClientRect()
-      const x = rect.left + rect.width / 2
-      const y = rect.top + rect.height / 2
-      
-      // 计算需要覆盖整个屏幕的半径（使用屏幕对角线）
-      const maxRadius = Math.sqrt(
-        Math.pow(window.innerWidth, 2) + Math.pow(window.innerHeight, 2)
-      ) * 1.2
-      
-      // 创建圆形遮罩
-      const circle = document.createElement('div')
-      circle.className = 'theme-transition-circle'
-      circle.style.left = x + 'px'
-      circle.style.top = y + 'px'
-      document.body.appendChild(circle)
-      
-      // 开始过渡动画
-      this.isTransitioning = true
-      
-      // 使用 requestAnimationFrame 确保动画流畅
-      requestAnimationFrame(() => {
-        const isToDark = !this.isDarkMode
-        
-        // 添加扩展动画类
-        requestAnimationFrame(() => {
-          circle.classList.add(isToDark ? 'expand-dark' : 'expand-light')
-        })
-        
-        // 在动画中期切换主题（动画进行到约50%时）
-        setTimeout(() => {
-          this.isDarkMode = !this.isDarkMode
-          localStorage.setItem('theme', this.isDarkMode ? 'dark' : 'light')
-          
-          if (this.isDarkMode) {
-            document.documentElement.classList.add('dark-mode')
-          } else {
-            document.documentElement.classList.remove('dark-mode')
-          }
-        }, 425) // 动画进行到一半时切换主题（约50%）
-        
-        // 动画结束后清理
-        setTimeout(() => {
-          if (circle.parentNode) {
-            circle.remove()
-          }
-          this.isTransitioning = false
-        }, 900)
-      })
-    },
     handleNewProject() {
       console.log('新建项目')
       // 检查用户是否已登录
@@ -458,8 +377,8 @@ export default {
       
       if (!isAuthenticated) {
         console.log('用户未登录，不加载项目数据')
-        // 如果用户未登录，使用示例数据
-        this.myProjects = this.getDefaultProjects()
+        // 如果用户未登录，显示空数组
+        this.myProjects = []
         return
       }
       
@@ -505,42 +424,15 @@ export default {
           
           console.log('成功加载项目:', this.myProjects)
         } else {
-          console.log('未获取到项目数据，使用示例数据')
-          this.myProjects = this.getDefaultProjects()
+          console.log('未获取到项目数据')
+          this.myProjects = []
         }
       } catch (error) {
         console.error('加载项目失败:', error)
-        // 如果加载失败，使用示例数据
-        this.myProjects = this.getDefaultProjects()
+        this.myProjects = []
       } finally {
         this.isLoadingProjects = false
       }
-    },
-    getDefaultProjects() {
-      // 返回默认的示例项目数据
-      return [
-        {
-          id: 1,
-          title: '量子计算算法优化研究',
-          description: '量子计算算法优化研究',
-          status: 'in-progress',
-          progress: 65
-        },
-        {
-          id: 2,
-          title: '多模态医学影像数据平台',
-          description: '多模态医学影像数据平台',
-          status: 'in-progress',
-          progress: 45
-        },
-        {
-          id: 3,
-          title: '气候变化预测模型研究',
-          description: '气候变化预测模型研究',
-          status: 'completed',
-          progress: 100
-        }
-      ]
     },
     mapStatus(status) {
       // 将后端状态映射到前端状态

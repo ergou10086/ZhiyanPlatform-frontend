@@ -292,7 +292,7 @@
   font-size: 12px;
 }
 
-/* 对话框样式 */
+/* 对话框样�?*/
 .cabinet-view .upload-dialog-overlay {
   position: fixed;
   top: 0;
@@ -396,4 +396,191 @@
   .cabinet-view .cabinet-layout { 
     grid-template-columns: 1fr; 
   }
+}
+
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .cabinet-view {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .list-pane {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-color: #475569;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .cabinet-view .collapse-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .cabinet-view .collapse-btn:hover {
+  background: #475569;
+  border-color: #5EB6E4;
+  color: #5EB6E4;
+}
+
+.dark-mode .cabinet-view .search {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .search:focus {
+  border-color: #5EB6E4;
+  box-shadow: 0 0 0 3px rgba(94, 182, 228, 0.2);
+}
+
+.dark-mode .cabinet-view .search::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .cabinet-view .group-title {
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .group-title:hover {
+  color: #cbd5e1;
+}
+
+.dark-mode .cabinet-view .doc-list li {
+  color: #cbd5e1;
+}
+
+.dark-mode .cabinet-view .doc-list li:hover {
+  background: #334155;
+}
+
+.dark-mode .cabinet-view .doc-list li.active {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+.dark-mode .cabinet-view .editor-pane {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-color: #475569;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .cabinet-view .doc-meta {
+  border-bottom-color: #475569;
+}
+
+.dark-mode .cabinet-view .doc-title {
+  background: linear-gradient(135deg, #f1f5f9 0%, #5EB6E4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark-mode .cabinet-view .doc-updated {
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .editor {
+  border-color: #475569;
+}
+
+.dark-mode .cabinet-view .editor.readonly {
+  background-color: #1e293b;
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .editor:not(.readonly) {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .btn {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .btn:hover {
+  background: #475569;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .cabinet-view .btn.secondary {
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+.dark-mode .cabinet-view .btn.secondary:hover {
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .upload-dialog {
+  background: #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .cabinet-view .dialog-header {
+  border-bottom-color: #475569;
+}
+
+.dark-mode .cabinet-view .dialog-header h3 {
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .close-btn {
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .close-btn:hover {
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .form-group label {
+  color: #cbd5e1;
+}
+
+.dark-mode .cabinet-view .form-group input,
+.dark-mode .cabinet-view .form-group textarea,
+.dark-mode .cabinet-view .form-group select {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .form-group input::placeholder,
+.dark-mode .cabinet-view .form-group textarea::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .cabinet-view .cabinet-header {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .cabinet-view .cabinet-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .cabinet-card {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .cabinet-view .cabinet-card:hover {
+  background: #334155;
+  border-color: #60a5fa;
+}
+
+.dark-mode .cabinet-view .cabinet-item {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .cabinet-item:hover {
+  background: #475569;
+  border-color: #60a5fa;
 }

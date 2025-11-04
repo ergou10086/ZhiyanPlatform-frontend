@@ -1154,7 +1154,7 @@ export default {
             endDate: apiProject.endDate || '',
             period: (apiProject.startDate && apiProject.endDate) ? 
               `${apiProject.startDate} 至 ${apiProject.endDate}` : 
-              '2024-01-01 至 2024-12-31',
+              '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
             imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
@@ -1214,7 +1214,7 @@ export default {
             // 显示周期字段
             period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
               `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
-              '2024-01-01 至 2024-12-31',
+              '未设置',
             status: this.getStatusValue(foundProject.status), // 转换为枚举值
             visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
             imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || 'https://via.placeholder.com/400x225?text=Project+Image',

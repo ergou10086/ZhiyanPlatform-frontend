@@ -34,15 +34,14 @@
       <!-- AI对话区域 -->
       <div class="ai-chat-section">
         <div class="chat-header">
-          <div class="ai-dialog-title">AI对话框</div>
           <button class="view-history-btn" @click="viewChatHistory" title="查看聊天记录">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <path d="M3 12H7M17 12H21M12 3V7M12 17V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            <span>查看记录</span>
           </button>
+          <div class="ai-dialog-title">AI对话框</div>
         </div>
         <div class="chat-container">
           <div
@@ -109,10 +108,10 @@
       </div>
     </div>
 
-    <!-- 聊天记录模态框 -->
-    <div v-if="showChatHistoryModal" class="chat-history-modal-overlay" @click="closeChatHistoryModal">
-      <div class="chat-history-modal" @click.stop>
-        <div class="modal-header">
+    <!-- 聊天记录侧边栏 -->
+    <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
+      <div class="chat-history-sidebar" @click.stop>
+        <div class="sidebar-header">
           <h3>聊天记录</h3>
           <button class="close-btn" @click="closeChatHistoryModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,7 +119,7 @@
             </svg>
           </button>
         </div>
-        <div class="modal-body">
+        <div class="sidebar-body">
           <div v-if="chatSessions.length === 0" class="empty-state">
             <p>暂无聊天记录</p>
           </div>
@@ -147,7 +146,7 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="sidebar-footer">
           <button class="btn-primary" @click="createNewChatSession">新建聊天</button>
         </div>
       </div>
@@ -189,16 +188,6 @@
                   <div class="file-card-main">
                     <div class="file-name-wrapper">
                       <div class="file-name">{{ project.title || project.name || '未命名项目' }}</div>
-                      <div class="file-badge-group">
-                        <span v-if="project.description" class="file-type-badge">{{ project.description }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="file-select-indicator" :class="{ 'active': selectedProjectForFiles && selectedProjectForFiles.id === project.id }">
-                    <div class="checkmark-circle">
-                      <svg v-if="selectedProjectForFiles && selectedProjectForFiles.id === project.id" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
                     </div>
                   </div>
                 </div>
@@ -330,208 +319,11 @@ export default {
       chatSessions: [], // 聊天会话列表
       currentChatSessionId: null, // 当前聊天会话ID
       difyConversationId: null, // Dify对话上下文ID
-      currentProject: {
-        id: 1,
-        title: '量子计算算法优化研究',
-        description: '量子计算算法优化研究',
-        lead: '王志强教授',
-        progress: 65
-      },
-      availableProjects: [
-        {
-          id: 1,
-          title: '量子计算算法优化研究',
-          description: '量子计算算法优化研究',
-          lead: '王志强教授',
-          progress: 65
-        },
-        {
-          id: 2,
-          title: '多模态医学影像数据平台',
-          description: '多模态医学影像数据平台',
-          lead: '李教授',
-          progress: 45
-        },
-        {
-          id: 3,
-          title: '气候变化预测模型研究',
-          description: '气候变化预测模型研究',
-          lead: '王教授',
-          progress: 80
-        },
-        {
-          id: 4,
-          title: '基因组数据分析平台',
-          description: '基因组数据分析平台',
-          lead: '张教授',
-          progress: 30
-        }
-      ],
+      currentProject: null,
+      availableProjects: [],
       tasks: [],
       // 不同项目的任务数据
-      projectTasks: {
-        1: [
-        {
-          id: 1,
-          title: '量子纠缠态制备',
-          description: '研究高保真度纠缠态的制备方法',
-          assignee: '张伟',
-          status: 'in-progress',
-            checked: false,
-            published: true
-        },
-        {
-          id: 2,
-          title: '量子门操作优化',
-          description: '优化量子门操作的精度和速度',
-          assignee: '李娜',
-          status: 'completed',
-            checked: false,
-            published: true
-        },
-        {
-          id: 3,
-          title: '量子纠错编码',
-          description: '设计高效的量子纠错编码方案',
-          assignee: '王强',
-          status: 'in-progress',
-            checked: false,
-            published: true
-        },
-        {
-          id: 4,
-          title: '量子算法验证',
-          description: '验证量子算法的正确性和效率',
-          assignee: '陈美玲',
-          status: 'paused',
-            checked: false,
-            published: true
-        },
-        {
-          id: 5,
-          title: '量子通信协议',
-          description: '开发安全的量子通信协议',
-          assignee: '赵磊',
-          status: 'in-progress',
-            checked: false,
-            published: true
-        },
-        {
-          id: 6,
-          title: '量子传感器校准',
-          description: '校准量子传感器的精度和稳定性',
-          assignee: '孙芳',
-          status: 'completed',
-            checked: false,
-            published: true
-          }
-        ],
-        2: [
-          {
-            id: 7,
-            title: '医学影像数据预处理',
-            description: '对MRI、CT、PET扫描数据进行标准化处理',
-            assignee: '李医生',
-            status: 'in-progress',
-            checked: false,
-            published: true
-          },
-          {
-            id: 8,
-            title: '深度学习模型训练',
-            description: '训练肿瘤检测的深度学习模型',
-            assignee: '王工程师',
-            status: 'completed',
-            checked: false,
-            published: true
-          },
-          {
-            id: 9,
-            title: '数据质量评估',
-            description: '评估医学影像数据的质量和完整性',
-            assignee: '张研究员',
-            status: 'in-progress',
-            checked: false,
-            published: true
-          },
-          {
-            id: 10,
-            title: '模型性能优化',
-            description: '优化模型在临床环境中的性能',
-            assignee: '刘专家',
-            status: 'paused',
-            checked: false,
-            published: true
-          }
-        ],
-        3: [
-          {
-            id: 11,
-            title: '气象数据收集',
-            description: '收集全球气象站的历史数据',
-            assignee: '陈气象员',
-            status: 'completed',
-            checked: false,
-            published: true
-          },
-          {
-            id: 12,
-            title: '气候模型构建',
-            description: '构建神经网络气候预测模型',
-            assignee: '赵研究员',
-            status: 'in-progress',
-            checked: false,
-            published: true
-          },
-          {
-            id: 13,
-            title: '模型验证测试',
-            description: '验证模型预测的准确性',
-            assignee: '孙科学家',
-            status: 'in-progress',
-            checked: false,
-            published: true
-          },
-          {
-            id: 14,
-            title: '预测结果分析',
-            description: '分析长期气候趋势预测结果',
-            assignee: '李分析师',
-            status: 'completed',
-            checked: false,
-            published: true
-          }
-        ],
-        4: [
-          {
-            id: 15,
-            title: '基因序列比对',
-            description: '对基因序列进行比对和注释',
-            assignee: '王生物学家',
-            status: 'in-progress',
-            checked: false,
-            published: true
-          },
-          {
-            id: 16,
-            title: '变异位点识别',
-            description: '识别基因序列中的变异位点',
-            assignee: '张遗传学家',
-            status: 'paused',
-            checked: false,
-            published: true
-          },
-          {
-            id: 17,
-            title: '功能注释分析',
-            description: '分析基因变异的功能影响',
-            assignee: '陈研究员',
-            status: 'in-progress',
-            checked: false,
-            published: true
-          }
-        ]
-      }
+      projectTasks: {}
     }
   },
   computed: {
@@ -609,18 +401,27 @@ export default {
             // 恢复项目后，重新加载该项目的任务数据
             this.loadProjectTasks(this.currentProject.id)
           } else {
-            console.log('未找到上次选中的项目，使用默认项目')
-            // 使用默认项目
-            this.loadProjectTasks(this.currentProject.id)
+            console.log('未找到上次选中的项目，使用第一个可用项目')
+            // 使用第一个可用项目
+            if (this.availableProjects.length > 0) {
+              this.currentProject = { ...this.availableProjects[0] }
+              this.loadProjectTasks(this.currentProject.id)
+            }
           }
         } catch (error) {
           console.error('恢复上次选中的项目失败:', error)
-          // 恢复失败时使用默认项目
-          this.loadProjectTasks(this.currentProject.id)
+          // 恢复失败时使用第一个可用项目
+          if (this.availableProjects.length > 0) {
+            this.currentProject = { ...this.availableProjects[0] }
+            this.loadProjectTasks(this.currentProject.id)
+          }
         }
       } else {
-        // 没有保存的项目，使用默认项目
-        this.loadProjectTasks(this.currentProject.id)
+        // 没有保存的项目，使用第一个可用项目
+        if (this.availableProjects.length > 0) {
+          this.currentProject = { ...this.availableProjects[0] }
+          this.loadProjectTasks(this.currentProject.id)
+        }
       }
     })
 
@@ -691,9 +492,12 @@ export default {
       console.log('[同步] 同步任务状态变化...')
 
       // 只重新加载当前项目的任务数据（不需要重新加载所有项目列表）
-      this.loadProjectTasks(this.currentProject.id)
-
-      console.log('[同步] 任务状态同步完成，当前任务数量:', this.tasks.length)
+      if (this.currentProject && this.currentProject.id) {
+        this.loadProjectTasks(this.currentProject.id)
+        console.log('[同步] 任务状态同步完成，当前任务数量:', this.tasks.length)
+      } else {
+        console.log('[同步] 没有当前项目，跳过任务同步')
+      }
     },
     loadProjectTasks(projectId) {
       // 根据项目ID加载对应的任务数据
@@ -788,12 +592,21 @@ export default {
           
           // 如果当前项目不在列表中，设置为第一个项目
           if (this.availableProjects.length > 0) {
-            const currentProjectExists = this.availableProjects.find(p => String(p.id) === String(this.currentProject.id))
-            if (!currentProjectExists) {
+            if (!this.currentProject || !this.currentProject.id) {
+              // 如果没有当前项目，设置为第一个项目
               this.currentProject = { ...this.availableProjects[0] }
-              // 加载新项目的任务
               this.loadProjectTasks(this.currentProject.id)
+            } else {
+              const currentProjectExists = this.availableProjects.find(p => String(p.id) === String(this.currentProject.id))
+              if (!currentProjectExists) {
+                this.currentProject = { ...this.availableProjects[0] }
+                // 加载新项目的任务
+                this.loadProjectTasks(this.currentProject.id)
+              }
             }
+          } else {
+            // 没有可用项目，清空当前项目
+            this.currentProject = null
           }
           
           console.log('最终可用项目列表:', this.availableProjects)
@@ -814,11 +627,7 @@ export default {
         return projectSquareTasks
       }
 
-      // 如果是默认项目，从projectTasks中加载
-      if (this.projectTasks[projectId]) {
-        return this.projectTasks[projectId]
-      }
-
+      // 不再使用硬编码的示例任务数据
       return []
     },
 
@@ -967,65 +776,19 @@ export default {
       this.debugLocalStorage()
 
       // 清空现有数据
-      this.availableProjects = this.availableProjects.filter(project => project.id <= 4) // 只保留默认项目
       this.projectTasks = {}
 
       // 重新加载用户项目
       this.loadUserProjects()
 
       // 重新加载当前项目的任务
-      this.loadProjectTasks(this.currentProject.id)
+      if (this.currentProject && this.currentProject.id) {
+        this.loadProjectTasks(this.currentProject.id)
+      }
 
       console.log('刷新完成')
     },
 
-    // 为测试创建示例任务数据
-    createSampleTasks() {
-      console.log('创建示例任务数据...')
-
-      // 获取用户项目
-      const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-
-      createdProjects.forEach(project => {
-        const projectId = project.id
-        const sampleTasks = [
-          {
-            id: Date.now() + Math.random(),
-            title: `${project.title} - 需求分析`,
-            description: '分析项目需求和功能规格',
-            assignee: '项目负责人',
-            status: 'in-progress',
-            projectId: projectId,
-            published: true
-          },
-          {
-            id: Date.now() + Math.random() + 1,
-            title: `${project.title} - 系统设计`,
-            description: '设计系统架构和技术方案',
-            assignee: '架构师',
-            status: 'completed',
-            projectId: projectId,
-            published: true
-          },
-          {
-            id: Date.now() + Math.random() + 2,
-            title: `${project.title} - 开发实现`,
-            description: '实现核心功能模块',
-            assignee: '开发团队',
-            status: 'in-progress',
-            projectId: projectId,
-            published: true
-          }
-        ]
-
-        // 保存到localStorage
-        localStorage.setItem(`project_${projectId}_tasks`, JSON.stringify(sampleTasks))
-        console.log(`为项目 ${project.title} 创建了 ${sampleTasks.length} 个示例任务`)
-      })
-
-      // 刷新数据
-      this.refreshTasks()
-    },
     goToHome() {
       this.$router.push('/home')
     },

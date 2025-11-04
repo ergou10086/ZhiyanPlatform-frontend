@@ -62,15 +62,7 @@
   transform: translateY(-1px);
 }
 
-.home-container .header-right {
-  display: flex;
-  align-items: center;
-  position: fixed;
-  right: 160px; /* 为头像留出空间，切换按钮在头像左边 */
-  top: 12px;
-  gap: 12px;
-  z-index: 10001; /* 确保按钮可点击 */
-}
+/* header-right 已移除，切换按钮现在�?GlobalUserProfile 组件内部 */
 
 /* 主题切换按钮 - 白天模式默认样式 */
 .home-container .theme-toggle-btn {
@@ -88,7 +80,7 @@
               background 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   color: #f59e0b; /* 太阳图标颜色 */
-  z-index: 10002; /* 最高层级，确保可点击 */
+  z-index: 10002; /* 最高层级，确保可点�?*/
   position: relative;
   overflow: hidden;
 }
@@ -313,15 +305,15 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
-  padding-top: calc(var(--space-6) + 64px); /* 为固定页眉留出空间 */
+  padding-top: calc(var(--space-6) + 64px); /* 为固定页眉留出空�?*/
 }
 
-/* 快捷操作 - 宽度限制与三列中的两列对齐 */
+/* 快捷操作 - 宽度限制与三列中的两列对�?*/
 .home-container .quick-actions {
   width: calc(100% - 340px - var(--space-6)); /* 总宽度减去日历宽度和一个gap */
 }
 
-/* 三列在同一行：工作项、我参与的项目、日历 */
+/* 三列在同一行：工作项、我参与的项目、日�?*/
 .home-container .three-column-row {
   display: flex;
   gap: var(--space-6);
@@ -329,10 +321,10 @@
   position: relative;
 }
 
-/* 日历往上移动，与快捷操作顶部对齐 */
+/* 日历往上移动，与快捷操作顶部对�?*/
 .home-container .three-column-row .right-sidebar-column {
   position: relative;
-  margin-top: calc(-1 * (var(--space-6) + 254px)); /* 往上移动快捷操作高度+gap */
+  margin-top: calc(-1 * (var(--space-6) + 254px)); /* 往上移动快捷操作高�?gap */
 }
 
 /* 设置日历高度，让下边框与我参与的项目对齐 */
@@ -545,7 +537,7 @@
   color: #666;
 }
 
-/* 工作项 */
+/* 工作�?*/
 .home-container .work-items {
   flex: 1;
   min-width: 0;
@@ -573,14 +565,18 @@
 .home-container .project-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 0; /* 移除项目卡片之间的间�?*/
   flex: 1;
   overflow: auto;
   min-height: 0;
-  padding-top: 4px; /* 为卡片上移留出空间 */
+  padding-top: 4px; /* 为卡片上移留出空�?*/
 }
 
-/* 右侧栏列，日历 */
+.home-container .project-card:not(:first-child) {
+  margin-top: -2px; /* 通过负边距让卡片更紧密地排列 */
+}
+
+/* 右侧栏列，日�?*/
 .home-container .right-sidebar-column {
   flex: 0 0 340px;
   display: flex;
@@ -769,7 +765,7 @@
   }
 }
 
-/* 自定义弹窗样式 */
+/* 自定义弹窗样�?*/
 .home-container .modal-overlay {
   position: fixed;
   top: 0;
@@ -869,65 +865,65 @@
 }
 
 /* ========== 黑暗模式样式 ========== */
-.home-container.dark-mode {
+.dark-mode .home-container {
   background-color: #0f172a; /* 深色背景 */
 }
 
-.home-container.dark-mode .top-header {
+.dark-mode .home-container .top-header {
   background: #1e293b; /* 深色头部 */
   border-bottom-color: #334155;
 }
 
-.home-container.dark-mode .page-title {
+.dark-mode .home-container .page-title {
   color: #f1f5f9; /* 浅色文字 */
 }
 
-.home-container.dark-mode .menu-btn {
+.dark-mode .home-container .menu-btn {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .menu-btn:hover {
+.dark-mode .home-container .menu-btn:hover {
   background-color: #334155;
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .theme-toggle-btn {
+.dark-mode .home-container .theme-toggle-btn {
   background: #334155;
   color: #fbbf24; /* 月亮图标颜色（黑夜模式显示月亮） */
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
 }
 
-.home-container.dark-mode .theme-toggle-btn::before {
+.dark-mode .home-container .theme-toggle-btn::before {
   background: radial-gradient(circle, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
 }
 
-.home-container.dark-mode .theme-toggle-btn:hover {
+.dark-mode .home-container .theme-toggle-btn:hover {
   background: #475569;
   box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
   transform: scale(1.1) rotate(-5deg);
 }
 
-.home-container.dark-mode .theme-toggle-btn:active {
+.dark-mode .home-container .theme-toggle-btn:active {
   transform: scale(0.92) rotate(5deg);
 }
 
 
-.home-container.dark-mode .main-content {
+.dark-mode .home-container .main-content {
   background-color: #0f172a;
 }
 
-.home-container.dark-mode .section-card {
+.dark-mode .home-container .section-card {
   background: #1e293b; /* 深色卡片背景 */
   border-color: #334155;
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .section-card:hover {
+.dark-mode .home-container .section-card:hover {
   border-color: #475569;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
 
-.home-container.dark-mode .section-title {
+.dark-mode .home-container .section-title {
   color: #f1f5f9;
   background: linear-gradient(135deg, #f1f5f9, #60a5fa);
   -webkit-background-clip: text;
@@ -935,209 +931,210 @@
   background-clip: text;
 }
 
-.home-container.dark-mode .action-card {
+.dark-mode .home-container .action-card {
   background: #1e293b;
   border-color: #334155;
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .action-card:hover {
+.dark-mode .home-container .action-card:hover {
   background: #334155;
   border-color: #475569;
 }
 
-.home-container.dark-mode .action-card .card-icon {
+.dark-mode .home-container .action-card .card-icon {
   color: #60a5fa;
 }
 
-.home-container.dark-mode .action-card .card-label {
+.dark-mode .home-container .action-card .card-label {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .work-item {
+.dark-mode .home-container .work-item {
   background: #1e293b;
   border-color: #334155;
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .item-title {
+.dark-mode .home-container .item-title {
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .item-description {
+.dark-mode .home-container .item-description {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .priority {
+.dark-mode .home-container .priority {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .deadline {
+.dark-mode .home-container .deadline {
   color: #94a3b8;
 }
 
-.home-container.dark-mode .project-card {
+.dark-mode .home-container .project-card {
   background: #1e293b;
   border-color: #334155;
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .project-card:hover {
+.dark-mode .home-container .project-card:hover {
   background: #334155;
   border-color: #475569;
 }
 
-.home-container.dark-mode .project-title {
+.dark-mode .home-container .project-title {
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .project-description {
+.dark-mode .home-container .project-description {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .status-badge {
+.dark-mode .home-container .status-badge {
   background: #334155;
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .progress-text {
+.dark-mode .home-container .progress-text {
   color: #94a3b8;
 }
 
-.home-container.dark-mode .more-btn {
+.dark-mode .home-container .more-btn {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .more-btn:hover {
+.dark-mode .home-container .more-btn:hover {
   background-color: #334155;
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .modal-overlay {
+.dark-mode .home-container .modal-overlay {
   background-color: rgba(0, 0, 0, 0.7);
 }
 
-.home-container.dark-mode .modal-content {
+.dark-mode .home-container .modal-content {
   background: #1e293b;
   border-color: #334155;
 }
 
-.home-container.dark-mode .modal-header h3 {
+.dark-mode .home-container .modal-header h3 {
   color: #f1f5f9;
 }
 
-.home-container.dark-mode .modal-body p {
+.dark-mode .home-container .modal-body p {
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .modal-btn-cancel {
+.dark-mode .home-container .modal-btn-cancel {
   background: #334155;
   color: #cbd5e1;
 }
 
-.home-container.dark-mode .modal-btn-cancel:hover {
+.dark-mode .home-container .modal-btn-cancel:hover {
   background: #475569;
   color: #f1f5f9;
 }
 
 /* 日历组件黑夜模式 - 使用深度选择器穿透scoped样式 */
-.home-container.dark-mode :deep(.right-sidebar),
-.home-container.dark-mode :deep(.right-sidebar-column .right-sidebar) {
+.dark-mode .home-container :deep(.right-sidebar),
+.dark-mode .home-container :deep(.right-sidebar-column .right-sidebar) {
   background: #1e293b !important;
   border-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.calendar-widget),
-.home-container.dark-mode :deep(.task-alert-widget) {
+.dark-mode .home-container :deep(.calendar-widget),
+.dark-mode .home-container :deep(.task-alert-widget) {
   background: #1e293b !important;
   border-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.widget-title) {
+.dark-mode .home-container :deep(.widget-title) {
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.month-year) {
+.dark-mode .home-container :deep(.month-year) {
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.nav-btn) {
+.dark-mode .home-container :deep(.nav-btn) {
   color: #cbd5e1 !important;
 }
 
-.home-container.dark-mode :deep(.nav-btn:hover) {
+.dark-mode .home-container :deep(.nav-btn:hover) {
   background-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.weekdays) {
+.dark-mode .home-container :deep(.weekdays) {
   color: #cbd5e1 !important;
 }
 
-.home-container.dark-mode :deep(.weekdays span) {
+.dark-mode .home-container :deep(.weekdays span) {
   color: #cbd5e1 !important;
 }
 
-.home-container.dark-mode :deep(.day) {
+.dark-mode .home-container :deep(.day) {
   color: #94a3b8 !important;
 }
 
-.home-container.dark-mode :deep(.day.current-month) {
+.dark-mode .home-container :deep(.day.current-month) {
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.day:hover) {
+.dark-mode .home-container :deep(.day:hover) {
   background-color: #334155 !important;
 }
 
-.home-container.dark-mode :deep(.day.current-month:hover) {
+.dark-mode .home-container :deep(.day.current-month:hover) {
   background-color: #334155 !important;
 }
 
-.home-container.dark-mode :deep(.day.today) {
+.dark-mode .home-container :deep(.day.today) {
   background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
   color: #ffffff !important;
 }
 
-.home-container.dark-mode :deep(.day.today:hover) {
+.dark-mode .home-container :deep(.day.today:hover) {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
 }
 
-.home-container.dark-mode :deep(.day.selected) {
+.dark-mode .home-container :deep(.day.selected) {
   background: #334155 !important;
   color: #60a5fa !important;
   border-color: #60a5fa !important;
 }
 
-.home-container.dark-mode :deep(.day:not(.current-month)) {
+.dark-mode .home-container :deep(.day:not(.current-month)) {
   color: #475569 !important;
 }
 
 /* 任务提醒黑夜模式 */
-.home-container.dark-mode :deep(.task-alert-widget) {
+.dark-mode .home-container :deep(.task-alert-widget) {
   border-color: #475569 !important;
 }
 
-.home-container.dark-mode :deep(.task-alert-widget.urgent) {
+.dark-mode .home-container :deep(.task-alert-widget.urgent) {
   border-color: #ef4444 !important;
   background: linear-gradient(135deg, #1e293b, #7f1d1d) !important;
 }
 
-.home-container.dark-mode :deep(.alert-message.urgent) {
+.dark-mode .home-container :deep(.alert-message.urgent) {
   background: #7f1d1d !important;
 }
 
-.home-container.dark-mode :deep(.alert-message.safe) {
+.dark-mode .home-container :deep(.alert-message.safe) {
   background: #1e3a5f !important;
 }
 
-.home-container.dark-mode :deep(.alert-title) {
+.dark-mode .home-container :deep(.alert-title) {
   color: #f1f5f9 !important;
 }
 
-.home-container.dark-mode :deep(.alert-subtitle) {
+.dark-mode .home-container :deep(.alert-subtitle) {
   color: #cbd5e1 !important;
 }
+
 

@@ -479,83 +479,18 @@ export default {
           this.messages = JSON.parse(saved)
           console.log(`AI对话数据已从本地存储加载 (项目ID: ${this.projectId})`)
         } else {
-          // 如果没有保存的消息，初始化项目特定的示例对话
-          this.initializeProjectMessages()
+          // 如果没有保存的消息，保持空数组
+          this.messages = []
         }
       } catch (error) {
         console.error('加载消息失败:', error)
       }
     },
     
-    // 初始化项目特定的示例对话
+    // 初始化项目特定的对话（不再使用示例数据）
     initializeProjectMessages() {
-      if (!this.projectId) return
-      
-      const projectMessages = this.getProjectSpecificMessages(this.projectId)
-      if (projectMessages.length > 0) {
-        this.messages = projectMessages
-        this.saveMessagesToStorage()
-        console.log(`已初始化项目 ${this.projectId} 的AI对话示例`)
-      }
-    },
-    
-    // 获取项目特定的示例对话
-    getProjectSpecificMessages(projectId) {
-      const projectMessagesMap = {
-        '1': [ // 多模态医学影像数据平台
-          {
-            id: Date.now() - 1000,
-            type: 'left',
-            content: '您好！我是医学影像AI助手，可以帮您分析CT、MRI等医学影像数据，生成诊断报告，优化图像处理算法。请问您需要什么帮助？'
-          },
-          {
-            id: Date.now() - 500,
-            type: 'right',
-            content: '请帮我分析一下这个肺部CT影像的异常区域'
-          },
-          {
-            id: Date.now() - 200,
-            type: 'left',
-            content: '我已经分析了您提供的肺部CT影像。检测到以下异常区域：\n\n1. 右肺上叶发现一个约2.3cm的结节\n2. 结节边缘不规则，建议进一步检查\n3. 建议进行PET-CT扫描以确定性质\n\n需要我生成详细的诊断报告吗？'
-          }
-        ],
-        '2': [ // 气候变化预测模型研究
-          {
-            id: Date.now() - 1000,
-            type: 'left',
-            content: '您好！我是气候预测AI助手，可以帮您分析气象数据，构建预测模型，生成气候报告。请问您需要什么帮助？'
-          },
-          {
-            id: Date.now() - 500,
-            type: 'right',
-            content: '请帮我预测下个月的气温趋势'
-          },
-          {
-            id: Date.now() - 200,
-            type: 'left',
-            content: '基于当前的气象数据和历史模式，我预测下个月气温趋势如下：\n\n1. 平均气温将比去年同期高1.2°C\n2. 最高气温预计在28-32°C之间\n3. 降雨概率为35%，主要集中在月中\n4. 建议关注极端天气预警\n\n需要我生成详细的气候分析报告吗？'
-          }
-        ],
-        '3': [ // 基因组数据分析平台
-          {
-            id: Date.now() - 1000,
-            type: 'left',
-            content: '您好！我是基因组分析AI助手，可以帮您分析基因序列，识别变异位点，预测蛋白质功能。请问您需要什么帮助？'
-          },
-          {
-            id: Date.now() - 500,
-            type: 'right',
-            content: '请帮我分析这个基因序列的变异情况'
-          },
-          {
-            id: Date.now() - 200,
-            type: 'left',
-            content: '我已经分析了您提供的基因序列，发现以下变异：\n\n1. 检测到3个SNP位点\n2. 其中1个为非同义突变，可能影响蛋白质功能\n3. 变异频率在人群中为0.15\n4. 建议进行功能验证实验\n\n需要我生成详细的变异分析报告吗？'
-          }
-        ]
-      }
-      
-      return projectMessagesMap[projectId] || []
+      // 不再初始化示例对话，保持空数组
+      this.messages = []
     },
     
     // 切换文件菜单显示

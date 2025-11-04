@@ -413,3 +413,121 @@
   cursor: not-allowed;
 }
 
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .upload-dialog {
+  background: #1e293b;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .dialog-header {
+  border-bottom-color: #475569;
+}
+
+.dark-mode .dialog-header h3 {
+  color: #f1f5f9;
+}
+
+.dark-mode .close-btn {
+  color: #94a3b8;
+}
+
+.dark-mode .close-btn:hover {
+  color: #f1f5f9;
+}
+
+.dark-mode .form-group label {
+  color: #cbd5e1;
+}
+
+.dark-mode .form-group input,
+.dark-mode .form-group textarea,
+.dark-mode .form-group select {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .form-group input::placeholder,
+.dark-mode .form-group textarea::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .file-upload-area {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .file-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .file-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .file-size {
+  color: #94a3b8;
+}
+
+.dark-mode .remove-file-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.dark-mode .remove-file-btn:hover {
+  background: #475569;
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.dark-mode .upload-zone {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .upload-zone:hover {
+  background: #334155;
+  border-color: #60a5fa;
+}
+
+.dark-mode .upload-zone svg {
+  color: #94a3b8;
+}
+
+.dark-mode .upload-zone:hover svg {
+  color: #60a5fa;
+}
+
+.dark-mode .upload-zone p {
+  color: #cbd5e1;
+}
+
+.dark-mode .upload-hint {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .btn.secondary {
+  background: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+.dark-mode .btn.secondary:hover {
+  background: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .add-desc-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.dark-mode .add-desc-btn:hover {
+  background: #475569;
+  color: #60a5fa;
+  border-color: #60a5fa;
+}
+

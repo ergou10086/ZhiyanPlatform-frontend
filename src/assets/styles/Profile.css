@@ -177,7 +177,7 @@
 
 .profile-container .main-content {
   flex: 1;
-  margin-top: 64px; /* 为固定页眉留出空间 */
+  margin-top: 64px; /* 为固定页眉留出空�?*/
   padding: 40px 24px;
   background-color: #f8f9fa;
   display: flex;
@@ -282,7 +282,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding-left: 32px; /* 微调左内边距来达到最佳视觉平衡 */
+  padding-left: 32px; /* 微调左内边距来达到最佳视觉平�?*/
 }
 
 .profile-container .nickname-info {
@@ -543,7 +543,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* 自定义弹窗样式 */
+/* 自定义弹窗样�?*/
 .profile-container .modal-overlay {
   position: fixed;
   top: 0;
@@ -682,7 +682,7 @@
   }
 }
 
-/* 头像裁切模态弹窗样式 */
+/* 头像裁切模态弹窗样�?*/
 .profile-container .avatar-crop-modal-overlay {
   position: fixed;
   top: 0;
@@ -827,4 +827,234 @@
 
 .profile-container .btn-confirm:hover {
   background: #0056b3;
+}
+
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .profile-container {
+  background-color: #0f172a;
+}
+
+.dark-mode .profile-container .top-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .profile-container .page-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .menu-btn {
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .menu-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .main-content {
+  background-color: #0f172a;
+}
+
+.dark-mode .profile-container .profile-card {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .info-card {
+  background: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .avatar-section .avatar-placeholder {
+  background-color: #334155;
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .camera-icon {
+  border-color: #1e293b;
+}
+
+.dark-mode .profile-container .intro-content {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .edit-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .edit-btn:hover {
+  background: #475569;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .intro-textarea {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .intro-textarea::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .profile-container .save-btn,
+.dark-mode .profile-container .cancel-btn {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .save-btn:hover {
+  background: #475569;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .cancel-btn:hover {
+  background: #475569;
+  border-color: #64748b;
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .login-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+  color: white;
+}
+
+.dark-mode .profile-container .login-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+}
+
+.dark-mode .profile-container .form-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .form-input,
+.dark-mode .profile-container .form-textarea {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .btn {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .btn:hover {
+  background: #475569;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+}
+
+.dark-mode .profile-container .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .profile-container .modal-content {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .avatar-crop-modal-content {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .profile-container .avatar-crop-selection {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.2);
+}
+
+.dark-mode .profile-container .back-btn {
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .back-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .user-menu {
+  background: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .profile-container .menu-item {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .menu-item:hover {
+  background-color: #334155;
+}
+
+.dark-mode .profile-container .menu-item svg {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .username {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .profile-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .info-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .info-value {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .nickname-display {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .user-id-display {
+  background-color: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.dark-mode .profile-container .edit-nickname-btn {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .edit-nickname-btn:hover {
+  background-color: #334155;
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .nickname-input {
+  color: #f1f5f9;
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .profile-container .btn-cancel {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .btn-cancel:hover {
+  background: #475569;
+  color: #f1f5f9;
 }

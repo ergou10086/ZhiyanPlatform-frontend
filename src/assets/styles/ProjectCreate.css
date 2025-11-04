@@ -1,4 +1,4 @@
-﻿.project-create-container {
+.project-create-container {
   min-height: 100vh;
   background-color: #f8f9fa;
   display: block;
@@ -89,15 +89,15 @@
   cursor: pointer;
   transition: all 0.3s ease;
   background: #fafafa;
-  min-height: 135px; /* 与预览区域高度一致 */
+  min-height: 135px; /* ��Ԥ������߶�һ�� */
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
   pointer-events: auto;
   user-select: none;
-  max-width: 300px; /* 限制最大宽度 */
-  margin: 0 auto; /* 居中显示 */
+  max-width: 300px; /* ���������� */
+  margin: 0 auto; /* ������ʾ */
 }
 
 .image-upload-area:hover {
@@ -110,8 +110,8 @@
   border-color: #10b981;
   background: #f0fdf4;
   padding: 0;
-  min-height: 135px; /* 保持与上传区域一致的高度 */
-  max-width: 300px; /* 保持与上传区域一致的宽度 */
+  min-height: 135px; /* �������ϴ�����һ�µĸ߶� */
+  max-width: 300px; /* �������ϴ�����һ�µĿ��� */
 }
 
 .upload-placeholder {
@@ -141,11 +141,11 @@
 .image-preview {
   position: relative;
   width: 100%;
-  height: 135px; /* 调整高度，与项目广场比例一致 */
+  height: 135px; /* �����߶ȣ�����Ŀ�㳡����һ�� */
   border-radius: 8px;
   overflow: hidden;
-  max-width: 300px; /* 限制最大宽度，保持比例 */
-  margin: 0 auto; /* 居中显示 */
+  max-width: 300px; /* ���������ȣ����ֱ��� */
+  margin: 0 auto; /* ������ʾ */
 }
 
 .image-preview img {
@@ -215,13 +215,13 @@
   color: #666;
 }
 
-/* 使用更具体的选择器避免影响其他页面 */
+/* ʹ�ø������ѡ��������Ӱ������ҳ�� */
 .project-create-container > .main-content {
   flex: 1;
-  margin: 64px auto 0; /* 为固定页眉留出顶部空间，水平居中 */
+  margin: 64px auto 0; /* Ϊ�̶�ҳü���������ռ䣬ˮƽ���� */
   display: flex;
-  flex-direction: row; /* 确保是横向布局 */
-  align-items: flex-start; /* 顶部对齐 */
+  flex-direction: row; /* ȷ���Ǻ��򲼾� */
+  align-items: flex-start; /* �������� */
   gap: 24px;
   padding: 24px;
   max-width: 1400px;
@@ -244,9 +244,9 @@
   padding: 20px;
   height: fit-content;
   position: sticky;
-  top: 88px; /* 页眉高度64px + 顶部间距24px */
-  align-self: flex-start; /* 确保在顶部对齐 */
-  flex-shrink: 0; /* 防止被压缩 */
+  top: 88px; /* ҳü�߶�64px + �������24px */
+  align-self: flex-start; /* ȷ���ڶ������� */
+  flex-shrink: 0; /* ��ֹ��ѹ�� */
 }
 
 .project-create-container .form-group {
@@ -391,7 +391,7 @@
   justify-content: center;
 }
 
-/* 可见性选择器样式 */
+/* �ɼ���ѡ������ʽ */
 .visibility-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -457,7 +457,7 @@
   line-height: 1.4;
 }
 
-/* 预览区域的可见性徽章样式 */
+/* Ԥ������Ŀɼ��Ի�����ʽ */
 .visibility-badge {
   display: inline-flex;
   align-items: center;
@@ -696,7 +696,7 @@
   cursor: not-allowed;
 }
 
-/* 响应式设计 */
+/* ��Ӧʽ��� */
 @media (max-width: 1024px) {
   .main-content {
     flex-direction: column;
@@ -735,7 +735,7 @@
   }
 }
 
-/* Toast样式 */
+/* Toast��ʽ */
 .success-toast {
   position: fixed;
   top: 50%;
@@ -771,7 +771,7 @@
   }
 }
 
-/* 图片裁切模态弹窗样式 */
+/* ͼƬ����ģ̬������ʽ */
 .crop-modal-overlay {
   position: fixed;
   top: 0;
@@ -783,7 +783,7 @@
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  /* 不允许点击背景关闭 */
+  /* ��������������ر� */
   pointer-events: all;
 }
 
@@ -863,7 +863,7 @@
   border-radius: 4px;
 }
 
-/* 调整大小的控制点 */
+/* ������С�Ŀ��Ƶ� */
 .resize-handle {
   position: absolute;
   width: 8px;
@@ -937,7 +937,7 @@
   background: #0056b3;
 }
 
-/* Modal样式 */
+/* Modal��ʽ */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1023,4 +1023,237 @@
 
 .modal-btn-confirm:hover {
   background: #0056b3;
+}
+
+/* ========== �ڰ�ģʽ��ʽ ========== */
+.dark-mode .project-create-container {
+  background-color: #0f172a;
+}
+
+.dark-mode .project-create-container .top-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .project-create-container .page-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .menu-btn {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-create-container .menu-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .main-content {
+  background-color: #0f172a;
+}
+
+.dark-mode .project-create-container .form-card {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .form-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-create-container .form-input,
+.dark-mode .project-create-container .form-textarea,
+.dark-mode .project-create-container .form-select {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .btn {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .btn:hover {
+  background: #475569;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .project-create-container .btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+}
+
+.dark-mode .project-create-container .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .project-create-container .modal-content {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .crop-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .project-create-container .crop-selection {
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-create-container .crop-modal-content {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .form-section {
+  background: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .project-create-container .preview-section {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .section-title {
+  color: #f1f5f9;
+  border-bottom-color: #475569;
+}
+
+.dark-mode .project-create-container .image-upload-area {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .image-upload-area:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-create-container .image-upload-area.has-image {
+  background: #1e293b;
+  border-color: #10b981;
+}
+
+.dark-mode .project-create-container .upload-placeholder svg {
+  color: #94a3b8;
+}
+
+.dark-mode .project-create-container .upload-text {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-create-container .upload-hint {
+  color: #94a3b8;
+}
+
+.dark-mode .project-create-container .visibility-option {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .visibility-option:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-create-container .visibility-option.active {
+  background: #1e3a8a;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-create-container .option-icon {
+  background: #475569;
+  color: #cbd5e1;
+}
+
+.dark-mode .project-create-container .visibility-option.active .option-icon {
+  background: #60a5fa;
+  color: white;
+}
+
+.dark-mode .project-create-container .option-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .option-desc {
+  color: #94a3b8;
+}
+
+.dark-mode .project-create-container .preview-title {
+  color: #f1f5f9;
+  border-bottom-color: #475569;
+}
+
+.dark-mode .project-create-container .preview-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-create-container .preview-value {
+  color: #94a3b8;
+}
+
+.dark-mode .project-create-container .preview-placeholder {
+  color: #64748b;
+}
+
+.dark-mode .project-create-container .preview-tag {
+  background: rgba(96, 165, 250, 0.2);
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+.dark-mode .project-create-container .preview-position,
+.dark-mode .project-create-container .position-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .position-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-create-container .position-meta {
+  color: #94a3b8;
+}
+
+.dark-mode .project-create-container .position-count {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+}
+
+.dark-mode .project-create-container .preview-task {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .footer-actions {
+  background: #1e293b;
+  border-top-color: #475569;
+}
+
+.dark-mode .project-create-container .btn-secondary {
+  background: #334155;
+  color: #60a5fa;
+  border-color: #475569;
+}
+
+.dark-mode .project-create-container .btn-secondary:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-create-container .back-btn {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-create-container .back-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
 }
