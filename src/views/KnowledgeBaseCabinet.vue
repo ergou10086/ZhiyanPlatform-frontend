@@ -35,9 +35,13 @@
 
       <!-- 右侧编辑区 -->
       <div class="editor-pane" :class="{ 'expanded': sidebarCollapsed }">
-        <div class="doc-meta">
+        <div class="doc-meta" v-if="activeDoc">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
+        </div>
+        <div class="doc-meta" v-else>
+          <div class="doc-title">暂无文档</div>
+          <div class="doc-updated">请创建或选择文档</div>
         </div>
         <textarea 
           class="editor" 
@@ -45,7 +49,11 @@
           v-model="activeDocContent" 
           @input="updateContent"
           :readonly="!isEditing"
+          v-if="activeDoc"
         ></textarea>
+        <div v-else class="empty-editor">
+          <p>暂无文档内容</p>
+        </div>
         <div class="editor-footer">
           <button class="btn">版本历史</button>
           <button class="btn">差异对比</button>
@@ -372,15 +380,66 @@ export default {
         const saved = localStorage.getItem(storageKey)
         if (saved) {
           const data = JSON.parse(saved)
+          
+          // 示例文档和文件夹的标识
+          const exampleTitles = ['项目管理规范', '会议纪要', '培训资料']
+          const exampleContent = ['示例内容', '可替换为真实文档内容', '此处为示例内容']
+          
+          // 过滤掉示例文档
           if (data.docs && Array.isArray(data.docs) && data.docs.length > 0) {
-            this.docs = data.docs
-            console.log(`知识柜数据已从本地存储加载 (项目ID: ${this.projectId})`)
+            this.docs = data.docs.filter(doc => {
+              const title = (doc.title || '').toLowerCase()
+              const content = (doc.content || '').toLowerCase()
+              
+              // 检查标题或内容是否包含示例标识
+              const isExample = exampleTitles.some(et => title.includes(et.toLowerCase())) ||
+                                exampleContent.some(ec => content.includes(ec.toLowerCase()))
+              
+              if (isExample) {
+                console.log(`过滤掉示例文档: ${doc.title || doc.id}`)
+                return false
+              }
+              return true
+            })
+            
+            // 如果过滤后没有文档，清空数组
+            if (this.docs.length === 0) {
+              this.docs = []
+              this.activeId = 1
+            } else {
+              // 确保 activeId 指向存在的文档
+              const activeDoc = this.docs.find(d => d.id === this.activeId)
+              if (!activeDoc) {
+                this.activeId = this.docs[0].id
+              }
+            }
+            
+            console.log(`知识柜数据已从本地存储加载 (项目ID: ${this.projectId}), 文档数: ${this.docs.length}`)
           }
+          
+          // 过滤掉示例文件夹
           if (data.folders && Array.isArray(data.folders) && data.folders.length > 0) {
-            this.folders = data.folders
-            console.log(`文件夹数据已从本地存储加载 (项目ID: ${this.projectId})`)
+            this.folders = data.folders.filter(folder => {
+              const name = (folder.name || '').toLowerCase()
+              const isExample = exampleTitles.some(et => name.includes(et.toLowerCase()))
+              
+              if (isExample) {
+                console.log(`过滤掉示例文件夹: ${folder.name || folder.id}`)
+                return false
+              }
+              return true
+            })
+            
+            console.log(`文件夹数据已从本地存储加载 (项目ID: ${this.projectId}), 文件夹数: ${this.folders.length}`)
           }
-          if (data.activeId) {
+          
+          // 如果过滤后数据有变化，保存回 localStorage
+          if (this.docs.length !== (data.docs?.length || 0) || 
+              this.folders.length !== (data.folders?.length || 0)) {
+            this.saveToLocalStorage()
+          }
+          
+          if (data.activeId && this.docs.find(d => d.id === data.activeId)) {
             this.activeId = data.activeId
           }
           if (data.hasUnsavedChanges !== undefined) {
