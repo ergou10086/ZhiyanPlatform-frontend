@@ -1,10 +1,27 @@
 <template>
   <div class="ai-view">
     <div class="page-header">
+      <div class="header-top">
       <h1 class="page-title">
         <span class="title-text">AI赋能助手</span>
         <div class="title-decoration"></div>
       </h1>
+        <div class="header-actions">
+          <button class="view-history-btn" @click="viewChatHistory" title="查看历史记录">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>历史记录</span>
+          </button>
+          <button class="new-chat-btn" @click="createNewChatSession" title="新建对话">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>新建对话</span>
+          </button>
+        </div>
+      </div>
       <p class="page-subtitle">
         <svg class="subtitle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -41,6 +58,74 @@
         </div>
       </div>
       <div class="composer">
+        <!-- 文件预览卡片区域 -->
+        <div v-if="selectedLocalFiles.length > 0 || selectedKnowledgeFileIds.length > 0" class="file-preview-section">
+          <div class="file-preview-header">
+            <span class="file-preview-title">仅识别附件中的文字</span>
+          </div>
+          <div class="file-preview-list">
+            <!-- 本地文件预览 -->
+            <div 
+              v-for="(file, index) in selectedLocalFiles" 
+              :key="'local-' + index"
+              class="file-preview-card"
+            >
+              <div class="file-preview-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="file-preview-info">
+                <div class="file-preview-name">{{ file.name }}</div>
+                <div class="file-preview-meta">
+                  <span class="file-preview-type">{{ getFileType(file.name) }}</span>
+                  <span class="file-preview-size">{{ formatFileSize(file.size) }}</span>
+                </div>
+              </div>
+              <button 
+                class="file-remove-btn" 
+                @click="removeLocalFile(index)"
+                title="移除文件"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <!-- 知识库文件预览 -->
+            <div 
+              v-for="fileId in selectedKnowledgeFileIds" 
+              :key="'kb-' + fileId"
+              class="file-preview-card"
+            >
+              <div class="file-preview-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="file-preview-info">
+                <div class="file-preview-name">{{ getKnowledgeFileName(fileId) }}</div>
+                <div class="file-preview-meta">
+                  <span class="file-preview-type">{{ getKnowledgeFileType(fileId) }}</span>
+                  <span class="file-preview-size">{{ getKnowledgeFileSize(fileId) }}</span>
+                </div>
+              </div>
+              <button 
+                class="file-remove-btn" 
+                @click="removeKnowledgeFile(fileId)"
+                title="移除文件"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="composer-input-wrapper">
         <div class="file-menu-wrapper">
           <button 
             class="file-select-btn" 
@@ -100,6 +185,7 @@
           </svg>
           <div v-else class="loading-spinner"></div>
         </button>
+        </div>
       </div>
 
       <!-- 文件选择弹窗 -->
@@ -181,6 +267,69 @@
         </div>
       </div>
     </div>
+
+    <!-- 聊天历史记录弹窗 -->
+    <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
+      <div class="chat-history-sidebar" @click.stop>
+        <!-- 侧边栏头部 -->
+        <div class="sidebar-header">
+          <h3>对话历史</h3>
+          <button class="close-btn" @click="closeChatHistoryModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- 侧边栏内容 -->
+        <div class="sidebar-body">
+          <div v-if="chatSessions.length === 0" class="empty-history">
+            <div class="empty-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="empty-text">暂无历史对话</p>
+          </div>
+          <div v-else class="session-list">
+            <div 
+              v-for="session in chatSessions" 
+              :key="session.id"
+              class="chat-session-item"
+              :class="{ 'active': session.id === currentChatSessionId }"
+              @click="loadChatSession(session.id)"
+            >
+              <div class="session-info">
+                <div class="session-title">{{ session.title || '未命名对话' }}</div>
+                <div class="session-meta">
+                  <span class="session-count">{{ session.messageCount || 0 }} 条消息</span>
+                  <span class="session-date">{{ formatDate(session.createdAt) }}</span>
+                </div>
+              </div>
+              <button 
+                class="delete-session-btn" 
+                @click.stop="deleteChatSession(session.id)"
+                title="删除对话"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 侧边栏底部 -->
+        <div class="sidebar-footer">
+          <button class="btn-primary" @click="createNewChatSession">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>新建对话</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -209,19 +358,32 @@ export default {
       selectedFiles: [],
       selectedLocalFiles: [], // 选中的本地文件
       selectedKnowledgeFileIds: [], // 选中的知识库文件ID
+      knowledgeFileInfoMap: {}, // 知识库文件信息映射 { fileId: { fileName, fileSize, fileType } }
       conversationId: null, // 对话ID，用于维持会话
       currentStreamController: null, // 当前流式响应的控制器
       streamingContent: '', // 当前正在流式输入的内容（用于显示）
       streamingBuffer: '', // 缓冲区：存储后端发送的完整内容
       streamingMessageId: null, // 当前正在流式输入的消息ID
       isStreaming: false, // 是否正在流式输入
-      typewriterTimer: null // 打字机定时器
+      typewriterTimer: null, // 打字机定时器
+      // 聊天历史记录相关
+      showChatHistoryModal: false, // 是否显示历史记录弹窗
+      chatSessions: [], // 所有对话会话列表
+      currentChatSessionId: null // 当前对话会话ID
     }
   },
   mounted() {
-    // 组件挂载时加载本地存储的消息和对话ID
+    // 组件挂载时加载聊天会话历史
+    this.loadChatSessionsFromStorage()
+    // 尝试加载最后一个会话
+    const lastSessionId = this.getLastChatSessionId()
+    if (lastSessionId) {
+      this.loadChatSession(lastSessionId)
+    } else {
+      // 如果没有历史会话，加载本地存储的消息和对话ID（兼容旧版本）
     this.loadMessagesFromStorage()
     this.loadConversationId()
+    }
     // 点击外部关闭下拉菜单
     document.addEventListener('click', this.handleClickOutside)
   },
@@ -233,9 +395,10 @@ export default {
       this.currentStreamController.close()
       this.currentStreamController = null
     }
-    // 组件销毁前保存消息和对话ID
-    this.saveMessagesToStorage()
-    this.saveConversationId()
+    // 组件销毁前保存当前会话
+    this.saveCurrentChatSession()
+    this.saveChatSessionsToStorage()
+    this.saveLastChatSessionId()
     // 移除事件监听
     document.removeEventListener('click', this.handleClickOutside)
   },
@@ -243,26 +406,18 @@ export default {
     async sendMessage() {
       if (!this.inputMessage.trim() || this.isSending) return
       
+      // 如果没有当前会话，创建一个新会话
+      if (!this.currentChatSessionId) {
+        this.createNewChatSession()
+      }
+      
       const userMessage = {
         id: Date.now(),
         type: 'right',
         content: this.inputMessage.trim()
       }
       
-      // 记录用户发送的文件信息（如果有）
-      if (this.selectedLocalFiles.length > 0 || this.selectedKnowledgeFileIds.length > 0) {
-        const fileInfo = []
-        if (this.selectedLocalFiles.length > 0) {
-          fileInfo.push(`本地文件: ${this.selectedLocalFiles.map(f => f.name).join(', ')}`)
-        }
-        if (this.selectedKnowledgeFileIds.length > 0) {
-          const selectedFileNames = this.files
-            .filter(file => this.selectedKnowledgeFileIds.includes(file.id))
-            .map(file => file.name || file.title || '未命名文件')
-          fileInfo.push(`知识库文件: ${selectedFileNames.join(', ')}`)
-        }
-        userMessage.content += '\n\n[' + fileInfo.join(' | ') + ']'
-      }
+      // 不再在消息内容中添加文件信息文本，文件通过API参数传递
       
       this.messages.push(userMessage)
       const query = this.inputMessage.trim()
@@ -295,8 +450,8 @@ export default {
       console.log('  - typewriterTimer:', this.typewriterTimer)
       console.log('  - 期望的DOM ID: typewriter-' + this.streamingMessageId)
       
-      // 保存消息到本地存储
-      this.saveMessagesToStorage()
+      // 保存当前会话
+      this.saveCurrentChatSession()
       
       // 滚动到底部
       this.$nextTick(() => {
@@ -315,6 +470,7 @@ export default {
         // 清空选中的文件
         this.selectedLocalFiles = []
         this.selectedKnowledgeFileIds = []
+         this.knowledgeFileInfoMap = {}
         
         // 判断是否需要调用带文件的接口
         if (localFiles || knowledgeFileIds) {
@@ -401,7 +557,7 @@ export default {
           if (!this.typewriterTimer) {
             console.log('[打字机] 准备启动定时器...')
             // 等待Vue渲染DOM后再启动定时器
-            this.$nextTick(() => {
+          this.$nextTick(() => {
               // 再次确认元素存在
               const element = document.getElementById('typewriter-' + this.streamingMessageId)
               if (element) {
@@ -633,7 +789,7 @@ export default {
      */
     handleStreamComplete(aiMessage) {
       console.log('[流式完成🎬] 后端流式响应已结束')
-      this.isSending = false
+        this.isSending = false
       this.currentStreamController = null
       
       console.log('[流式完成📊] 缓冲区长度:', this.streamingBuffer.length, '已显示:', this.streamingContent.length)
@@ -679,7 +835,8 @@ export default {
       
       console.log('[完成清理✅] 所有状态已清除，可以开始下一次对话')
       
-      this.saveMessagesToStorage()
+      // 保存当前会话
+      this.saveCurrentChatSession()
       this.$nextTick(() => {
         this.scrollToBottom()
       })
@@ -774,15 +931,8 @@ export default {
       const files = Array.from(event.target.files)
       if (files.length > 0) {
         console.log('选择了本地文件:', files)
-        // 保存选中的本地文件
-        this.selectedLocalFiles = files
-        
-        // 将文件名添加到输入框提示
-        const fileNames = files.map(file => file.name).join('、')
-        const fileInfo = `[已选择本地文件: ${fileNames}]`
-        this.inputMessage = this.inputMessage.trim() 
-          ? `${this.inputMessage}\n\n${fileInfo}`
-          : fileInfo
+        // 保存选中的本地文件（追加到现有列表）
+        this.selectedLocalFiles.push(...files)
       }
       // 清空文件输入
       this.$refs.fileInput.value = ''
@@ -794,15 +944,16 @@ export default {
       this.selectedFiles = []
     },
     
-    // 清除对话历史
-    clearConversation() {
-      if (confirm('确定要清除当前对话历史吗？')) {
-        this.messages = []
-        this.conversationId = null
-        this.selectedLocalFiles = []
-        this.selectedKnowledgeFileIds = []
-        
-        // 清除流式状态
+     // 清除对话历史
+     clearConversation() {
+       if (confirm('确定要清除当前对话历史吗？')) {
+         this.messages = []
+         this.conversationId = null
+         this.selectedLocalFiles = []
+         this.selectedKnowledgeFileIds = []
+         this.knowledgeFileInfoMap = {}
+         
+         // 清除流式状态
         this.streamingMessageId = null
         this.streamingContent = ''
         this.streamingBuffer = ''
@@ -882,19 +1033,25 @@ export default {
             const detailResponse = await knowledgeAPI.getAchievementDetail(achievement.id)
             if (detailResponse && detailResponse.code === 200 && detailResponse.data) {
               const files = detailResponse.data.files || []
-              // 提取文件ID并添加到列表
+               // 提取文件ID并添加到列表，并保存文件信息到映射中
               files.forEach(file => {
                 if (file.id) {
                   const fileId = typeof file.id === 'string' ? parseInt(file.id, 10) : file.id
                   if (!isNaN(fileId)) {
                     allFileIds.push(fileId)
+                     // 保存文件信息到映射中
+                     this.knowledgeFileInfoMap[fileId] = {
+                       fileName: file.fileName || file.name || '未命名文件',
+                       fileSize: file.fileSize || 0,
+                       fileType: file.fileType || file.fileName?.split('.').pop()?.toUpperCase() || '未知'
+                     }
                   }
                 }
               })
               
               // 记录文件名
               if (files.length > 0) {
-                const fileNames = files.map(f => f.fileName || '未命名文件').join(', ')
+                 const fileNames = files.map(f => f.fileName || f.name || '未命名文件').join(', ')
                 selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: ${fileNames}`)
               } else {
                 selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 无文件`)
@@ -906,14 +1063,8 @@ export default {
           }
         }
         
-        // 保存选中的知识库文件ID
-        this.selectedKnowledgeFileIds = allFileIds
-        
-        // 将选中的文件信息添加到输入框提示
-        const fileInfo = `[已选择知识库文件: ${selectedFileNames.join(' | ')}]`
-      this.inputMessage = this.inputMessage.trim() 
-        ? `${this.inputMessage}\n\n${fileInfo}`
-        : fileInfo
+        // 保存选中的知识库文件ID（追加到现有列表）
+        this.selectedKnowledgeFileIds.push(...allFileIds)
       
         console.log('选中的知识库文件ID:', this.selectedKnowledgeFileIds)
         console.log('选中的成果:', selectedAchievements)
@@ -930,6 +1081,404 @@ export default {
       if (this.showFileMenu && !event.target.closest('.file-menu-wrapper')) {
         this.showFileMenu = false
       }
+    },
+    
+    // ==================== 文件预览相关方法 ====================
+    
+    /**
+     * 移除本地文件
+     */
+    removeLocalFile(index) {
+      this.selectedLocalFiles.splice(index, 1)
+    },
+    
+     /**
+      * 移除知识库文件
+      */
+     removeKnowledgeFile(fileId) {
+       const index = this.selectedKnowledgeFileIds.indexOf(fileId)
+       if (index > -1) {
+         this.selectedKnowledgeFileIds.splice(index, 1)
+       }
+       // 可选：从映射中删除文件信息（如果希望清理）
+       // delete this.knowledgeFileInfoMap[fileId]
+     },
+    
+    /**
+     * 获取文件类型
+     */
+    getFileType(fileName) {
+      if (!fileName) return '未知'
+      const ext = fileName.split('.').pop()?.toUpperCase()
+      return ext || '未知'
+    },
+    
+    /**
+     * 格式化文件大小
+     */
+    formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    },
+    
+     /**
+      * 获取知识库文件名
+      */
+     getKnowledgeFileName(fileId) {
+       // 首先从文件信息映射中查找
+       const fileInfo = this.knowledgeFileInfoMap[fileId]
+       if (fileInfo && fileInfo.fileName) {
+         return fileInfo.fileName
+       }
+       
+       // 如果映射中没有，尝试从files数组中查找（兼容旧数据）
+       for (const achievement of this.files) {
+         try {
+           if (achievement.files && Array.isArray(achievement.files)) {
+             const file = achievement.files.find(f => {
+               const fId = typeof f.id === 'string' ? parseInt(f.id, 10) : f.id
+               const targetId = typeof fileId === 'string' ? parseInt(fileId, 10) : fileId
+               return fId === targetId || String(fId) === String(targetId)
+             })
+             if (file) {
+               // 保存到映射中以便下次使用
+               const savedFileName = file.fileName || file.name || '未命名文件'
+               if (!this.knowledgeFileInfoMap[fileId]) {
+                 this.knowledgeFileInfoMap[fileId] = {
+                   fileName: savedFileName,
+                   fileSize: file.fileSize || 0,
+                   fileType: file.fileType || savedFileName.split('.').pop()?.toUpperCase() || '未知'
+                 }
+               }
+               return savedFileName
+             }
+           }
+         } catch (e) {
+           console.error('获取文件名时出错:', e)
+         }
+       }
+       
+       // 如果还是找不到，返回默认值
+       console.warn('未找到文件ID对应的文件名:', fileId)
+       return '未命名文件'
+     },
+    
+    /**
+     * 获取知识库文件类型
+     */
+    getKnowledgeFileType(fileId) {
+      const fileName = this.getKnowledgeFileName(fileId)
+      return this.getFileType(fileName)
+    },
+    
+     /**
+      * 获取知识库文件大小
+      */
+     getKnowledgeFileSize(fileId) {
+       // 首先从文件信息映射中查找
+       const fileInfo = this.knowledgeFileInfoMap[fileId]
+       if (fileInfo && fileInfo.fileSize) {
+         return this.formatFileSize(fileInfo.fileSize)
+       }
+       
+       // 如果映射中没有，尝试从files数组中查找（兼容旧数据）
+       for (const achievement of this.files) {
+         try {
+           if (achievement.files && Array.isArray(achievement.files)) {
+             const file = achievement.files.find(f => {
+               const fId = typeof f.id === 'string' ? parseInt(f.id, 10) : f.id
+               const targetId = typeof fileId === 'string' ? parseInt(fileId, 10) : fileId
+               return fId === targetId || String(fId) === String(targetId)
+             })
+             if (file && file.fileSize) {
+               // 保存到映射中以便下次使用
+               if (!this.knowledgeFileInfoMap[fileId]) {
+                 this.knowledgeFileInfoMap[fileId] = {
+                   fileName: file.fileName || file.name || '未命名文件',
+                   fileSize: file.fileSize,
+                   fileType: file.fileType || (file.fileName || file.name || '').split('.').pop()?.toUpperCase() || '未知'
+                 }
+               }
+               return this.formatFileSize(file.fileSize)
+             }
+           }
+         } catch (e) {
+           console.error('获取文件大小时出错:', e)
+         }
+       }
+       
+       return '-'
+     },
+    
+    // ==================== 聊天历史记录管理 ====================
+    
+    /**
+     * 获取存储键名（基于项目ID）
+     */
+    getStorageKey(key) {
+      return this.projectId ? `${key}_${this.projectId}` : key
+    },
+    
+    /**
+     * 加载聊天会话列表
+     */
+    loadChatSessionsFromStorage() {
+      try {
+        const storageKey = this.getStorageKey('aiChatSessions')
+        const saved = localStorage.getItem(storageKey)
+        if (saved) {
+          this.chatSessions = JSON.parse(saved)
+          // 按创建时间倒序排列
+          this.chatSessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        } else {
+          this.chatSessions = []
+        }
+      } catch (error) {
+        console.error('加载聊天会话失败:', error)
+        this.chatSessions = []
+      }
+    },
+    
+    /**
+     * 保存聊天会话列表
+     */
+    saveChatSessionsToStorage() {
+      try {
+        const storageKey = this.getStorageKey('aiChatSessions')
+        localStorage.setItem(storageKey, JSON.stringify(this.chatSessions))
+      } catch (error) {
+        console.error('保存聊天会话失败:', error)
+      }
+    },
+    
+    /**
+     * 获取最后一个会话ID
+     */
+    getLastChatSessionId() {
+      try {
+        const storageKey = this.getStorageKey('aiLastChatSessionId')
+        return localStorage.getItem(storageKey)
+      } catch (error) {
+        console.error('获取最后会话ID失败:', error)
+        return null
+      }
+    },
+    
+    /**
+     * 保存最后一个会话ID
+     */
+    saveLastChatSessionId() {
+      try {
+        const storageKey = this.getStorageKey('aiLastChatSessionId')
+        if (this.currentChatSessionId) {
+          localStorage.setItem(storageKey, this.currentChatSessionId)
+        } else {
+          localStorage.removeItem(storageKey)
+        }
+      } catch (error) {
+        console.error('保存最后会话ID失败:', error)
+      }
+    },
+    
+    /**
+     * 查看聊天历史
+     */
+    viewChatHistory() {
+      this.showChatHistoryModal = true
+    },
+    
+    /**
+     * 关闭聊天历史弹窗
+     */
+    closeChatHistoryModal() {
+      this.showChatHistoryModal = false
+    },
+    
+    /**
+     * 创建新对话会话
+     */
+    createNewChatSession() {
+      // 保存当前会话（如果存在）
+      if (this.currentChatSessionId && this.messages.length > 0) {
+        this.saveCurrentChatSession()
+      }
+      
+      // 创建新会话
+      const newSessionId = Date.now().toString()
+      const newSession = {
+        id: newSessionId,
+        title: '新对话',
+        messages: [],
+        conversationId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messageCount: 0
+      }
+      
+      // 添加到会话列表顶部
+      this.chatSessions.unshift(newSession)
+      this.saveChatSessionsToStorage()
+      
+      // 切换到新会话
+       this.currentChatSessionId = newSessionId
+       this.messages = []
+       this.conversationId = null
+       this.selectedLocalFiles = []
+       this.selectedKnowledgeFileIds = []
+       this.knowledgeFileInfoMap = {}
+       
+       // 清除流式状态
+      this.streamingMessageId = null
+      this.streamingContent = ''
+      this.streamingBuffer = ''
+      this.isStreaming = false
+      this.stopTypewriterEffect()
+      
+      // 关闭历史记录弹窗
+      this.closeChatHistoryModal()
+      
+      // 保存最后会话ID
+      this.saveLastChatSessionId()
+      
+      // 滚动到底部
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+    },
+    
+    /**
+     * 加载指定的聊天会话
+     */
+    loadChatSession(sessionId) {
+      const session = this.chatSessions.find(s => s.id === sessionId)
+      if (!session) {
+        console.error('会话不存在:', sessionId)
+        return
+      }
+      
+      // 保存当前会话（如果存在）
+      if (this.currentChatSessionId && this.currentChatSessionId !== sessionId) {
+        this.saveCurrentChatSession()
+      }
+      
+      // 加载会话数据
+      this.currentChatSessionId = sessionId
+      this.messages = session.messages || []
+      this.conversationId = session.conversationId || null
+      
+      // 清除流式状态
+      this.streamingMessageId = null
+      this.streamingContent = ''
+      this.streamingBuffer = ''
+      this.isStreaming = false
+      this.stopTypewriterEffect()
+      
+      // 关闭历史记录弹窗
+      this.closeChatHistoryModal()
+      
+      // 保存最后会话ID
+      this.saveLastChatSessionId()
+      
+      // 滚动到底部
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+    },
+    
+    /**
+     * 保存当前聊天会话
+     */
+    saveCurrentChatSession() {
+      if (!this.currentChatSessionId) return
+      
+      const session = this.chatSessions.find(s => s.id === this.currentChatSessionId)
+      if (session) {
+        // 更新现有会话
+        session.messages = [...this.messages]
+        session.conversationId = this.conversationId
+        session.updatedAt = new Date().toISOString()
+        session.messageCount = this.messages.length
+        
+        // 如果没有标题，生成一个
+        if (!session.title || session.title === '未命名对话') {
+          session.title = this.generateSessionTitle()
+        }
+      } else {
+        // 创建新会话（兼容旧数据）
+        const newSession = {
+          id: this.currentChatSessionId,
+          title: this.generateSessionTitle(),
+          messages: [...this.messages],
+          conversationId: this.conversationId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messageCount: this.messages.length
+        }
+        this.chatSessions.unshift(newSession)
+      }
+      
+      this.saveChatSessionsToStorage()
+    },
+    
+    /**
+     * 删除聊天会话
+     */
+    deleteChatSession(sessionId) {
+      if (confirm('确定要删除这个对话吗？')) {
+        // 从列表中移除
+        const index = this.chatSessions.findIndex(s => s.id === sessionId)
+        if (index > -1) {
+          this.chatSessions.splice(index, 1)
+          this.saveChatSessionsToStorage()
+          
+          // 如果删除的是当前会话，清空消息
+          if (this.currentChatSessionId === sessionId) {
+            this.currentChatSessionId = null
+            this.messages = []
+            this.conversationId = null
+            this.saveLastChatSessionId()
+          }
+        }
+      }
+    },
+    
+    /**
+     * 生成会话标题（基于第一条用户消息）
+     */
+    generateSessionTitle() {
+      const firstUserMessage = this.messages.find(m => m.type === 'right')
+      if (firstUserMessage && firstUserMessage.content) {
+        const content = firstUserMessage.content.trim()
+        // 取前20个字符作为标题
+        return content.length > 20 ? content.substring(0, 20) + '...' : content
+      }
+      return '新对话'
+    },
+    
+    /**
+     * 格式化日期
+     */
+    formatDate(dateString) {
+      if (!dateString) return ''
+      const date = new Date(dateString)
+      const now = new Date()
+      const diff = now - date
+      const minutes = Math.floor(diff / 60000)
+      const hours = Math.floor(minutes / 60)
+      const days = Math.floor(hours / 24)
+      
+      if (minutes < 1) return '刚刚'
+      if (minutes < 60) return `${minutes}分钟前`
+      if (hours < 24) return `${hours}小时前`
+      if (days < 7) return `${days}天前`
+      
+      // 超过7天显示具体日期
+      const month = date.getMonth() + 1
+      const day = date.getDate()
+      return `${month}月${day}日`
     }
   }
 }

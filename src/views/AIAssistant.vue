@@ -31,10 +31,8 @@
     <!-- 主要内容区域 -->
     <div class="main-content">
       <h1 class="page-main-title">AI 实验分析助手</h1>
-      <!-- 主内容布局：左侧对话区域，右侧文件列表 -->
-      <div class="main-layout">
-        <!-- AI对话区域 -->
-        <div class="ai-chat-section">
+      <!-- AI对话区域 -->
+      <div class="ai-chat-section">
         <div class="chat-header">
           <button class="view-history-btn" @click="viewChatHistory" title="查看聊天记录">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -106,61 +104,6 @@
             :disabled="isSending"
           />
           <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim() || isSending">发送</button>
-        </div>
-        </div>
-        
-        <!-- 右侧已上传文件列表 -->
-        <div class="uploaded-files-panel">
-          <div class="files-panel-header">
-            <h3 class="files-panel-title">已上传文件</h3>
-            <button 
-              class="clear-files-btn" 
-              @click="clearAllFiles" 
-              v-if="uploadedFiles.length > 0"
-              title="清空所有文件"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-          </div>
-          <div class="files-panel-body">
-            <div v-if="uploadedFiles.length === 0" class="empty-files">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 13H16M8 17H12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <p>暂无已上传文件</p>
-            </div>
-            <div v-else class="files-list">
-              <div 
-                v-for="file in uploadedFiles" 
-                :key="file.id || file.name"
-                class="file-item"
-              >
-                <div class="file-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <div class="file-info">
-                  <div class="file-name" :title="file.name || file.title">{{ file.name || file.title || '未命名文件' }}</div>
-                  <div class="file-type" v-if="file.type || file.typeName">{{ file.type || file.typeName }}</div>
-                </div>
-                <button 
-                  class="file-remove-btn" 
-                  @click="removeFile(file)"
-                  title="移除文件"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -380,9 +323,7 @@ export default {
       availableProjects: [],
       tasks: [],
       // 不同项目的任务数据
-      projectTasks: {},
-      // 已上传的文件列表
-      uploadedFiles: []
+      projectTasks: {}
     }
   },
   computed: {
@@ -1055,20 +996,6 @@ export default {
       const files = Array.from(event.target.files)
       if (files.length > 0) {
         console.log('选择了本地文件:', files)
-        
-        // 将文件添加到已上传文件列表
-        files.forEach(file => {
-          // 为每个文件生成唯一ID（即使同名也会添加）
-          const uniqueId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-          this.uploadedFiles.push({
-            id: uniqueId,
-            name: file.name,
-            type: this.getFileType(file.name),
-            isLocal: true,
-            file: file // 保存原始文件对象
-          })
-        })
-        
         // 将文件名添加到输入框
         const fileNames = files.map(file => file.name).join('、')
         const fileInfo = `我已上传以下文档：${fileNames}`
@@ -1083,21 +1010,6 @@ export default {
       if (this.$refs.fileInput) {
         this.$refs.fileInput.value = ''
       }
-    },
-    
-    // 获取文件类型
-    getFileType(fileName) {
-      const ext = fileName.split('.').pop()?.toLowerCase()
-      const typeMap = {
-        'pdf': 'PDF',
-        'doc': 'Word',
-        'docx': 'Word',
-        'xls': 'Excel',
-        'xlsx': 'Excel',
-        'txt': '文本',
-        'md': 'Markdown'
-      }
-      return typeMap[ext] || '文件'
     },
     
     // 关闭项目选择弹窗
@@ -1191,27 +1103,10 @@ export default {
     confirmFileSelection() {
       if (this.selectedFiles.length === 0) return
       
-      const selectedFiles = this.files.filter(file => this.selectedFiles.includes(file.id))
-      const selectedFileNames = selectedFiles
+      const selectedFileNames = this.files
+        .filter(file => this.selectedFiles.includes(file.id))
         .map(file => file.name || file.title || '未命名文件')
         .join('、')
-      
-      // 将选中的文件添加到已上传文件列表
-      selectedFiles.forEach(file => {
-        // 检查是否已存在
-        const exists = this.uploadedFiles.some(f => f.id === file.id && !f.isLocal)
-        if (!exists) {
-          this.uploadedFiles.push({
-            id: file.id,
-            name: file.name || file.title || '未命名文件',
-            title: file.title,
-            type: file.type || file.typeName || '文件',
-            typeName: file.typeName,
-            isLocal: false,
-            fileId: file.id
-          })
-        }
-      })
       
       // 将选中的文件信息添加到输入框
       const fileInfo = `请参考以下成果目录文件：${selectedFileNames}`
@@ -1221,27 +1116,9 @@ export default {
       
       // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
       console.log('选中的文件ID:', this.selectedFiles)
-      console.log('选中的文件:', selectedFiles)
+      console.log('选中的文件:', this.files.filter(file => this.selectedFiles.includes(file.id)))
       
       this.closeFileDialog()
-    },
-    
-    // 移除单个文件
-    removeFile(file) {
-      const index = this.uploadedFiles.findIndex(f => 
-        (file.isLocal && f.isLocal && f.name === file.name) || 
-        (!file.isLocal && !f.isLocal && f.id === file.id)
-      )
-      if (index > -1) {
-        this.uploadedFiles.splice(index, 1)
-      }
-    },
-    
-    // 清空所有文件
-    clearAllFiles() {
-      if (confirm('确定要清空所有已上传的文件吗？')) {
-        this.uploadedFiles = []
-      }
     },
     
     // 查看聊天记录

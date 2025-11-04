@@ -420,30 +420,6 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-  max-height: 175px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 4px;
-}
-
-/* 任务列表滚动条样式 */
-.urgent-task-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.urgent-task-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
-  border-radius: 3px;
-}
-
-.urgent-task-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.urgent-task-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
 }
 
 .urgent-task-item {
@@ -879,18 +855,5 @@ export default {
 
 .dark-mode .right-sidebar .expand-icon {
   color: #cbd5e1 !important;
-}
-
-/* 暗色模式下的任务列表滚动条样式 */
-.dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar-track {
-  background: #334155 !important;
-}
-
-.dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar-thumb {
-  background: #475569 !important;
-}
-
-.dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar-thumb:hover {
-  background: #64748b !important;
 }
 </style>
