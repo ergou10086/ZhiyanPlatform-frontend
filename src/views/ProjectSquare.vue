@@ -12,9 +12,9 @@
           </svg>
         </button>
         <button class="back-btn" @click="goToHome" title="返回首页">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+          </svg>
         </button>
         <span class="page-title">项目广场</span>
       </div>
@@ -74,10 +74,10 @@
                 @error="handleImageError($event, project)"
               />
               <span v-else class="placeholder-text">{{ project.title }}</span>
-          </div>
-          <div class="card-body">
-            <div class="card-title-row">
-              <h3 class="card-title">{{ project.title }}</h3>
+            </div>
+            <div class="card-body">
+              <div class="card-title-row">
+                <h3 class="card-title">{{ project.title }}</h3>
                 <div class="badge-group">
                   <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,22 +85,22 @@
                       <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </span>
-              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+                  <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
                 </div>
-            </div>
-            <ul class="meta-list">
-              <li>
+              </div>
+              <ul class="meta-list">
+                <li>
                   <span class="meta-label">创建者：</span>
                   <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
-              </li>
-              <li>
+                </li>
+                <li>
                   <span class="meta-label">团队规模：</span>
                   <span class="meta-value">{{ getTeamSize(project) }}人</span>
-              </li>
+                </li>
                 <li v-if="project.startDate && project.endDate">
                   <span class="meta-label">项目周期：</span>
                   <span class="meta-value">{{ formatDateRange(project.startDate, project.endDate) }}</span>
-              </li>
+                </li>
                 <li v-if="project.tags && project.tags.length > 0">
                   <span class="meta-label">标签：</span>
                   <span class="meta-value">
@@ -108,17 +108,17 @@
                       {{ tag }}{{ index < project.tags.length - 1 ? '、' : '' }}
                     </span>
                   </span>
-              </li>
-            </ul>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="pagination">
-        <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
-        <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
-        <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
-      </div>
+        <div class="pagination">
+          <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
+          <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
+          <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
+        </div>
       </div>
     </div>
 
@@ -205,17 +205,6 @@ export default {
     // 清理旧的图片 URL（包含 localhost 的错误 URL）
     this.cleanupOldImageUrls()
     
-    // 检查是否应该恢复页数（只有从项目详情返回时才恢复）
-    const shouldRestore = localStorage.getItem('projectSquare_shouldRestorePage')
-    if (shouldRestore === 'true') {
-      this.restorePageNumber()
-      localStorage.removeItem('projectSquare_shouldRestorePage')
-    } else {
-      // 从其他页面进入时重置到第一页
-      this.currentPage = 1
-      localStorage.removeItem('projectSquare_page')
-    }
-    
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
   },
@@ -223,18 +212,6 @@ export default {
     // 当页面被激活时（从其他页面返回），重新加载项目数据
     // 这样可以获取到最新上传的图片
     console.log('页面被激活，重新加载项目数据')
-    
-    // 检查是否应该恢复页数（只有从项目详情返回时才恢复）
-    const shouldRestore = localStorage.getItem('projectSquare_shouldRestorePage')
-    if (shouldRestore === 'true') {
-      this.restorePageNumber()
-      localStorage.removeItem('projectSquare_shouldRestorePage')
-    } else {
-      // 从其他页面进入时重置到第一页
-      this.currentPage = 1
-      localStorage.removeItem('projectSquare_page')
-    }
-    
     this.loadProjects()
   },
   beforeDestroy() {
@@ -444,54 +421,38 @@ export default {
                 if (memberResponse.data && memberResponse.data.content) {
                   // Spring Data Page对象
                   memberCount = memberResponse.data.content.length
-                  this.$set(project, 'teamMembers', memberResponse.data.content)
+                  project.teamMembers = memberResponse.data.content
                 } else if (Array.isArray(memberResponse.data)) {
                   // 直接返回数组
                   memberCount = memberResponse.data.length
-                  this.$set(project, 'teamMembers', memberResponse.data)
+                  project.teamMembers = memberResponse.data
                 }
               }
               
-              // 使用 Vue.set 更新项目的成员数量，确保响应式
-              const finalCount = memberCount > 0 ? memberCount : 1
-              this.$set(project, 'memberCount', finalCount)
+              // 更新项目的成员数量
+              project.memberCount = memberCount
               
-              // 同时写入缓存，供后续使用（优先读取缓存，因为它是同步的）
-              try {
-                localStorage.setItem(`project_member_count_${project.id}`, String(finalCount))
-                console.log(`✅ 已更新项目 ${project.id} 的成员数量:`, finalCount, '缓存已写入')
-              } catch (e) {
-                console.warn(`写入项目 ${project.id} 成员数量缓存失败:`, e)
+              // 同时写入缓存，供后续使用
+              if (memberCount > 0) {
+                try {
+                  localStorage.setItem(`project_member_count_${project.id}`, String(memberCount))
+                } catch (e) {
+                  console.warn(`写入项目 ${project.id} 成员数量缓存失败:`, e)
+                }
               }
               
-              console.log(`项目 ${project.id} (${project.name}) 成员数量:`, finalCount)
-              return { projectId: project.id, memberCount: finalCount }
+              console.log(`项目 ${project.id} (${project.name}) 成员数量: ${memberCount}`)
+              return { projectId: project.id, memberCount }
             } catch (error) {
               console.warn(`获取项目 ${project.id} 成员数量失败:`, error)
-              // 失败时从缓存读取，如果缓存也没有则使用默认值
-              try {
-                const cached = localStorage.getItem(`project_member_count_${project.id}`)
-                const cachedNum = cached ? parseInt(cached, 10) : NaN
-                if (!isNaN(cachedNum) && cachedNum > 0) {
-                  this.$set(project, 'memberCount', cachedNum)
-                  return { projectId: project.id, memberCount: cachedNum }
-                }
-              } catch (e) {
-                console.warn('读取缓存失败:', e)
-              }
-              // 使用默认值并更新
-              this.$set(project, 'memberCount', 1)
+              // 失败时保持默认值
               return { projectId: project.id, memberCount: 1 }
             }
           })
           
           // 等待所有成员数量获取完成
-          const memberCountResults = await Promise.all(memberCountPromises)
-          console.log('所有项目的成员数量获取完成:', memberCountResults)
-          
-          // 强制触发响应式更新
-          this.$forceUpdate()
-          console.log('✅ 已完成团队规模数据更新，已触发视图刷新')
+          await Promise.all(memberCountPromises)
+          console.log('所有项目的成员数量获取完成')
           
           // 保存合并后的数据到localStorage
           // 这样可以确保显示的都是数据库中真实存在的公开项目，同时保留本地的图片和其他数据
@@ -587,33 +548,16 @@ export default {
       return 'steady'
     },
     getTeamSize(project) {
-      // 0) 优先读取缓存（同步，不会被异步问题影响）
-      // 因为 loadProjects 会立即写入缓存，所以缓存是最快的
+      // 0) 优先读取项目详情缓存的人数（由 ProjectDetail 写入）
       try {
         const cached = localStorage.getItem(`project_member_count_${project.id}`)
         const cachedNum = cached ? parseInt(cached, 10) : NaN
-        if (!isNaN(cachedNum) && cachedNum > 0) {
-          // 同时更新 project.memberCount 以保持一致性
-          if (project.memberCount !== cachedNum) {
-            this.$set(project, 'memberCount', cachedNum)
-          }
-          return cachedNum
-        }
-      } catch (e) {
-        console.warn('读取缓存失败:', e)
-      }
-      
-      // 1) 其次使用项目中已设置的 memberCount（由 loadProjects 中的 API 获取）
-      // 这是最新的数据，应该优先使用
-      if (project.memberCount !== undefined && project.memberCount !== null) {
-        const num = typeof project.memberCount === 'number' ? project.memberCount : parseInt(project.memberCount, 10)
-        if (!isNaN(num) && num > 0) {
-          return num
-        }
-      }
+        if (!isNaN(cachedNum) && cachedNum > 0) return cachedNum
+      } catch (e) {}
 
-      // 2) 其次使用后端直接返回的其他数字字段（尽量兼容）
+      // 1) 其次使用后端直接返回的数字字段（尽量兼容）
       const numeric = (
+        project.memberCount ||
         project.teamMemberCount ||
         project.membersCount ||
         project.participantCount ||
@@ -625,8 +569,7 @@ export default {
       if (typeof numeric === 'number' && !isNaN(numeric) && numeric > 0) {
         return numeric
       }
-      
-      // 3) 再使用成员数组长度
+      // 2) 再使用成员数组长度
       if (Array.isArray(project.teamMembers) && project.teamMembers.length > 0) {
         return project.teamMembers.length
       }
@@ -642,15 +585,7 @@ export default {
       if (Array.isArray(project.userList) && project.userList.length > 0) {
         return project.userList.length
       }
-      
-      // 4) 最后读取缓存（作为备用，但通常已经在步骤0中读取了）
-      try {
-        const cached = localStorage.getItem(`project_member_count_${project.id}`)
-        const cachedNum = cached ? parseInt(cached, 10) : NaN
-        if (!isNaN(cachedNum) && cachedNum > 0) return cachedNum
-      } catch (e) {}
-      
-      // 4) 兜底
+      // 3) 兜底
       return 1
     },
     formatDateRange(startDate, endDate) {
@@ -675,15 +610,11 @@ export default {
       this.selectedStatus = s
       this.statusOpen = false
       this.currentPage = 1
-      // 重置时清除保存的页码
-      localStorage.removeItem('projectSquare_page')
     },
     resetFilters() {
       this.searchText = ''
       this.selectedStatus = ''
       this.currentPage = 1
-      // 重置时清除保存的页码
-      localStorage.removeItem('projectSquare_page')
     },
     /**
      * 处理图片加载错误
@@ -709,20 +640,13 @@ export default {
       }
     },
     goPrev() {
-      if (this.currentPage > 1) {
-        this.currentPage--
-        this.savePageNumber()
-      }
+      if (this.currentPage > 1) this.currentPage--
     },
     goNext() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++
-        this.savePageNumber()
-      }
+      if (this.currentPage < this.totalPages) this.currentPage++
     },
     goPage(p) {
       this.currentPage = p
-      this.savePageNumber()
     },
     viewProjectDetail(project) {
       // 检查用户是否已登录
@@ -731,41 +655,11 @@ export default {
       const isAuthenticated = !!(token && userInfo)
       
       if (isAuthenticated) {
-        // 保存当前页码
-        this.savePageNumber()
-        
-        // 设置标志，表示从项目详情返回时应该恢复页数
-        localStorage.setItem('projectSquare_shouldRestorePage', 'true')
-        
         // 跳转到项目详情页面
         this.$router.push(`/project-detail/${project.id}`)
       } else {
         // 游客显示登录提示弹窗
         this.showLoginModal('请先登录才能查看项目详情')
-      }
-    },
-    savePageNumber() {
-      // 保存当前页码到 localStorage
-      try {
-        localStorage.setItem('projectSquare_page', String(this.currentPage))
-        console.log('保存页码:', this.currentPage)
-      } catch (error) {
-        console.error('保存页码失败:', error)
-      }
-    },
-    restorePageNumber() {
-      // 从 localStorage 恢复页码
-      try {
-        const savedPage = localStorage.getItem('projectSquare_page')
-        if (savedPage) {
-          const pageNum = parseInt(savedPage, 10)
-          if (!isNaN(pageNum) && pageNum > 0) {
-            this.currentPage = pageNum
-            console.log('恢复页码:', this.currentPage)
-          }
-        }
-      } catch (error) {
-        console.error('恢复页码失败:', error)
       }
     },
     showLoginModal(message) {
@@ -793,661 +687,3 @@ export default {
 }
 </script>
 
-<style scoped>
-.project-square-container {
-  min-height: 100vh;
-  background-color: var(--bg-secondary);
-  display: flex;
-  flex-direction: column;
-}
-
-.top-header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-primary);
-  height: 64px;
-  padding: 0 var(--space-6);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: var(--shadow-sm);
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.back-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  color: #666;
-  transition: background-color 0.3s ease;
-  margin-right: 8px;
-}
-
-.back-btn:hover {
-  background-color: #f8f9fa;
-  color: #333;
-}
-
-.menu-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  color: #666;
-  transition: background-color 0.3s ease;
-}
-
-.menu-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.page-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.header-right { display: flex; align-items: center; gap: 24px; position: relative; }
-
-
-.user-profile { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; border-radius: 6px; transition: background-color 0.3s ease; }
-.user-profile:hover { background-color: #f8f9fa; }
-.user-avatar { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; }
-.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.avatar-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #666; }
-.rotate { transform: rotate(180deg); transition: transform 0.3s ease; }
-.user-menu { position: absolute; top: calc(100% + 4px); right: 0; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #e9ecef; min-width: 160px; z-index: 100; }
-.menu-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background-color 0.3s ease; font-size: 14px; color: #333; }
-.menu-item:hover { background-color: #f8f9fa; }
-
-.main-content {
-  flex: 1;
-  padding: var(--space-5) var(--space-6) 0;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 64px); /* 减去顶部导航栏高度 */
-}
-
-.content-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  padding: var(--space-3);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-}
-
-.search-input {
-  flex: 1;
-  height: 40px;
-  border: 2px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  padding: 0 var(--space-4);
-  outline: none;
-  font-size: var(--text-sm);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  transition: all var(--transition-normal);
-}
-
-.search-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-light);
-}
-
-.toolbar-actions { display: flex; gap: 10px; position: relative; }
-
-.btn {
-  height: 40px;
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-lg);
-  border: 2px solid var(--border-primary);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  transition: all var(--transition-normal);
-}
-
-.btn:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn.secondary { 
-  background: var(--bg-tertiary);
-  border-color: var(--border-secondary);
-}
-
-.btn.primary { 
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  border-color: var(--primary-color);
-  color: var(--text-inverse);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn.primary:hover {
-  background: linear-gradient(135deg, var(--primary-hover), var(--primary-dark));
-  box-shadow: var(--shadow-lg);
-}
-.btn-block { width: 100%; margin-top: 10px; }
-
-.dropdown { position: relative; }
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 120px;
-  background: #fff;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-  z-index: 10;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-.dropdown-item {
-  padding: 10px 12px;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-}
-.dropdown-item:hover { background: #f8f9fa; }
-.dropdown-item.active { color: #5b6bff; background: #eef1ff; }
-
-.grid {
-  margin-top: var(--space-4);
-  display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 调整为每行4个卡片 */
-  gap: var(--space-4); /* 增加间距 */
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  align-content: start; /* 内容从顶部开始排列 */
-  padding-bottom: var(--space-3); /* 底部留白 */
-}
-
-.card {
-  background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  height: 280px; /* 固定卡片高度，确保所有页面一致 */
-  position: relative;
-}
-
-.card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--primary-color), var(--info-color), var(--success-color));
-  transform: scaleX(0);
-  transition: transform var(--transition-normal);
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-xl);
-  border-color: var(--primary-color);
-}
-
-.card:hover::before {
-  transform: scaleX(1);
-}
-
-.card-media {
-  height: 180px; /* 增大媒体区域高度 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  position: relative;
-  overflow: hidden;
-  border-radius: 10px 10px 0 0;
-}
-
-.gradient-1 { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-.gradient-2 { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-.gradient-3 { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-.gradient-4 { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-.gradient-5 { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-.gradient-6 { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); }
-
-.card-media::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
-  z-index: 1;
-}
-
-.project-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 8px 8px 0 0;
-}
-
-.card-media span {
-  position: relative;
-  z-index: 2;
-}
-
-.placeholder-text {
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  padding: 0 20px;
-  line-height: 1.4;
-}
-
-.card-body { 
-  padding: 12px 16px; /* 进一步减少内边距 */
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.card-title-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px; /* 减少底部间距 */
-  gap: 8px;
-}
-
-.card-title {
-  font-size: var(--text-base);
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
-  margin: 0;
-  line-height: var(--leading-snug);
-  flex: 1;
-}
-
-.badge-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.visibility-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  border: 1px solid transparent;
-}
-
-.visibility-badge.visibility-public {
-  background: #e7f5ff;
-  color: #1971c2;
-  border-color: #a5d8ff;
-}
-
-.visibility-badge.visibility-public svg {
-  width: 12px;
-  height: 12px;
-  stroke: currentColor;
-}
-
-.status-badge {
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: var(--font-semibold);
-  line-height: 1;
-  border: 1px solid transparent;
-  flex-shrink: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-.status-badge.ongoing { 
-  background: var(--warning-light); 
-  color: var(--warning-color); 
-  border-color: var(--warning-color);
-}
-.status-badge.done { 
-  background: var(--success-light); 
-  color: var(--success-color); 
-  border-color: var(--success-color);
-}
-.status-badge.steady { 
-  background: var(--info-light); 
-  color: var(--info-color); 
-  border-color: var(--info-color);
-}
-
-.meta-list { 
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-.meta-list li { 
-  display: flex; 
-  align-items: center; 
-  padding: 2px 0; /* 进一步减少内边距 */
-  font-size: var(--text-xs); 
-  color: var(--text-secondary);
-  line-height: 1.2;
-}
-.meta-label { 
-  color: var(--text-tertiary);
-  font-weight: var(--font-medium);
-}
-.meta-value { 
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
-}
-
-.tag-item {
-  display: inline;
-  color: var(--text-primary);
-  font-weight: var(--font-semibold);
-}
-
-.pagination {
-  margin-top: auto; /* 自动推到底部 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0; /* 防止分页按钮被压缩 */
-  padding: var(--space-5) 0;
-  background: var(--bg-primary);
-  border-top: 1px solid var(--border-primary);
-  margin-bottom: 0; /* 确保贴底 */
-}
-.pager, .page-num {
-  height: 32px;
-  min-width: 32px;
-  padding: 0 var(--space-2);
-  border: 2px solid var(--border-primary);
-  background: var(--bg-primary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  color: var(--text-primary);
-  transition: all var(--transition-fast);
-}
-
-.pager:hover, .page-num:hover {
-  background: var(--bg-tertiary);
-  transform: translateY(-1px);
-}
-
-.page-num.active { 
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-  color: var(--text-inverse);
-  border-color: var(--primary-color);
-  box-shadow: var(--shadow-sm);
-}
-
-.pager:disabled { 
-  opacity: 0.5; 
-  cursor: not-allowed;
-  transform: none;
-}
-
-@media (max-width: 1400px) {
-  .grid { 
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-@media (max-width: 1000px) {
-  .grid { 
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-@media (max-width: 600px) {
-  .grid { 
-    grid-template-columns: 1fr;
-  }
-  .toolbar { flex-direction: column; align-items: stretch; }
-  .toolbar-actions { justify-content: flex-end; }
-  .card { height: 260px; } /* 移动端稍微缩小 */
-  .card-media { height: 150px; }
-  .card-body { padding: 12px; }
-}
-
-/* 加载状态样式 */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  padding: 60px 20px;
-}
-
-.loading-spinner {
-  width: 50px;
-  height: 50px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-  margin: 0;
-}
-
-/* 空状态样式 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.empty-state svg {
-  margin-bottom: 24px;
-  opacity: 0.3;
-}
-
-.empty-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 12px 0;
-}
-
-.empty-description {
-  font-size: 16px;
-  color: var(--text-secondary);
-  margin: 0 0 32px 0;
-  max-width: 400px;
-}
-
-/* 自定义弹窗样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 400px;
-  width: 90%;
-  max-height: 90vh;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px 16px;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: #6b7280;
-  transition: all 0.2s ease;
-}
-
-.modal-close:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.modal-body {
-  padding: 20px 24px;
-}
-
-.modal-body p {
-  margin: 0;
-  font-size: 16px;
-  color: #374151;
-  line-height: 1.5;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 16px 24px 20px;
-}
-
-.modal-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: none;
-}
-
-.modal-btn-cancel {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.modal-btn-cancel:hover {
-  background: #e5e7eb;
-}
-
-.modal-btn-confirm {
-  background: #3b82f6;
-  color: white;
-}
-
-.modal-btn-confirm:hover {
-  background: #2563eb;
-}
-
-/* 成功提示Toast样式 */
-.success-toast {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  z-index: 9999;
-  animation: fadeInOut 1s ease-in-out;
-  pointer-events: none;
-}
-
-@keyframes fadeInOut {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  20% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-}
-</style>

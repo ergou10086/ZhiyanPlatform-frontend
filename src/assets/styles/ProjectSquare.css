@@ -73,10 +73,10 @@
 .project-square-container .main-content {
   flex: 1;
   padding: var(--space-5) var(--space-6) 0;
-  padding-top: calc(var(--space-5) + 64px); /* 为固定页眉留出空间 */
+  padding-top: calc(var(--space-5) + 64px); /* 为固定页眉留出空�?*/
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px); /* 减去顶部导航栏高度 */
+  height: calc(100vh - 64px); /* 减去顶部导航栏高�?*/
 }
 
 .project-square-container .content-wrapper {
@@ -182,13 +182,13 @@
 .project-square-container .grid {
   margin-top: var(--space-4);
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 调整为每行4个卡片 */
+  grid-template-columns: repeat(4, 1fr); /* 调整为每�?个卡�?*/
   gap: var(--space-4); /* 增加间距 */
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  align-content: start; /* 内容从顶部开始排列 */
-  padding-top: 4px; /* 为卡片上移留出空间 */
+  align-content: start; /* 内容从顶部开始排�?*/
+  padding-top: 4px; /* 为卡片上移留出空�?*/
   padding-bottom: var(--space-3); /* 底部留白 */
 }
 
@@ -201,7 +201,7 @@
   flex-direction: column;
   cursor: pointer;
   transition: all var(--transition-normal);
-  height: 280px; /* 固定卡片高度，确保所有页面一致 */
+  height: 280px; /* 固定卡片高度，确保所有页面一�?*/
   position: relative;
 }
 
@@ -398,7 +398,7 @@
   justify-content: center;
   align-items: center;
   gap: var(--space-2);
-  flex-shrink: 0; /* 防止分页按钮被压缩 */
+  flex-shrink: 0; /* 防止分页按钮被压�?*/
   padding: var(--space-5) 0;
   background: var(--bg-primary);
   border-top: 1px solid var(--border-primary);
@@ -452,12 +452,12 @@
   }
   .project-square-container .toolbar { flex-direction: column; align-items: stretch; }
   .project-square-container .toolbar-actions { justify-content: flex-end; }
-  .project-square-container .card { height: 260px; } /* 移动端稍微缩小 */
+  .project-square-container .card { height: 260px; } /* 移动端稍微缩�?*/
   .project-square-container .card-media { height: 150px; }
   .project-square-container .card-body { padding: 12px; }
 }
 
-/* 加载状态样式 */
+/* 加载状态样�?*/
 .project-square-container .loading-container {
   display: flex;
   flex-direction: column;
@@ -488,7 +488,7 @@
   margin: 0;
 }
 
-/* 空状态样式 */
+/* 空状态样�?*/
 .project-square-container .empty-state {
   display: flex;
   flex-direction: column;
@@ -518,7 +518,7 @@
   max-width: 400px;
 }
 
-/* 自定义弹窗样式 */
+/* 自定义弹窗样�?*/
 .project-square-container .modal-overlay {
   position: fixed;
   top: 0;
@@ -651,4 +651,200 @@
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
   }
+}
+
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .project-square-container {
+  background-color: #0f172a;
+}
+
+.dark-mode .project-square-container .top-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .project-square-container .page-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .back-btn,
+.dark-mode .project-square-container .menu-btn {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-square-container .back-btn:hover,
+.dark-mode .project-square-container .menu-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .main-content {
+  background-color: #0f172a;
+}
+
+.dark-mode .project-square-container .toolbar {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-square-container .search-input {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .search-input::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .project-square-container .btn {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .btn:hover {
+  background: #334155;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .project-square-container .btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+}
+
+.dark-mode .project-square-container .btn.secondary {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-square-container .dropdown-menu {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-square-container .dropdown-item {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-square-container .dropdown-item:hover {
+  background: #334155;
+  color: #60a5fa;
+}
+
+.dark-mode .project-square-container .dropdown-item.active {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+.dark-mode .project-square-container .card {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-square-container .card:hover {
+  background: #334155;
+  border-color: #60a5fa;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .project-square-container .card-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .meta-list li {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-square-container .meta-label {
+  color: #94a3b8;
+}
+
+.dark-mode .project-square-container .meta-value {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-square-container .tag-item {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-square-container .status-badge {
+  background: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+.dark-mode .project-square-container .status-badge.ongoing {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+.dark-mode .project-square-container .status-badge.done {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: #10b981;
+}
+
+.dark-mode .project-square-container .status-badge.steady {
+  background: rgba(6, 182, 212, 0.2);
+  color: #22d3ee;
+  border-color: #06b6d4;
+}
+
+.dark-mode .project-square-container .visibility-badge.visibility-public {
+  background: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+  border-color: #3b82f6;
+}
+
+.dark-mode .project-square-container .pagination {
+  background: #1e293b;
+  border-top-color: #475569;
+}
+
+.dark-mode .project-square-container .pager,
+.dark-mode .project-square-container .page-num {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .pager:hover,
+.dark-mode .project-square-container .page-num:hover {
+  background: #334155;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .project-square-container .page-num.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.dark-mode .project-square-container .pager:disabled {
+  opacity: 0.5;
+  color: #64748b;
+}
+
+.dark-mode .project-square-container .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .project-square-container .modal-content {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-square-container .modal-btn-cancel {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.dark-mode .project-square-container .modal-btn-cancel:hover {
+  background: #475569;
+  color: #f1f5f9;
 }

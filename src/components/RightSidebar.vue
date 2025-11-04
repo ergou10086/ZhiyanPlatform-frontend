@@ -1,5 +1,5 @@
 <template>
-  <div class="right-sidebar" :class="{ 'dark-mode': isDarkMode }">
+  <div class="right-sidebar">
     <!-- 我的工作日历标题 -->
     <div class="calendar-header">
       <h3 class="widget-title">我的工作日历</h3>
@@ -72,12 +72,6 @@
 <script>
 export default {
   name: 'RightSidebar',
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      default: false
-    }
-  },
   data() {
     return {
       currentDate: new Date(),
@@ -462,97 +456,97 @@ export default {
 }
 
 /* 黑夜模式样式 */
-.right-sidebar.dark-mode {
+.dark-mode .right-sidebar {
   background: #1e293b !important;
   border-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .calendar-widget,
-.right-sidebar.dark-mode .task-alert-widget {
+.dark-mode .right-sidebar .calendar-widget,
+.dark-mode .right-sidebar .task-alert-widget {
   background: #1e293b !important;
   border-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .widget-title {
+.dark-mode .right-sidebar .widget-title {
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .month-year {
+.dark-mode .right-sidebar .month-year {
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .nav-btn {
+.dark-mode .right-sidebar .nav-btn {
   color: #cbd5e1 !important;
 }
 
-.right-sidebar.dark-mode .nav-btn:hover {
+.dark-mode .right-sidebar .nav-btn:hover {
   background-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .weekdays {
+.dark-mode .right-sidebar .weekdays {
   color: #cbd5e1 !important;
 }
 
-.right-sidebar.dark-mode .day {
+.dark-mode .right-sidebar .day {
   color: #94a3b8 !important;
 }
 
-.right-sidebar.dark-mode .day.current-month {
+.dark-mode .right-sidebar .day.current-month {
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .day:hover {
+.dark-mode .right-sidebar .day:hover {
   background-color: #334155 !important;
 }
 
-.right-sidebar.dark-mode .day.current-month:hover {
+.dark-mode .right-sidebar .day.current-month:hover {
   background-color: #334155 !important;
 }
 
-.right-sidebar.dark-mode .day.today {
+.dark-mode .right-sidebar .day.today {
   background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
   color: #ffffff !important;
 }
 
-.right-sidebar.dark-mode .day.today:hover {
+.dark-mode .right-sidebar .day.today:hover {
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
 }
 
-.right-sidebar.dark-mode .day.selected {
+.dark-mode .right-sidebar .day.selected {
   background: #334155 !important;
   color: #60a5fa !important;
   border-color: #60a5fa !important;
 }
 
-.right-sidebar.dark-mode .day:not(.current-month) {
+.dark-mode .right-sidebar .day:not(.current-month) {
   color: #475569 !important;
 }
 
-.right-sidebar.dark-mode .task-alert-widget {
+.dark-mode .right-sidebar .task-alert-widget {
   border-color: #475569 !important;
 }
 
-.right-sidebar.dark-mode .task-alert-widget.urgent {
+.dark-mode .right-sidebar .task-alert-widget.urgent {
   border-color: #ef4444 !important;
   background: linear-gradient(135deg, #1e293b, #7f1d1d) !important;
 }
 
-.right-sidebar.dark-mode .alert-message.urgent {
+.dark-mode .right-sidebar .alert-message.urgent {
   background: #7f1d1d !important;
 }
 
-.right-sidebar.dark-mode .alert-message.safe {
+.dark-mode .right-sidebar .alert-message.safe {
   background: #1e3a5f !important;
 }
 
-.right-sidebar.dark-mode .alert-title {
+.dark-mode .right-sidebar .alert-title {
   color: #f1f5f9 !important;
 }
 
-.right-sidebar.dark-mode .alert-subtitle {
+.dark-mode .right-sidebar .alert-subtitle {
   color: #cbd5e1 !important;
 }
 </style>
