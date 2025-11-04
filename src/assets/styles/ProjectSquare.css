@@ -758,7 +758,7 @@
 }
 
 .dark-mode .project-square-container .meta-label {
-  color: #94a3b8;
+  color: #cbd5e1 !important; /* 确保在黑夜模式下标签文字清晰可见 */
 }
 
 .dark-mode .project-square-container .meta-value {

@@ -789,20 +789,39 @@
 }
 
 .task-priority.�?{
-  background: #dc3545 !important;
-  color: white !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
   font-weight: 600;
 }
 
 .task-priority.�?{
-  background: #ffc107 !important;
-  color: #333 !important;
+  background: #d97706 !important;
+  color: #ffffff !important;
   font-weight: 600;
 }
 
 .task-priority.�?{
-  background: #28a745 !important;
-  color: white !important;
+  background: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* 使用属性选择器确保优先级样式在正常模式下生效 */
+.task-priority[class*="高"] {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.task-priority[class*="中"] {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.task-priority[class*="低"] {
+  background: #059669 !important;
+  color: #ffffff !important;
   font-weight: 600;
 }
 
@@ -954,8 +973,8 @@
 }
 
 .task-status-btn.完成 {
-  background: #28a745 !important;
-  color: white !important;
+  background: #059669 !important;
+  color: #ffffff !important;
   border-color: #28a745 !important;
   font-weight: 600;
 }
@@ -2141,7 +2160,7 @@
 
 /* ========== 黑暗模式样式 ========== */
 .dark-mode .project-detail-container {
-  background-color: #0f172a;
+  background-color: #0a0f1a; /* 第一层 - 最深的背景色 */
 }
 
 .dark-mode .project-detail-container .top-header {
@@ -2163,13 +2182,18 @@
 }
 
 .dark-mode .project-detail-container .main-content {
-  background-color: #0f172a;
+  background-color: #0a0f1a; /* 第一层 - 与容器背景相同 */
 }
 
 .dark-mode .project-detail-container .project-card {
-  background: #1e293b;
+  background: #1e293b; /* 第二层 - 项目概览卡片 */
   border-color: #475569;
   color: #f1f5f9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .project-detail-container .project-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
 }
 
 .dark-mode .project-detail-container .project-title {
@@ -2229,14 +2253,16 @@
 }
 
 .dark-mode .project-detail-container .task-card {
-  background: #1e293b;
+  background: #334155; /* 第三层 - 任务卡片稍微亮一点 */
   border-color: #475569;
   color: #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark-mode .project-detail-container .team-member-card {
-  background: #1e293b;
+  background: #334155; /* 第三层 - 团队成员卡片 */
   border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark-mode .project-detail-container .member-name {
@@ -2248,8 +2274,9 @@
 }
 
 .dark-mode .project-detail-container .section-card {
-  background: #1e293b;
+  background: #1e293b; /* 第二层 - 主卡片 */
   border-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dark-mode .project-detail-container .section-title {
@@ -2339,13 +2366,15 @@
 }
 
 .dark-mode .project-detail-container .task-list-item {
-  background: #334155;
+  background: #334155; /* 第三层 */
   border-color: #475569;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .dark-mode .project-detail-container .task-list-item:hover {
-  background: #475569;
+  background: #475569; /* 悬停时更亮 */
   border-color: #60a5fa;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
 }
 
 .dark-mode .project-detail-container .task-item-title {
@@ -2377,6 +2406,116 @@
 .dark-mode .project-detail-container .task-card:hover {
   background: #475569;
   border-color: #60a5fa;
+}
+
+/* 任务卡片内部文字样式 */
+.dark-mode .project-detail-container .task-title {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .task-description {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-meta {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-meta span {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-creator {
+  color: #60a5fa !important;
+}
+
+.dark-mode .project-detail-container .task-assignee {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-date {
+  color: #94a3b8 !important;
+}
+
+/* 确保任务卡片内所有文字都是浅色 */
+.dark-mode .project-detail-container .task-card {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .task-card * {
+  color: inherit;
+}
+
+.dark-mode .project-detail-container .task-card .task-creator {
+  color: #60a5fa !important;
+}
+
+.dark-mode .project-detail-container .task-card .task-date {
+  color: #94a3b8 !important;
+}
+
+/* 任务优先级标识黑夜模式样式 */
+.dark-mode .project-detail-container .task-priority {
+  background: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+/* 高优先级 - 红色背景，白色文字 */
+.dark-mode .project-detail-container .task-priority.高 {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* 中优先级 - 深黄色背景，白色文字（黑夜模式下） */
+.dark-mode .project-detail-container .task-priority.中 {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
+/* 低优先级 - 深绿色背景，白色文字 */
+.dark-mode .project-detail-container .task-priority.低 {
+  background: #059669 !important;
+  color: #ffffff !important;
+}
+
+/* 任务状态按钮黑夜模式样式 */
+.dark-mode .project-detail-container .task-status-btn {
+  background: #475569 !important;
+  color: #f1f5f9 !important;
+  border-color: #64748b !important;
+}
+
+.dark-mode .project-detail-container .task-status-btn:hover {
+  background: #64748b !important;
+}
+
+/* 待接取状态 */
+.dark-mode .project-detail-container .task-status-btn.待接取 {
+  background: #64748b !important;
+  color: #ffffff !important;
+  border-color: #64748b !important;
+}
+
+/* 进行中状态 */
+.dark-mode .project-detail-container .task-status-btn.进行中 {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 暂停/阻塞状态 - 深黄色背景，白色文字 */
+.dark-mode .project-detail-container .task-status-btn.暂停,
+.dark-mode .project-detail-container .task-status-btn.阻塞 {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  border-color: #d97706 !important;
+}
+
+/* 完成状态 */
+.dark-mode .project-detail-container .task-status-btn.完成 {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
 }
 
 .dark-mode .project-detail-container .team-member-list {
@@ -2411,12 +2550,21 @@
 }
 
 .dark-mode .project-detail-container .member-card {
-  background: #1e293b;
+  background: #334155; /* 第三层 - 团队成员卡片稍微亮一点 */
   border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.dark-mode .project-detail-container .member-card:hover {
+  background: #475569; /* 悬停时更亮 */
+  border-color: #60a5fa;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.15);
 }
 
 .dark-mode .project-detail-container .member-card.invite-card {
   border-color: #64748b;
+  background: #334155;
 }
 
 .dark-mode .project-detail-container .member-card:hover .remove-member-btn {
