@@ -20,12 +20,24 @@
           您好！我是您的AI助手，可以帮您生成文档结构提纲、关键词摘要，也可以结合知识库回答问题。请问您有什么要协助的吗？
         </div>
         <div 
-          v-for="message in messages" 
+          v-for="(message, index) in messages" 
           :key="message.id" 
           class="bubble" 
           :class="message.type"
         >
-          {{ message.content }}
+          <!-- 调试信息（开发时可见） -->
+          <!-- message.id: {{ message.id }}, streamingMessageId: {{ streamingMessageId }}, isStreaming: {{ isStreaming }} -->
+          
+          <!-- 打字机模式：正在流式输入的消息 -->
+          <template v-if="message.id === streamingMessageId && isStreaming">
+            <span class="typewriter-text">
+              <span :id="'typewriter-' + streamingMessageId" class="typewriter-content"></span><span class="cursor-blink">|</span>
+            </span>
+          </template>
+          <!-- 普通模式：已完成的消息或非流式消息 -->
+          <template v-else>
+            <span>{{ message.content || '[空内容]' }}</span>
+          </template>
         </div>
       </div>
       <div class="composer">
@@ -198,7 +210,12 @@ export default {
       selectedLocalFiles: [], // 选中的本地文件
       selectedKnowledgeFileIds: [], // 选中的知识库文件ID
       conversationId: null, // 对话ID，用于维持会话
-      currentStreamController: null // 当前流式响应的控制器
+      currentStreamController: null, // 当前流式响应的控制器
+      streamingContent: '', // 当前正在流式输入的内容（用于显示）
+      streamingBuffer: '', // 缓冲区：存储后端发送的完整内容
+      streamingMessageId: null, // 当前正在流式输入的消息ID
+      isStreaming: false, // 是否正在流式输入
+      typewriterTimer: null // 打字机定时器
     }
   },
   mounted() {
@@ -209,6 +226,8 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
+    // 停止打字机效果
+    this.stopTypewriterEffect()
     // 关闭当前的流式连接
     if (this.currentStreamController) {
       this.currentStreamController.close()
@@ -258,6 +277,23 @@ export default {
         content: ''
       }
       this.messages.push(aiMessage)
+      
+      // 🔥 关键：先强制停止旧的定时器
+      console.log('[初始化🧹] 清理旧状态...')
+      this.stopTypewriterEffect()
+      
+      // 初始化流式输入状态
+      this.streamingMessageId = aiMessageId
+      this.streamingContent = ''
+      this.streamingBuffer = ''
+      this.isStreaming = true
+      
+      console.log('[初始化✅] 流式状态已重置')
+      console.log('  - messageId:', aiMessageId)
+      console.log('  - streamingMessageId:', this.streamingMessageId)
+      console.log('  - isStreaming:', this.isStreaming)
+      console.log('  - typewriterTimer:', this.typewriterTimer)
+      console.log('  - 期望的DOM ID: typewriter-' + this.streamingMessageId)
       
       // 保存消息到本地存储
       this.saveMessagesToStorage()
@@ -350,27 +386,50 @@ export default {
         // 对话创建
         console.log('对话已创建, conversationId:', this.conversationId)
       } else if (event === 'conversation.message.delta') {
-        // 消息增量（流式文本块）
+        // 消息增量（流式文本块）- 打字机效果的核心
         const content = message.content
-        if (content && message.role === 'assistant') {
-          // 追加新内容
-          aiMessage.content += content
+        const role = message.role
+        
+        if (content && role === 'assistant') {
+          // 追加到缓冲区（不直接显示）
+          this.streamingBuffer += content
+          console.log('[缓冲区📦] 追加内容:', content)
+          console.log('[缓冲区📦] 当前缓冲区长度:', this.streamingBuffer.length, '显示长度:', this.streamingContent.length)
+          console.log('[缓冲区📦] 缓冲区内容预览:', this.streamingBuffer.substring(0, 50) + '...')
           
-          // 实时滚动到底部
-          this.$nextTick(() => {
-            this.scrollToBottom()
-          })
+          // 启动打字机效果（如果还没启动）
+          if (!this.typewriterTimer) {
+            console.log('[打字机] 准备启动定时器...')
+            // 等待Vue渲染DOM后再启动定时器
+            this.$nextTick(() => {
+              // 再次确认元素存在
+              const element = document.getElementById('typewriter-' + this.streamingMessageId)
+              if (element) {
+                console.log('[打字机✅] DOM已渲染，启动定时器')
+                this.startTypewriterEffect()
+              } else {
+                console.error('[打字机❌] DOM还未渲染，messageId:', this.streamingMessageId)
+                // 再延迟一次
+                setTimeout(() => {
+                  const retryElement = document.getElementById('typewriter-' + this.streamingMessageId)
+                  if (retryElement) {
+                    console.log('[打字机✅] 重试成功，启动定时器')
+                    this.startTypewriterEffect()
+                  } else {
+                    console.error('[打字机❌] 重试失败，元素不存在')
+                  }
+                }, 100)
+              }
+            })
+          } else {
+            console.log('[打字机] 定时器已在运行')
+          }
         }
       } else if (event === 'conversation.message.completed') {
         // 消息完成
         console.log('消息已完成')
-        // 如果消息已完成，确保内容已保存
-        if (message.content && message.role === 'assistant') {
-          // 如果content存在，可能是完整内容，确保设置
-          if (message.content && !aiMessage.content) {
-            aiMessage.content = message.content
-          }
-        }
+        // ⚠️ 注意：不要在这里设置aiMessage.content，会跳过打字机效果
+        // 内容会在 handleStreamComplete 中统一处理
         this.saveMessagesToStorage()
       } else if (event === 'conversation.chat.completed') {
         // 对话完成
@@ -378,7 +437,21 @@ export default {
       } else if (event === 'conversation.chat.failed') {
         // 对话失败
         console.error('对话失败:', message.errorMessage || message.error_message)
-        aiMessage.content = aiMessage.content || '抱歉，AI对话失败：' + (message.errorMessage || message.error_message || '未知错误')
+        
+        // 保存已接收的内容或显示错误信息
+        if (this.streamingBuffer) {
+          aiMessage.content = this.streamingBuffer + '\n\n[对话失败: ' + (message.errorMessage || message.error_message || '未知错误') + ']'
+        } else {
+          aiMessage.content = '抱歉，AI对话失败：' + (message.errorMessage || message.error_message || '未知错误')
+        }
+        
+        // 清除流式状态
+        this.streamingMessageId = null
+        this.streamingContent = ''
+        this.streamingBuffer = ''
+        this.isStreaming = false
+        this.stopTypewriterEffect()
+        
         this.isSending = false
         this.currentStreamController = null
         this.saveMessagesToStorage()
@@ -388,16 +461,28 @@ export default {
       } else if (event === 'error') {
         // 错误
         console.error('流式响应错误:', message.errorMessage || message.error_message)
-        aiMessage.content = aiMessage.content || '抱歉，AI响应时发生错误：' + (message.errorMessage || message.error_message || '未知错误')
+        
+        // 保存已接收的内容或显示错误信息
+        if (this.streamingBuffer) {
+          aiMessage.content = this.streamingBuffer + '\n\n[错误: ' + (message.errorMessage || message.error_message || '未知错误') + ']'
+        } else {
+          aiMessage.content = '抱歉，AI响应时发生错误：' + (message.errorMessage || message.error_message || '未知错误')
+        }
+        
+        // 清除流式状态
+        this.streamingMessageId = null
+        this.streamingContent = ''
+        this.streamingBuffer = ''
+        this.isStreaming = false
+        this.stopTypewriterEffect()
+        
         this.isSending = false
         this.currentStreamController = null
         this.saveMessagesToStorage()
       }
       
-      // 实时保存消息（对于增量更新）
-      if (event === 'conversation.message.delta') {
-        this.saveMessagesToStorage()
-      }
+      // 移除频繁保存 - 不要在每次 delta 更新时都保存，这会严重影响性能
+      // 只在对话完成时保存即可
     },
     
     /**
@@ -405,24 +490,194 @@ export default {
      */
     handleStreamError(error, aiMessage) {
       console.error('流式响应错误:', error)
-      aiMessage.content = aiMessage.content || '抱歉，AI响应时发生错误：' + (error.message || '未知错误')
+      
+      // 保存已接收的内容或显示错误信息
+      if (this.streamingBuffer) {
+        aiMessage.content = this.streamingBuffer + '\n\n[连接中断]'
+      } else {
+        aiMessage.content = '抱歉，AI响应时发生错误：' + (error.message || '未知错误')
+      }
+      
+      // 清除流式状态
+      this.streamingMessageId = null
+      this.streamingContent = ''
+      this.streamingBuffer = ''
+      this.isStreaming = false
+      this.stopTypewriterEffect()
+      
       this.isSending = false
       this.currentStreamController = null
       this.saveMessagesToStorage()
     },
     
     /**
+     * 启动打字机效果
+     */
+    startTypewriterEffect() {
+      // 打字机速度：每600ms显示一个字符（慢速，明显的打字效果）
+      const typeSpeed = 600
+      
+      console.log('[打字机启动] 开始打字机效果，速度:', typeSpeed, 'ms/字')
+      
+      // 添加空转计数器，避免无限等待
+      let emptyLoopCount = 0
+      const maxEmptyLoops = 2 // 最多空转2次（2*600ms = 1.2秒）
+      
+      this.typewriterTimer = setInterval(() => {
+          // 🔥 首要安全检查：如果状态已被清除，立即退出
+          if (!this.isStreaming || this.typewriterTimer === null) {
+            console.log('[打字机🛑] 状态已清除，退出定时器回调')
+            return
+          }
+          
+          // 检查缓冲区状态
+          if (this.streamingBuffer.length === 0) {
+            emptyLoopCount++
+            console.log('[打字机⏸️] 缓冲区为空，等待数据... (', emptyLoopCount, '/', maxEmptyLoops, ')')
+            
+            // 如果等待太久，直接结束（不管后端是否停止）
+            if (emptyLoopCount >= maxEmptyLoops) {
+              console.log('[打字机⏹️] 缓冲区空且等待超时，强制停止！')
+              console.log('[打字机⏹️] isSending:', this.isSending, 'isStreaming:', this.isStreaming)
+              
+              // 查找当前消息
+              const currentMessageIndex = this.messages.findIndex(m => m.id === this.streamingMessageId)
+              const aiMessage = currentMessageIndex !== -1 ? this.messages[currentMessageIndex] : null
+              
+              // 立即使用统一的清理方法
+              if (aiMessage) {
+                this.finishTypewriter(aiMessage)
+              } else {
+                console.log('[打字机⏹️] 找不到消息，直接清理')
+                this.stopTypewriterEffect()
+                this.isStreaming = false
+                this.streamingMessageId = null
+                this.streamingContent = ''
+                this.streamingBuffer = ''
+              }
+              
+              // 确保退出循环
+              return
+            }
+            return
+          }
+          
+          // 有数据时重置空转计数
+          emptyLoopCount = 0
+          
+          // 如果显示内容已赶上缓冲区
+          if (this.streamingContent.length >= this.streamingBuffer.length) {
+            // 检查后端是否还在发送数据
+            if (!this.isSending) {
+              console.log('[打字机✅] 后端已停止，内容已全部显示，立即结束')
+              
+              // 查找当前消息并清理
+              const currentMessageIndex = this.messages.findIndex(m => m.id === this.streamingMessageId)
+              const aiMessage = currentMessageIndex !== -1 ? this.messages[currentMessageIndex] : null
+              
+              if (aiMessage) {
+                this.finishTypewriter(aiMessage)
+              }
+            }
+            // 后端还在发送，继续等待（不输出日志，减少噪音）
+            return
+          }
+          
+          // 逐字显示：从缓冲区取一个字符追加到显示内容
+          const prevLength = this.streamingContent.length
+          this.streamingContent = this.streamingBuffer.substring(0, this.streamingContent.length + 1)
+          const newChar = this.streamingContent.charAt(prevLength)
+          
+          console.log('[打字机⌨️] 显示进度:', this.streamingContent.length, '/', this.streamingBuffer.length, '新字符:', newChar)
+          
+          // 🔥 直接操作DOM更新文字（绕过Vue响应式系统）
+          const elementId = 'typewriter-' + this.streamingMessageId
+          const typewriterElement = document.getElementById(elementId)
+          
+          if (typewriterElement) {
+            typewriterElement.textContent = this.streamingContent
+            console.log('[DOM更新✅] 进度:', this.streamingContent.length, '/', this.streamingBuffer.length)
+          } else {
+            console.warn('[打字机⚠️] DOM元素不存在，可能已被清理，停止打字机')
+            
+            // DOM元素不存在，说明状态已被清理，强制停止
+            const currentMessageIndex = this.messages.findIndex(m => m.id === this.streamingMessageId)
+            const aiMessage = currentMessageIndex !== -1 ? this.messages[currentMessageIndex] : null
+            
+            if (aiMessage) {
+              this.finishTypewriter(aiMessage)
+            }
+            return
+          }
+          
+          // 滚动到底部
+          this.scrollToBottom()
+        }, typeSpeed)
+    },
+    
+    /**
+     * 停止打字机效果
+     */
+    stopTypewriterEffect() {
+      if (this.typewriterTimer) {
+        console.log('[打字机停止⏹️] 清除定时器')
+        const timerId = this.typewriterTimer
+        clearInterval(this.typewriterTimer)
+        this.typewriterTimer = null
+        console.log('[打字机停止✅] 定时器已清除，ID:', timerId)
+      }
+    },
+    
+    /**
      * 处理流式响应完成
      */
     handleStreamComplete(aiMessage) {
-      console.log('流式响应完成')
-        this.isSending = false
+      console.log('[流式完成🎬] 后端流式响应已结束')
+      this.isSending = false
       this.currentStreamController = null
       
-      // 如果AI消息为空，添加一个提示
-      if (!aiMessage.content || aiMessage.content.trim() === '') {
-        aiMessage.content = '抱歉，AI没有返回任何内容。'
+      console.log('[流式完成📊] 缓冲区长度:', this.streamingBuffer.length, '已显示:', this.streamingContent.length)
+      
+      // 🔥 关键：不立即停止！让打字机继续显示剩余内容
+      // 打字机会在显示完成后自动调用 finishTypewriter
+      console.log('[流式完成⏳] 后端已完成，等待打字机显示完剩余内容...')
+    },
+    
+    /**
+     * 完成打字机效果，保存内容并清理
+     */
+    finishTypewriter(aiMessage) {
+      // 防止重复调用
+      if (!this.isStreaming && !this.typewriterTimer) {
+        return
       }
+      
+      console.log('[完成清理🧹] 立即清理打字机状态')
+      
+      // 1️⃣ 先停止定时器（最重要！避免后续回调执行）
+      this.stopTypewriterEffect()
+      
+      // 2️⃣ 立即清除流式状态（避免DOM被访问）
+      this.isStreaming = false
+      const finalMessageId = this.streamingMessageId
+      const finalContent = this.streamingBuffer
+      
+      this.streamingMessageId = null
+      this.streamingContent = ''
+      this.streamingBuffer = ''
+      
+      console.log('[完成清理✅] 状态已清除，准备保存内容')
+      
+      // 3️⃣ 保存最终内容
+      if (finalContent) {
+        const currentMessageIndex = this.messages.findIndex(m => m.id === finalMessageId)
+        if (currentMessageIndex !== -1) {
+          this.messages[currentMessageIndex].content = finalContent
+          console.log('[完成清理✅] 内容已保存，长度:', finalContent.length)
+        }
+      }
+      
+      console.log('[完成清理✅] 所有状态已清除，可以开始下一次对话')
       
       this.saveMessagesToStorage()
       this.$nextTick(() => {
@@ -546,6 +801,14 @@ export default {
         this.conversationId = null
         this.selectedLocalFiles = []
         this.selectedKnowledgeFileIds = []
+        
+        // 清除流式状态
+        this.streamingMessageId = null
+        this.streamingContent = ''
+        this.streamingBuffer = ''
+        this.isStreaming = false
+        this.stopTypewriterEffect()
+        
         this.saveMessagesToStorage()
         this.saveConversationId()
         // 关闭当前流式连接

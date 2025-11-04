@@ -1,4 +1,4 @@
-.home-container {
+﻿.home-container {
   min-height: 100vh;
   background-color: var(--bg-secondary);
   display: flex;
@@ -498,6 +498,7 @@
   min-width: 0;
   overflow: hidden;
   flex-shrink: 0; /* 防止任务项被压缩 */
+  max-width: 100%;
 }
 
 .home-container .work-item:hover {
@@ -530,8 +531,6 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 .home-container .item-header {
@@ -617,6 +616,11 @@
   margin: 0 0 var(--space-3) 0;
   line-height: var(--leading-relaxed);
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .home-container .item-meta {
@@ -658,25 +662,21 @@
   height: 500px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
-
 .home-container .project-list {
   display: flex;
   flex-direction: column;
-  gap: 0; /* 移除项目卡片之间的间�?*/
+  gap: 0;
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 4px;
   min-height: 0;
-  padding-top: 4px; /* 为卡片上移留出空�?*/
+  padding-top: 4px;
+  padding-right: 4px;
 }
 
-.home-container .project-card:not(:first-child) {
-  margin-top: -2px; /* 通过负边距让卡片更紧密地排列 */
-}
-
-/* 我参与的项目列表滚动条样式 */
+/* 项目列表滚动条样式 */
 .home-container .project-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -694,6 +694,10 @@
 
 .home-container .project-list::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+.home-container .project-card:not(:first-child) {
+  margin-top: -2px; /* 通过负边距让卡片更紧密地排列 */
 }
 
 /* 右侧栏列，日�?*/
@@ -988,11 +992,11 @@
 
 /* ========== 黑暗模式样式 ========== */
 .dark-mode .home-container {
-  background-color: #0f172a; /* 深色背景 */
+  background-color: #0a0f1a; /* 最深的背景色，创建第一层 */
 }
 
 .dark-mode .home-container .top-header {
-  background: #1e293b; /* 深色头部 */
+  background: #1e293b; /* 第二层 - 头部 */
   border-bottom-color: #334155;
 }
 
@@ -1031,16 +1035,18 @@
 
 
 .dark-mode .home-container .main-content {
-  background-color: #0f172a;
+  background-color: #0a0f1a; /* 第一层 - 与容器背景相同 */
 }
 
 .dark-mode .home-container .section-card {
-  background: #1e293b; /* 深色卡片背景 */
+  background: #1e293b; /* 第二层 - 卡片背景 */
   border-color: #334155;
   color: #f1f5f9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .dark-mode .home-container .section-card:hover {
+  background: #1e293b;
   border-color: #475569;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
 }
@@ -1054,14 +1060,16 @@
 }
 
 .dark-mode .home-container .action-card {
-  background: #1e293b;
+  background: #1e293b; /* 第二层 - 与section-card相同 */
   border-color: #334155;
   color: #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .dark-mode .home-container .action-card:hover {
-  background: #334155;
+  background: #334155; /* 第三层 - 悬停时稍微亮一点 */
   border-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .dark-mode .home-container .action-card .card-icon {
@@ -1073,9 +1081,25 @@
 }
 
 .dark-mode .home-container .work-item {
-  background: #1e293b;
+  background: #1e293b; /* 第二层 - 基础背景 */
   border-color: #334155;
   color: #f1f5f9;
+}
+
+/* 工作项在黑夜模式下的优先级分层 */
+.dark-mode .home-container .work-item.high-priority {
+  background: linear-gradient(135deg, #1e293b 0%, #2a1a1f 100%); /* 深红灰色渐变 */
+  border-left-color: #ef4444;
+}
+
+.dark-mode .home-container .work-item.medium-priority {
+  background: linear-gradient(135deg, #1e293b 0%, #2a241a 100%); /* 深黄灰色渐变 */
+  border-left-color: #f59e0b;
+}
+
+.dark-mode .home-container .work-item.low-priority {
+  background: linear-gradient(135deg, #1e293b 0%, #1a2a22 100%); /* 深绿灰色渐变 */
+  border-left-color: #10b981;
 }
 
 .dark-mode .home-container .item-title {
@@ -1116,14 +1140,16 @@
 }
 
 .dark-mode .home-container .project-card {
-  background: #1e293b;
+  background: #1e293b; /* 第二层 */
   border-color: #334155;
   color: #f1f5f9;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .dark-mode .home-container .project-card:hover {
-  background: #334155;
+  background: #334155; /* 第三层 - 悬停时 */
   border-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .dark-mode .home-container .project-title {
@@ -1135,8 +1161,24 @@
 }
 
 .dark-mode .home-container .status-badge {
-  background: #334155;
+  background: #334155; /* 第三层 - 稍微亮一点 */
   color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .home-container .status-inprogress {
+  background: #1e3a5f; /* 深蓝色背景 */
+  color: #93c5fd;
+}
+
+.dark-mode .home-container .status-ongoing {
+  background: #3d2812; /* 深黄色背景 */
+  color: #fbbf24;
+}
+
+.dark-mode .home-container .status-completed {
+  background: #064e3b; /* 深绿色背景 */
+  color: #6ee7b7;
 }
 
 .dark-mode .home-container .progress-text {
@@ -1182,16 +1224,16 @@
 /* 日历组件黑夜模式 - 使用深度选择器穿透scoped样式 */
 .dark-mode .home-container :deep(.right-sidebar),
 .dark-mode .home-container :deep(.right-sidebar-column .right-sidebar) {
-  background: #1e293b !important;
+  background: #1e293b !important; /* 第二层 - 与卡片相同 */
   border-color: #334155 !important;
   color: #f1f5f9 !important;
 }
 
-.dark-mode .home-container :deep(.calendar-widget),
-.dark-mode .home-container :deep(.task-alert-widget) {
-  background: #1e293b !important;
+.dark-mode .home-container :deep(.calendar-widget) {
+  background: #1e293b !important; /* 第二层 */
   border-color: #334155 !important;
   color: #f1f5f9 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .home-container :deep(.widget-title) {
@@ -1256,20 +1298,25 @@
 
 /* 任务提醒黑夜模式 */
 .dark-mode .home-container :deep(.task-alert-widget) {
+  background: #1e293b !important; /* 第二层 - 与卡片相同 */
   border-color: #475569 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 .dark-mode .home-container :deep(.task-alert-widget.urgent) {
   border-color: #ef4444 !important;
-  background: linear-gradient(135deg, #1e293b, #7f1d1d) !important;
+  background: linear-gradient(135deg, #1e293b 0%, #2a1a1f 100%) !important; /* 深红灰色渐变 */
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2) !important;
 }
 
 .dark-mode .home-container :deep(.alert-message.urgent) {
-  background: #7f1d1d !important;
+  background: #7f1d1d !important; /* 第三层 - 深红色 */
+  border: 1px solid rgba(239, 68, 68, 0.3) !important;
 }
 
 .dark-mode .home-container :deep(.alert-message.safe) {
-  background: #1e3a5f !important;
+  background: #1e3a5f !important; /* 第三层 - 深蓝色 */
+  border: 1px solid rgba(59, 130, 246, 0.3) !important;
 }
 
 .dark-mode .home-container :deep(.alert-title) {
@@ -1305,5 +1352,7 @@
 .dark-mode .home-container .project-list::-webkit-scrollbar-thumb:hover {
   background: #64748b !important;
 }
+
+
 
 

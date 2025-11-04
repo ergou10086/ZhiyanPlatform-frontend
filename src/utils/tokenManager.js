@@ -167,6 +167,13 @@ class TokenManager {
   }
 
   /**
+   * 刷新访问令牌（别名方法，保持向后兼容）
+   */
+  async refreshToken() {
+    return this.refreshAccessToken()
+  }
+
+  /**
    * 处理刷新失败
    */
   handleRefreshFailure() {

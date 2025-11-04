@@ -59,7 +59,7 @@ Vue.prototype.$auth = authWrapper
 new Vue({
   router,
   render: h => h(App),
-  created() {
+  async created() {
     console.log('🚀 应用启动')
     
     // 初始化Token管理器（恢复自动刷新定时器）
@@ -67,5 +67,25 @@ new Vue({
     
     // 初始化认证状态
     this.$auth.dispatch('initAuth')
+    
+    // 检查自动登录（如果当前未登录，但有RememberMe token）
+    const isAuthenticated = !!localStorage.getItem('access_token') && !!localStorage.getItem('user_info')
+    if (!isAuthenticated) {
+      console.log('🔍 当前未登录，检查RememberMe自动登录...')
+      try {
+        const autoLoginSuccess = await this.$auth.dispatch('checkAutoLogin')
+        if (autoLoginSuccess) {
+          console.log('✅ 自动登录成功')
+          // 自动登录成功后，触发token刷新以获取新的accessToken和refreshToken
+          await tokenManager.refreshAccessToken()
+        } else {
+          console.log('ℹ️ 没有有效的RememberMe token，需要手动登录')
+        }
+      } catch (error) {
+        console.error('❌ 自动登录检查失败:', error)
+      }
+    } else {
+      console.log('✅ 用户已登录，跳过自动登录检查')
+    }
   }
 }).$mount('#app')

@@ -12,6 +12,149 @@ const api = axios.create({
   withCredentials: true
 })
 
+/**
+ * JSON 拼接工具函数
+ * 用于处理可能被分割的 JSON 数据（包括格式化的多行 JSON）
+ */
+function parseJSONWithBuffer(dataBuffer, line) {
+  // 初始化缓冲区
+  if (!dataBuffer.accumulated) {
+    dataBuffer.accumulated = ''
+  }
+  
+  // 移除 'data:' 或 'data: ' 前缀（处理有无空格的情况）
+  let jsonData = line
+  if (line.startsWith('data: ')) {
+    jsonData = line.substring(6)  // 'data: ' (6 字符)
+  } else if (line.startsWith('data:')) {
+    jsonData = line.substring(5)  // 'data:' (5 字符)
+  }
+  
+  // 如果为空，跳过
+  if (!jsonData.trim()) {
+    return null
+  }
+  
+  // 对于格式化 JSON（每行一个字段），需要在行之间添加换行符
+  // 检查是否需要添加换行符或空格
+  if (dataBuffer.accumulated) {
+    const trimmed = jsonData.trim()
+    const accumulatedTrimmed = dataBuffer.accumulated.trim()
+    
+    // 如果缓冲区还没有 JSON 开始标记（{ 或 [），但当前行是字段行，需要先添加 {
+    if (!accumulatedTrimmed.startsWith('{') && !accumulatedTrimmed.startsWith('[') && trimmed.includes(':')) {
+      // 这是格式化的 JSON 字段行，需要先添加 {
+      dataBuffer.accumulated = '{' + (dataBuffer.accumulated ? '\n' : '') + dataBuffer.accumulated
+    }
+    
+    // 如果当前行不是 } 或 ]，且缓冲区不以换行符或空格结尾，添加换行符
+    if (!trimmed.startsWith('}') && !trimmed.startsWith(']') && 
+        !accumulatedTrimmed.endsWith(',') && 
+        !dataBuffer.accumulated.endsWith('\n') && !dataBuffer.accumulated.endsWith(' ') &&
+        !dataBuffer.accumulated.endsWith('{') && !dataBuffer.accumulated.endsWith('[')) {
+      dataBuffer.accumulated += '\n'
+    }
+  } else {
+    // 如果缓冲区为空，但当前行是字段行（不是以 { 开头），需要先添加 {
+    const trimmed = jsonData.trim()
+    if (trimmed.includes(':') && !trimmed.startsWith('{') && !trimmed.startsWith('[') && !trimmed.startsWith('}') && !trimmed.startsWith(']')) {
+      dataBuffer.accumulated = '{\n'
+    }
+  }
+  
+  // 累积 JSON 数据（保留原始格式用于格式化 JSON）
+  // 如果当前数据以 { 或 [ 开头，说明这是一个新的 JSON 对象，清空缓冲区
+  const trimmedJsonData = jsonData.trim()
+  if (trimmedJsonData.startsWith('{') || trimmedJsonData.startsWith('[')) {
+    // 如果缓冲区有内容且还没有解析成功，说明上一个 JSON 对象不完整，清空它
+    if (dataBuffer.accumulated.trim()) {
+      const oldAccumulated = dataBuffer.accumulated.trim()
+      // 尝试解析旧的缓冲区内容，如果失败则丢弃
+      try {
+        const parsed = JSON.parse(oldAccumulated)
+        dataBuffer.accumulated = jsonData  // 开始新的 JSON 对象
+        return parsed  // 返回旧的解析结果
+      } catch (e) {
+        // 旧的缓冲区内容无法解析，丢弃并开始新的
+        console.warn('[cozeAPI] 丢弃无法解析的缓冲区内容:', oldAccumulated.substring(0, 100))
+        dataBuffer.accumulated = jsonData
+      }
+    } else {
+      dataBuffer.accumulated = jsonData
+    }
+  } else {
+    // 继续累积到缓冲区
+    dataBuffer.accumulated += jsonData
+  }
+  
+  // 尝试解析 JSON
+  try {
+    let jsonToParse = dataBuffer.accumulated.trim()
+    
+    // 如果 JSON 以 { 开头但没有 } 结尾，尝试添加 }
+    if (jsonToParse.startsWith('{') && !jsonToParse.endsWith('}')) {
+      // 检查是否确实缺少结束括号
+      const openBraces = (jsonToParse.match(/\{/g) || []).length
+      const closeBraces = (jsonToParse.match(/\}/g) || []).length
+      if (openBraces > closeBraces) {
+        // 不自动添加 }，等待更多数据
+        return null
+      }
+    }
+    
+    // 如果 JSON 以 [ 开头但没有 ] 结尾，尝试添加 ]
+    if (jsonToParse.startsWith('[') && !jsonToParse.endsWith(']')) {
+      const openBrackets = (jsonToParse.match(/\[/g) || []).length
+      const closeBrackets = (jsonToParse.match(/\]/g) || []).length
+      if (openBrackets > closeBrackets) {
+        // 不自动添加 ]，等待更多数据
+        return null
+      }
+    }
+    
+    const parsed = JSON.parse(jsonToParse)
+    // 解析成功，清空缓冲区并返回
+    dataBuffer.accumulated = ''
+    return parsed
+  } catch (e) {
+    // JSON 不完整，继续累积
+    const trimmed = dataBuffer.accumulated.trim()
+    
+    // 检查是否是有效的 JSON 开始（以 { 或 [ 开头）
+    if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+      // 不是有效的 JSON 格式开头
+      // 检查是否包含键值对模式（可能是格式化的 JSON 片段）
+      if (trimmed.includes(':') || trimmed === '}' || trimmed === ']') {
+        // 可能是格式化的 JSON，继续累积
+        // 检查缓冲区大小，防止内存泄漏
+        if (dataBuffer.accumulated.length > 100000) {
+          console.error('[cozeAPI] JSON 缓冲区过大（>100KB），可能格式错误，清空缓冲区')
+          const failedData = dataBuffer.accumulated
+          dataBuffer.accumulated = ''
+          return { error: true, rawData: failedData.substring(0, 200) }
+        }
+        return null
+      } else {
+        // 不是有效的 JSON 片段，可能是格式错误
+        console.warn('[cozeAPI] 检测到无效的 JSON 片段:', trimmed.substring(0, 100))
+        dataBuffer.accumulated = ''
+        return { error: true, rawData: trimmed.substring(0, 200) }
+      }
+    }
+    
+    // 是有效的 JSON 开始，但不完整，继续累积
+    // 检查缓冲区大小，防止内存泄漏
+    if (dataBuffer.accumulated.length > 100000) {
+      console.error('[cozeAPI] JSON 缓冲区过大（>100KB），可能格式错误，清空缓冲区')
+      const failedData = dataBuffer.accumulated
+      dataBuffer.accumulated = ''
+      return { error: true, rawData: failedData.substring(0, 200) }
+    }
+    
+    return null
+  }
+}
+
 // 请求拦截器
 api.interceptors.request.use(
   config => {
@@ -171,11 +314,42 @@ export const cozeAPI = {
         
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
-        let buffer = ''
+        let buffer = '' // SSE 行缓冲区
+        const jsonBuffer = { accumulated: '' } // JSON 数据缓冲区，用于拼接分散的 JSON
         
         const readChunk = () => {
           reader.read().then(({ done, value }) => {
             if (done) {
+              // 流结束，处理剩余的缓冲区数据
+              if (buffer.trim()) {
+                console.log('[cozeAPI.chatStream] 流结束，处理剩余缓冲区:', buffer)
+                const lines = buffer.split('\n')
+                for (const line of lines) {
+                  // 处理 data: 开头的行（包括所有格式）
+                  if (line.startsWith('data:') || line.trim().startsWith('data:')) {
+                    const message = parseJSONWithBuffer(jsonBuffer, line)
+                    if (message && !message.error) {
+                      if (onMessage) onMessage(message)
+                    }
+                  } else if (line.startsWith('event: ') || line.trim().startsWith('event:')) {
+                    const eventType = line.includes(':') ? line.substring(line.indexOf(':') + 1).trim() : line.trim()
+                    console.log('[cozeAPI.chatStream] 流结束时的事件类型:', eventType)
+                  }
+                }
+              }
+              
+              // 处理剩余的不完整 JSON
+              if (jsonBuffer.accumulated.trim()) {
+                console.warn('[cozeAPI.chatStream] 流结束，但仍有未解析的 JSON 数据:', jsonBuffer.accumulated)
+                try {
+                  const message = JSON.parse(jsonBuffer.accumulated)
+                  if (onMessage) onMessage(message)
+                } catch (e) {
+                  console.error('[cozeAPI.chatStream] 无法解析剩余的 JSON 数据:', e, '原始数据:', jsonBuffer.accumulated)
+                }
+                jsonBuffer.accumulated = ''
+              }
+              
               if (onComplete) onComplete()
               return
             }
@@ -185,26 +359,45 @@ export const cozeAPI = {
             buffer = lines.pop() || '' // 保留最后不完整的行
             
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
+              // 处理 data: 开头的行（SSE 数据）
+              if (line.startsWith('data:') || line.trim().startsWith('data:')) {
+                // 提取 data: 后面的内容
+                let jsonStr = line.substring(line.indexOf('data:') + 5).trim()
+                
+                // 如果是空行或者只有 data:，跳过
+                if (!jsonStr) continue
+                
                 try {
-                  const data = line.substring(6) // 移除 'data: ' 前缀
-                  if (data.trim()) {
-                    const message = JSON.parse(data)
-                    if (onMessage) onMessage(message)
-                  }
+                  // 直接解析 JSON（后端发送的是完整的 JSON 对象）
+                  const message = JSON.parse(jsonStr)
+                  if (onMessage) onMessage(message)
                 } catch (e) {
-                  console.warn('解析SSE消息失败:', e, '原始数据:', line)
+                  // JSON 解析失败，可能是多行 JSON，累积到缓冲区
+                  console.warn('[cozeAPI.chatStream] JSON 解析失败，尝试累积:', jsonStr.substring(0, 50))
+                  const messageFromBuffer = parseJSONWithBuffer(jsonBuffer, line)
+                  if (messageFromBuffer) {
+                    if (messageFromBuffer.error) {
+                      console.error('[cozeAPI.chatStream] JSON 解析错误:', messageFromBuffer.rawData)
+                      if (onError) onError(new Error('JSON 解析失败: ' + messageFromBuffer.rawData.substring(0, 100)))
+                    } else {
+                      if (onMessage) onMessage(messageFromBuffer)
+                    }
+                  }
                 }
-              } else if (line.startsWith('event: ')) {
+              } else if (line.startsWith('event: ') || line.trim().startsWith('event:')) {
                 // 处理event类型（可选）
-                const eventType = line.substring(7)
-                console.log('SSE事件类型:', eventType)
+                const eventType = line.includes(':') ? line.substring(line.indexOf(':') + 1).trim() : line.trim()
+                console.log('[cozeAPI.chatStream] SSE事件类型:', eventType)
+              } else if (line.trim() && !line.startsWith(':')) {
+                // 忽略注释行（以 : 开头的行）
+                // 其他非空行可能是格式问题，但不影响 JSON 拼接（因为只有 data: 开头的行才会进入 JSON 缓冲区）
+                console.warn('[cozeAPI.chatStream] 检测到未识别的SSE行:', line.substring(0, 100))
               }
             }
             
             readChunk()
           }).catch(error => {
-            console.error('读取SSE流失败:', error)
+            console.error('[cozeAPI.chatStream] 读取SSE流失败:', error)
             if (onError) onError(error)
           })
         }
@@ -332,11 +525,42 @@ export const cozeAPI = {
         
         const reader = response.body.getReader()
         const decoder = new TextDecoder()
-        let buffer = ''
+        let buffer = '' // SSE 行缓冲区
+        const jsonBuffer = { accumulated: '' } // JSON 数据缓冲区，用于拼接分散的 JSON
         
         const readChunk = () => {
           reader.read().then(({ done, value }) => {
             if (done) {
+              // 流结束，处理剩余的缓冲区数据
+              if (buffer.trim()) {
+                console.log('[cozeAPI.chatStreamWithFiles] 流结束，处理剩余缓冲区:', buffer)
+                const lines = buffer.split('\n')
+                for (const line of lines) {
+                  // 处理 data: 开头的行（包括所有格式）
+                  if (line.startsWith('data:') || line.trim().startsWith('data:')) {
+                    const message = parseJSONWithBuffer(jsonBuffer, line)
+                    if (message && !message.error) {
+                      if (onMessage) onMessage(message)
+                    }
+                  } else if (line.startsWith('event: ') || line.trim().startsWith('event:')) {
+                    const eventType = line.includes(':') ? line.substring(line.indexOf(':') + 1).trim() : line.trim()
+                    console.log('[cozeAPI.chatStreamWithFiles] 流结束时的事件类型:', eventType)
+                  }
+                }
+              }
+              
+              // 处理剩余的不完整 JSON
+              if (jsonBuffer.accumulated.trim()) {
+                console.warn('[cozeAPI.chatStreamWithFiles] 流结束，但仍有未解析的 JSON 数据:', jsonBuffer.accumulated)
+                try {
+                  const message = JSON.parse(jsonBuffer.accumulated)
+                  if (onMessage) onMessage(message)
+                } catch (e) {
+                  console.error('[cozeAPI.chatStreamWithFiles] 无法解析剩余的 JSON 数据:', e, '原始数据:', jsonBuffer.accumulated)
+                }
+                jsonBuffer.accumulated = ''
+              }
+              
               if (onComplete) onComplete()
               return
             }
@@ -346,26 +570,45 @@ export const cozeAPI = {
             buffer = lines.pop() || '' // 保留最后不完整的行
             
             for (const line of lines) {
-              if (line.startsWith('data: ')) {
+              // 处理 data: 开头的行（SSE 数据）
+              if (line.startsWith('data:') || line.trim().startsWith('data:')) {
+                // 提取 data: 后面的内容
+                let jsonStr = line.substring(line.indexOf('data:') + 5).trim()
+                
+                // 如果是空行或者只有 data:，跳过
+                if (!jsonStr) continue
+                
                 try {
-                  const data = line.substring(6) // 移除 'data: ' 前缀
-                  if (data.trim()) {
-                    const message = JSON.parse(data)
-                    if (onMessage) onMessage(message)
-                  }
+                  // 直接解析 JSON（后端发送的是完整的 JSON 对象）
+                  const message = JSON.parse(jsonStr)
+                  if (onMessage) onMessage(message)
                 } catch (e) {
-                  console.warn('解析SSE消息失败:', e, '原始数据:', line)
+                  // JSON 解析失败，可能是多行 JSON，累积到缓冲区
+                  console.warn('[cozeAPI.chatStreamWithFiles] JSON 解析失败，尝试累积:', jsonStr.substring(0, 50))
+                  const messageFromBuffer = parseJSONWithBuffer(jsonBuffer, line)
+                  if (messageFromBuffer) {
+                    if (messageFromBuffer.error) {
+                      console.error('[cozeAPI.chatStreamWithFiles] JSON 解析错误:', messageFromBuffer.rawData)
+                      if (onError) onError(new Error('JSON 解析失败: ' + messageFromBuffer.rawData.substring(0, 100)))
+                    } else {
+                      if (onMessage) onMessage(messageFromBuffer)
+                    }
+                  }
                 }
-              } else if (line.startsWith('event: ')) {
+              } else if (line.startsWith('event: ') || line.trim().startsWith('event:')) {
                 // 处理event类型（可选）
-                const eventType = line.substring(7)
-                console.log('SSE事件类型:', eventType)
+                const eventType = line.includes(':') ? line.substring(line.indexOf(':') + 1).trim() : line.trim()
+                console.log('[cozeAPI.chatStreamWithFiles] SSE事件类型:', eventType)
+              } else if (line.trim() && !line.startsWith(':')) {
+                // 忽略注释行（以 : 开头的行）
+                // 其他非空行可能是格式问题，但不影响 JSON 拼接（因为只有 data: 开头的行才会进入 JSON 缓冲区）
+                console.warn('[cozeAPI.chatStreamWithFiles] 检测到未识别的SSE行:', line.substring(0, 100))
               }
             }
             
             readChunk()
           }).catch(error => {
-            console.error('读取SSE流失败:', error)
+            console.error('[cozeAPI.chatStreamWithFiles] 读取SSE流失败:', error)
             if (onError) onError(error)
           })
         }
@@ -380,7 +623,7 @@ export const cozeAPI = {
         }
       })
       .catch(error => {
-        console.error('发起SSE请求失败:', error)
+        console.error('[cozeAPI.chatStreamWithFiles] 发起SSE请求失败:', error)
         if (onError) onError(error)
         throw error
       })
