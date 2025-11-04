@@ -62,7 +62,7 @@
   transform: translateY(-1px);
 }
 
-/* header-right 已移除，切换按钮现在�?GlobalUserProfile 组件内部 */
+/* header-right 已移除，切换按钮现在�?GlobalUserProfile 组件内部 */
 
 /* 主题切换按钮 - 白天模式默认样式 */
 .home-container .theme-toggle-btn {
@@ -80,7 +80,7 @@
               background 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   color: #f59e0b; /* 太阳图标颜色 */
-  z-index: 10002; /* 最高层级，确保可点�?*/
+  z-index: 10002; /* 最高层级，确保可点�?*/
   position: relative;
   overflow: hidden;
 }
@@ -305,15 +305,15 @@
   flex-direction: column;
   gap: var(--space-6);
   padding: var(--space-6);
-  padding-top: calc(var(--space-6) + 64px); /* 为固定页眉留出空�?*/
+  padding-top: calc(var(--space-6) + 64px); /* 为固定页眉留出空�?*/
 }
 
-/* 快捷操作 - 宽度限制与三列中的两列对�?*/
+/* 快捷操作 - 宽度限制与三列中的两列对�?*/
 .home-container .quick-actions {
   width: calc(100% - 340px - var(--space-6)); /* 总宽度减去日历宽度和一个gap */
 }
 
-/* 三列在同一行：工作项、我参与的项目、日�?*/
+/* 三列在同一行：工作项、我参与的项目、日�?*/
 .home-container .three-column-row {
   display: flex;
   gap: var(--space-6);
@@ -321,10 +321,10 @@
   position: relative;
 }
 
-/* 日历往上移动，与快捷操作顶部对�?*/
+/* 日历往上移动，与快捷操作顶部对�?*/
 .home-container .three-column-row .right-sidebar-column {
   position: relative;
-  margin-top: calc(-1 * (var(--space-6) + 254px)); /* 往上移动快捷操作高�?gap */
+  margin-top: calc(-1 * (var(--space-6) + 254px)); /* 往上移动快捷操作高�?gap */
 }
 
 /* 设置日历高度，让下边框与我参与的项目对齐 */
@@ -509,11 +509,80 @@
   overflow: hidden;
 }
 
+.home-container .item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
 .home-container .item-title {
   font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  margin: 0 0 var(--space-2) 0;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 截止日期警示标识 */
+.home-container .deadline-alert {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transition: all var(--transition-fast);
+}
+
+.home-container .deadline-alert svg {
+  flex-shrink: 0;
+}
+
+.home-container .deadline-alert.near {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #d97706;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+}
+
+.home-container .deadline-alert.near svg {
+  color: #f59e0b;
+}
+
+.home-container .deadline-alert.overdue {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+}
+
+.home-container .deadline-alert.overdue svg {
+  color: #ef4444;
+}
+
+.home-container .deadline-alert:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.home-container .deadline-alert .alert-text {
+  line-height: 1;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
 }
 
 .home-container .item-description {
@@ -537,7 +606,7 @@
   color: #666;
 }
 
-/* 工作�?*/
+/* 工作�?*/
 .home-container .work-items {
   flex: 1;
   min-width: 0;
@@ -565,18 +634,18 @@
 .home-container .project-list {
   display: flex;
   flex-direction: column;
-  gap: 0; /* 移除项目卡片之间的间�?*/
+  gap: 0; /* 移除项目卡片之间的间�?*/
   flex: 1;
   overflow: auto;
   min-height: 0;
-  padding-top: 4px; /* 为卡片上移留出空�?*/
+  padding-top: 4px; /* 为卡片上移留出空�?*/
 }
 
 .home-container .project-card:not(:first-child) {
   margin-top: -2px; /* 通过负边距让卡片更紧密地排列 */
 }
 
-/* 右侧栏列，日�?*/
+/* 右侧栏列，日�?*/
 .home-container .right-sidebar-column {
   flex: 0 0 340px;
   display: flex;
@@ -663,7 +732,9 @@
 }
 
 .home-container .loading-projects,
-.home-container .no-projects {
+.home-container .no-projects,
+.home-container .loading-tasks,
+.home-container .no-tasks {
   padding: var(--space-8);
   text-align: center;
   color: var(--text-secondary);
@@ -765,7 +836,7 @@
   }
 }
 
-/* 自定义弹窗样�?*/
+/* 自定义弹窗样�?*/
 .home-container .modal-overlay {
   position: fixed;
   top: 0;
@@ -970,6 +1041,27 @@
 
 .dark-mode .home-container .deadline {
   color: #94a3b8;
+}
+
+/* 暗色模式下的截止日期警示 */
+.dark-mode .home-container .deadline-alert.near {
+  background: linear-gradient(135deg, #451a03 0%, #78350f 100%);
+  color: #fbbf24;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
+}
+
+.dark-mode .home-container .deadline-alert.near svg {
+  color: #fbbf24;
+}
+
+.dark-mode .home-container .deadline-alert.overdue {
+  background: linear-gradient(135deg, #450a0a 0%, #7f1d1d 100%);
+  color: #fca5a5;
+  box-shadow: 0 2px 8px rgba(252, 165, 165, 0.2);
+}
+
+.dark-mode .home-container .deadline-alert.overdue svg {
+  color: #fca5a5;
 }
 
 .dark-mode .home-container .project-card {

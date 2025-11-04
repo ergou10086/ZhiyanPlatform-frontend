@@ -74,40 +74,48 @@
             <div class="section-header">
               <h2 class="section-title">工作项</h2>
             </div>
-            <div class="work-item-list">
-            <div class="work-item high-priority">
-              <div class="priority-bar"></div>
-              <div class="item-content">
-                <h3 class="item-title">智能推荐系统优化</h3>
-                <p class="item-description">重构推荐算法模块,提升准确率</p>
-                <div class="item-meta">
-                  <span class="priority">高优先级</span>
-                  <span class="deadline">截止:2023-06-15</span>
+            <div v-if="isLoadingTasks" class="loading-tasks">
+              <p>正在加载任务...</p>
+            </div>
+            <div v-else class="work-item-list">
+              <div 
+                v-for="task in myTasks" 
+                :key="task.id" 
+                :class="['work-item', `${task.priority}-priority`]"
+              >
+                <div class="priority-bar"></div>
+                <div class="item-content">
+                  <div class="item-header">
+                    <h3 class="item-title">{{ task.title }}</h3>
+                    <!-- 临近截止警示图标 -->
+                    <div v-if="isOverdue(task.dueDate)" class="deadline-alert overdue" title="任务已逾期">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span class="alert-text">已逾期</span>
+                    </div>
+                    <div v-else-if="isNearDeadline(task.dueDate)" class="deadline-alert near" title="即将到期">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span class="alert-text">即将到期</span>
+                    </div>
+                  </div>
+                  <p class="item-description">{{ task.description || '暂无描述' }}</p>
+                  <div class="item-meta">
+                    <span class="priority">{{ getPriorityText(task.priority) }}</span>
+                    <span class="deadline">{{ formatDate(task.dueDate) }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="work-item medium-priority">
-              <div class="priority-bar"></div>
-              <div class="item-content">
-                <h3 class="item-title">用户界面改版</h3>
-                <p class="item-description">重新设计用户交互流程</p>
-                <div class="item-meta">
-                  <span class="priority">中优先级</span>
-                  <span class="deadline">截止:2023-06-20</span>
-                </div>
+              
+              <!-- 如果没有任务，显示提示 -->
+              <div v-if="myTasks.length === 0" class="no-tasks">
+                <p>暂无工作项</p>
               </div>
-            </div>
-            <div class="work-item low-priority">
-              <div class="priority-bar"></div>
-              <div class="item-content">
-                <h3 class="item-title">数据库性能优化</h3>
-                <p class="item-description">优化查询索引,提升响应速度</p>
-                <div class="item-meta">
-                  <span class="priority">低优先级</span>
-                  <span class="deadline">截止:2023-06-30</span>
-                </div>
-              </div>
-            </div>
             </div>
           </div>
         </div>
@@ -187,6 +195,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
 import { authAPI } from '@/api/auth'
 import { projectAPI } from '@/api/project'
+import { taskAPI } from '@/api/task'
 import '@/assets/styles/Home.css'
 
 export default {
@@ -207,7 +216,9 @@ export default {
       showModal: false,
       modalMessage: '',
       myProjects: [], // 我参与的项目列表
-      isLoadingProjects: false // 是否正在加载项目
+      isLoadingProjects: false, // 是否正在加载项目
+      myTasks: [], // 我的任务列表
+      isLoadingTasks: false // 是否正在加载任务
     }
   },
   mounted() {
@@ -219,6 +230,9 @@ export default {
     
     // 加载我参与的项目
     this.loadMyProjects()
+    
+    // 加载我的任务
+    this.loadMyTasks()
 
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
@@ -468,6 +482,124 @@ export default {
     goToProjectDetail(projectId) {
       console.log('跳转到项目详情:', projectId)
       this.$router.push(`/project-detail/${projectId}`)
+    },
+    async loadMyTasks() {
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
+      const userInfo = localStorage.getItem('user_info')
+      const isAuthenticated = !!(token && userInfo)
+      
+      if (!isAuthenticated) {
+        console.log('用户未登录，不加载任务数据')
+        this.myTasks = []
+        return
+      }
+      
+      this.isLoadingTasks = true
+      
+      try {
+        console.log('开始加载我的任务...')
+        
+        // 调用API获取我的任务（获取前5个最新的任务）
+        const response = await taskAPI.getMyAssignedTasks(0, 5)
+        
+        console.log('我的任务API响应:', response)
+        
+        // 处理API返回的数据
+        let tasks = []
+        if (response && response.data) {
+          if (Array.isArray(response.data)) {
+            tasks = response.data
+          } else if (response.data.content && Array.isArray(response.data.content)) {
+            // Spring分页数据
+            tasks = response.data.content
+          } else if (response.data.list && Array.isArray(response.data.list)) {
+            tasks = response.data.list
+          } else if (response.data.records && Array.isArray(response.data.records)) {
+            tasks = response.data.records
+          }
+        }
+        
+        if (tasks.length > 0) {
+          this.myTasks = tasks.map(task => ({
+            id: task.id || task.taskId,
+            title: task.title || '未命名任务',
+            description: task.description || '',
+            priority: this.mapTaskPriority(task.priority),
+            dueDate: task.dueDate || null,
+            status: task.status || 'TODO',
+            projectId: task.projectId
+          }))
+          
+          // 按优先级排序：高 > 中 > 低
+          this.sortTasksByPriority()
+          
+          console.log('成功加载任务:', this.myTasks)
+        } else {
+          console.log('未获取到任务数据')
+          this.myTasks = []
+        }
+      } catch (error) {
+        console.error('加载任务失败:', error)
+        this.myTasks = []
+      } finally {
+        this.isLoadingTasks = false
+      }
+    },
+    mapTaskPriority(priority) {
+      // 将后端优先级映射到前端显示
+      const priorityMap = {
+        'HIGH': 'high',
+        'MEDIUM': 'medium',
+        'LOW': 'low'
+      }
+      return priorityMap[priority] || 'medium'
+    },
+    getPriorityText(priority) {
+      const textMap = {
+        'high': '高优先级',
+        'medium': '中优先级',
+        'low': '低优先级'
+      }
+      return textMap[priority] || '中优先级'
+    },
+    formatDate(dateStr) {
+      if (!dateStr) return '无截止日期'
+      const date = new Date(dateStr)
+      return `截止:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    },
+    sortTasksByPriority() {
+      // 定义优先级权重：高优先级 = 3, 中优先级 = 2, 低优先级 = 1
+      const priorityWeight = {
+        'high': 3,
+        'medium': 2,
+        'low': 1
+      }
+      
+      this.myTasks.sort((a, b) => {
+        return priorityWeight[b.priority] - priorityWeight[a.priority]
+      })
+    },
+    isNearDeadline(dueDate) {
+      // 判断任务是否临近截止（3天内）
+      if (!dueDate) return false
+      
+      const now = new Date()
+      const deadline = new Date(dueDate)
+      const diffTime = deadline - now
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      // 0-3天内截止或已逾期返回true
+      return diffDays >= 0 && diffDays <= 3
+    },
+    isOverdue(dueDate) {
+      // 判断任务是否已逾期
+      if (!dueDate) return false
+      
+      const now = new Date()
+      const deadline = new Date(dueDate)
+      
+      return deadline < now
     }
   }
 }

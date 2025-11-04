@@ -46,15 +46,54 @@
     <div class="task-alert-widget" :class="{ 'urgent': urgentTasks.length > 0 }">
       <h3 class="widget-title">任务提醒</h3>
       <div class="task-alert-content">
-        <div v-if="urgentTasks.length > 0" class="alert-message urgent">
+        <!-- 加载状态 -->
+        <div v-if="isLoadingTasks" class="alert-message safe">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 2V6M12 18V22M4.93 4.93L7.76 7.76M16.24 16.24L19.07 19.07M2 12H6M18 12H22M4.93 19.07L7.76 16.24M16.24 7.76L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <div class="alert-text">
-            <p class="alert-title">有 <strong>{{ urgentTasks.length }}</strong> 个任务即将截止</p>
-            <p class="alert-subtitle">请在三天内完成</p>
+            <p class="alert-title">加载中...</p>
+            <p class="alert-subtitle">正在获取任务数据</p>
           </div>
         </div>
+        
+        <!-- 有紧急任务 -->
+        <div v-else-if="urgentTasks.length > 0">
+          <div class="alert-message urgent" @click="toggleTaskList">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="alert-text">
+              <p class="alert-title">有 <strong>{{ urgentTasks.length }}</strong> 个任务即将截止</p>
+              <p class="alert-subtitle">请在三天内完成</p>
+            </div>
+            <svg class="expand-icon" :class="{ 'expanded': showTaskList }" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          
+          <!-- 任务列表 -->
+          <transition name="slide-fade">
+            <div v-if="showTaskList" class="urgent-task-list">
+              <div 
+                v-for="task in urgentTasks" 
+                :key="task.id" 
+                class="urgent-task-item"
+                :class="getPriorityClass(task.priority)"
+              >
+                <div class="task-info">
+                  <h4 class="task-name">{{ task.title }}</h4>
+                  <p class="task-due">{{ formatDueDate(task.dueDate) }}</p>
+                </div>
+                <div class="task-badge" :class="getPriorityClass(task.priority)">
+                  {{ getPriorityText(task.priority) }}
+                </div>
+              </div>
+            </div>
+          </transition>
+        </div>
+        
+        <!-- 没有紧急任务 -->
         <div v-else class="alert-message safe">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -70,12 +109,17 @@
 </template>
 
 <script>
+import { taskAPI } from '@/api/task'
+
 export default {
   name: 'RightSidebar',
   data() {
     return {
       currentDate: new Date(),
-      selectedDate: null
+      selectedDate: null,
+      myTasks: [], // 存储用户的所有任务
+      isLoadingTasks: false,
+      showTaskList: false // 控制任务列表展开/收起
     }
   },
   computed: {
@@ -135,18 +179,35 @@ export default {
       return days
     },
     urgentTasks() {
-      // 从实际任务数据中获取三天内截止的任务
-      // 这里返回空数组，实际应用中应该从API或localStorage获取任务数据
+      // 从任务数据中筛选出3天内即将到期的任务
+      if (!this.myTasks || this.myTasks.length === 0) {
+        return []
+      }
+
       const today = new Date()
+      today.setHours(0, 0, 0, 0) // 重置时间为当天的0点
+      
       const threeDaysLater = new Date(today)
       threeDaysLater.setDate(today.getDate() + 3)
+      threeDaysLater.setHours(23, 59, 59, 999) // 设置为第3天的23:59:59
 
-      // 返回空数组，等待真实数据加载
-      return []
+      return this.myTasks.filter(task => {
+        // 只统计有截止日期且未完成的任务
+        if (!task.dueDate || task.status === 'DONE') {
+          return false
+        }
+
+        const dueDate = new Date(task.dueDate)
+        dueDate.setHours(0, 0, 0, 0)
+
+        // 判断是否在今天到3天后的范围内
+        return dueDate >= today && dueDate <= threeDaysLater
+      })
     }
   },
   mounted() {
-    // 任务数据通过计算属性 urgentTasks 自动获取，无需手动加载
+    // 加载任务数据
+    this.loadTasks()
   },
   methods: {
     previousMonth() {
@@ -160,6 +221,109 @@ export default {
         this.selectedDate = day.date
         console.log('选择日期:', day.date)
       }
+    },
+    async loadTasks() {
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
+      const userInfo = localStorage.getItem('user_info')
+      const isAuthenticated = !!(token && userInfo)
+      
+      if (!isAuthenticated) {
+        console.log('用户未登录，不加载任务提醒数据')
+        this.myTasks = []
+        return
+      }
+      
+      this.isLoadingTasks = true
+      
+      try {
+        console.log('[RightSidebar] 开始加载任务数据...')
+        
+        // 调用API获取我的所有任务（不限制数量，以便准确统计）
+        const response = await taskAPI.getMyAssignedTasks(0, 100)
+        
+        console.log('[RightSidebar] 任务API响应:', response)
+        
+        // 处理API返回的数据
+        let tasks = []
+        if (response && response.data) {
+          if (Array.isArray(response.data)) {
+            tasks = response.data
+          } else if (response.data.content && Array.isArray(response.data.content)) {
+            // Spring分页数据
+            tasks = response.data.content
+          } else if (response.data.list && Array.isArray(response.data.list)) {
+            tasks = response.data.list
+          } else if (response.data.records && Array.isArray(response.data.records)) {
+            tasks = response.data.records
+          }
+        }
+        
+        if (tasks.length > 0) {
+          this.myTasks = tasks.map(task => ({
+            id: task.id || task.taskId,
+            title: task.title || '未命名任务',
+            description: task.description || '',
+            dueDate: task.dueDate || null,
+            status: task.status || 'TODO',
+            priority: task.priority || 'MEDIUM',
+            projectId: task.projectId
+          }))
+          
+          console.log('[RightSidebar] 成功加载任务:', this.myTasks.length, '个')
+          console.log('[RightSidebar] 即将到期的任务:', this.urgentTasks.length, '个')
+        } else {
+          console.log('[RightSidebar] 未获取到任务数据')
+          this.myTasks = []
+        }
+      } catch (error) {
+        console.error('[RightSidebar] 加载任务失败:', error)
+        this.myTasks = []
+      } finally {
+        this.isLoadingTasks = false
+      }
+    },
+    toggleTaskList() {
+      this.showTaskList = !this.showTaskList
+    },
+    formatDueDate(dateStr) {
+      if (!dateStr) return '未设置截止日期'
+      
+      const dueDate = new Date(dateStr)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      dueDate.setHours(0, 0, 0, 0)
+      
+      const diffTime = dueDate - today
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      if (diffDays === 0) {
+        return '今天截止'
+      } else if (diffDays === 1) {
+        return '明天截止'
+      } else if (diffDays === 2) {
+        return '后天截止'
+      } else if (diffDays > 0) {
+        return `${diffDays}天后截止`
+      } else {
+        return `已逾期${Math.abs(diffDays)}天`
+      }
+    },
+    getPriorityText(priority) {
+      const map = {
+        'HIGH': '高优先级',
+        'MEDIUM': '中优先级',
+        'LOW': '低优先级'
+      }
+      return map[priority] || '中优先级'
+    },
+    getPriorityClass(priority) {
+      const map = {
+        'HIGH': 'priority-high',
+        'MEDIUM': 'priority-medium',
+        'LOW': 'priority-low'
+      }
+      return map[priority] || 'priority-medium'
     }
   }
 }
@@ -222,14 +386,136 @@ export default {
   padding: var(--space-3);
   border-radius: var(--radius-md);
   transition: all var(--transition-normal);
+  cursor: pointer;
+  position: relative;
 }
 
 .alert-message.urgent {
   background: var(--error-light);
 }
 
+.alert-message.urgent:hover {
+  background: linear-gradient(135deg, var(--error-light), #fecaca);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
 .alert-message.safe {
   background: var(--primary-light);
+}
+
+.expand-icon {
+  flex-shrink: 0;
+  transition: transform var(--transition-normal);
+  margin-left: auto;
+}
+
+.expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+/* 任务列表 */
+.urgent-task-list {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.urgent-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border-left: 3px solid;
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.urgent-task-item:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
+}
+
+.urgent-task-item.priority-high {
+  border-left-color: var(--error-color);
+  background: linear-gradient(135deg, var(--bg-primary), var(--error-light));
+}
+
+.urgent-task-item.priority-medium {
+  border-left-color: var(--warning-color);
+  background: linear-gradient(135deg, var(--bg-primary), var(--warning-light));
+}
+
+.urgent-task-item.priority-low {
+  border-left-color: var(--success-color);
+  background: linear-gradient(135deg, var(--bg-primary), var(--success-light));
+}
+
+.task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-due {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.task-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.task-badge.priority-high {
+  background: var(--error-color);
+  color: white;
+}
+
+.task-badge.priority-medium {
+  background: var(--warning-color);
+  color: white;
+}
+
+.task-badge.priority-low {
+  background: var(--success-color);
+  color: white;
+}
+
+/* 过渡动画 */
+.slide-fade-enter-active {
+  transition: all 0.3s ease;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s ease;
+}
+
+.slide-fade-enter-from {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
 }
 
 .alert-text {
@@ -539,6 +825,35 @@ export default {
 }
 
 .dark-mode .right-sidebar .alert-subtitle {
+  color: #cbd5e1 !important;
+}
+
+/* 暗色模式下的任务列表样式 */
+.dark-mode .right-sidebar .urgent-task-item {
+  background: #1e293b !important;
+}
+
+.dark-mode .right-sidebar .urgent-task-item.priority-high {
+  background: linear-gradient(135deg, #1e293b, #450a0a) !important;
+}
+
+.dark-mode .right-sidebar .urgent-task-item.priority-medium {
+  background: linear-gradient(135deg, #1e293b, #451a03) !important;
+}
+
+.dark-mode .right-sidebar .urgent-task-item.priority-low {
+  background: linear-gradient(135deg, #1e293b, #052e16) !important;
+}
+
+.dark-mode .right-sidebar .task-name {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .right-sidebar .task-due {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .right-sidebar .expand-icon {
   color: #cbd5e1 !important;
 }
 </style>
