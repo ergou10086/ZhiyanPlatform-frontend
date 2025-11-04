@@ -34,15 +34,14 @@
       <!-- AI对话区域 -->
       <div class="ai-chat-section">
         <div class="chat-header">
-          <div class="ai-dialog-title">AI对话框</div>
           <button class="view-history-btn" @click="viewChatHistory" title="查看聊天记录">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 8V12L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
               <path d="M3 12H7M17 12H21M12 3V7M12 17V21" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            <span>查看记录</span>
           </button>
+          <div class="ai-dialog-title">AI对话框</div>
         </div>
         <div class="chat-container">
           <div
@@ -109,10 +108,10 @@
       </div>
     </div>
 
-    <!-- 聊天记录模态框 -->
-    <div v-if="showChatHistoryModal" class="chat-history-modal-overlay" @click="closeChatHistoryModal">
-      <div class="chat-history-modal" @click.stop>
-        <div class="modal-header">
+    <!-- 聊天记录侧边栏 -->
+    <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
+      <div class="chat-history-sidebar" @click.stop>
+        <div class="sidebar-header">
           <h3>聊天记录</h3>
           <button class="close-btn" @click="closeChatHistoryModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -120,7 +119,7 @@
             </svg>
           </button>
         </div>
-        <div class="modal-body">
+        <div class="sidebar-body">
           <div v-if="chatSessions.length === 0" class="empty-state">
             <p>暂无聊天记录</p>
           </div>
@@ -147,7 +146,7 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="sidebar-footer">
           <button class="btn-primary" @click="createNewChatSession">新建聊天</button>
         </div>
       </div>
