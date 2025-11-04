@@ -208,15 +208,57 @@ export const taskAPI = {
   },
 
   /**
-   * 获取我的任务
+   * 获取我的所有任务（包括分配和接取的）
    * @param {Number} page - 页码
    * @param {Number} size - 每页数量
    */
   getMyAssignedTasks(page = 0, size = 20) {
-    console.log('[taskAPI.getMyAssignedTasks] 获取我的任务')
+    console.log('[taskAPI.getMyAssignedTasks] 获取我的所有任务')
     return api.get('/zhiyan/api/projects/tasks/my-assigned', {
       params: { page, size }
     })
+  },
+
+  /**
+   * ✅ 新增：获取我主动接取的任务（CLAIMED类型）
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getMyClaimedTasks(page = 0, size = 20) {
+    console.log('[taskAPI.getMyClaimedTasks] 获取我接取的任务')
+    return api.get('/zhiyan/api/projects/tasks/my-claimed', {
+      params: { page, size }
+    })
+  },
+
+  /**
+   * ✅ 新增：获取分配给我的任务（ASSIGNED类型，不包括自己接取的）
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getMyAssignedOnlyTasks(page = 0, size = 20) {
+    console.log('[taskAPI.getMyAssignedOnlyTasks] 获取分配给我的任务')
+    return api.get('/zhiyan/api/projects/tasks/my-assigned-only', {
+      params: { page, size }
+    })
+  },
+
+  /**
+   * ✅ 新增：获取用户在特定项目中的任务
+   * @param {Number} projectId - 项目ID
+   */
+  getUserTasksInProject(projectId) {
+    console.log('[taskAPI.getUserTasksInProject] 获取项目中我的任务, 项目ID:', projectId)
+    return api.get(`/zhiyan/api/projects/tasks/my-tasks/project/${projectId}`)
+  },
+
+  /**
+   * ✅ 新增：获取用户任务统计信息
+   * 用于首页仪表盘展示
+   */
+  getUserTaskStatistics() {
+    console.log('[taskAPI.getUserTaskStatistics] 获取任务统计')
+    return api.get('/zhiyan/api/projects/tasks/my-statistics')
   },
 
   /**
