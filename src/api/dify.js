@@ -69,19 +69,25 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
       throw new Error('未登录，请先登录')
     }
 
-    console.log('[Dify API] 直连Dify服务(8097)发送请求:', {
-      url: `${BACKEND_DIFY_CONFIG.baseUrl}/chatflow/stream`,
+    // ⭐ 开发环境可选择直接连接后端或通过代理
+    // 设置为 true 可以跳过 Vue 代理，用于测试
+    const USE_DIRECT_CONNECTION = false  // 默认使用代理，调试时改为 true
+    const baseUrl = USE_DIRECT_CONNECTION ? 'http://localhost:8097' : ''
+    
+    console.log('[Dify API] 🚀 发送流式请求:', {
+      mode: USE_DIRECT_CONNECTION ? '直连后端' : '通过Vue代理',
+      baseUrl: baseUrl || '(相对路径)',
       query,
       conversationId
     })
     
-    // 构建URL（使用相对路径，由Vue代理转发到8097）
-    let url = `${BACKEND_DIFY_CONFIG.baseUrl}/chatflow/stream?query=${encodeURIComponent(query)}`
+    // 构建URL
+    let url = `${baseUrl}${BACKEND_DIFY_CONFIG.baseUrl}/chatflow/stream?query=${encodeURIComponent(query)}`
     if (conversationId) {
       url += `&conversationId=${encodeURIComponent(conversationId)}`
     }
 
-    console.log('[Dify API] 请求URL:', url)
+    console.log('[Dify API] 📡 请求URL:', url)
     
     const response = await fetch(url, {
       method: 'POST',
@@ -92,11 +98,21 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
       body: JSON.stringify({})
     })
 
-    console.log('[Dify API] 响应状态:', response.status, response.statusText)
+    console.log('[Dify API] ✅ 响应状态:', response.status, response.statusText)
+    
+    // ⭐ 检查响应头（用于诊断）
+    const contentType = response.headers.get('content-type')
+    const transferEncoding = response.headers.get('transfer-encoding')
+    console.log('[Dify API] 📋 响应头信息:', {
+      'Content-Type': contentType,
+      'Transfer-Encoding': transferEncoding,
+      '是否SSE': contentType?.includes('event-stream') || false,
+      '是否chunked': transferEncoding === 'chunked' || false
+    })
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error('[Dify API] 错误响应:', errorText)
+      console.error('[Dify API] ❌ 错误响应:', errorText)
       throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
     }
 
@@ -108,14 +124,16 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
     let finalConversationId = null
     let currentEvent = null
     let jsonBuffer = [] // 用于累积多行JSON数据
+    const startTime = Date.now()
 
-    console.log('[Dify API] 开始读取流式响应...')
+    console.log('[Dify API] 🔄 开始读取流式响应...', new Date().toLocaleTimeString())
 
     while (true) {
       const { done, value } = await reader.read()
       
       if (done) {
-        console.log('[Dify API] 流式响应结束，总共收到', chunkCount, '个数据块')
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
+        console.log(`[Dify API] 🏁 流式响应结束 - 总计 ${chunkCount} 个数据块，耗时 ${elapsed}s`)
         if (onEnd) {
           onEnd({ conversation_id: finalConversationId })
         }
@@ -124,7 +142,8 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
 
       chunkCount++
       const chunk = decoder.decode(value, { stream: true })
-      console.log('[Dify API] 收到数据块 #' + chunkCount + ':', chunk)
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
+      console.log(`[Dify API] 📦 数据块 #${chunkCount} (${elapsed}s):`, chunk.substring(0, 100) + (chunk.length > 100 ? '...' : ''))
       
       buffer += chunk
       const lines = buffer.split('\n')
@@ -180,7 +199,7 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
                   const currentAnswer = answerText
                   if (currentAnswer !== lastAnswer) {
                     const delta = currentAnswer.substring(lastAnswer.length)
-                    console.log('[Dify API] 增量内容:', delta)
+                    console.log(`[Dify API] ✨ 增量内容 [长度:${delta.length}]:`, delta)
                     lastAnswer = currentAnswer
                     onMessage(delta, message)
                   }

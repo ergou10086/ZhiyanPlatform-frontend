@@ -12,6 +12,10 @@ module.exports = {
   devServer: {
     port: 8001,
     host: '0.0.0.0',
+    
+    // ⭐ 全局禁用压缩（压缩可能导致缓冲）
+    compress: false,
+    
     proxy: {
       // ✅ 项目相关API - 转发到8095端口（项目服务）
       // 包含：创建项目、更新项目、删除项目、获取项目列表等
@@ -99,17 +103,56 @@ module.exports = {
         pathRewrite: {
           '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/ai/*
         },
-        // ✅ 关键配置：禁用代理缓冲，支持流式响应（SSE）
-        onProxyRes: function (proxyRes, req, res) {
-          // 对于流式接口，设置响应头确保数据不被缓冲
+        
+        // ⭐ 请求前的钩子
+        onProxyReq: function(proxyReq, req, res) {
           if (req.url.includes('/stream')) {
-            proxyRes.headers['X-Accel-Buffering'] = 'no'; // 禁用 Nginx 缓冲
-            delete proxyRes.headers['content-length']; // 删除 content-length，避免缓冲
+            console.log('🚀 [Vue Proxy] 转发流式请求:', req.url)
           }
         },
-        // ✅ 禁用自动解压，避免缓冲
+        
+        // ⭐⭐⭐ 关键配置：禁用代理缓冲，支持流式响应（SSE）
+        onProxyRes: function (proxyRes, req, res) {
+          // 对于流式接口，配置无缓冲响应
+          if (req.url.includes('/stream')) {
+            console.log('📥 [Vue Proxy] 收到流式响应，配置无缓冲模式')
+            console.log('   Content-Type:', proxyRes.headers['content-type'])
+            console.log('   Transfer-Encoding:', proxyRes.headers['transfer-encoding'])
+            
+            // 设置响应头，确保流式传输
+            res.setHeader('Cache-Control', 'no-cache, no-transform')
+            res.setHeader('X-Accel-Buffering', 'no')
+            res.setHeader('Connection', 'keep-alive')
+            
+            // 删除可能导致缓冲的头
+            delete proxyRes.headers['content-length']
+            delete proxyRes.headers['content-encoding']
+            
+            // 确保是chunked传输
+            if (!proxyRes.headers['transfer-encoding']) {
+              proxyRes.headers['transfer-encoding'] = 'chunked'
+            }
+            
+            // ⭐ 监听数据流（用于调试）
+            let chunkCount = 0
+            proxyRes.on('data', (chunk) => {
+              chunkCount++
+              console.log(`📦 [Vue Proxy] 转发数据块 #${chunkCount}: ${chunk.length} bytes`)
+            })
+            
+            proxyRes.on('end', () => {
+              console.log(`🏁 [Vue Proxy] 流式响应结束，共转发 ${chunkCount} 个数据块`)
+            })
+          }
+        },
+        
+        // ⭐ 禁用代理自动处理响应
         selfHandleResponse: false,
-        // ✅ 设置超时时间（0表示无限制）
+        
+        // ⭐ 禁用缓冲
+        buffer: false,
+        
+        // ⭐ 设置超时时间（0表示无限制）
         timeout: 0
       },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
