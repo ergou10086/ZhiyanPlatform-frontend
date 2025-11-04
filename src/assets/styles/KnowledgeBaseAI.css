@@ -373,6 +373,7 @@
   overflow: hidden;
   position: relative;
   margin: auto;
+  min-height: 0;
 }
 
 @keyframes slideUpDialog {
@@ -461,6 +462,8 @@
   display: flex;
   flex-direction: column;
   background: #ffffff;
+  min-height: 0;
+  max-height: 100%;
 }
 
 /* 自定义滚动条 */
@@ -545,10 +548,11 @@
 
 /* 文件列表容器 */
 .ai-view .file-list-container {
-  padding: 24px 32px 32px;
-  flex: 1;
-  min-height: 0;
+  padding: 8px 32px 32px 32px;
   width: 100%;
+  box-sizing: border-box;
+  overflow: visible;
+  flex-shrink: 0;
 }
 
 .ai-view .file-list {
@@ -556,6 +560,8 @@
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  padding-top: 4px;
+  overflow: visible;
 }
 
 /* 文件卡片 */
@@ -569,6 +575,7 @@
   overflow: hidden;
   width: 100%;
   box-sizing: border-box;
+  min-height: 70px;
 }
 
 .ai-view .file-card::before {
@@ -611,7 +618,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 22px;
+  padding: 20px 24px;
   gap: 16px;
   position: relative;
   z-index: 1;
@@ -620,16 +627,17 @@
 .ai-view .file-card-main {
   flex: 1;
   min-width: 0;
+  width: 100%;
 }
 
 .ai-view .file-name-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .ai-view .file-name {
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 600;
   color: #0f172a;
   line-height: 1.5;

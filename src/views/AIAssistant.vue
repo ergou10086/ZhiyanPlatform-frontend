@@ -189,16 +189,6 @@
                   <div class="file-card-main">
                     <div class="file-name-wrapper">
                       <div class="file-name">{{ project.title || project.name || '未命名项目' }}</div>
-                      <div class="file-badge-group">
-                        <span v-if="project.description" class="file-type-badge">{{ project.description }}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="file-select-indicator" :class="{ 'active': selectedProjectForFiles && selectedProjectForFiles.id === project.id }">
-                    <div class="checkmark-circle">
-                      <svg v-if="selectedProjectForFiles && selectedProjectForFiles.id === project.id" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
                     </div>
                   </div>
                 </div>
