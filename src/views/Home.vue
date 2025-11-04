@@ -13,18 +13,7 @@
          </button>
          <span class="page-title">首页</span>
        </div>
-       <div class="header-right">
-         <!-- 主题切换按钮 -->
-         <button class="theme-toggle-btn" @click="toggleTheme" :title="isDarkMode ? '切换到白天模式' : '切换到黑夜模式'">
-           <svg v-if="!isDarkMode" class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-             <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
-             <path d="M12 2V4M12 20V22M4.93 4.93L6.34 6.34M17.66 17.66L19.07 19.07M2 12H4M20 12H22M4.93 19.07L6.34 17.66M17.66 6.34L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-           </svg>
-           <svg v-else class="theme-icon moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-           </svg>
-         </button>
-       </div>
+       <!-- header-right 已移除，切换按钮现在在 GlobalUserProfile 组件内部 -->
      </div>
 
     <!-- 主要内容区域 -->
@@ -238,10 +227,15 @@ export default {
     
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
+    
+    // 监听主题切换事件
+    this.$eventBus.on('toggle-theme', this.toggleTheme)
   },
   beforeDestroy() {
     // 移除事件监听
     document.removeEventListener('click', this.handleClickOutside)
+    // 移除主题切换事件监听
+    this.$eventBus.off('toggle-theme', this.toggleTheme)
   },
   methods: {
     loadUserAvatar() {
@@ -385,6 +379,9 @@ export default {
           } else {
             document.documentElement.classList.remove('dark-mode')
           }
+          
+          // 通知App组件主题已改变
+          this.$eventBus.emit('theme-changed', this.isDarkMode)
         }, 425) // 动画进行到一半时切换主题（约50%）
         
         // 动画结束后清理

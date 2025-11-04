@@ -62,15 +62,7 @@
   transform: translateY(-1px);
 }
 
-.home-container .header-right {
-  display: flex;
-  align-items: center;
-  position: fixed;
-  right: 160px; /* 为头像留出空间，切换按钮在头像左边 */
-  top: 12px;
-  gap: 12px;
-  z-index: 10001; /* 确保按钮可点击 */
-}
+/* header-right 已移除，切换按钮现在在 GlobalUserProfile 组件内部 */
 
 /* 主题切换按钮 - 白天模式默认样式 */
 .home-container .theme-toggle-btn {
@@ -573,11 +565,15 @@
 .home-container .project-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 0; /* 移除项目卡片之间的间距 */
   flex: 1;
   overflow: auto;
   min-height: 0;
   padding-top: 4px; /* 为卡片上移留出空间 */
+}
+
+.home-container .project-card:not(:first-child) {
+  margin-top: -2px; /* 通过负边距让卡片更紧密地排列 */
 }
 
 /* 右侧栏列，日历 */
