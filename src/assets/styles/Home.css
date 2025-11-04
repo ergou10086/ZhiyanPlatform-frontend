@@ -1,4 +1,4 @@
-.home-container {
+﻿.home-container {
   min-height: 100vh;
   background-color: var(--bg-secondary);
   display: flex;
@@ -365,6 +365,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .home-container .more-btn {
@@ -457,10 +458,31 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  flex: 1;
+  flex: 1 1 0;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+  padding-right: 4px;
+}
+
+/* 工作项列表滚动条样式 */
+.home-container .work-item-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.home-container .work-item-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.home-container .work-item-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.home-container .work-item-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .home-container .work-item {
@@ -475,6 +497,8 @@
   border: 1px solid var(--border-primary);
   min-width: 0;
   overflow: hidden;
+  flex-shrink: 0; /* 防止任务项被压缩 */
+  max-width: 100%;
 }
 
 .home-container .work-item:hover {
@@ -515,6 +539,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   margin-bottom: var(--space-2);
+  flex-shrink: 0;
 }
 
 .home-container .item-title {
@@ -590,12 +615,19 @@
   color: var(--text-secondary);
   margin: 0 0 var(--space-3) 0;
   line-height: var(--leading-relaxed);
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .home-container .item-meta {
   display: flex;
   gap: 16px;
   font-size: 12px;
+  flex-shrink: 0;
 }
 
 .home-container .priority {
@@ -616,6 +648,7 @@
   height: 500px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* 我参与的项目 */
@@ -629,16 +662,38 @@
   height: 500px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
-
 .home-container .project-list {
   display: flex;
   flex-direction: column;
-  gap: 0; /* 移除项目卡片之间的间�?*/
+  gap: 0;
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
-  padding-top: 4px; /* 为卡片上移留出空�?*/
+  padding-top: 4px;
+  padding-right: 4px;
+}
+
+/* 项目列表滚动条样式 */
+.home-container .project-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.home-container .project-list::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.home-container .project-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.home-container .project-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .home-container .project-card:not(:first-child) {
@@ -1271,5 +1326,33 @@
 .dark-mode .home-container :deep(.alert-subtitle) {
   color: #cbd5e1 !important;
 }
+
+/* 暗色模式下的工作项列表滚动条样式 */
+.dark-mode .home-container .work-item-list::-webkit-scrollbar-track {
+  background: #334155 !important;
+}
+
+.dark-mode .home-container .work-item-list::-webkit-scrollbar-thumb {
+  background: #475569 !important;
+}
+
+.dark-mode .home-container .work-item-list::-webkit-scrollbar-thumb:hover {
+  background: #64748b !important;
+}
+
+/* 暗色模式下的项目列表滚动条样式 */
+.dark-mode .home-container .project-list::-webkit-scrollbar-track {
+  background: #334155 !important;
+}
+
+.dark-mode .home-container .project-list::-webkit-scrollbar-thumb {
+  background: #475569 !important;
+}
+
+.dark-mode .home-container .project-list::-webkit-scrollbar-thumb:hover {
+  background: #64748b !important;
+}
+
+
 
 
