@@ -58,7 +58,19 @@
       </div>
       
       <div class="content-wrapper">
-        <div class="grid">
+        <!-- 空状态提示 -->
+        <div v-if="paginatedProjects.length === 0" class="empty-state">
+          <div class="empty-icon">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3 class="empty-title">暂无项目</h3>
+          <p class="empty-message">您还没有参与任何项目，快去项目广场创建或加入项目吧！</p>
+        </div>
+        
+        <!-- 项目列表 -->
+        <div v-else class="grid">
           <div 
             v-for="(project, index) in paginatedProjects" 
             :key="project.id" 
@@ -112,7 +124,7 @@
         </div>
         
         <!-- 翻页组件 -->
-        <div class="pagination">
+        <div v-if="paginatedProjects.length > 0" class="pagination">
           <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
           <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
           <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
@@ -180,43 +192,6 @@ export default {
       // 从localStorage加载用户创建的项目
       const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
       
-      // 默认的参与项目（模拟用户加入的其他项目）
-      const defaultJoinedProjects = [
-        {
-          id: 101,
-          title: '多模态医学影像数据平台',
-          category: '医疗健康',
-          status: '稳健中',
-          teamSize: 8,
-          startDate: '2025-01-15',
-          endDate: '2025-12-31',
-          tags: ['医学影像', '深度学习', '肿瘤检测'],
-          isJoined: true
-        },
-        {
-          id: 102,
-          title: '气候变化预测模型研究',
-          category: '环境气候',
-          status: '进行中',
-          teamSize: 12,
-          startDate: '2025-02-01',
-          endDate: '2025-11-30',
-          tags: ['气候变化', 'LSTM', '时序预测'],
-          isJoined: true
-        },
-        {
-          id: 103,
-          title: '基因组数据分析平台',
-          category: '生物信息',
-          status: '进行中',
-          teamSize: 6,
-          startDate: '2025-01-01',
-          endDate: '2025-10-31',
-          tags: ['基因组', '图神经网络', '生物信息'],
-          isJoined: true
-        }
-      ]
-      
       // 标记用户创建的项目，并添加项目周期和标签
       const markedCreatedProjects = createdProjects.map(project => ({
         ...project,
@@ -228,8 +203,8 @@ export default {
         isJoined: true
       }))
       
-      // 合并用户创建的项目和参与的项目
-      this.joinedProjects = [...markedCreatedProjects, ...defaultJoinedProjects]
+      // 使用用户创建的项目
+      this.joinedProjects = [...markedCreatedProjects]
       
       // 为所有项目并行获取真实的团队成员数量
       console.log('开始为知识库项目获取真实团队成员数量...')

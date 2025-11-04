@@ -152,20 +152,8 @@ export default {
       documentsCount: 0,
       teamMembersCount: 0,
       onlineMembersCount: 0,
-      activities: [
-        { id: 1, type: 'doc', text: '张伟上传了论文《基于AI的教育个性化推荐系统研究》', time: '2小时前' },
-        { id: 2, type: 'update', text: '李梦更新了知识文档《项目管理规范V2.1》', time: '3小时前' },
-        { id: 3, type: 'ai', text: 'AI助手为《深度学习在教育中的应用》生成了摘要和标签', time: '1天前' },
-        { id: 4, type: 'edit', text: '编辑了论文的详细描述：基于AI的教育个性化推荐系统研究', time: '2天前' },
-        { id: 5, type: 'delete', text: '删除了数据集：旧版本学生行为数据', time: '3天前' }
-      ],
-      archiveRows: [
-        { id: 1, name: '基于AI的教育个性化推荐系统研究.pdf', type: '论文', uploader: '张伟', time: '2023-11-15 14:30', typeCls: 'doc' },
-        { id: 2, name: '智能教学系统交互方法专利.docx', type: '专利', uploader: '李想', time: '2023-11-10 09:15', typeCls: 'patent' },
-        { id: 3, name: '学生行为数据集样例.csv', type: '数据集', uploader: '王强', time: '2023-11-05 16:45', typeCls: 'dataset' },
-        { id: 4, name: '个性化推荐模型_v2.pkl', type: '模型文件', uploader: '赵敏', time: '2023-10-28 11:20', typeCls: 'model' },
-        { id: 5, name: '深度学习课堂实验报告.pdf', type: '实验报告', uploader: '陈美玲', time: '2023-10-22 13:40', typeCls: 'report' }
-      ]
+      activities: [],
+      archiveRows: []
     }
   },
   computed: {
@@ -635,43 +623,8 @@ export default {
     
     // 获取项目特定的数据
     getProjectSpecificData(projectId) {
-      const projectDataMap = {
-        '1': { // 多模态医学影像数据平台
-          catalog: [
-            { id: 1, name: '医学影像数据集_v1.0.zip', type: '数据集', uploader: '张医生', time: '2023-11-15 14:30', typeCls: 'dataset' },
-            { id: 2, name: 'CT影像分析算法.pdf', type: '论文', uploader: '李研究员', time: '2023-11-10 09:15', typeCls: 'doc' },
-            { id: 3, name: 'MRI图像预处理模型.pkl', type: '模型文件', uploader: '王工程师', time: '2023-11-05 16:45', typeCls: 'model' }
-          ],
-          cabinet: [
-            { id: 1, title: '医学影像数据预处理规范', updated: '2023年11月15日', content: '医学影像数据预处理规范\n\n1. 数据清洗...\n2. 格式转换...\n3. 质量控制...' },
-            { id: 2, title: '深度学习模型训练指南', updated: '2023年11月10日', content: '深度学习模型训练指南\n\n1. 数据准备...\n2. 模型选择...\n3. 训练参数...' }
-          ]
-        },
-        '2': { // 气候变化预测模型研究
-          catalog: [
-            { id: 1, name: '气象数据收集报告.pdf', type: '实验报告', uploader: '陈气象学家', time: '2023-11-12 10:20', typeCls: 'report' },
-            { id: 2, name: '气候模型训练数据.csv', type: '数据集', uploader: '刘数据员', time: '2023-11-08 15:30', typeCls: 'dataset' },
-            { id: 3, name: '预测算法优化方案.docx', type: '专利', uploader: '赵研究员', time: '2023-11-03 11:45', typeCls: 'patent' }
-          ],
-          cabinet: [
-            { id: 1, title: '气候数据收集标准', updated: '2023年11月12日', content: '气候数据收集标准\n\n1. 数据来源...\n2. 采集频率...\n3. 质量控制...' },
-            { id: 2, title: '预测模型评估方法', updated: '2023年11月08日', content: '预测模型评估方法\n\n1. 评估指标...\n2. 测试方法...\n3. 结果分析...' }
-          ]
-        },
-        '3': { // 基因组数据分析平台
-          catalog: [
-            { id: 1, name: '基因序列分析工具.py', type: '模型文件', uploader: '孙生物学家', time: '2023-11-14 13:25', typeCls: 'model' },
-            { id: 2, name: '基因组变异检测算法.pdf', type: '论文', uploader: '周研究员', time: '2023-11-09 16:10', typeCls: 'doc' },
-            { id: 3, name: '基因表达数据集.xlsx', type: '数据集', uploader: '吴数据员', time: '2023-11-06 09:40', typeCls: 'dataset' }
-          ],
-          cabinet: [
-            { id: 1, title: '基因组数据分析流程', updated: '2023年11月14日', content: '基因组数据分析流程\n\n1. 数据预处理...\n2. 序列比对...\n3. 变异检测...' },
-            { id: 2, title: '生物信息学工具使用指南', updated: '2023年11月09日', content: '生物信息学工具使用指南\n\n1. 工具选择...\n2. 参数设置...\n3. 结果解读...' }
-          ]
-        }
-      }
-      
-      return projectDataMap[projectId] || {
+      // 不再使用示例数据，返回空数据
+      return {
         catalog: [],
         cabinet: []
       }

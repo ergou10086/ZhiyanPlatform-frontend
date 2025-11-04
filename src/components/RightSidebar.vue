@@ -141,22 +141,14 @@ export default {
       return days
     },
     urgentTasks() {
-      // 模拟任务数据，实际应用中应该从API获取
+      // 从实际任务数据中获取三天内截止的任务
+      // 这里返回空数组，实际应用中应该从API或localStorage获取任务数据
       const today = new Date()
       const threeDaysLater = new Date(today)
       threeDaysLater.setDate(today.getDate() + 3)
 
-      // 返回三天内截止的任务
-      // 这里使用模拟数据
-      return [
-        {
-          title: '智能推荐系统优化',
-          deadline: '2023-06-15'
-        }
-      ].filter(task => {
-        const deadline = new Date(task.deadline)
-        return deadline <= threeDaysLater && deadline >= today
-      })
+      // 返回空数组，等待真实数据加载
+      return []
     }
   },
   mounted() {
