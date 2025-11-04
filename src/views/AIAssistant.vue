@@ -43,14 +43,21 @@
           </button>
           <div class="ai-dialog-title">AI对话框</div>
         </div>
-        <div class="chat-container">
+        <div class="chat-container" ref="chatContainer">
           <div
-            v-for="message in chatMessages"
+            v-for="(message, index) in chatMessages"
             :key="message.id"
             :class="message.type === 'ai' ? 'ai-message' : 'user-message'"
           >
-            <div :class="message.type === 'ai' ? 'message-bubble' : 'user-bubble'">
-              {{ message.content }}
+            <div :class="message.type === 'ai' ? 'message-bubble ai-bubble' : 'user-bubble'">
+              <!-- AI消息：支持Markdown渲染和光标闪烁 -->
+              <div v-if="message.type === 'ai'" class="ai-content">
+                <span v-html="formatMarkdown(message.content)"></span>
+                <!-- 打字光标（仅在打字时显示） -->
+                <span v-if="isTyping && currentTypingMessageIndex === index" class="typing-cursor">|</span>
+              </div>
+              <!-- 用户消息：普通文本 -->
+              <template v-else>{{ message.content }}</template>
             </div>
           </div>
         </div>
@@ -323,7 +330,12 @@ export default {
       availableProjects: [],
       tasks: [],
       // 不同项目的任务数据
-      projectTasks: {}
+      projectTasks: {},
+      // ⭐ 打字机效果相关
+      typewriterTimer: null, // 打字机定时器
+      typewriterQueue: '', // 打字机字符队列
+      isTyping: false, // 是否正在打字
+      currentTypingMessageIndex: -1 // 当前正在打字的消息索引
     }
   },
   computed: {
@@ -458,6 +470,12 @@ export default {
     // 清理定时器
     if (this.syncTimer) {
       clearInterval(this.syncTimer)
+    }
+    
+    // ⭐ 清理打字机定时器
+    if (this.typewriterTimer) {
+      clearInterval(this.typewriterTimer)
+      this.typewriterTimer = null
     }
   },
   methods: {
@@ -895,40 +913,38 @@ export default {
           this.difyConversationId,
           // onMessage回调：接收流式消息片段
           (answerDelta, data) => {
-            console.log('[AI助手] 收到Dify消息片段:', answerDelta, '当前总长度:', this.chatMessages[aiMessageIndex].content.length)
-            // 追加内容到AI消息 - 使用Vue.set确保响应式更新
-            const currentContent = this.chatMessages[aiMessageIndex].content
-            this.$set(this.chatMessages[aiMessageIndex], 'content', currentContent + answerDelta)
-            console.log('[AI助手] 更新后总长度:', this.chatMessages[aiMessageIndex].content.length)
-            // 滚动到底部
-            this.$nextTick(() => {
-              this.scrollToBottom()
-            })
+            console.log('[AI助手] 📥 收到消息片段:', answerDelta.substring(0, 20) + '...')
+            // ⭐ 使用打字机效果显示内容
+            this.startTypewriter(aiMessageIndex, answerDelta)
           },
           // onEnd回调：流结束
           (data) => {
-            console.log('Dify响应完成')
+            console.log('[AI助手] ✅ Dify响应完成')
             // 保存conversation_id以便后续对话能保持上下文
             if (data && data.conversation_id) {
               this.difyConversationId = data.conversation_id
-              console.log('保存Dify对话ID:', this.difyConversationId)
+              console.log('[AI助手] 💾 保存Dify对话ID:', this.difyConversationId)
             }
             
-            // 保存会话（包含AI回复）
-            this.saveCurrentChatSession()
+            // ⭐ 完成打字机效果
+            this.finishTypewriter()
             
-            // 重置发送状态
-            this.isSending = false
-            
-            // 最终滚动到最新消息
-            this.$nextTick(() => {
-              this.scrollToBottom()
-            })
+            // 等待打字完成后保存会话
+            setTimeout(() => {
+              this.saveCurrentChatSession()
+              this.isSending = false
+              this.$nextTick(() => {
+                this.scrollToBottom()
+              })
+            }, 500)
           },
           // onError回调：错误处理
           (error) => {
-            console.error('Dify API错误:', error)
-            this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。'
+            console.error('[AI助手] ❌ Dify API错误:', error)
+            // 停止打字机
+            this.stopTypewriter()
+            // 显示错误消息
+            this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。\n错误详情：' + (error.message || error)
             this.isSending = false
             
             // 保存会话（包含错误消息）
@@ -958,6 +974,133 @@ export default {
         chatContainer.scrollTop = chatContainer.scrollHeight
       }
     },
+    
+    // ⭐⭐⭐ 打字机效果核心方法
+    /**
+     * 启动打字机效果
+     * @param {number} messageIndex - 消息索引
+     * @param {string} newContent - 新增的内容
+     */
+    startTypewriter(messageIndex, newContent) {
+      // 将新内容添加到队列
+      this.typewriterQueue += newContent
+      
+      // 如果已经在打字，直接返回（队列会自动处理）
+      if (this.isTyping && this.currentTypingMessageIndex === messageIndex) {
+        return
+      }
+      
+      // 如果是新消息，重置打字机状态
+      if (this.currentTypingMessageIndex !== messageIndex) {
+        this.stopTypewriter()
+        this.currentTypingMessageIndex = messageIndex
+        this.typewriterQueue = newContent
+      }
+      
+      // 开始打字
+      this.isTyping = true
+      
+      // 打字机速度（毫秒/字符）
+      const typingSpeed = 30 // 调整这个值可以控制打字速度（数字越小越快）
+      
+      this.typewriterTimer = setInterval(() => {
+        if (this.typewriterQueue.length === 0) {
+          // 队列为空，但保持打字状态（等待新内容）
+          return
+        }
+        
+        // 从队列中取出一个字符
+        const char = this.typewriterQueue.charAt(0)
+        this.typewriterQueue = this.typewriterQueue.substring(1)
+        
+        // 添加到消息内容
+        if (this.chatMessages[messageIndex]) {
+          this.chatMessages[messageIndex].content += char
+          
+          // 每添加几个字符滚动一次（优化性能）
+          if (this.chatMessages[messageIndex].content.length % 5 === 0) {
+            this.$nextTick(() => {
+              this.scrollToBottom()
+            })
+          }
+        }
+      }, typingSpeed)
+    },
+    
+    /**
+     * 停止打字机效果
+     */
+    stopTypewriter() {
+      if (this.typewriterTimer) {
+        clearInterval(this.typewriterTimer)
+        this.typewriterTimer = null
+      }
+      
+      // 如果还有剩余队列，直接显示
+      if (this.typewriterQueue && this.currentTypingMessageIndex >= 0) {
+        const messageIndex = this.currentTypingMessageIndex
+        if (this.chatMessages[messageIndex]) {
+          this.chatMessages[messageIndex].content += this.typewriterQueue
+          this.typewriterQueue = ''
+        }
+      }
+      
+      this.isTyping = false
+      this.currentTypingMessageIndex = -1
+      this.typewriterQueue = ''
+      
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+    },
+    
+    /**
+     * 完成打字（流式响应结束时调用）
+     */
+    finishTypewriter() {
+      // 等待队列完全打完
+      const checkQueue = setInterval(() => {
+        if (this.typewriterQueue.length === 0) {
+          clearInterval(checkQueue)
+          this.stopTypewriter()
+        }
+      }, 100)
+    },
+    
+    // 格式化 Markdown 内容（简单版本）
+    formatMarkdown(content) {
+      if (!content) return ''
+      
+      // 转义 HTML 标签
+      let formatted = content
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+      
+      // 代码块
+      formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        return `<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`
+      })
+      
+      // 行内代码
+      formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>')
+      
+      // 粗体
+      formatted = formatted.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
+      formatted = formatted.replace(/__([^_]+)__/g, '<strong>$1</strong>')
+      
+      // 斜体
+      formatted = formatted.replace(/\*([^\*]+)\*/g, '<em>$1</em>')
+      formatted = formatted.replace(/_([^_]+)_/g, '<em>$1</em>')
+      
+      // 链接
+      formatted = formatted.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+      
+      // 换行
+      formatted = formatted.replace(/\n/g, '<br>')
+      
+      return formatted
+    },
+    
     handleClickOutside(event) {
       if (!this.$el.contains(event.target)) {
         this.showProjectDropdown = false
