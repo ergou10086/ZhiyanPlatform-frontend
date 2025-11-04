@@ -406,4 +406,93 @@ export default {
 .modal-btn-confirm:hover {
   background: #2563eb;
 }
+
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .sidebar {
+  background: #1e293b;
+  border-right-color: #475569;
+}
+
+.dark-mode .sidebar-header {
+  background: #1e293b;
+  border-bottom-color: #475569;
+}
+
+.dark-mode .sidebar-title {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark-mode .close-btn {
+  color: #94a3b8;
+}
+
+.dark-mode .close-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .nav-item {
+  color: #cbd5e1;
+}
+
+.dark-mode .nav-item:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .nav-item.active {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+  color: #60a5fa;
+}
+
+.dark-mode .nav-item.active::before {
+  background: #60a5fa;
+}
+
+.dark-mode .nav-item.active .nav-icon {
+  color: #60a5fa;
+}
+
+.dark-mode .nav-icon {
+  color: #94a3b8;
+}
+
+.dark-mode .nav-item:hover .nav-icon {
+  color: #f1f5f9;
+}
+
+.dark-mode .modal-content {
+  background: #1e293b;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .modal-header h3 {
+  color: #f1f5f9;
+}
+
+.dark-mode .modal-close {
+  color: #94a3b8;
+}
+
+.dark-mode .modal-close:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .modal-body p {
+  color: #cbd5e1;
+}
+
+.dark-mode .modal-btn-cancel {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+.dark-mode .modal-btn-cancel:hover {
+  background: #475569;
+  color: #f1f5f9;
+}
 </style>

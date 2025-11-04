@@ -441,3 +441,128 @@
   }
 }
 
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .catalog-view {
+  background-color: #0f172a;
+  color: #f1f5f9;
+}
+
+.dark-mode .page-subtitle {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-left-color: #5EB6E4;
+  color: #cbd5e1;
+}
+
+.dark-mode .subtitle-icon {
+  color: #5EB6E4;
+}
+
+.dark-mode .title-text {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.dark-mode .section-card {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .section-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .section-subtitle {
+  color: #94a3b8;
+}
+
+.dark-mode .add-card {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .add-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  border-color: #60a5fa;
+}
+
+.dark-mode .add-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .add-desc {
+  color: #94a3b8;
+}
+
+.dark-mode .table-wrap {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .doc-table thead th {
+  color: #94a3b8;
+  border-bottom-color: #475569;
+}
+
+.dark-mode .doc-table tbody td {
+  color: #cbd5e1;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .file-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .file-count {
+  color: #94a3b8;
+}
+
+.dark-mode .ops a {
+  color: #60a5fa;
+}
+
+.dark-mode .ops a:hover {
+  color: #93c5fd;
+}
+
+.dark-mode .ops a.delete-link {
+  color: #ef4444;
+}
+
+.dark-mode .ops a.delete-link:hover {
+  color: #f87171;
+}
+
+.dark-mode .pager-text {
+  color: #94a3b8;
+}
+
+.dark-mode .pager.small,
+.dark-mode .page-num.small {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .pager.small:hover,
+.dark-mode .page-num.small:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .page-num.small.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-color: #3b82f6;
+}
+
+.dark-mode .pager:not(:disabled):hover {
+  background: #475569;
+}
+
+.dark-mode .page-num:hover {
+  background: #475569;
+}
+
