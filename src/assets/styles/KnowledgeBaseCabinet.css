@@ -233,6 +233,24 @@
   color: #111827;
 }
 
+.cabinet-view .empty-editor {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+  background: var(--bg-primary, #ffffff);
+  border-radius: 8px;
+  border: 1px dashed var(--border-primary, #e5e7eb);
+  margin: 16px 0;
+}
+
+.cabinet-view .empty-editor p {
+  margin: 0;
+  color: var(--text-secondary, #6b7280);
+}
+
 .cabinet-view .editor-footer { 
   display: flex; 
   align-items: center; 
