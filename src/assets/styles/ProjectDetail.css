@@ -73,7 +73,7 @@
 
 .main-content {
   flex: 1;
-  padding: 70px 24px 28px; /* 包含固定页眉�?4px空间，让项目卡片往下移，显示更多上边框 */
+  padding: 70px 24px 28px; /* 包含固定页眉�?4px空间，让项目卡片往下移，显示更多上边框 */
   display: flex;
   flex-direction: column;
   gap: 32px; /* 增大项目介绍和任务列表之间的距离 */
@@ -85,7 +85,7 @@
   border-radius: 16px;
   padding: 24px;
   margin-top: 16px;
-  margin-bottom: 20px !important; /* 直接设置底部间距，确保与任务列表之间有足够距�?*/
+  margin-bottom: 20px !important; /* 直接设置底部间距，确保与任务列表之间有足够距�?*/
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: box-shadow 0.3s ease;
 }
@@ -225,22 +225,22 @@
   background-clip: text;
 }
 
-/* 第一行项目信�?*/
+/* 第一行项目信�?*/
 .project-meta-top {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px 16px; /* 更紧�?*/
+  gap: 6px 16px; /* 更紧�?*/
   align-items: start;
-  margin-bottom: 4px; /* 再缩�?*/
+  margin-bottom: 4px; /* 再缩�?*/
 }
 
 /* 第二行项目信息（往上放一些） */
 .project-meta-bottom {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 6px 16px; /* 更紧�?*/
+  gap: 6px 16px; /* 更紧�?*/
   align-items: start;
-  margin-top: 4px; /* 再贴�?*/
+  margin-top: 4px; /* 再贴�?*/
 }
 
 @media (max-width: 1200px) {
@@ -305,7 +305,7 @@
   flex: 1;
 }
 
-/* 信息区操作按�?*/
+/* 信息区操作按�?*/
 .info-actions {
   display: flex;
   gap: 12px;
@@ -470,7 +470,7 @@
   justify-content: stretch;
 }
 
-/* 空状态样�?*/
+/* 空状态样�?*/
 .task-empty-state {
   display: flex;
   align-items: center;
@@ -511,7 +511,7 @@
   font-weight: 600;
 }
 
-/* 响应式设�?*/
+/* 响应式设�?*/
 @media (max-width: 1400px) {
   .task-grid {
     grid-template-columns: repeat(4, 1fr);
@@ -788,19 +788,19 @@
   white-space: nowrap;
 }
 
-.task-priority.�?{
+.task-priority.�?{
   background: #dc3545 !important;
   color: white !important;
   font-weight: 600;
 }
 
-.task-priority.�?{
+.task-priority.�?{
   background: #ffc107 !important;
   color: #333 !important;
   font-weight: 600;
 }
 
-.task-priority.�?{
+.task-priority.�?{
   background: #28a745 !important;
   color: white !important;
   font-weight: 600;
@@ -893,7 +893,7 @@
   font-weight: 500;
 }
 
-.task-status.进行�?{
+.task-status.进行�?{
   background: #d4edda;
   color: #155724;
 }
@@ -932,14 +932,14 @@
   background: #dee2e6;
 }
 
-.task-status-btn.待接�?{
+.task-status-btn.待接�?{
   background: #6c757d !important;
   color: white !important;
   border-color: #6c757d !important;
   font-weight: 600;
 }
 
-.task-status-btn.进行�?{
+.task-status-btn.进行�?{
   background: #007bff !important;
   color: white !important;
   border-color: #007bff !important;
@@ -1293,7 +1293,7 @@
   background: #545b62;
 }
 
-/* 加载状态样�?*/
+/* 加载状态样�?*/
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -1567,7 +1567,7 @@
   display: block;
 }
 
-/* 邀请成员弹窗样�?*/
+/* 邀请成员弹窗样�?*/
 .invite-member-modal {
   max-width: 600px;
   max-height: 85vh;
@@ -1661,7 +1661,7 @@
   flex-direction: column;
   gap: 8px;
   padding-top: 4px; /* 为成员项上移留出空间 */
-  /* 使用 transform 代替其他可能导致重排的属�?*/
+  /* 使用 transform 代替其他可能导致重排的属�?*/
   will-change: transform;
 }
 
@@ -1837,7 +1837,7 @@
   justify-content: center;
   align-items: center;
   z-index: 10000;
-  /* 不允许点击背景关�?*/
+  /* 不允许点击背景关�?*/
   pointer-events: all;
 }
 
@@ -2244,6 +2244,195 @@
 }
 
 .dark-mode .project-detail-container .member-role {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .section-card {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .section-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .status-badge.planning {
+  background: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .status-badge.ongoing {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+.dark-mode .project-detail-container .status-badge.paused {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+.dark-mode .project-detail-container .status-badge.completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: #10b981;
+}
+
+.dark-mode .project-detail-container .status-badge.cancelled {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: #ef4444;
+}
+
+.dark-mode .project-detail-container .dropdown-menu {
+  background: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .project-detail-container .dropdown-item {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .dropdown-item:hover {
+  background: #334155;
+}
+
+.dark-mode .project-detail-container .dropdown-item.active {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .task-empty-state {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .empty-state-title {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .empty-state-message {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .highlight-text {
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .more-button {
+  background: #334155;
+  border-color: #475569;
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .more-button:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .more-text,
+.dark-mode .project-detail-container .more-button svg {
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .task-list-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .task-list-item:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .task-item-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .task-item-description {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .task-item-meta {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .task-detail-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .task-detail-value {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .task-description-scroll {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .task-card:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .team-member-list {
+  background: #1e293b;
+}
+
+.dark-mode .project-detail-container .member-select-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .member-select-item:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .member-select-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .member-select-role {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .member-select-avatar .avatar-placeholder {
+  background: #475569;
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .empty-members-hint {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .member-card {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .member-card.invite-card {
+  border-color: #64748b;
+}
+
+.dark-mode .project-detail-container .member-card:hover .remove-member-btn {
+  opacity: 1;
+}
+
+.dark-mode .project-detail-container .remove-member-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.dark-mode .project-detail-container .member-avatar {
+  background-color: #334155;
+}
+
+.dark-mode .project-detail-container .member-avatar .avatar-placeholder {
   color: #94a3b8;
 }
 
