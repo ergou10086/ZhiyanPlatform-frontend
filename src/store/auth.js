@@ -87,12 +87,33 @@ const actions = {
     try {
       const response = await authAPI.autoLoginCheck()
       if (response.code === 200 && response.data && response.data.valid) {
-        // 可以自动登录，获取用户信息
-        const user = getCurrentUser()
-        if (user) {
-          commit('SET_USER', user)
-          return true
+        // RememberMe token有效，需要获取新的accessToken和refreshToken
+        // 方法1: 使用refreshToken（如果存在）
+        const refreshToken = localStorage.getItem('refresh_token')
+        if (refreshToken) {
+          try {
+            const refreshResponse = await authAPI.refreshToken(refreshToken)
+            if (refreshResponse.code === 200 && refreshResponse.data) {
+              // 保存新的token和用户信息
+              saveLoginData({
+                accessToken: refreshResponse.data.accessToken,
+                refreshToken: refreshResponse.data.refreshToken,
+                userInfo: refreshResponse.data.user
+              })
+              commit('SET_USER', refreshResponse.data.user)
+              console.log('✅ 通过RefreshToken自动登录成功')
+              return true
+            }
+          } catch (refreshError) {
+            console.warn('RefreshToken已过期，尝试其他方法:', refreshError)
+          }
         }
+        
+        // 方法2: 如果有remember_me_token但没有refreshToken，需要重新登录
+        // 注意：这里不能直接调用登录接口，因为需要密码
+        // 所以只能提示用户重新登录
+        console.warn('⚠️ RememberMe token有效，但RefreshToken已过期，需要重新登录')
+        return false
       }
       return false
     } catch (error) {
