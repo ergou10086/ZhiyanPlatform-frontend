@@ -218,8 +218,18 @@ export default {
     // 清理旧的图片 URL（包含 localhost 的错误 URL）
     this.cleanupOldImageUrls()
     
-    // 恢复页面状态（页码、搜索、筛选）
-    this.restorePageState()
+    // 检查是否刚从项目详情页返回
+    if (this.shouldRestoreState()) {
+      // 从项目详情页返回，恢复状态
+      this.restorePageState()
+      // 清除标记
+      this.clearReturnFromDetailFlag()
+    } else {
+      // 从其他页面进入，重置到第一页
+      this.currentPage = 1
+      this.searchText = ''
+      this.selectedStatus = ''
+    }
     
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
@@ -228,8 +238,18 @@ export default {
     // 当页面被激活时（从其他页面返回），优先显示缓存，后台更新
     // 这样可以快速显示，同时获取最新数据
     
-    // 恢复页面状态（页码、搜索、筛选）
-    this.restorePageState()
+    // 检查是否刚从项目详情页返回
+    if (this.shouldRestoreState()) {
+      // 从项目详情页返回，恢复状态
+      this.restorePageState()
+      // 清除标记
+      this.clearReturnFromDetailFlag()
+    } else {
+      // 从其他页面进入，重置到第一页
+      this.currentPage = 1
+      this.searchText = ''
+      this.selectedStatus = ''
+    }
     
     if (this.projects.length === 0) {
       // 如果没有数据，先加载缓存
@@ -240,7 +260,11 @@ export default {
   },
   beforeRouteLeave(to, from, next) {
     // 保存页面状态（离开前）
-    this.savePageState()
+    // 只有前往项目详情页时才保存状态并设置标记
+    if (to.path && to.path.includes('/project-detail/')) {
+      this.savePageState()
+      this.setReturnFromDetailFlag()
+    }
     next()
   },
   beforeDestroy() {
@@ -762,9 +786,50 @@ export default {
         this.savePageState()
       }, 500)
     },
+    setReturnFromDetailFlag() {
+      // 设置标记，表示即将进入项目详情页（包含时间戳）
+      try {
+        localStorage.setItem('project_square_from_detail', JSON.stringify({
+          flag: true,
+          timestamp: Date.now()
+        }))
+      } catch (e) {
+        // 忽略错误
+      }
+    },
+    shouldRestoreState() {
+      // 检查是否应该恢复状态（刚从项目详情页返回）
+      // 标记在5分钟内有效，避免刷新页面时的误判
+      try {
+        const flagData = localStorage.getItem('project_square_from_detail')
+        if (flagData) {
+          const data = JSON.parse(flagData)
+          // 检查标记是否在有效期内（5分钟）
+          if (data.flag && data.timestamp && Date.now() - data.timestamp < 5 * 60 * 1000) {
+            return true
+          } else {
+            // 标记已过期，清除
+            this.clearReturnFromDetailFlag()
+          }
+        }
+        return false
+      } catch (e) {
+        return false
+      }
+    },
+    clearReturnFromDetailFlag() {
+      // 清除标记
+      try {
+        localStorage.removeItem('project_square_from_detail')
+      } catch (e) {
+        // 忽略错误
+      }
+    },
     viewProjectDetail(project) {
       // 保存页面状态（进入详情页前）
       this.savePageState()
+      // 设置标记，表示即将进入项目详情页
+      this.setReturnFromDetailFlag()
       
       // 检查用户是否已登录
       const token = localStorage.getItem('access_token')
