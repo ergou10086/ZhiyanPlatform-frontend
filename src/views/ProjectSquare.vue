@@ -331,29 +331,9 @@ export default {
               // 规范化图片 URL（转换为完整的 MinIO URL）
               imageUrl = normalizeProjectCoverUrl(imageUrl)
               
-              console.log(`项目 ${project.id} 图片URL处理:`, {
-                backend: project.imageUrl,
-                local: localProject?.imageUrl,
-                normalized: imageUrl
-              })
-              
-              // 调试：输出后端人数相关字段，便于定位
-              console.log('项目成员字段检查:', project.id, {
-                memberCount: project.memberCount,
-                teamMemberCount: project.teamMemberCount,
-                membersCount: project.membersCount,
-                participantCount: project.participantCount,
-                participantsCount: project.participantsCount,
-                memberNum: project.memberNum,
-                membersNum: project.membersNum,
-                memberSize: project.memberSize,
-                membersSize: project.membersSize,
-                userCount: project.userCount,
-                usersCount: project.usersCount,
-                teamSize: project.teamSize,
-                teamMembersLen: Array.isArray(project.teamMembers) ? project.teamMembers.length : undefined,
-                membersLen: Array.isArray(project.members) ? project.members.length : undefined
-              })
+              // 调试日志已移除以提升性能（仅在开发环境需要时启用）
+              // console.log(`项目 ${project.id} 图片URL处理:`, {...})
+              // console.log('项目成员字段检查:', project.id, {...})
 
               return {
                 id: project.id,
@@ -404,59 +384,80 @@ export default {
               return true
             })
           
+          // 调试日志已简化以提升性能
           console.log('转换后的项目数量:', this.projects.length)
-          if (this.projects.length > 0) {
-            console.log('项目数据示例:', this.projects[0])
-            console.log('所有项目的状态:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status, visibility: p.visibility, imageUrl: p.imageUrl })))
-          }
+          // if (this.projects.length > 0) {
+          //   console.log('项目数据示例:', this.projects[0])
+          //   console.log('所有项目的状态:', this.projects.map(...))
+          // }
           
-          // 为每个项目获取真实成员数量
-          console.log('开始并行获取所有项目的成员数量...')
-          const memberCountPromises = this.projects.map(async (project) => {
+          // 先使用缓存或默认值显示项目列表，不阻塞UI
+          this.projects.forEach(project => {
+            // 尝试从缓存读取成员数量
             try {
-              const memberResponse = await projectAPI.getProjectMembers(project.id, 0, 1000) // 获取所有成员
-              let memberCount = 0
-              
-              if (memberResponse && memberResponse.code === 200) {
-                if (memberResponse.data && memberResponse.data.content) {
-                  // Spring Data Page对象
-                  memberCount = memberResponse.data.content.length
-                  project.teamMembers = memberResponse.data.content
-                } else if (Array.isArray(memberResponse.data)) {
-                  // 直接返回数组
-                  memberCount = memberResponse.data.length
-                  project.teamMembers = memberResponse.data
+              const cached = localStorage.getItem(`project_member_count_${project.id}`)
+              if (cached) {
+                const cachedCount = parseInt(cached, 10)
+                if (!isNaN(cachedCount) && cachedCount > 0) {
+                  project.memberCount = cachedCount
+                  project.teamSize = cachedCount
                 }
               }
-              
-              // 更新项目的成员数量
-              project.memberCount = memberCount
-              
-              // 同时写入缓存，供后续使用
-              if (memberCount > 0) {
-                try {
-                  localStorage.setItem(`project_member_count_${project.id}`, String(memberCount))
-                } catch (e) {
-                  console.warn(`写入项目 ${project.id} 成员数量缓存失败:`, e)
-                }
-              }
-              
-              console.log(`项目 ${project.id} (${project.name}) 成员数量: ${memberCount}`)
-              return { projectId: project.id, memberCount }
-            } catch (error) {
-              console.warn(`获取项目 ${project.id} 成员数量失败:`, error)
-              // 失败时保持默认值
-              return { projectId: project.id, memberCount: 1 }
+            } catch (e) {
+              // 忽略缓存读取错误
             }
           })
           
-          // 等待所有成员数量获取完成
-          await Promise.all(memberCountPromises)
-          console.log('所有项目的成员数量获取完成')
-          
-          // 保存合并后的数据到localStorage
-          // 这样可以确保显示的都是数据库中真实存在的公开项目，同时保留本地的图片和其他数据
+          // 保存合并后的数据到localStorage（先保存，不等待成员数量）
           localStorage.setItem('projects', JSON.stringify(this.projects))
+          
+          // 后台延迟加载成员数量（不阻塞UI显示）
+          // 使用 setTimeout 确保UI先渲染
+          setTimeout(async () => {
+            console.log('后台开始加载成员数量...')
+            const memberCountPromises = this.projects.map(async (project) => {
+              try {
+                // 如果已有缓存且数据较新，可以跳过（这里简化处理，每次都更新）
+                const memberResponse = await projectAPI.getProjectMembers(project.id, 0, 100) // 只获取前100个即可统计数量
+                let memberCount = 0
+                
+                if (memberResponse && memberResponse.code === 200) {
+                  if (memberResponse.data && memberResponse.data.content) {
+                    // Spring Data Page对象
+                    memberCount = memberResponse.data.totalElements || memberResponse.data.content.length
+                  } else if (Array.isArray(memberResponse.data)) {
+                    memberCount = memberResponse.data.length
+                  } else if (memberResponse.data && typeof memberResponse.data.totalElements === 'number') {
+                    // 如果有总数字段，直接使用
+                    memberCount = memberResponse.data.totalElements
+                  }
+                }
+                
+                // 更新项目的成员数量（响应式更新）
+                if (memberCount > 0) {
+                  const projectIndex = this.projects.findIndex(p => p.id === project.id)
+                  if (projectIndex !== -1) {
+                    this.$set(this.projects[projectIndex], 'memberCount', memberCount)
+                    this.$set(this.projects[projectIndex], 'teamSize', memberCount)
+                    
+                    // 更新缓存
+                    try {
+                      localStorage.setItem(`project_member_count_${project.id}`, String(memberCount))
+                    } catch (e) {
+                      // 忽略缓存写入错误
+                    }
+                  }
+                }
+              } catch (error) {
+                // 静默失败，不影响UI显示
+                console.debug(`获取项目 ${project.id} 成员数量失败:`, error)
+              }
+            })
+            
+            // 并行获取，但不等待所有完成（使用 Promise.allSettled 避免单个失败影响整体）
+            await Promise.allSettled(memberCountPromises)
+            console.log('后台成员数量加载完成')
+          }, 100) // 延迟100ms，确保UI先渲染
           
           console.log('====== 项目加载完成，显示', this.projects.length, '个公开项目 ======')
         } else {
