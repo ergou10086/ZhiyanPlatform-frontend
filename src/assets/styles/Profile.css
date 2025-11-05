@@ -462,6 +462,13 @@
   border-color: #007bff;
 }
 
+.profile-container .organization-input {
+  min-height: 40px;
+  height: 40px;
+  resize: none;
+  line-height: 1.5;
+}
+
 .profile-container .intro-actions {
   display: flex;
   gap: 12px;

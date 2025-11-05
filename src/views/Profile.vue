@@ -94,8 +94,27 @@
         <!-- 机构信息卡片 -->
         <div class="info-card">
           <div class="info-item">
-            <h3 class="info-label">所属机构</h3>
-            <p class="info-value">{{ userInfo.organization }}</p>
+            <div class="intro-header">
+              <h3 class="info-label">所属机构</h3>
+              <button v-if="!editingOrganization && isLoggedIn" @click="editOrganization" class="edit-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                编辑
+              </button>
+            </div>
+            <div v-if="editingOrganization" class="intro-edit">
+              <input 
+                v-model="tempOrganization" 
+                @keyup.enter="saveOrganization"
+                @blur="saveOrganization" 
+                class="intro-textarea organization-input"
+                ref="organizationInput"
+                placeholder="请输入所属机构"
+              />
+            </div>
+            <p v-else class="info-value">{{ userInfo.organization || '未设置机构' }}</p>
           </div>
         </div>
 
@@ -227,8 +246,10 @@ export default {
       userAvatar: null,
       editingNickname: false,
       editingIntro: false,
+      editingOrganization: false,
       tempNickname: '',
       tempIntro: '',
+      tempOrganization: '',
       isLoggedIn: false,
       showModal: false,
       modalMessage: '',
@@ -891,6 +912,82 @@ export default {
     cancelEditIntro() {
       this.tempIntro = this.userInfo.introduction
       this.editingIntro = false
+    },
+    // 机构编辑方法
+    editOrganization() {
+      if (!this.isLoggedIn) {
+        this.modalMessage = '请先登录才能修改机构'
+        this.showModal = true
+        return
+      }
+      this.editingOrganization = true
+      this.tempOrganization = this.userInfo.organization || ''
+      this.$nextTick(() => {
+        this.$refs.organizationInput.focus()
+      })
+    },
+    async saveOrganization() {
+      const trimmedOrganization = this.tempOrganization.trim()
+      
+      // 如果内容没有变化，直接退出编辑
+      if (trimmedOrganization === this.userInfo.organization) {
+        this.editingOrganization = false
+        return
+      }
+      
+      try {
+        // 调用后端API更新机构
+        const response = await authAPI.updateUserInfo({
+          organization: trimmedOrganization
+        })
+        
+        console.log('更新机构API响应:', response)
+        
+        // 检查响应格式
+        if (response && response.success === false) {
+          throw new Error(response.message || response.msg || '更新失败')
+        }
+        
+        if (response && response.code === 200) {
+          // 更新成功
+          // 从响应中获取更新后的机构信息（后端返回的是institution字段）
+          const updatedInstitution = response.data?.institution || trimmedOrganization || '未设置机构'
+          this.userInfo.organization = updatedInstitution
+          this.editingOrganization = false
+          
+          // 更新user_info中的机构信息（同时保存organization和institution字段以兼容）
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              userData.organization = updatedInstitution
+              userData.institution = updatedInstitution // 同时保存institution字段以兼容
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('机构已更新到user_info:', userData.organization)
+            } catch (error) {
+              console.error('更新user_info机构失败:', error)
+            }
+          }
+          
+          // 触发全局更新事件，重新加载用户信息
+          this.$root.$emit('userInfoUpdated')
+          
+          // 显示成功提示
+          this.showSuccessToast('机构更新成功！')
+        } else {
+          throw new Error(response?.msg || response?.message || '更新失败')
+        }
+      } catch (error) {
+        console.error('更新机构失败:', error)
+        console.error('错误详情:', error.response)
+        alert('更新机构失败: ' + (error.message || error.msg || error.response?.data?.msg || '请稍后重试'))
+        // 恢复原机构
+        this.tempOrganization = this.userInfo.organization || ''
+      }
+    },
+    cancelEditOrganization() {
+      this.tempOrganization = this.userInfo.organization || ''
+      this.editingOrganization = false
     }
   }
 }
