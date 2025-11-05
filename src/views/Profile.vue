@@ -214,6 +214,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import '@/assets/styles/Profile.css'
 import { avatarAPI } from '@/api/avatar'
 import { authAPI } from '@/api/auth'
+import { addTimestampToUrl } from '@/utils/imageUtils'
 
 export default {
   name: 'Profile',
@@ -583,7 +584,12 @@ export default {
             }
             
             // 如果后端返回了URL，使用后端URL；否则使用本地base64
-            const finalAvatar = avatarUrl || canvas.toDataURL('image/jpeg', 0.9)
+            let finalAvatar = avatarUrl || canvas.toDataURL('image/jpeg', 0.9)
+            
+            // 🔧 修复：添加时间戳参数强制浏览器刷新缓存
+            const timestamp = Date.now()
+            finalAvatar = addTimestampToUrl(finalAvatar, timestamp)
+            console.log('✅ 已添加时间戳参数，强制浏览器刷新:', finalAvatar.substring(0, 100) + '...')
             
             // 更新本地状态
             this.userInfo.avatar = finalAvatar
@@ -651,7 +657,11 @@ export default {
             }
             
             // 即使上传失败，也先用本地base64显示
-            const localAvatar = canvas.toDataURL('image/jpeg', 0.9)
+            let localAvatar = canvas.toDataURL('image/jpeg', 0.9)
+            
+            // 🔧 修复：添加时间戳参数强制浏览器刷新缓存
+            localAvatar = addTimestampToUrl(localAvatar, Date.now())
+            
             this.userInfo.avatar = localAvatar
             this.userAvatar = localAvatar
             
@@ -776,9 +786,9 @@ export default {
         // 确认修改
         if (confirm(`确定要将昵称修改为"${trimmedNickname}"吗？`)) {
           try {
-            // 调用后端API更新昵称
+            // 调用后端API更新昵称（后端字段为name）
             const response = await authAPI.updateUserInfo({
-              nickname: trimmedNickname
+              name: trimmedNickname
             })
             
             if (response && response.code === 200) {
@@ -850,9 +860,9 @@ export default {
       }
       
       try {
-        // 调用后端API更新个人简介
+        // 调用后端API更新个人简介（后端字段为title）
         const response = await authAPI.updateUserInfo({
-          introduction: trimmedIntro
+          title: trimmedIntro
         })
         
         if (response && response.code === 200) {

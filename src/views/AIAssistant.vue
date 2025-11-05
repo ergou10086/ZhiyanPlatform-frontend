@@ -1404,7 +1404,7 @@ export default {
       
       // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
       console.log('选中的文件ID:', this.selectedFiles)
-      console.log('选中的文件:', selectedFiles)
+      console.log('选中的文件:', selectedFileObjects)
       
       this.closeFileDialog()
     },

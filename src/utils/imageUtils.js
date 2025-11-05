@@ -208,3 +208,44 @@ export function preloadImages(urls) {
   return Promise.all(urls.map(url => preloadImage(url)))
 }
 
+/**
+ * 给图片URL添加时间戳参数，强制浏览器刷新缓存
+ * @param {string} url - 原始URL
+ * @param {number} timestamp - 时间戳，默认使用当前时间
+ * @returns {string} 添加时间戳后的URL
+ */
+export function addTimestampToUrl(url, timestamp = null) {
+  if (!url || typeof url !== 'string') {
+    return url
+  }
+
+  // 如果是base64数据，不添加时间戳
+  if (url.startsWith('data:')) {
+    return url
+  }
+
+  // 使用提供的时间戳或当前时间
+  const ts = timestamp || Date.now()
+
+  // 检查URL中是否已有查询参数
+  const separator = url.includes('?') ? '&' : '?'
+
+  // 如果URL已经有时间戳参数，先移除
+  const urlWithoutTimestamp = url.replace(/[?&]t=\d+/, '')
+
+  return `${urlWithoutTimestamp}${separator}t=${ts}`
+}
+
+/**
+ * 移除URL中的时间戳参数
+ * @param {string} url - 带时间戳的URL
+ * @returns {string} 移除时间戳后的URL
+ */
+export function removeTimestampFromUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return url
+  }
+
+  return url.replace(/[?&]t=\d+/, '')
+}
+

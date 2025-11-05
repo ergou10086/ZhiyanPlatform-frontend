@@ -178,13 +178,14 @@ export const authAPI = {
   /**
    * 更新当前用户信息
    * @param {Object} userInfo - 用户信息对象
-   * @param {String} userInfo.nickname - 昵称
-   * @param {String} userInfo.introduction - 个人简介
-   * @param {String} userInfo.organization - 所属机构
+   * @param {String} userInfo.name - 姓名（对应前端的nickname）
+   * @param {String} userInfo.title - 职称（对应前端的introduction）
+   * @param {String} userInfo.institution - 所属机构（对应前端的organization）
+   * @param {String} userInfo.avatarUrl - 头像URL
    */
   updateUserInfo(userInfo) {
     console.log('[authAPI.updateUserInfo] 更新用户信息, 数据:', userInfo)
-    return api.put('/zhiyan/users/profile', userInfo)
+    return api.put('/zhiyan/users/me', userInfo)
   },
 
   /**
