@@ -378,6 +378,7 @@ export default {
       selectedProjectForFiles: null,
       files: [],
       selectedFiles: [],
+      uploadedFiles: [], // 已上传文件列表
       loadingFiles: false,
       showChatHistoryModal: false,
       chatSessions: [], // 聊天会话列表
@@ -963,55 +964,92 @@ export default {
         const userId = localStorage.getItem('userId') || 'default-user'
         
         console.log('[AI助手] 开始调用Dify API, user:', userId, 'conversationId:', this.difyConversationId)
-        
-        // 调用Dify流式API（通过后端代理）
-        await difyAPI.sendChatMessageStream(
-          messageContent,
-          this.difyConversationId,
-          // onMessage回调：接收流式消息片段
-          (answerDelta, data) => {
-            console.log('[AI助手] 📥 收到消息片段:', answerDelta.substring(0, 20) + '...')
-            // ⭐ 使用打字机效果显示内容
-            this.startTypewriter(aiMessageIndex, answerDelta)
-          },
-          // onEnd回调：流结束
-          (data) => {
-            console.log('[AI助手] ✅ Dify响应完成')
-            // 保存conversation_id以便后续对话能保持上下文
-            if (data && data.conversation_id) {
-              this.difyConversationId = data.conversation_id
-              console.log('[AI助手] 💾 保存Dify对话ID:', this.difyConversationId)
-            }
-            
-            // ⭐ 完成打字机效果
-            this.finishTypewriter()
+        console.log('[AI助手] 已上传文件数量:', this.uploadedFiles.length)
 
-            // 等待打字完成后保存会话
-            setTimeout(() => {
-              this.saveCurrentChatSession()
-              this.isSending = false
-              this.$nextTick(() => {
-                this.scrollToBottom()
-              })
-            }, 500)
-          },
-          // onError回调：错误处理
-          (error) => {
-            console.error('[AI助手] ❌ Dify API错误:', error)
-            // 停止打字机
-            this.stopTypewriter()
-            // 显示错误消息
-            this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。\n错误详情：' + (error.message || error)
-            this.isSending = false
-            
-            // 保存会话（包含错误消息）
+        // 区分知识库文件和本地文件
+        const knowledgeFileIds = []
+        const localFiles = []
+
+        this.uploadedFiles.forEach(file => {
+          if (file.isLocal) {
+            // 本地文件
+            if (file.file) {
+              localFiles.push(file.file)
+            }
+          } else {
+            // 知识库文件（成果档案文件）
+            if (file.id || file.fileId) {
+              knowledgeFileIds.push(file.id || file.fileId)
+            }
+          }
+        })
+
+        console.log('[AI助手] 知识库文件ID:', knowledgeFileIds)
+        console.log('[AI助手] 本地文件:', localFiles.map(f => f.name))
+
+        // 判断是否有文件需要上传
+        const hasFiles = knowledgeFileIds.length > 0 || localFiles.length > 0
+
+        // 回调函数（相同的处理逻辑）
+        const onMessage = (answerDelta, data) => {
+          console.log('[AI助手] 📥 收到消息片段:', answerDelta.substring(0, 20) + '...')
+          this.startTypewriter(aiMessageIndex, answerDelta)
+        }
+
+        const onEnd = (data) => {
+          console.log('[AI助手] ✅ Dify响应完成')
+          if (data && data.conversation_id) {
+            this.difyConversationId = data.conversation_id
+            console.log('[AI助手] 💾 保存Dify对话ID:', this.difyConversationId)
+          }
+          
+          this.finishTypewriter()
+
+          setTimeout(() => {
             this.saveCurrentChatSession()
-            
+            this.isSending = false
+            // 发送成功后清空已上传文件列表
+            this.uploadedFiles = []
             this.$nextTick(() => {
               this.scrollToBottom()
             })
-          }
-        )
+          }, 500)
+        }
+
+        const onError = (error) => {
+          console.error('[AI助手] ❌ Dify API错误:', error)
+          this.stopTypewriter()
+          this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。\n错误详情：' + (error.message || error)
+          this.isSending = false
+          this.saveCurrentChatSession()
+          
+          this.$nextTick(() => {
+            this.scrollToBottom()
+          })
+        }
+
+        // 根据是否有文件选择不同的API
+        if (hasFiles) {
+          console.log('[AI助手] 使用上传文件并对话接口')
+          await difyAPI.uploadAndChatStream(
+            messageContent,
+            this.difyConversationId,
+            knowledgeFileIds,
+            localFiles,
+            onMessage,
+            onEnd,
+            onError
+          )
+        } else {
+          console.log('[AI助手] 使用普通对话接口')
+          await difyAPI.sendChatMessageStream(
+            messageContent,
+            this.difyConversationId,
+            onMessage,
+            onEnd,
+            onError
+          )
+        }
       } catch (error) {
         console.error('发送消息失败:', error)
         this.chatMessages[aiMessageIndex].content = '抱歉，发送消息时出现错误，请稍后再试。'
@@ -1210,12 +1248,14 @@ export default {
           })
         })
 
-        // 将文件名添加到输入框
+        // 将文件名添加到输入框（仅在已有消息时添加提示）
         const fileNames = files.map(file => file.name).join('、')
-        const fileInfo = `我已上传以下文档：${fileNames}`
-        this.userMessage = this.userMessage.trim() 
-          ? `${this.userMessage}\n\n${fileInfo}`
-          : fileInfo
+        // 只有用户已经输入了问题时，才添加文件提示
+        if (this.userMessage.trim()) {
+          const fileInfo = `\n\n[已上传文档：${fileNames}]`
+          this.userMessage = this.userMessage + fileInfo
+        }
+        // 如果用户没有输入问题，不要自动填充，让placeholder提示用户
         
         // 这里可以添加文件上传到后端的逻辑
         // TODO: 实现文件上传功能

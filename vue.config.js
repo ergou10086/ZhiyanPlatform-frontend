@@ -106,15 +106,16 @@ module.exports = {
         
         // ⭐ 请求前的钩子
         onProxyReq: function(proxyReq, req, res) {
-          if (req.url.includes('/stream')) {
+          // 检测流式请求（包括 /stream 和 /upload-and-chat）
+          if (req.url.includes('/stream') || req.url.includes('/upload-and-chat') || req.url.includes('/chatflow')) {
             console.log('🚀 [Vue Proxy] 转发流式请求:', req.url)
           }
         },
         
         // ⭐⭐⭐ 关键配置：禁用代理缓冲，支持流式响应（SSE）
         onProxyRes: function (proxyRes, req, res) {
-          // 对于流式接口，配置无缓冲响应
-          if (req.url.includes('/stream')) {
+          // 对于流式接口，配置无缓冲响应（包括所有 chatflow 相关接口）
+          if (req.url.includes('/stream') || req.url.includes('/upload-and-chat') || req.url.includes('/chatflow')) {
             console.log('📥 [Vue Proxy] 收到流式响应，配置无缓冲模式')
             console.log('   Content-Type:', proxyRes.headers['content-type'])
             console.log('   Transfer-Encoding:', proxyRes.headers['transfer-encoding'])
