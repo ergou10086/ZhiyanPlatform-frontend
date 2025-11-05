@@ -113,7 +113,14 @@
             </label>
           </div>
           
-          <button type="submit" class="register-btn" :disabled="loading">
+          <!-- 滑动验证码 -->
+          <SliderCaptcha 
+            ref="sliderCaptcha"
+            @verify-success="handleVerifySuccess"
+            @verify-failed="handleVerifyFailed"
+          />
+          
+          <button type="submit" class="register-btn" :disabled="loading || !isVerified">
             {{ loading ? '注册中...' : '立即注册' }}
           </button>
         </form>
@@ -145,11 +152,13 @@
 <script>
 import { authAPI } from '@/api/auth'
 import { formatApiError, isValidEmail, validatePassword, saveLoginData } from '@/utils/auth'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import '@/assets/styles/Register.css'
 
 export default {
   name: 'Register',
   components: {
+    SliderCaptcha
   },
   data() {
     return {
@@ -169,7 +178,8 @@ export default {
       toastMessage: '',
       showModal: false,
       modalMessage: '',
-      animateLogo: false
+      animateLogo: false,
+      isVerified: false // 滑动验证是否通过
     }
   },
   mounted() {
@@ -288,6 +298,12 @@ export default {
       // 验证验证码格式
       if (!/^\d{6}$/.test(this.registerForm.code)) {
         this.showErrorModal('请输入6位数字验证码')
+        return
+      }
+      
+      // 验证滑动验证码
+      if (!this.isVerified) {
+        this.showErrorModal('请完成滑动验证')
         return
       }
       
@@ -439,6 +455,12 @@ export default {
       this.showModal = false
       this.modalMessage = ''
     },
+    handleVerifySuccess() {
+      this.isVerified = true
+    },
+    handleVerifyFailed() {
+      this.isVerified = false
+    }
   }
 }
 </script>
