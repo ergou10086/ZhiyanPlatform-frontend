@@ -51,7 +51,14 @@
             </a>
           </div>
           
-          <button type="submit" class="login-btn" :disabled="loading">
+          <!-- 滑动验证码 -->
+          <SliderCaptcha 
+            ref="sliderCaptcha"
+            @verify-success="handleVerifySuccess"
+            @verify-failed="handleVerifyFailed"
+          />
+          
+          <button type="submit" class="login-btn" :disabled="loading || !isVerified">
             {{ loading ? '登录中...' : '登录' }}
           </button>
           
@@ -73,11 +80,13 @@
 <script>
 import { authAPI } from '@/api/auth'
 import { saveLoginData, formatApiError, isValidEmail } from '@/utils/auth'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import '@/assets/styles/Login.css'
 
 export default {
   name: 'Login',
   components: {
+    SliderCaptcha
   },
   data() {
     return {
@@ -91,7 +100,8 @@ export default {
       },
       showToast: false,
       toastMessage: '',
-      animateLogo: false
+      animateLogo: false,
+      isVerified: false // 滑动验证是否通过
     }
   },
   mounted() {
@@ -171,6 +181,12 @@ export default {
         return
       }
       
+      // 验证滑动验证码
+      if (!this.isVerified) {
+        alert('请完成滑动验证')
+        return
+      }
+      
       this.loading = true
       try {
         // 调用登录API
@@ -238,6 +254,12 @@ export default {
         this.showToast = false
         this.toastMessage = ''
       }, 1000)
+    },
+    handleVerifySuccess() {
+      this.isVerified = true
+    },
+    handleVerifyFailed() {
+      this.isVerified = false
     }
   }
 }

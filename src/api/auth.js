@@ -178,14 +178,41 @@ export const authAPI = {
   /**
    * 更新当前用户信息
    * @param {Object} userInfo - 用户信息对象
-   * @param {String} userInfo.name - 姓名（对应前端的nickname）
-   * @param {String} userInfo.title - 职称（对应前端的introduction）
-   * @param {String} userInfo.institution - 所属机构（对应前端的organization）
+   * @param {String} userInfo.name - 姓名
+   * @param {String} userInfo.nickname - 昵称（前端使用，映射到name）
+   * @param {String} userInfo.introduction - 个人简介（前端使用，后端暂不支持）
+   * @param {String} userInfo.organization - 所属机构（前端使用，映射到institution）
    * @param {String} userInfo.avatarUrl - 头像URL
    */
   updateUserInfo(userInfo) {
-    console.log('[authAPI.updateUserInfo] 更新用户信息, 数据:', userInfo)
-    return api.put('/zhiyan/users/me', userInfo)
+    console.log('[authAPI.updateUserInfo] 更新用户信息, 原始数据:', userInfo)
+
+    // 构建后端期望的请求体
+    const requestBody = {}
+
+    // 映射字段：前端organization -> 后端institution
+    if (userInfo.organization !== undefined) {
+      requestBody.institution = userInfo.organization
+    }
+
+    // 映射字段：前端nickname -> 后端name（如果后端支持）
+    if (userInfo.nickname !== undefined) {
+      requestBody.name = userInfo.nickname
+    }
+
+    // 直接传递的字段
+    if (userInfo.name !== undefined) {
+      requestBody.name = userInfo.name
+    }
+    if (userInfo.title !== undefined) {
+      requestBody.title = userInfo.title
+    }
+    if (userInfo.avatarUrl !== undefined) {
+      requestBody.avatarUrl = userInfo.avatarUrl
+    }
+
+    console.log('[authAPI.updateUserInfo] 转换后的请求体:', requestBody)
+    return api.put('/zhiyan/users/me', requestBody)
   },
 
   /**

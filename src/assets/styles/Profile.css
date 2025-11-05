@@ -462,6 +462,30 @@
   border-color: #007bff;
 }
 
+.profile-container .organization-input {
+  min-height: 40px;
+  height: 40px;
+  resize: none;
+  line-height: 1.5;
+}
+
+.profile-container .organization-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.profile-container .organization-edit-container .organization-input {
+  flex: 1;
+}
+
+.profile-container .organization-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .profile-container .intro-actions {
   display: flex;
   gap: 12px;
