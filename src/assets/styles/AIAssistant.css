@@ -1,5 +1,7 @@
 ﻿@import '@/assets/styles/variables.css';
 
+/* ========== 动画定义 ========== */
+/* 从下方弹入动画 */
 @keyframes bounceInUp {
   0% {
     opacity: 0;
@@ -17,6 +19,7 @@
   }
 }
 
+/* 从上方弹入动画 */
 @keyframes bounceInDown {
   0% {
     opacity: 0;
@@ -34,6 +37,7 @@
   }
 }
 
+/* ========== 主容器样式 ========== */
 .ai-assistant-container {
   min-height: 100vh;
   background-color: #f8f9fa;
@@ -41,6 +45,7 @@
   flex-direction: column;
 }
 
+/* ========== 顶部头部样式 ========== */
 .ai-assistant-container .top-header {
   position: fixed;
   top: 0;
@@ -162,7 +167,7 @@
   transform: scale(1.05);
 }
 
-/* ��Ŀ������ʽ */
+/* ========== 项目进度显示样式 ========== */
 .ai-assistant-container .project-progress {
   display: flex;
   flex-direction: column;
@@ -201,7 +206,7 @@
   font-weight: 700;
 }
 
-/* ��Ŀ�л�����ʽ */
+/* ========== 项目切换器样式 ========== */
 .ai-assistant-container .project-switcher {
   position: relative;
   flex-shrink: 0;
@@ -332,8 +337,7 @@
   font-weight: var(--font-medium);
 }
 
-
-
+/* ========== 主内容区域 ========== */
 .ai-assistant-container .main-content {
   flex: 1;
   margin-top: 64px;
@@ -388,7 +392,7 @@
   }
 }
 
-/* ��Ŀ�������� */
+/* ========== 项目概述卡片 ========== */
 .ai-assistant-container .project-overview {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 20px;
@@ -475,14 +479,14 @@
   color: var(--text-secondary);
 }
 
-/* ���������AI�Ի����� */
+/* ========== 任务管理和AI对话容器 ========== */
 .ai-assistant-container .task-and-chat-container {
   display: flex;
   gap: var(--space-6);
   align-items: flex-start;
 }
 
-/* ����������� */
+/* ========== 任务管理面板 ========== */
 .ai-assistant-container .task-management {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 20px;
@@ -703,7 +707,7 @@
   color: #333;
 }
 
-/* δ����������ʽ */
+/* ========== 未发布任务样式 ========== */
 .ai-assistant-container .task-card.unpublished {
   border: 2px dashed var(--warning-color);
   background: var(--warning-light);
@@ -748,7 +752,7 @@
   box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
 }
 
-/* AI�Ի����� */
+/* ========== AI对话区域 ========== */
 .ai-assistant-container .ai-chat-section {
   background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 50%, #ffffff 100%);
   border-radius: 24px;
@@ -859,7 +863,7 @@
   min-height: 0;
 }
 
-/* �Զ����������ʽ */
+/* ========== 自定义滚动条样式 ========== */
 .ai-assistant-container .chat-container::-webkit-scrollbar {
   width: 6px;
 }
@@ -962,7 +966,7 @@
   z-index: 10;
 }
 
-/* �ļ�ѡ��ť��ʽ */
+/* ========== 文件选择按钮样式 ========== */
 .ai-assistant-container .file-select-btn {
   width: 48px;
   height: 48px;
@@ -995,7 +999,7 @@
   transform: none;
 }
 
-/* �ļ������˵���ʽ */
+/* ========== 文件下拉菜单样式 ========== */
 .ai-assistant-container .file-dropdown-menu {
   position: absolute;
   bottom: calc(100% + 8px);
@@ -1089,7 +1093,7 @@
 }
 
 
-/* AI������������ */
+/* ========== AI建议提示区域 ========== */
 .ai-assistant-container .ai-suggestions {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 20px;
@@ -1179,7 +1183,7 @@
   line-height: 1.4;
 }
 
-/* �ײ������� */
+/* ========== 底部操作按钮 ========== */
 .ai-assistant-container .bottom-actions {
   display: flex;
   flex-direction: row;
@@ -1227,7 +1231,7 @@
   border-color: #0056b3;
 }
 
-/* ��Ӧʽ��� */
+/* ========== 响应式设计 ========== */
 @media (max-width: 1024px) {
   .ai-assistant-container .project-header {
     flex-direction: column;
@@ -1315,7 +1319,7 @@
   }
 }
 
-/* �����¼�������ʽ */
+/* ========== 聊天历史侧边栏样式 ========== */
 .chat-history-sidebar-overlay {
   position: fixed;
   top: 0;
@@ -1533,7 +1537,7 @@
   transform: translateY(0);
 }
 
-/* ========== �ڰ�ģʽ��ʽ ========== */
+/* ========== 暗黑模式样式 ========== */
 .dark-mode .ai-assistant-container {
   background-color: #0f172a;
 }
