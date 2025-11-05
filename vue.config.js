@@ -42,6 +42,17 @@ module.exports = {
           '^/zhiyan': ''
         }
       },
+      // ✅ Wiki相关API - 转发到8234端口（Wiki服务）
+      // URL示例：/api/wiki/* → http://localhost:8234/api/wiki/*
+      // 包含：Wiki页面管理、版本控制、搜索、导入导出等
+      '/api/wiki': {
+        target: 'http://localhost:8234',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug',
+        // 不需要pathRewrite，直接转发 /api/wiki/* 到后端
+      },
       // ✅ 知识库成果文件API - 转发到8093端口（知识库服务）
       // URL示例：/zhiyan/achievement/file/* → http://localhost:8093/zhiyan/achievement/file/*
       // 包含：上传文件、下载文件、删除文件等

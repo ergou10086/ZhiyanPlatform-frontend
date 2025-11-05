@@ -21,7 +21,7 @@
           <ul v-if="folder.expanded" class="doc-list">
             <li v-for="doc in getDocsInFolder(folder.id)" :key="doc.id" 
                 :class="{ active: doc.id===activeId }" 
-                @click="activeId=doc.id">{{ doc.title }}</li>
+                @click="selectDocument(doc.id)">{{ doc.title }}</li>
           </ul>
         </div>
         <!-- 折叠按钮 -->
@@ -129,6 +129,8 @@
 
 <script>
 import '@/assets/styles/KnowledgeBaseCabinet.css'
+import { wikiAPI } from '@/api/wiki'
+import { PageType } from '@/api/wiki'
 
 export default {
   name: 'KnowledgeBaseCabinet',
@@ -140,7 +142,7 @@ export default {
   },
   data() {
     return {
-      activeId: 1,
+      activeId: null,
       showNewDocDialog: false,
       showNewFolderDialog: false,
       newDocTitle: '',
@@ -151,9 +153,14 @@ export default {
       hasUnsavedChanges: false,
       autoSaveTimer: null,
       isEditing: false,
-      sidebarCollapsed: false, // 左侧面板折叠状态
-      folders: [],
-      docs: []
+      sidebarCollapsed: false,
+      folders: [], // 从API获取的目录节点
+      docs: [], // 从API获取的文档节点
+      wikiTree: [], // Wiki树形结构
+      loading: false,
+      currentPage: null, // 当前查看的页面详情
+      originalContent: '', // 原始内容（用于取消编辑）
+      selectedParentId: null // 新建页面时选择的父页面ID
     }
   },
   computed: {
@@ -172,9 +179,15 @@ export default {
       }
     }
   },
-  mounted() {
-    // 组件挂载时加载本地存储的数据
-    this.loadFromLocalStorage()
+  async mounted() {
+    console.log('[KnowledgeBaseCabinet] 组件挂载, projectId:', this.projectId)
+    
+    // 从API加载Wiki树
+    if (this.projectId) {
+      await this.loadWikiTree()
+    } else {
+      console.warn('[KnowledgeBaseCabinet] projectId为空，无法加载Wiki数据')
+    }
     
     // 监听页面离开事件，提醒用户保存
     window.addEventListener('beforeunload', this.handleBeforeUnload)
@@ -192,9 +205,116 @@ export default {
     window.removeEventListener('beforeunload', this.handleBeforeUnload)
   },
   methods: {
+    /**
+     * 从API加载Wiki树形结构
+     */
+    async loadWikiTree() {
+      if (!this.projectId) {
+        console.warn('[loadWikiTree] projectId为空')
+        return
+      }
+      
+      this.loading = true
+      try {
+        console.log('[loadWikiTree] 加载Wiki树, projectId:', this.projectId)
+        const response = await wikiAPI.page.getProjectWikiTree(this.projectId)
+        
+        if (response && response.code === 200) {
+          this.wikiTree = response.data || []
+          console.log('[loadWikiTree] Wiki树加载成功:', this.wikiTree)
+          
+          // 解析树形结构，分离目录和文档
+          this.parseWikiTree(this.wikiTree)
+          
+          // 如果有文档，自动选择第一个
+          if (this.docs.length > 0) {
+            await this.selectDocument(this.docs[0].id)
+          }
+        } else {
+          console.error('[loadWikiTree] API返回错误:', response)
+          this.$message?.error(response.msg || '加载Wiki失败')
+        }
+      } catch (error) {
+        console.error('[loadWikiTree] 加载Wiki树失败:', error)
+        this.$message?.error('加载Wiki失败，请重试')
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    /**
+     * 解析Wiki树形结构，分离目录和文档
+     */
+    parseWikiTree(tree, parentId = null) {
+      if (!Array.isArray(tree)) return
+      
+      tree.forEach(node => {
+        if (node.pageType === 'DIRECTORY') {
+          // 目录节点
+          this.folders.push({
+            id: parseInt(node.id),
+            name: node.title,
+            description: '',
+            expanded: true,
+            parentId: parentId
+          })
+          
+          // 递归处理子节点
+          if (node.children && node.children.length > 0) {
+            this.parseWikiTree(node.children, parseInt(node.id))
+          }
+        } else if (node.pageType === 'DOCUMENT') {
+          // 文档节点
+          this.docs.push({
+            id: parseInt(node.id),
+            title: node.title,
+            updated: node.updatedAt || node.createdAt || '',
+            content: '', // 内容需要单独加载
+            folderId: parentId
+          })
+        }
+      })
+    },
+    
+    /**
+     * 选择并加载文档详情
+     */
+    async selectDocument(pageId) {
+      if (!pageId) return
+      
+      try {
+        console.log('[selectDocument] 加载页面详情, pageId:', pageId)
+        const response = await wikiAPI.page.getPageDetail(pageId)
+        
+        if (response && response.code === 200) {
+          this.currentPage = response.data
+          this.activeId = parseInt(pageId)
+          
+          // 更新docs数组中的内容
+          const doc = this.docs.find(d => d.id === this.activeId)
+          if (doc) {
+            doc.content = this.currentPage.content || ''
+            doc.updated = this.currentPage.updatedAt || doc.updated
+          }
+          
+          // 保存原始内容
+          this.originalContent = this.currentPage.content || ''
+          
+          console.log('[selectDocument] 页面详情加载成功:', this.currentPage.title)
+        } else {
+          console.error('[selectDocument] 加载页面失败:', response)
+          this.$message?.error('加载页面失败')
+        }
+      } catch (error) {
+        console.error('[selectDocument] 加载页面失败:', error)
+        this.$message?.error('加载页面失败')
+      }
+    },
+    
     createNewDocument() {
       this.showNewDocDialog = true
       this.newDocCategory = this.folders[0]?.name || ''
+      this.selectedParentId = this.folders[0]?.id || null
     },
     
     closeNewDocDialog() {
@@ -216,25 +336,43 @@ export default {
       this.newFolderDescription = ''
     },
 
-    confirmNewFolder() {
-      if (!this.newFolderName.trim()) return      
-      const newFolder = {
-        id: Date.now(),
-        name: this.newFolderName.trim(),
-        description: this.newFolderDescription.trim(),
-        expanded: true
-      }
+    async confirmNewFolder() {
+      if (!this.newFolderName.trim()) return
       
-      this.folders.push(newFolder)
-      this.saveToLocalStorage()
-      this.closeNewFolderDialog()
+      try {
+        console.log('[confirmNewFolder] 创建新文件夹')
+        const response = await wikiAPI.page.createPage({
+          projectId: this.projectId,
+          title: this.newFolderName.trim(),
+          pageType: 'DIRECTORY',
+          parentId: null, // 目录创建在根目录
+          isPublic: false
+        })
+        
+        if (response && response.code === 200) {
+          console.log('[confirmNewFolder] 文件夹创建成功:', response.data)
+          this.$message?.success('文件夹创建成功！')
+          
+          //重新加载Wiki树
+          this.folders = []
+          this.docs = []
+          await this.loadWikiTree()
+          
+          this.closeNewFolderDialog()
+        } else {
+          console.error('[confirmNewFolder] 创建失败:', response)
+          this.$message?.error(response.msg || '创建文件夹失败')
+        }
+      } catch (error) {
+        console.error('[confirmNewFolder] 创建文件夹失败:', error)
+        this.$message?.error('创建文件夹失败，请重试')
+      }
     },
 
     toggleFolder(folderId) {
       const folder = this.folders.find(f => f.id === folderId)
       if (folder) {
         folder.expanded = !folder.expanded
-        this.saveToLocalStorage()
       }
     },
 
@@ -258,10 +396,12 @@ export default {
       // 如果有未保存的更改，询问用户是否确认取消
       if (this.hasUnsavedChanges) {
         if (confirm('您有未保存的更改，确定要取消编辑吗？')) {
+          // 恢复原始内容
+          if (this.activeDoc) {
+            this.activeDoc.content = this.originalContent
+          }
           this.isEditing = false
           this.hasUnsavedChanges = false
-          // 重新加载当前文档内容
-          this.loadCurrentDocContent()
         }
       } else {
         this.isEditing = false
@@ -277,30 +417,50 @@ export default {
       }
     },
     
-    confirmNewDoc() {
-      if (this.newDocTitle) {
+    async confirmNewDoc() {
+      if (!this.newDocTitle.trim()) return
+      
+      try {
         // 找到选中的文件夹ID
         const selectedFolder = this.folders.find(f => f.name === this.newDocCategory)
         
-        const newDoc = {
-          id: Date.now(),
-          title: this.newDocTitle,
-          updated: new Date().toLocaleString('zh-CN'),
-          content: this.newDocContent || '新建文档内容...',
-          folderId: selectedFolder?.id || null
+        console.log('[confirmNewDoc] 创建新文档, parentId:', selectedFolder?.id)
+        const response = await wikiAPI.page.createPage({
+          projectId: this.projectId,
+          title: this.newDocTitle.trim(),
+          pageType: 'DOCUMENT',
+          content: this.newDocContent || '# ' + this.newDocTitle.trim() + '\n\n',
+          parentId: selectedFolder?.id || null,
+          isPublic: false,
+          changeDescription: '创建文档'
+        })
+        
+        if (response && response.code === 200) {
+          console.log('[confirmNewDoc] 文档创建成功:', response.data)
+          this.$message?.success('文档创建成功！')
+          
+          // 重新加载Wiki树
+          this.folders = []
+          this.docs = []
+          await this.loadWikiTree()
+          
+          // 选择新创建的文档
+          await this.selectDocument(response.data.id)
+          
+          this.closeNewDocDialog()
+          
+          // 通知父组件
+          this.$emit('document-created', {
+            id: response.data.id,
+            title: this.newDocTitle
+          })
+        } else {
+          console.error('[confirmNewDoc] 创建失败:', response)
+          this.$message?.error(response.msg || '创建文档失败')
         }
-        
-        this.docs.unshift(newDoc)
-        this.activeId = newDoc.id
-        this.closeNewDocDialog()
-        
-        // 自动保存到本地存储
-        this.saveToLocalStorage()
-        
-        // 通知父组件有新文档创建
-        this.$emit('document-created', newDoc)
-        
-        alert('文档创建成功！已自动保存。')
+      } catch (error) {
+        console.error('[confirmNewDoc] 创建文档失败:', error)
+        this.$message?.error('创建文档失败，请重试')
       }
     },
     
@@ -321,38 +481,66 @@ export default {
       }
     },
     
-    saveDocument() {
-      if (this.activeDoc) {
-        // 更新文档内容
-        this.activeDoc.content = this.activeDocContent
-        // 更新文档的保存时间
-        this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+    async saveDocument() {
+      if (!this.activeDoc || !this.activeId) {
+        console.warn('[saveDocument] 没有活动文档')
+        return
+      }
+      
+      try {
+        console.log('[saveDocument] 保存文档, pageId:', this.activeId)
+        const response = await wikiAPI.page.updatePage(this.activeId, {
+          title: this.activeDoc.title,
+          content: this.activeDocContent,
+          changeDescription: '更新文档内容'
+        })
         
-        // 保存到本地存储
-        this.saveToLocalStorage()
-        
-        // 标记已保存并退出编辑模式
-        this.hasUnsavedChanges = false
-        this.isEditing = false
-        
-        // 通知父组件文档已保存
-        this.$emit('document-saved', this.activeDoc)
-        
-        alert('文档保存成功！')
+        if (response && response.code === 200) {
+          console.log('[saveDocument] 文档保存成功')
+          this.$message?.success('文档保存成功！')
+          
+          // 更新文档数据
+          this.activeDoc.content = this.activeDocContent
+          this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+          this.originalContent = this.activeDocContent
+          
+          // 标记已保存并退出编辑模式
+          this.hasUnsavedChanges = false
+          this.isEditing = false
+          
+          // 通知父组件
+          this.$emit('document-saved', this.activeDoc)
+        } else {
+          console.error('[saveDocument] 保存失败:', response)
+          this.$message?.error(response.msg || '保存文档失败')
+        }
+      } catch (error) {
+        console.error('[saveDocument] 保存文档失败:', error)
+        this.$message?.error('保存文档失败，请重试')
       }
     },
     
-    autoSave() {
-      if (this.activeDoc && this.hasUnsavedChanges) {
-        // 静默保存，不显示提示
-        this.activeDoc.updated = new Date().toLocaleString('zh-CN')
-        this.saveToLocalStorage()
-        this.hasUnsavedChanges = false
-        
-        // 通知父组件文档已自动保存
-        this.$emit('document-auto-saved', this.activeDoc)
-        
-        console.log('文档已自动保存')
+    async autoSave() {
+      if (this.activeDoc && this.hasUnsavedChanges && this.activeId) {
+        try {
+          console.log('[autoSave] 自动保存文档')
+          const response = await wikiAPI.page.updatePage(this.activeId, {
+            content: this.activeDocContent,
+            changeDescription: '自动保存'
+          })
+          
+          if (response && response.code === 200) {
+            this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+            this.originalContent = this.activeDocContent
+            this.hasUnsavedChanges = false
+            console.log('[autoSave] 文档已自动保存')
+            
+            // 通知父组件
+            this.$emit('document-auto-saved', this.activeDoc)
+          }
+        } catch (error) {
+          console.error('[autoSave] 自动保存失败:', error)
+        }
       }
     },
     
