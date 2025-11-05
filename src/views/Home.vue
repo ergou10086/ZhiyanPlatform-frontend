@@ -372,11 +372,13 @@ export default {
     // 加载全局用户信息
     this.loadGlobalUserInfo()
     
-    // 加载我参与的项目
-    this.loadMyProjects()
-    
-    // 加载我的任务
-    this.loadMyTasks()
+    // 并行加载我参与的项目和我的任务，提升加载速度
+    Promise.all([
+      this.loadMyProjects(),
+      this.loadMyTasks()
+    ]).catch(error => {
+      console.error('并行加载数据时出错:', error)
+    })
     
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
@@ -534,45 +536,56 @@ export default {
       const isAuthenticated = !!(token && userInfo)
       
       if (!isAuthenticated) {
-        console.log('用户未登录，不加载项目数据')
         // 如果用户未登录，显示空数组
         this.myProjects = []
         return
       }
       
-      this.isLoadingProjects = true
-      
+      // 先尝试从缓存加载，立即显示
       try {
-        console.log('开始加载我参与的项目...')
-        
+        const cachedProjects = localStorage.getItem('my_projects_cache')
+        if (cachedProjects) {
+          const parsed = JSON.parse(cachedProjects)
+          // 检查缓存是否过期（5分钟）
+          if (parsed.timestamp && Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+            this.myProjects = parsed.data || []
+            this.isLoadingProjects = false
+            // 后台更新数据
+            this.loadMyProjectsFromAPI()
+            return
+          }
+        }
+      } catch (e) {
+        // 缓存读取失败，继续从API加载
+      }
+      
+      this.isLoadingProjects = true
+      await this.loadMyProjectsFromAPI()
+    },
+    async loadMyProjectsFromAPI() {
+      try {
         // 调用API获取我参与的项目
         const response = await projectAPI.getMyProjects(0, 5) // 获取前5个项目
-        
-        console.log('我参与的项目API响应:', response)
         
         // 处理API返回的数据，兼容多种数据结构
         let projects = []
         if (Array.isArray(response)) {
-          // 直接是数组
           projects = response
         } else if (response && response.data) {
-          // 有data字段
           if (Array.isArray(response.data)) {
             projects = response.data
           } else if (Array.isArray(response.data.content)) {
             // Spring分页数据
             projects = response.data.content
           } else if (Array.isArray(response.data.list)) {
-            // 自定义list字段
             projects = response.data.list
           } else if (Array.isArray(response.data.records)) {
-            // 自定义records字段
             projects = response.data.records
           }
         }
         
         if (projects.length > 0) {
-          this.myProjects = projects.map(project => ({
+          const mappedProjects = projects.map(project => ({
             id: project.id || project.projectId || project.project_id,
             title: project.title || project.name || project.projectName || '未命名项目',
             description: project.description || project.desc || '',
@@ -580,9 +593,18 @@ export default {
             progress: this.calculateProgress(project.status)
           }))
           
-          console.log('成功加载项目:', this.myProjects)
+          this.myProjects = mappedProjects
+          
+          // 保存到缓存
+          try {
+            localStorage.setItem('my_projects_cache', JSON.stringify({
+              data: mappedProjects,
+              timestamp: Date.now()
+            }))
+          } catch (e) {
+            // 忽略缓存写入错误
+          }
         } else {
-          console.log('未获取到项目数据')
           this.myProjects = []
         }
       } catch (error) {
@@ -704,20 +726,35 @@ export default {
       const isAuthenticated = !!(token && userInfo)
       
       if (!isAuthenticated) {
-        console.log('用户未登录，不加载任务数据')
         this.myTasks = []
         return
       }
       
-      this.isLoadingTasks = true
-      
+      // 先尝试从缓存加载，立即显示
       try {
-        console.log('开始加载我的任务...')
-        
+        const cachedTasks = localStorage.getItem('my_tasks_cache')
+        if (cachedTasks) {
+          const parsed = JSON.parse(cachedTasks)
+          // 检查缓存是否过期（3分钟）
+          if (parsed.timestamp && Date.now() - parsed.timestamp < 3 * 60 * 1000) {
+            this.myTasks = parsed.data || []
+            this.isLoadingTasks = false
+            // 后台更新数据
+            this.loadMyTasksFromAPI()
+            return
+          }
+        }
+      } catch (e) {
+        // 缓存读取失败，继续从API加载
+      }
+      
+      this.isLoadingTasks = true
+      await this.loadMyTasksFromAPI()
+    },
+    async loadMyTasksFromAPI() {
+      try {
         // 调用API获取我的任务（获取前5个最新的任务）
         const response = await taskAPI.getMyAssignedTasks(0, 5)
-        
-        console.log('我的任务API响应:', response)
         
         // 处理API返回的数据
         let tasks = []
@@ -735,7 +772,7 @@ export default {
         }
         
         if (tasks.length > 0) {
-          this.myTasks = tasks.map(task => ({
+          const mappedTasks = tasks.map(task => ({
             id: task.id || task.taskId,
             title: task.title || '未命名任务',
             description: task.description || '',
@@ -746,11 +783,18 @@ export default {
           }))
           
           // 按优先级排序：高 > 中 > 低
-          this.sortTasksByPriority()
+          this.myTasks = this.sortTasksByPriority(mappedTasks)
           
-          console.log('成功加载任务:', this.myTasks)
+          // 保存到缓存
+          try {
+            localStorage.setItem('my_tasks_cache', JSON.stringify({
+              data: this.myTasks,
+              timestamp: Date.now()
+            }))
+          } catch (e) {
+            // 忽略缓存写入错误
+          }
         } else {
-          console.log('未获取到任务数据')
           this.myTasks = []
         }
       } catch (error) {
@@ -782,7 +826,7 @@ export default {
       const date = new Date(dateStr)
       return `截止:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     },
-    sortTasksByPriority() {
+    sortTasksByPriority(tasks) {
       // 定义优先级权重：高优先级 = 3, 中优先级 = 2, 低优先级 = 1
       const priorityWeight = {
         'high': 3,
@@ -790,9 +834,12 @@ export default {
         'low': 1
       }
       
-      this.myTasks.sort((a, b) => {
+      const tasksToSort = tasks || this.myTasks
+      tasksToSort.sort((a, b) => {
         return priorityWeight[b.priority] - priorityWeight[a.priority]
       })
+      
+      return tasksToSort
     },
     isNearDeadline(dueDate) {
       // 判断任务是否临近截止（3天内）
