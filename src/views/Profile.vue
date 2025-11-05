@@ -105,14 +105,28 @@
               </button>
             </div>
             <div v-if="editingOrganization" class="intro-edit">
-              <input 
-                v-model="tempOrganization" 
-                @keyup.enter="saveOrganization"
-                @blur="saveOrganization" 
-                class="intro-textarea organization-input"
-                ref="organizationInput"
-                placeholder="请输入所属机构"
-              />
+              <div class="organization-edit-container">
+                <input 
+                  v-model="tempOrganization" 
+                  @keyup.enter="saveOrganization"
+                  @blur="cancelEditOrganization" 
+                  class="intro-textarea organization-input"
+                  ref="organizationInput"
+                  placeholder="请输入所属机构"
+                />
+                <div class="organization-actions">
+                  <button @mousedown.prevent @click="saveOrganization" class="save-btn-small" title="确认保存">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button @mousedown.prevent @click="cancelEditOrganization" class="cancel-btn-small" title="取消">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
             <p v-else class="info-value">{{ userInfo.organization || '未设置机构' }}</p>
           </div>
@@ -986,6 +1000,7 @@ export default {
       }
     },
     cancelEditOrganization() {
+      // 恢复原机构名称
       this.tempOrganization = this.userInfo.organization || ''
       this.editingOrganization = false
     }
