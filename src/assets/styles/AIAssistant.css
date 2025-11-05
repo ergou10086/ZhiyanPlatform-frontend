@@ -1,4 +1,4 @@
-@import '@/assets/styles/variables.css';
+﻿@import '@/assets/styles/variables.css';
 
 @keyframes bounceInUp {
   0% {
@@ -746,6 +746,13 @@
   background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(0, 68, 204, 0.4);
+}
+
+/* ========== 主布局 ========== */
+.ai-assistant-container .main-layout {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
 }
 
 /* ========== AI对话区域 ========== */
