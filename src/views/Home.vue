@@ -82,9 +82,11 @@
                 v-for="task in myTasks" 
                 :key="task.id" 
                 :class="['work-item', `${task.priority}-priority`]"
+                @click="openTaskDetailModal(task)"
+                style="cursor: pointer;"
               >
-                <div class="priority-bar"></div>
-                <div class="item-content">
+              <div class="priority-bar"></div>
+              <div class="item-content">
                   <div class="item-header">
                     <h3 class="item-title">{{ task.title }}</h3>
                     <!-- 临近截止警示图标 -->
@@ -105,7 +107,7 @@
                     </div>
                   </div>
                   <p class="item-description">{{ task.description || '暂无描述' }}</p>
-                  <div class="item-meta">
+                <div class="item-meta">
                     <span class="priority">{{ getPriorityText(task.priority) }}</span>
                     <span class="deadline">{{ formatDate(task.dueDate) }}</span>
                   </div>
@@ -117,8 +119,8 @@
                 <p>暂无工作项</p>
               </div>
             </div>
-          </div>
-        </div>
+                </div>
+              </div>
 
         <!-- 我参与的项目 -->
         <div class="my-projects">
@@ -146,7 +148,7 @@
                   <h3 class="project-title">{{ project.title }}</h3>
                   <p class="project-description">{{ project.description }}</p>
                   <div class="project-meta">
-                    <span :class="['status-badge', `status-${project.status}`]">{{ getStatusText(project.status) }}</span>
+                    <span :class="['status-badge', `status-${project.status}`]">{{ getProjectStatusText(project.status) }}</span>
                     <span class="progress-text">{{ project.progress }}% 完成</span>
                   </div>
                 </div>
@@ -155,7 +157,7 @@
               <!-- 如果没有项目，显示提示 -->
               <div v-if="myProjects.length === 0" class="no-projects">
                 <p>暂无参与的项目</p>
-              </div>
+            </div>
             </div>
           </div>
         </div>
@@ -184,6 +186,146 @@
         <div class="modal-footer">
           <button @click="closeModal" class="modal-btn modal-btn-cancel">取消</button>
           <button @click="goToLogin" class="modal-btn modal-btn-confirm">去登录</button>
+          </div>
+        </div>
+      </div>
+
+    <!-- 任务详情弹窗 -->
+    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
+      <div class="modal-content task-detail-modal" @click.stop>
+        <div class="modal-header">
+          <div class="task-detail-header-content">
+            <h3 class="modal-title">任务详情</h3>
+            <div class="task-detail-badges">
+              <span class="task-priority-badge" :class="`priority-${selectedTask.priority}`">
+                {{ getPriorityText(selectedTask.priority) }}
+              </span>
+              <span class="task-status-badge" :class="`status-${selectedTask.status.toLowerCase()}`">
+                {{ getStatusText(selectedTask.status) }}
+              </span>
+            </div>
+          </div>
+          <button class="modal-close" @click="closeTaskDetailModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="modal-body task-detail-body">
+          <!-- 任务标题 -->
+          <div class="task-detail-section task-title-section">
+            <div class="task-title-value">{{ selectedTask.title }}</div>
+            <div v-if="isOverdue(selectedTask.dueDate)" class="deadline-warning overdue">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>已逾期</span>
+            </div>
+            <div v-else-if="isNearDeadline(selectedTask.dueDate)" class="deadline-warning near">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>即将到期</span>
+            </div>
+          </div>
+          
+          <!-- 任务描述 -->
+          <div class="task-detail-section">
+            <label class="task-detail-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              任务描述
+            </label>
+            <div class="task-detail-value task-description-scroll">{{ selectedTask.description || '暂无描述' }}</div>
+          </div>
+          
+          <!-- 信息卡片组 -->
+          <div class="task-info-grid">
+            <!-- 优先级 -->
+            <div class="task-info-card">
+              <div class="task-info-icon priority">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">优先级</div>
+                <div class="task-info-value">
+                  <span class="task-priority-badge" :class="`priority-${selectedTask.priority}`">
+                    {{ getPriorityText(selectedTask.priority) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 状态 -->
+            <div class="task-info-card">
+              <div class="task-info-icon status">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">状态</div>
+                <div class="task-info-value">
+                  <span class="task-status-badge" :class="`status-${selectedTask.status.toLowerCase()}`">
+                    {{ getStatusText(selectedTask.status) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 截止日期 -->
+            <div class="task-info-card" v-if="selectedTask.dueDate">
+              <div class="task-info-icon deadline">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M3 10H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 14H8.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">截止日期</div>
+                <div class="task-info-value">{{ formatDate(selectedTask.dueDate) }}</div>
+              </div>
+            </div>
+            
+            <!-- 所属项目 -->
+            <div class="task-info-card" v-if="selectedTask.projectId">
+              <div class="task-info-icon project">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 22V12H15V22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">所属项目</div>
+                <div class="task-info-value">
+                  <button class="project-link-btn" @click="goToProjectDetail(selectedTask.projectId)">
+                    查看项目详情
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button @click="closeTaskDetailModal" class="modal-btn modal-btn-confirm">关闭</button>
         </div>
       </div>
     </div>
@@ -218,7 +360,9 @@ export default {
       myProjects: [], // 我参与的项目列表
       isLoadingProjects: false, // 是否正在加载项目
       myTasks: [], // 我的任务列表
-      isLoadingTasks: false // 是否正在加载任务
+      isLoadingTasks: false, // 是否正在加载任务
+      taskDetailModalOpen: false, // 任务详情弹窗是否打开
+      selectedTask: null // 选中的任务
     }
   },
   mounted() {
@@ -233,7 +377,7 @@ export default {
     
     // 加载我的任务
     this.loadMyTasks()
-
+    
     // 添加点击外部关闭菜单的事件监听
     document.addEventListener('click', this.handleClickOutside)
   },
@@ -470,18 +614,88 @@ export default {
       }
       return 0
     },
-    getStatusText(status) {
+    getProjectStatusText(status) {
+      // 专门用于项目状态的中文转换
+      if (!status) return '进行中'
+      
+      const statusStr = String(status).trim()
+      
+      // 项目状态映射表
       const statusMap = {
+        // 前端映射后的状态（小写带连字符）
         'in-progress': '进行中',
         'completed': '已完成',
         'pending': '待开始',
-        'paused': '已暂停'
+        'paused': '已暂停',
+        // 后端可能返回的英文状态（大写）
+        'ACTIVE': '进行中',
+        'ONGOING': '进行中',
+        'IN_PROGRESS': '进行中',
+        'COMPLETED': '已完成',
+        'DONE': '已完成',
+        'PAUSED': '已暂停',
+        'ARCHIVED': '已归档',
+        'PLANNING': '规划中',
+        'CANCELLED': '已取消',
+        'STEADY': '稳健中',
+        // 后端可能返回的英文状态（小写）
+        'active': '进行中',
+        'ongoing': '进行中',
+        'in_progress': '进行中',
+        'completed': '已完成',
+        'done': '已完成',
+        'paused': '已暂停',
+        'archived': '已归档',
+        'planning': '规划中',
+        'cancelled': '已取消',
+        'steady': '稳健中',
+        // 中文状态（直接返回）
+        '进行中': '进行中',
+        '已完成': '已完成',
+        '已暂停': '已暂停',
+        '待开始': '待开始',
+        '规划中': '规划中',
+        '已归档': '已归档',
+        '已取消': '已取消',
+        '稳健中': '稳健中'
       }
-      return statusMap[status] || '进行中'
+      
+      // 直接匹配
+      if (statusMap[statusStr]) {
+        return statusMap[statusStr]
+      }
+      
+      // 转换为大写匹配
+      const upperStatus = statusStr.toUpperCase()
+      if (statusMap[upperStatus]) {
+        return statusMap[upperStatus]
+      }
+      
+      // 转换为小写匹配
+      const lowerStatus = statusStr.toLowerCase()
+      if (statusMap[lowerStatus]) {
+        return statusMap[lowerStatus]
+      }
+      
+      // 如果都不匹配，返回'进行中'作为默认值
+      return '进行中'
+    },
+    getStatusText(status) {
+      // 用于任务状态的中文转换
+      const statusMap = {
+        'TODO': '待办',
+        'IN_PROGRESS': '进行中',
+        'BLOCKED': '阻塞',
+        'DONE': '已完成'
+      }
+      return statusMap[status] || status
     },
     goToProjectDetail(projectId) {
-      console.log('跳转到项目详情:', projectId)
-      this.$router.push(`/project-detail/${projectId}`)
+      if (projectId) {
+        console.log('跳转到项目详情:', projectId)
+        this.closeTaskDetailModal()
+        this.$router.push(`/project-detail/${projectId}`)
+      }
     },
     async loadMyTasks() {
       // 检查用户是否已登录
@@ -605,6 +819,23 @@ export default {
       
       // 只有截止日期在今天之前（不包括今天）才算逾期
       return deadline < today
+    },
+    openTaskDetailModal(task) {
+      this.selectedTask = task
+      this.taskDetailModalOpen = true
+    },
+    closeTaskDetailModal() {
+      this.taskDetailModalOpen = false
+      this.selectedTask = null
+    },
+    getStatusText(status) {
+      const statusMap = {
+        'TODO': '待办',
+        'IN_PROGRESS': '进行中',
+        'BLOCKED': '阻塞',
+        'DONE': '已完成'
+      }
+      return statusMap[status] || status
     }
   }
 }
