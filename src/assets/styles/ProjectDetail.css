@@ -676,7 +676,14 @@
 
 .task-item-assign {
   flex-shrink: 0;
-  min-width: 80px;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.task-item-assign.has-button {
+  justify-content: flex-end;
 }
 
 .task-item-assign .assign-btn {
@@ -698,9 +705,8 @@
 
 /* 任务详情弹窗样式 */
 .task-detail-modal {
-  max-width: 800px;
-  max-height: 80vh;
-  width: 90%;
+  max-width: 800px !important;
+  width: 90% !important;
 }
 
 .task-detail-body {
@@ -714,11 +720,18 @@
 }
 
 .task-detail-label {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 14px;
   font-weight: 600;
   color: #495057;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.task-detail-label svg {
+  color: #6b7280;
+  flex-shrink: 0;
 }
 
 .task-detail-value {
@@ -752,6 +765,186 @@
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* 改进的任务详情弹窗样式 */
+.task-detail-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 12px;
+}
+
+.task-detail-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.task-assignee-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.task-assignee-badge svg {
+  flex-shrink: 0;
+  color: #0369a1;
+}
+
+.task-title-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.task-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.task-title-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+}
+
+.deadline-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.deadline-warning.overdue {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.deadline-warning.near {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.task-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.task-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.task-info-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.task-info-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+.task-info-icon.priority {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.task-info-icon.status {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.task-info-icon.deadline {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.task-info-icon.creator {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.task-info-icon.assignee {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.task-info-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-info-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.task-info-value {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.task-status-badge.待接取,
+.task-status-badge.TODO,
+.task-status-badge.pending {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.task-status-badge.进行中,
+.task-status-badge.IN_PROGRESS,
+.task-status-badge.inprogress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.task-status-badge.阻塞,
+.task-status-badge.BLOCKED {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.task-status-badge.完成,
+.task-status-badge.DONE,
+.task-status-badge.completed {
+  background: #d1fae5;
+  color: #059669;
 }
 
 .task-card {
@@ -2545,6 +2738,84 @@
 
 .dark-mode .project-detail-container .member-avatar .avatar-placeholder {
   color: #94a3b8;
+}
+
+/* 暗色模式下的改进任务详情弹窗样式 */
+.dark-mode .task-title-value {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .task-title-section {
+  border-bottom-color: #334155 !important;
+}
+
+.dark-mode .deadline-warning.overdue {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+.dark-mode .deadline-warning.near {
+  background: #78350f !important;
+  color: #fcd34d !important;
+}
+
+.dark-mode .task-detail-label svg {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .task-info-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .task-info-card:hover {
+  background: #334155 !important;
+  border-color: #475569 !important;
+}
+
+.dark-mode .task-assignee-badge {
+  background: #1e3a5f;
+  color: #93c5fd;
+  border-color: #3b82f6;
+}
+
+.dark-mode .task-assignee-badge svg {
+  color: #93c5fd;
+}
+
+.dark-mode .task-info-label {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .task-info-value {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .task-status-badge.待接取,
+.dark-mode .task-status-badge.TODO,
+.dark-mode .task-status-badge.pending {
+  background: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .task-status-badge.进行中,
+.dark-mode .task-status-badge.IN_PROGRESS,
+.dark-mode .task-status-badge.inprogress {
+  background: #1e3a5f !important;
+  color: #93c5fd !important;
+}
+
+.dark-mode .task-status-badge.阻塞,
+.dark-mode .task-status-badge.BLOCKED {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+.dark-mode .task-status-badge.完成,
+.dark-mode .task-status-badge.DONE,
+.dark-mode .task-status-badge.completed {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
 }
 
 

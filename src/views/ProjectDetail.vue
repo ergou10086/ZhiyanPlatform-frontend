@@ -224,7 +224,7 @@
                 </button>
               </div>
             </div>
-            <div class="task-content" @click.stop>
+            <div class="task-content" @click="openTaskDetailModal(task)">
               <h3 class="task-title">{{ task.title }}</h3>
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
@@ -508,7 +508,7 @@
                   </button>
                 </div>
               </div>
-              <div class="task-item-content" @click.stop>
+              <div class="task-item-content" @click="openTaskDetailModal(task)">
                 <h4 class="task-item-title">{{ task.title }}</h4>
                 <p class="task-item-description">{{ task.description }}</p>
                 <div class="task-item-meta">
@@ -519,8 +519,8 @@
                   </span>
                 </div>
               </div>
-              <div v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" class="task-item-assign" @click.stop>
-                <button @click="assignTask(task)" class="assign-btn">接取任务</button>
+              <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') }" @click.stop>
+                <button v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" @click="assignTask(task)" class="assign-btn">接取任务</button>
               </div>
             </div>
           </div>
@@ -700,7 +700,17 @@
     <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
       <div class="modal-content task-detail-modal" @click.stop>
         <div class="modal-header">
-          <h3 class="modal-title">任务详情</h3>
+          <div class="task-detail-header-content">
+            <h3 class="modal-title">任务详情</h3>
+            <div class="task-detail-badges">
+              <span class="task-priority-badge" :class="priorityClass(selectedTask.priority)">
+                {{ selectedTask.priority }}
+              </span>
+              <span class="task-status-badge" :class="statusClass(selectedTask.status)">
+                {{ selectedTask.status }}
+              </span>
+            </div>
+          </div>
           <button class="modal-close" @click="closeTaskDetailModal">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -709,43 +719,117 @@
         </div>
         
         <div class="modal-body task-detail-body">
-          <div class="task-detail-section">
-            <label class="task-detail-label">任务标题</label>
-            <div class="task-detail-value">{{ selectedTask.title }}</div>
+          <!-- 任务标题 -->
+          <div class="task-detail-section task-title-section">
+            <div class="task-title-row">
+              <div class="task-title-value">{{ selectedTask.title }}</div>
+              <span v-if="selectedTask.assignee_name" class="task-assignee-badge">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                负责人: {{ selectedTask.assignee_name }}
+              </span>
+            </div>
+            <div v-if="isTaskOverdue(selectedTask)" class="deadline-warning overdue">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>已逾期</span>
+            </div>
+            <div v-else-if="isTaskNearDeadline(selectedTask)" class="deadline-warning near">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>即将到期</span>
+            </div>
           </div>
           
+          <!-- 任务描述 -->
           <div class="task-detail-section">
-            <label class="task-detail-label">任务描述</label>
+            <label class="task-detail-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 13H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 17H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M10 9H9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              任务描述
+            </label>
             <div class="task-detail-value task-description-scroll">{{ selectedTask.description || '暂无描述' }}</div>
           </div>
           
-          <div class="task-detail-section">
-            <label class="task-detail-label">优先级</label>
-            <div class="task-detail-value">
-              <span class="task-priority-badge" :class="priorityClass(selectedTask.priority)">{{ selectedTask.priority }}</span>
+          <!-- 信息卡片组 -->
+          <div class="task-info-grid">
+            <!-- 优先级 -->
+            <div class="task-info-card">
+              <div class="task-info-icon priority">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">优先级</div>
+                <div class="task-info-value">
+                  <span class="task-priority-badge" :class="priorityClass(selectedTask.priority)">
+                    {{ selectedTask.priority }}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div class="task-detail-section">
-            <label class="task-detail-label">状态</label>
-            <div class="task-detail-value">
-              <span class="task-status-badge" :class="statusClass(selectedTask.status)">{{ selectedTask.status }}</span>
+            
+            <!-- 状态 -->
+            <div class="task-info-card">
+              <div class="task-info-icon status">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">状态</div>
+                <div class="task-info-value">
+                  <span class="task-status-badge" :class="statusClass(selectedTask.status)">
+                    {{ selectedTask.status }}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-          
-          <div class="task-detail-section" v-if="selectedTask.date">
-            <label class="task-detail-label">截止日期</label>
-            <div class="task-detail-value">{{ selectedTask.date }}</div>
-          </div>
-          
-          <div class="task-detail-section">
-            <label class="task-detail-label">创建人</label>
-            <div class="task-detail-value">{{ selectedTask.created_by_name || '未知' }}</div>
-          </div>
-          
-          <div class="task-detail-section" v-if="selectedTask.assignee_name">
-            <label class="task-detail-label">负责人</label>
-            <div class="task-detail-value">{{ selectedTask.assignee_name }}</div>
+            
+            <!-- 截止日期 -->
+            <div class="task-info-card" v-if="selectedTask.date || selectedTask.dueDate || selectedTask.due_date">
+              <div class="task-info-icon deadline">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 4H5C3.89543 4 3 4.89543 3 6V20C3 21.1046 3.89543 22 5 22H19C20.1046 22 21 21.1046 21 20V6C21 4.89543 20.1046 4 19 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M3 10H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M8 14H8.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">截止日期</div>
+                <div class="task-info-value">{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
+              </div>
+            </div>
+            
+            <!-- 创建人 -->
+            <div class="task-info-card" v-if="selectedTask.created_by_name">
+              <div class="task-info-icon creator">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">创建人</div>
+                <div class="task-info-value">{{ selectedTask.created_by_name }}</div>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -2321,6 +2405,35 @@ export default {
       if (priority === '高') return '高'
       if (priority === '中') return '中'
       return '低'
+    },
+    isTaskOverdue(task) {
+      // 判断任务是否已逾期
+      if (!task) return false
+      const dueDate = task.date || task.dueDate || task.due_date
+      if (!dueDate) return false
+      
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const deadline = new Date(dueDate)
+      deadline.setHours(0, 0, 0, 0)
+      
+      // 只有截止日期在今天之前（不包括今天）才算逾期
+      return deadline < today
+    },
+    isTaskNearDeadline(task) {
+      // 判断任务是否临近截止（3天内）
+      if (!task) return false
+      const dueDate = task.date || task.dueDate || task.due_date
+      if (!dueDate) return false
+      
+      const now = new Date()
+      const deadline = new Date(dueDate)
+      const diffTime = deadline - now
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      // 0-3天内截止且未逾期返回true
+      return diffDays >= 0 && diffDays <= 3 && !this.isTaskOverdue(task)
     },
     toggleTaskTypeDropdown() {
       this.taskTypeOpen = !this.taskTypeOpen
