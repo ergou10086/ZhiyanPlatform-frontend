@@ -40,21 +40,53 @@
           v-for="(message, index) in messages" 
           :key="message.id" 
           class="bubble" 
-          :class="message.type"
+          :class="[message.type, { 'file-only': message.isFileOnly }]"
         >
           <!-- 调试信息（开发时可见） -->
           <!-- message.id: {{ message.id }}, streamingMessageId: {{ streamingMessageId }}, isStreaming: {{ isStreaming }} -->
           
+          <!-- 用户消息中的文件显示（独立的消息气泡） -->
+          <div v-if="message.type === 'right' && message.files && message.files.length > 0" class="message-files">
+            <div 
+              v-for="(file, fileIndex) in message.files" 
+              :key="fileIndex"
+              class="message-file-item"
+            >
+              <div class="message-file-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="message-file-info">
+                <div class="message-file-name">{{ file.name || file.fileName || '未命名文件' }}</div>
+                <div class="message-file-meta">
+                  <span class="message-file-type">{{ file.type || file.fileType || getFileType(file.name || file.fileName) }}</span>
+                  <span v-if="file.size || file.fileSize" class="message-file-size">{{ formatFileSize(file.size || file.fileSize) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- 打字机模式：正在流式输入的消息 -->
-          <template v-if="message.id === streamingMessageId && isStreaming">
+          <template v-if="message.type === 'left' && message.id === streamingMessageId && isStreaming">
             <span class="typewriter-text">
               <span :id="'typewriter-' + streamingMessageId" class="typewriter-content"></span><span class="cursor-blink">|</span>
             </span>
           </template>
           <!-- 普通模式：已完成的消息或非流式消息 -->
           <template v-else>
-            <span>{{ message.content || '[空内容]' }}</span>
+            <span v-if="message.content">{{ message.content }}</span>
           </template>
+          
+          <!-- 复制按钮（文字消息且用户有发送文字时显示） -->
+          <div v-if="message.type === 'right' && !message.isFileOnly && message.content && message.content.trim()" class="message-copy-btn" @click="copyUserText(message.content)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>复制文字</span>
+          </div>
         </div>
       </div>
       <div class="composer">
@@ -95,8 +127,8 @@
             </div>
             <!-- 知识库文件预览 -->
             <div 
-              v-for="fileId in selectedKnowledgeFileIds" 
-              :key="'kb-' + fileId"
+              v-for="(fileId, index) in selectedKnowledgeFileIds" 
+              :key="'kb-' + fileId + '-' + index"
               class="file-preview-card"
             >
               <div class="file-preview-icon">
@@ -177,7 +209,7 @@
         <button 
           class="send-btn" 
           @click="sendMessage"
-          :disabled="!inputMessage.trim() || isSending"
+          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && selectedKnowledgeFileIds.length === 0) || isSending"
         >
           <svg v-if="!isSending" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -404,24 +436,85 @@ export default {
   },
   methods: {
     async sendMessage() {
-      if (!this.inputMessage.trim() || this.isSending) return
+      // 如果没有输入消息且没有文件，则不允许发送
+      if ((!this.inputMessage.trim() && this.selectedLocalFiles.length === 0 && this.selectedKnowledgeFileIds.length === 0) || this.isSending) return
       
       // 如果没有当前会话，创建一个新会话
       if (!this.currentChatSessionId) {
         this.createNewChatSession()
       }
       
-      const userMessage = {
-        id: Date.now(),
-        type: 'right',
-        content: this.inputMessage.trim()
-      }
+      // 收集文件信息
+      const messageFiles = []
       
-      // 不再在消息内容中添加文件信息文本，文件通过API参数传递
+      // 添加本地文件信息
+      this.selectedLocalFiles.forEach(file => {
+        messageFiles.push({
+          name: file.name,
+          type: this.getFileType(file.name),
+          size: file.size,
+          isLocal: true,
+          file: file
+        })
+      })
       
-      this.messages.push(userMessage)
+      // 添加知识库文件信息
+      this.selectedKnowledgeFileIds.forEach(fileId => {
+        const fileIdStr = String(fileId)
+        // 尝试多种键格式查找文件信息
+        let fileInfo = this.knowledgeFileInfoMap[fileId] || 
+                      this.knowledgeFileInfoMap[fileIdStr] ||
+                      (!isNaN(parseInt(fileIdStr)) ? this.knowledgeFileInfoMap[parseInt(fileIdStr)] : null)
+        
+        if (fileInfo) {
+          messageFiles.push({
+            fileName: fileInfo.fileName,
+            name: fileInfo.fileName,
+            fileType: fileInfo.fileType,
+            type: fileInfo.fileType,
+            fileSize: fileInfo.fileSize,
+            size: fileInfo.fileSize,
+            fileId: fileInfo.isAchievement ? fileInfo.achievementId : fileId, // 如果是成果目录，使用成果ID
+            isLocal: false,
+            isAchievement: fileInfo.isAchievement || false, // 标记是否是成果目录
+            achievementId: fileInfo.achievementId || null // 如果是成果目录，保存成果ID
+          })
+        }
+      })
+      
+      // 保存用户文字内容，用于复制功能
+      const userTextContent = this.inputMessage.trim()
       const query = this.inputMessage.trim()
       this.inputMessage = ''
+      
+      // 如果有文件，先发送文件消息（独立的消息气泡）
+      if (messageFiles.length > 0) {
+        const fileMessage = {
+          id: Date.now(),
+          type: 'right',
+          content: '', // 文件消息不显示文字内容
+          files: messageFiles,
+          isFileOnly: true // 标记这是仅文件的消息
+        }
+        this.messages.push(fileMessage)
+      }
+      
+      // 如果有文字内容，再发送文字消息（独立的消息气泡）
+      if (userTextContent) {
+        const textMessage = {
+          id: Date.now() + (messageFiles.length > 0 ? 1 : 0),
+          type: 'right',
+          content: userTextContent,
+          files: undefined,
+          isFileOnly: false
+        }
+        this.messages.push(textMessage)
+      }
+      
+      // 清空已选择的文件（发送后清空）
+      this.selectedLocalFiles = []
+      this.selectedKnowledgeFileIds = []
+      
       this.isSending = true
       
       // 创建AI回复消息占位符
@@ -462,6 +555,15 @@ export default {
         // 准备本地文件和知识库文件ID
         const localFiles = this.selectedLocalFiles.length > 0 ? this.selectedLocalFiles : null
         const knowledgeFileIds = this.selectedKnowledgeFileIds.length > 0 ? this.selectedKnowledgeFileIds.map(id => {
+          // 处理虚拟文件ID（成果目录）
+          if (typeof id === 'string' && id.startsWith('achievement_')) {
+            // 提取成果ID
+            const achievementId = parseInt(id.replace('achievement_', ''), 10)
+            if (!isNaN(achievementId)) {
+              // 返回成果ID，后端可能需要特殊处理
+              return achievementId
+            }
+          }
           // 确保ID是数字类型
           const numId = typeof id === 'string' ? parseInt(id, 10) : id
           return isNaN(numId) ? null : numId
@@ -670,8 +772,8 @@ export default {
      * 启动打字机效果
      */
     startTypewriterEffect() {
-      // 打字机速度：每600ms显示一个字符（慢速，明显的打字效果）
-      const typeSpeed = 600
+      // 打字机速度：每500ms显示一个字符（慢速，明显的打字效果）
+      const typeSpeed = 500
       
       console.log('[打字机启动] 开始打字机效果，速度:', typeSpeed, 'ms/字')
       
@@ -1031,43 +1133,132 @@ export default {
           try {
             // 获取成果详情（包含文件列表）
             const detailResponse = await knowledgeAPI.getAchievementDetail(achievement.id)
+            console.log('成果详情响应:', detailResponse)
+            
+            let files = []
+            
+            // 尝试获取成果详情
             if (detailResponse && detailResponse.code === 200 && detailResponse.data) {
-              const files = detailResponse.data.files || []
-               // 提取文件ID并添加到列表，并保存文件信息到映射中
-              files.forEach(file => {
-                if (file.id) {
-                  const fileId = typeof file.id === 'string' ? parseInt(file.id, 10) : file.id
-                  if (!isNaN(fileId)) {
-                    allFileIds.push(fileId)
-                     // 保存文件信息到映射中
-                     this.knowledgeFileInfoMap[fileId] = {
-                       fileName: file.fileName || file.name || '未命名文件',
-                       fileSize: file.fileSize || 0,
-                       fileType: file.fileType || file.fileName?.split('.').pop()?.toUpperCase() || '未知'
-                     }
+              // 尝试多种可能的文件列表路径
+              files = detailResponse.data.files || []
+              
+              // 如果详情中没有文件，尝试单独获取文件列表
+              if (!files || files.length === 0) {
+                try {
+                  const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
+                  console.log('单独获取文件列表响应:', filesResponse)
+                  if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
+                    files = Array.isArray(filesResponse.data) ? filesResponse.data : (filesResponse.data.files || [])
                   }
+                } catch (fileError) {
+                  console.warn('单独获取文件列表失败:', fileError)
+                  // 即使获取失败，也继续处理，可能是空成果目录
+                  files = []
                 }
-              })
+              }
+            } else {
+              // 如果获取详情失败，尝试单独获取文件列表
+              try {
+                const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
+                console.log('详情获取失败，单独获取文件列表响应:', filesResponse)
+                if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
+                  files = Array.isArray(filesResponse.data) ? filesResponse.data : (filesResponse.data.files || [])
+                }
+              } catch (fileError) {
+                console.warn('单独获取文件列表失败:', fileError)
+                // 即使获取失败，也继续处理，可能是空成果目录
+                files = []
+              }
+            }
+              
+              console.log('最终获取到的文件列表:', files)
+              
+              // 无论是否有文件，都创建文件条目（如果没有文件，创建虚拟条目代表成果目录）
+              if (!files || files.length === 0) {
+                console.log('成果目录没有文件，创建虚拟文件条目:', achievement.id)
+                // 使用成果ID作为文件ID（加上前缀避免冲突）
+                const virtualFileId = `achievement_${achievement.id}`
+                if (!allFileIds.includes(virtualFileId)) {
+                  allFileIds.push(virtualFileId)
+                  // 保存成果信息到映射中
+                  this.$set(this.knowledgeFileInfoMap, virtualFileId, {
+                    fileName: achievement.title || achievement.name || `成果${achievement.id}`,
+                    fileSize: 0,
+                    fileType: achievement.type || '成果',
+                    isAchievement: true, // 标记这是成果目录，不是实际文件
+                    achievementId: achievement.id
+                  })
+                  console.log('保存成果目录信息:', virtualFileId, this.knowledgeFileInfoMap[virtualFileId])
+                }
+              } else {
+                // 提取文件ID并添加到列表，并保存文件信息到映射中
+                files.forEach(file => {
+                  if (file && file.id) {
+                    const fileId = typeof file.id === 'string' ? parseInt(file.id, 10) : file.id
+                    if (!isNaN(fileId)) {
+                      // 避免重复添加
+                      if (!allFileIds.includes(fileId)) {
+                        allFileIds.push(fileId)
+                      }
+                       // 保存文件信息到映射中（使用 Vue.set 确保响应式）
+                       this.$set(this.knowledgeFileInfoMap, fileId, {
+                         fileName: file.fileName || file.name || file.originalName || achievement.title || achievement.name || '未命名文件',
+                         fileSize: file.fileSize || file.size || 0,
+                         fileType: file.fileType || file.type || (file.fileName ? file.fileName.split('.').pop()?.toUpperCase() : (file.originalName ? file.originalName.split('.').pop()?.toUpperCase() : '未知')) || '未知'
+                       })
+                      console.log('保存文件信息:', fileId, this.knowledgeFileInfoMap[fileId])
+                    }
+                  }
+                })
+              }
               
               // 记录文件名
               if (files.length > 0) {
                  const fileNames = files.map(f => f.fileName || f.name || '未命名文件').join(', ')
                 selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: ${fileNames}`)
               } else {
-                selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 无文件`)
+                selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 成果目录（无文件）`)
               }
-            }
           } catch (error) {
             console.error(`获取成果 ${achievement.id} 的文件列表失败:`, error)
-            selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 获取文件失败`)
+            // 即使获取失败，也创建虚拟文件条目，确保用户可以选择
+            const virtualFileId = `achievement_${achievement.id}`
+            if (!allFileIds.includes(virtualFileId)) {
+              allFileIds.push(virtualFileId)
+              this.$set(this.knowledgeFileInfoMap, virtualFileId, {
+                fileName: achievement.title || achievement.name || `成果${achievement.id}`,
+                fileSize: 0,
+                fileType: achievement.type || '成果',
+                isAchievement: true,
+                achievementId: achievement.id
+              })
+              console.log('获取失败，但仍创建成果目录条目:', virtualFileId)
+            }
+            selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 成果目录（获取信息失败，但可尝试使用）`)
           }
         }
         
-        // 保存选中的知识库文件ID（追加到现有列表）
-        this.selectedKnowledgeFileIds.push(...allFileIds)
+        // 保存选中的知识库文件ID（追加到现有列表，避免重复）
+        allFileIds.forEach(fileId => {
+          // 转换为相同类型进行比较
+          const fileIdStr = String(fileId)
+          const exists = this.selectedKnowledgeFileIds.some(id => String(id) === fileIdStr)
+          if (!exists) {
+            this.selectedKnowledgeFileIds.push(fileId)
+          }
+        })
       
         console.log('选中的知识库文件ID:', this.selectedKnowledgeFileIds)
+        console.log('文件信息映射:', this.knowledgeFileInfoMap)
         console.log('选中的成果:', selectedAchievements)
+        console.log('获取到的文件数量:', allFileIds.length)
+        
+        // 如果获取到了文件，确保视图更新
+        if (allFileIds.length > 0) {
+          this.$nextTick(() => {
+            this.$forceUpdate()
+          })
+        }
       } catch (error) {
         console.error('确认文件选择失败:', error)
         this.$message && this.$message.error('获取文件信息失败，请重试')
@@ -1096,7 +1287,9 @@ export default {
       * 移除知识库文件
       */
      removeKnowledgeFile(fileId) {
-       const index = this.selectedKnowledgeFileIds.indexOf(fileId)
+       // 转换为字符串进行比较，确保类型一致
+       const fileIdStr = String(fileId)
+       const index = this.selectedKnowledgeFileIds.findIndex(id => String(id) === fileIdStr)
        if (index > -1) {
          this.selectedKnowledgeFileIds.splice(index, 1)
        }
@@ -1128,8 +1321,14 @@ export default {
       * 获取知识库文件名
       */
      getKnowledgeFileName(fileId) {
-       // 首先从文件信息映射中查找
-       const fileInfo = this.knowledgeFileInfoMap[fileId]
+       // 首先从文件信息映射中查找（尝试多种键格式）
+       let fileInfo = this.knowledgeFileInfoMap[fileId]
+       if (!fileInfo) {
+         const fileIdStr = String(fileId)
+         const fileIdNum = parseInt(fileId, 10)
+         fileInfo = this.knowledgeFileInfoMap[fileIdStr] || (!isNaN(fileIdNum) ? this.knowledgeFileInfoMap[fileIdNum] : null)
+       }
+       
        if (fileInfo && fileInfo.fileName) {
          return fileInfo.fileName
        }
@@ -1146,12 +1345,13 @@ export default {
              if (file) {
                // 保存到映射中以便下次使用
                const savedFileName = file.fileName || file.name || '未命名文件'
-               if (!this.knowledgeFileInfoMap[fileId]) {
-                 this.knowledgeFileInfoMap[fileId] = {
+               const key = isNaN(parseInt(fileId)) ? fileId : parseInt(fileId)
+               if (!this.knowledgeFileInfoMap[key]) {
+                 this.$set(this.knowledgeFileInfoMap, key, {
                    fileName: savedFileName,
                    fileSize: file.fileSize || 0,
                    fileType: file.fileType || savedFileName.split('.').pop()?.toUpperCase() || '未知'
-                 }
+                 })
                }
                return savedFileName
              }
@@ -1162,7 +1362,7 @@ export default {
        }
        
        // 如果还是找不到，返回默认值
-       console.warn('未找到文件ID对应的文件名:', fileId)
+       console.warn('未找到文件ID对应的文件名:', fileId, '映射键:', Object.keys(this.knowledgeFileInfoMap))
        return '未命名文件'
      },
     
@@ -1456,6 +1656,49 @@ export default {
         return content.length > 20 ? content.substring(0, 20) + '...' : content
       }
       return '新对话'
+    },
+    
+    /**
+     * 复制用户发送的文字
+     */
+    async copyUserText(text) {
+      if (!text) return
+      
+      try {
+        await navigator.clipboard.writeText(text)
+        // 显示提示消息
+        if (this.$message) {
+          this.$message.success('已复制到剪贴板')
+        } else {
+          alert('已复制到剪贴板')
+        }
+      } catch (error) {
+        console.error('复制失败:', error)
+        // 降级方案：使用传统方法
+        try {
+          const textArea = document.createElement('textarea')
+          textArea.value = text
+          textArea.style.position = 'fixed'
+          textArea.style.opacity = '0'
+          document.body.appendChild(textArea)
+          textArea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textArea)
+          
+          if (this.$message) {
+            this.$message.success('已复制到剪贴板')
+          } else {
+            alert('已复制到剪贴板')
+          }
+        } catch (fallbackError) {
+          console.error('复制失败（降级方案也失败）:', fallbackError)
+          if (this.$message) {
+            this.$message.error('复制失败，请手动复制')
+          } else {
+            alert('复制失败，请手动复制')
+          }
+        }
+      }
     },
     
     /**

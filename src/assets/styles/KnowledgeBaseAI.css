@@ -231,6 +231,172 @@
   color: white;
   border-bottom-right-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 仅文件的消息气泡样式（浅灰色背景） */
+.ai-view .bubble.right.file-only {
+  background: #f5f5f5;
+  color: #333;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 消息中的文件显示 */
+.ai-view .message-files {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ai-view .message-file-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+}
+
+/* 普通消息中的文件样式（蓝色渐变背景） */
+.ai-view .bubble.right:not(.file-only) .message-file-item {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-view .bubble.right:not(.file-only) .message-file-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* 仅文件消息中的文件样式（浅灰色背景） */
+.ai-view .bubble.right.file-only .message-file-item {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+}
+
+.ai-view .bubble.right.file-only .message-file-item:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.ai-view .message-file-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+/* 普通消息中的文件图标 */
+.ai-view .bubble.right:not(.file-only) .message-file-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+/* 仅文件消息中的文件图标（蓝色） */
+.ai-view .bubble.right.file-only .message-file-icon {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.ai-view .message-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ai-view .message-file-name {
+  font-size: 14px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 普通消息中的文件名 */
+.ai-view .bubble.right:not(.file-only) .message-file-name {
+  color: white;
+}
+
+/* 仅文件消息中的文件名 */
+.ai-view .bubble.right.file-only .message-file-name {
+  color: #333;
+}
+
+.ai-view .message-file-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+/* 普通消息中的文件元信息 */
+.ai-view .bubble.right:not(.file-only) .message-file-meta {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* 仅文件消息中的文件元信息 */
+.ai-view .bubble.right.file-only .message-file-meta {
+  color: #6b7280;
+}
+
+.ai-view .message-file-type {
+  font-weight: 500;
+}
+
+.ai-view .message-file-size {
+  color: inherit;
+}
+
+/* 复制按钮样式 */
+.ai-view .message-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  align-self: flex-start;
+}
+
+/* 文字消息中的复制按钮（蓝色渐变背景） */
+.ai-view .bubble.right:not(.file-only) .message-copy-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ai-view .bubble.right:not(.file-only) .message-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: white;
+}
+
+/* 仅文件消息中的复制按钮（浅灰色背景） */
+.ai-view .bubble.right.file-only .message-copy-btn {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+}
+
+.ai-view .bubble.right.file-only .message-copy-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.ai-view .message-copy-btn svg {
+  flex-shrink: 0;
 }
 
 .ai-view .composer { 
@@ -251,13 +417,14 @@
 
 .ai-view .composer-input { 
   flex: 1; 
-  height: 48px; 
+  height: 56px; 
   border: 2px solid #e5e7eb; 
   border-radius: 12px; 
-  padding: 0 16px;
+  padding: 0 18px;
   font-size: 14px;
   transition: all 0.3s ease;
   background: white;
+  line-height: 1.5;
 }
 
 /* 文件预览区域 */
@@ -364,6 +531,7 @@
   color: #dc2626;
 }
 
+
 .ai-view .composer-input:focus {
   outline: none;
   border-color: #5EB6E4;
@@ -376,8 +544,8 @@
 }
 
 .ai-view .send-btn { 
-  width: 48px; 
-  height: 48px; 
+  width: 56px; 
+  height: 56px; 
   border-radius: 12px; 
   background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
   color: white; 
