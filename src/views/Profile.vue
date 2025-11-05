@@ -213,6 +213,7 @@
 import Sidebar from '@/components/Sidebar.vue'
 import '@/assets/styles/Profile.css'
 import { avatarAPI } from '@/api/avatar'
+import { authAPI } from '@/api/auth'
 
 export default {
   name: 'Profile',
@@ -760,7 +761,7 @@ export default {
         this.$refs.nicknameInput.select()
       })
     },
-    saveNickname() {
+    async saveNickname() {
       const trimmedNickname = this.tempNickname.trim()
       if (trimmedNickname && trimmedNickname !== this.userInfo.nickname) {
         // 验证昵称长度
@@ -774,25 +775,45 @@ export default {
         }
         // 确认修改
         if (confirm(`确定要将昵称修改为"${trimmedNickname}"吗？`)) {
-          this.userInfo.nickname = trimmedNickname
-          this.editingNickname = false
-          
-          // 更新user_info中的昵称信息
-          const savedUserInfo = localStorage.getItem('user_info')
-          if (savedUserInfo) {
-            try {
-              const userData = JSON.parse(savedUserInfo)
-              userData.nickname = trimmedNickname
-              localStorage.setItem('user_info', JSON.stringify(userData))
-              console.log('昵称已更新到user_info:', userData.nickname)
-            } catch (error) {
-              console.error('更新user_info昵称失败:', error)
+          try {
+            // 调用后端API更新昵称
+            const response = await authAPI.updateUserInfo({
+              nickname: trimmedNickname
+            })
+            
+            if (response && response.code === 200) {
+              // 更新成功
+              this.userInfo.nickname = trimmedNickname
+              this.editingNickname = false
+              
+              // 更新user_info中的昵称信息
+              const savedUserInfo = localStorage.getItem('user_info')
+              if (savedUserInfo) {
+                try {
+                  const userData = JSON.parse(savedUserInfo)
+                  userData.nickname = trimmedNickname
+                  localStorage.setItem('user_info', JSON.stringify(userData))
+                  console.log('昵称已更新到user_info:', userData.nickname)
+                } catch (error) {
+                  console.error('更新user_info昵称失败:', error)
+                }
+              }
+              
+              // 触发全局更新事件
+              this.$root.$emit('userInfoUpdated')
+              console.log('昵称已更新:', trimmedNickname)
+              
+              // 显示成功提示
+              this.showSuccessToast('昵称更新成功！')
+            } else {
+              throw new Error(response.msg || '更新失败')
             }
+          } catch (error) {
+            console.error('更新昵称失败:', error)
+            alert('更新昵称失败: ' + (error.message || error.msg || '请稍后重试'))
+            // 恢复原昵称
+            this.tempNickname = this.userInfo.nickname
           }
-          
-          // 触发全局更新事件
-          this.$root.$emit('userInfoUpdated')
-          console.log('昵称已更新:', trimmedNickname)
         }
       } else if (trimmedNickname === this.userInfo.nickname) {
         // 没有变化，直接退出编辑
@@ -813,9 +834,59 @@ export default {
         this.$refs.introTextarea.focus()
       })
     },
-    saveIntro() {
-      this.userInfo.introduction = this.tempIntro
-      this.editingIntro = false
+    async saveIntro() {
+      const trimmedIntro = this.tempIntro.trim()
+      
+      // 验证简介长度
+      if (trimmedIntro.length > 500) {
+        alert('个人简介不能超过500个字符')
+        return
+      }
+      
+      // 如果内容没有变化，直接退出编辑
+      if (trimmedIntro === this.userInfo.introduction) {
+        this.editingIntro = false
+        return
+      }
+      
+      try {
+        // 调用后端API更新个人简介
+        const response = await authAPI.updateUserInfo({
+          introduction: trimmedIntro
+        })
+        
+        if (response && response.code === 200) {
+          // 更新成功
+          this.userInfo.introduction = trimmedIntro
+          this.editingIntro = false
+          
+          // 更新user_info中的简介信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              userData.introduction = trimmedIntro
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('个人简介已更新到user_info')
+            } catch (error) {
+              console.error('更新user_info简介失败:', error)
+            }
+          }
+          
+          // 触发全局更新事件
+          this.$root.$emit('userInfoUpdated')
+          
+          // 显示成功提示
+          this.showSuccessToast('个人简介更新成功！')
+        } else {
+          throw new Error(response.msg || '更新失败')
+        }
+      } catch (error) {
+        console.error('更新个人简介失败:', error)
+        alert('更新个人简介失败: ' + (error.message || error.msg || '请稍后重试'))
+        // 恢复原简介
+        this.tempIntro = this.userInfo.introduction
+      }
     },
     cancelEditIntro() {
       this.tempIntro = this.userInfo.introduction

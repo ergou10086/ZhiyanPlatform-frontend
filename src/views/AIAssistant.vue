@@ -168,7 +168,6 @@
           </div>
         </div>
       </div>
-    </div>
 
     <!-- 聊天记录侧边栏 -->
     <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
@@ -344,7 +343,7 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
 </template>
 
 <script>
@@ -1371,13 +1370,14 @@ export default {
     confirmFileSelection() {
       if (this.selectedFiles.length === 0) return
       
-      const selectedFileNames = this.files
-        .filter(file => this.selectedFiles.includes(file.id))
+      const selectedFileObjects = this.files.filter(file => this.selectedFiles.includes(file.id))
+      
+      const selectedFileNames = selectedFileObjects
         .map(file => file.name || file.title || '未命名文件')
         .join('、')
       
       // 将选中的文件添加到已上传文件列表
-      selectedFiles.forEach(file => {
+      selectedFileObjects.forEach(file => {
         // 检查是否已存在
         const exists = this.uploadedFiles.some(f => f.id === file.id && !f.isLocal)
         if (!exists) {

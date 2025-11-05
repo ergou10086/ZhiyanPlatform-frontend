@@ -173,6 +173,26 @@ export const authAPI = {
     return api.get(`/zhiyan/users/search`, {
       params: { keyword, page, size }
     })
+  },
+
+  /**
+   * 更新当前用户信息
+   * @param {Object} userInfo - 用户信息对象
+   * @param {String} userInfo.nickname - 昵称
+   * @param {String} userInfo.introduction - 个人简介
+   * @param {String} userInfo.organization - 所属机构
+   */
+  updateUserInfo(userInfo) {
+    console.log('[authAPI.updateUserInfo] 更新用户信息, 数据:', userInfo)
+    return api.put('/zhiyan/users/profile', userInfo)
+  },
+
+  /**
+   * 获取当前用户完整信息
+   */
+  getCurrentUserInfo() {
+    console.log('[authAPI.getCurrentUserInfo] 获取当前用户信息')
+    return api.get('/zhiyan/users/me')
   }
 }
 
