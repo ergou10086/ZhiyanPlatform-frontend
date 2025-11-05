@@ -594,12 +594,17 @@ export default {
     },
     isOverdue(dueDate) {
       // 判断任务是否已逾期
+      // 截止日期当天不算逾期，只有在截止日期之后（即第二天）才算逾期
       if (!dueDate) return false
       
-      const now = new Date()
-      const deadline = new Date(dueDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // 设置为今天的0:00:00
       
-      return deadline < now
+      const deadline = new Date(dueDate)
+      deadline.setHours(0, 0, 0, 0) // 设置为截止日期的0:00:00
+      
+      // 只有截止日期在今天之前（不包括今天）才算逾期
+      return deadline < today
     }
   }
 }
