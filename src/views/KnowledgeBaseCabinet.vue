@@ -6,7 +6,7 @@
         <div class="toolbar">
           <div class="toolbar-buttons" v-if="!sidebarCollapsed">
             <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
-            <button class="btn secondary small" @click="createNewFolder">+ 新建文件夹</button>
+            <button class="btn secondary small" @click="createNewFolder">+ 新建节点</button>
           </div>
           <input class="search" type="text" placeholder="搜索文档" v-if="!sidebarCollapsed" />
         </div>
@@ -64,8 +64,8 @@
           <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
             取消
           </button>
-          <button class="btn primary" @click="saveDocument" :disabled="!isEditing || !hasUnsavedChanges">
-            {{ isEditing && hasUnsavedChanges ? '保存*' : '已保存' }}
+          <button class="btn primary" @click="saveDocument" :disabled="!activeDoc">
+            {{ hasUnsavedChanges ? '保存*' : '已保存' }}
           </button>
         </div>
       </div>
@@ -80,42 +80,118 @@
         </div>
         <div class="dialog-content">
           <div class="form-group">
-            <label>文档标题：</label>
-            <input v-model="newDocTitle" type="text" placeholder="请输入文档标题" />
+            <label>文档名称：</label>
+            <input v-model="newDocTitle" type="text" placeholder="请输入文档名称" />
           </div>
           <div class="form-group">
-            <label>文档分类：</label>
-            <select v-model="newDocCategory">
-              <option v-for="folder in folders" :key="folder.id" :value="folder.name">{{ folder.name }}</option>
-            </select>
+            <label>节点选择：</label>
+            <div class="node-selector">
+              <div class="node-input-wrapper">
+                <input 
+                  type="text" 
+                  v-model="nodeSearchText"
+                  @focus="showNodePicker = true"
+                  @input="showNodePicker = true"
+                  @click="showNodePicker = true"
+                  placeholder="请选择节点（可选）"
+                  class="node-input"
+                  autocomplete="off"
+                />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="node-input-icon">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div v-if="showNodePicker" class="node-picker-dropdown">
+                <div 
+                  v-if="filteredNodeList.length === 0 && nodeSearchText.trim()" 
+                  class="node-picker-empty">
+                  未找到匹配的节点
+                </div>
+                <template v-else>
+                  <div 
+                    class="node-picker-item" 
+                    :class="{ 'selected': selectedNodeId === null }"
+                    @click="selectNode(null, '根目录')">
+                    <span>根目录</span>
+                  </div>
+                  <div 
+                    v-for="node in filteredNodeList" 
+                    :key="node.id" 
+                    class="node-picker-item"
+                    :class="{ 'selected': selectedNodeId === node.id }"
+                    :style="{ paddingLeft: (node.level * 16 + 12) + 'px' }"
+                    @click="selectNode(node.id, node.title)">
+                    <span>{{ node.title }}</span>
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
           <div class="form-group">
-            <label>文档内容：</label>
-            <textarea v-model="newDocContent" placeholder="请输入文档内容" rows="10"></textarea>
+            <label>上传Markdown文件：</label>
+            <div class="file-upload-area" 
+                 :class="{ 'has-file': selectedFile }"
+                 @click="!selectedFile && $refs.fileInput?.click()"
+                 @dragover.prevent
+                 @drop.prevent="handleFileDrop">
+              <input 
+                type="file" 
+                ref="fileInput" 
+                @change="handleFileSelect" 
+                accept=".md,.markdown,.txt"
+                class="file-input-hidden"
+                id="markdown-file-input"
+              />
+              <div v-if="!selectedFile" class="file-upload-placeholder">
+                <div class="upload-icon-wrapper">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="upload-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <p class="upload-text">点击或拖拽文件到此区域上传</p>
+                <p class="upload-hint">支持 .md, .markdown, .txt 格式</p>
+              </div>
+              <div v-else class="file-preview-card">
+                <div class="file-preview-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" stroke="currentColor" stroke-width="2" fill="rgba(94, 182, 228, 0.1)"/>
+                    <polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="file-preview-info">
+                  <div class="file-preview-name">{{ selectedFile.name }}</div>
+                  <div class="file-preview-meta">{{ formatFileSize(selectedFile.size) }}</div>
+                </div>
+                <button class="file-preview-remove" @click.stop="removeFile" title="移除文件">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="dialog-actions">
             <button class="btn secondary" @click="closeNewDocDialog">取消</button>
-            <button class="btn primary" @click="confirmNewDoc" :disabled="!newDocTitle">确认创建</button>
+            <button class="btn primary" @click="confirmNewDoc" :disabled="!selectedFile || !newDocTitle.trim()">确认创建</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 新建文件夹对话框 -->
+    <!-- 新建节点对话框 -->
     <div v-if="showNewFolderDialog" class="upload-dialog-overlay" @click="closeNewFolderDialog">
       <div class="upload-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>新建文件夹</h3>
+          <h3>新建节点</h3>
           <button class="close-btn" @click="closeNewFolderDialog">×</button>
         </div>
         <div class="dialog-content">
           <div class="form-group">
-            <label>文件夹名称：</label>
-            <input v-model="newFolderName" type="text" placeholder="请输入文件夹名称" />
-          </div>
-          <div class="form-group">
-            <label>文件夹描述：</label>
-            <textarea v-model="newFolderDescription" placeholder="请输入文件夹描述（可选）" rows="3"></textarea>
+            <label>节点名称：</label>
+            <input v-model="newFolderName" type="text" placeholder="请输入节点名称" />
           </div>
           <div class="dialog-actions">
             <button class="btn secondary" @click="closeNewFolderDialog">取消</button>
@@ -147,9 +223,12 @@ export default {
       showNewFolderDialog: false,
       newDocTitle: '',
       newDocCategory: '',
-      newDocContent: '',
+      selectedFile: null,
+      showNodePicker: false,
+      selectedNodeId: null,
+      selectedNodeName: '',
+      nodeSearchText: '',
       newFolderName: '',
-      newFolderDescription: '',
       hasUnsavedChanges: false,
       autoSaveTimer: null,
       isEditing: false,
@@ -177,6 +256,38 @@ export default {
           this.activeDoc.content = value
         }
       }
+    },
+    // 扁平化树形结构用于节点选择器
+    flatNodeList() {
+      const result = []
+      const flatten = (nodes, level = 0) => {
+        if (!Array.isArray(nodes)) return
+        nodes.forEach(node => {
+          if (node.pageType === 'DIRECTORY') {
+            result.push({
+              id: parseInt(node.id),
+              title: node.title,
+              level: level
+            })
+            if (node.children && node.children.length > 0) {
+              flatten(node.children, level + 1)
+            }
+          }
+        })
+      }
+      flatten(this.wikiTree)
+      return result
+    },
+    // 过滤后的节点列表（根据搜索文本）
+    filteredNodeList() {
+      if (!this.nodeSearchText.trim()) {
+        return this.flatNodeList
+      }
+      const searchText = this.nodeSearchText.toLowerCase().trim()
+      return this.flatNodeList.filter(node => 
+        node.title.toLowerCase().includes(searchText) ||
+        String(node.id).includes(searchText)
+      )
     }
   },
   async mounted() {
@@ -191,6 +302,9 @@ export default {
     
     // 监听页面离开事件，提醒用户保存
     window.addEventListener('beforeunload', this.handleBeforeUnload)
+    
+    // 监听点击外部关闭节点选择器
+    document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
     // 组件销毁前保存数据
@@ -203,6 +317,7 @@ export default {
     }
     // 移除事件监听器
     window.removeEventListener('beforeunload', this.handleBeforeUnload)
+    document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
     /**
@@ -313,45 +428,136 @@ export default {
     
     createNewDocument() {
       this.showNewDocDialog = true
-      this.newDocCategory = this.folders[0]?.name || ''
-      this.selectedParentId = this.folders[0]?.id || null
+      this.newDocTitle = ''
+      this.selectedNodeId = null
+      this.selectedNodeName = ''
+      this.nodeSearchText = ''
+      this.selectedFile = null
+      this.showNodePicker = false
     },
     
     closeNewDocDialog() {
       this.showNewDocDialog = false
       this.newDocTitle = ''
       this.newDocCategory = ''
-      this.newDocContent = ''
+      this.selectedNodeId = null
+      this.selectedNodeName = ''
+      this.nodeSearchText = ''
+      this.selectedFile = null
+      this.showNodePicker = false
+      // 清空文件输入框
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
+    },
+    
+    selectNode(nodeId, nodeName) {
+      this.selectedNodeId = nodeId
+      this.selectedNodeName = nodeName
+      this.newDocCategory = nodeId
+      this.nodeSearchText = nodeName || ''
+      this.showNodePicker = false
+    },
+    
+    handleFileSelect(event) {
+      const file = event.target.files[0]
+      if (file) {
+        this.processFile(file)
+      } else {
+        this.selectedFile = null
+      }
+    },
+    
+    handleFileDrop(event) {
+      const file = event.dataTransfer.files[0]
+      if (file) {
+        this.processFile(file)
+        // 同步到文件输入框
+        if (this.$refs.fileInput) {
+          const dataTransfer = new DataTransfer()
+          dataTransfer.items.add(file)
+          this.$refs.fileInput.files = dataTransfer.files
+        }
+      }
+    },
+    
+    processFile(file) {
+      // 验证文件类型（只允许Markdown文件）
+      const fileName = file.name.toLowerCase()
+      const allowedExtensions = ['.md', '.markdown', '.txt']
+      const isValidFile = allowedExtensions.some(ext => fileName.endsWith(ext))
+      
+      if (!isValidFile) {
+        this.$message?.error('请选择Markdown文件（.md, .markdown, .txt）')
+        if (this.$refs.fileInput) {
+          this.$refs.fileInput.value = ''
+        }
+        this.selectedFile = null
+        return
+      }
+      
+      this.selectedFile = file
+      // 如果文档名称为空，使用文件名（去掉扩展名）作为默认名称
+      if (!this.newDocTitle.trim()) {
+        this.newDocTitle = file.name.replace(/\.(md|markdown|txt)$/i, '')
+      }
+      console.log('[handleFileSelect] 已选择文件:', file.name, '大小:', file.size, '字节')
+    },
+    
+    removeFile() {
+      this.selectedFile = null
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
+    },
+    
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    },
+    
+    handleClickOutside(event) {
+      // 如果节点选择器打开，点击外部时关闭
+      if (this.showNodePicker && !event.target.closest('.node-selector')) {
+        this.showNodePicker = false
+        // 如果已经选择了节点，恢复显示选中的节点名称
+        if (this.selectedNodeName) {
+          this.nodeSearchText = this.selectedNodeName
+        } else {
+          this.nodeSearchText = ''
+        }
+      }
     },
 
     createNewFolder() {
       this.showNewFolderDialog = true
       this.newFolderName = ''
-      this.newFolderDescription = ''
     },
     
     closeNewFolderDialog() {
       this.showNewFolderDialog = false
       this.newFolderName = ''
-      this.newFolderDescription = ''
     },
 
     async confirmNewFolder() {
       if (!this.newFolderName.trim()) return
       
       try {
-        console.log('[confirmNewFolder] 创建新文件夹')
+        console.log('[confirmNewFolder] 创建新节点')
         const response = await wikiAPI.page.createPage({
           projectId: this.projectId,
           title: this.newFolderName.trim(),
           pageType: 'DIRECTORY',
-          parentId: null, // 目录创建在根目录
+          parentId: null, // 节点创建在根目录
           isPublic: false
         })
         
         if (response && response.code === 200) {
-          console.log('[confirmNewFolder] 文件夹创建成功:', response.data)
-          this.$message?.success('文件夹创建成功！')
+          console.log('[confirmNewFolder] 节点创建成功:', response.data)
+          this.$message?.success('节点创建成功！')
           
           //重新加载Wiki树
           this.folders = []
@@ -361,11 +567,11 @@ export default {
           this.closeNewFolderDialog()
         } else {
           console.error('[confirmNewFolder] 创建失败:', response)
-          this.$message?.error(response.msg || '创建文件夹失败')
+          this.$message?.error(response.msg || '创建节点失败')
         }
       } catch (error) {
-        console.error('[confirmNewFolder] 创建文件夹失败:', error)
-        this.$message?.error('创建文件夹失败，请重试')
+        console.error('[confirmNewFolder] 创建节点失败:', error)
+        this.$message?.error('创建节点失败，请重试')
       }
     },
 
@@ -418,50 +624,97 @@ export default {
     },
     
     async confirmNewDoc() {
-      if (!this.newDocTitle.trim()) return
+      if (!this.selectedFile) {
+        this.$message?.error('请选择要上传的Markdown文件')
+        return
+      }
+      
+      if (!this.newDocTitle.trim()) {
+        this.$message?.error('请输入文档名称')
+        return
+      }
       
       try {
-        // 找到选中的文件夹ID
-        const selectedFolder = this.folders.find(f => f.name === this.newDocCategory)
+        // 前端本地创建文档，不调用后端API
+        console.log('[confirmNewDoc] 前端本地创建文档')
         
-        console.log('[confirmNewDoc] 创建新文档, parentId:', selectedFolder?.id)
-        const response = await wikiAPI.page.createPage({
-          projectId: this.projectId,
+        // 确定父页面ID（如果选择了节点）
+        let folderId = null
+        if (this.selectedNodeId !== null && this.selectedNodeId !== undefined) {
+          folderId = typeof this.selectedNodeId === 'string' 
+            ? parseInt(this.selectedNodeId) 
+            : Number(this.selectedNodeId)
+          if (isNaN(folderId)) {
+            folderId = null
+          }
+        }
+        
+        // 读取文件内容
+        const fileContent = await this.readFileContent(this.selectedFile)
+        
+        // 生成临时唯一ID（使用时间戳 + 随机数）
+        const tempId = Date.now() + Math.floor(Math.random() * 1000)
+        
+        // 创建新文档对象
+        const newDoc = {
+          id: tempId,
           title: this.newDocTitle.trim(),
-          pageType: 'DOCUMENT',
-          content: this.newDocContent || '# ' + this.newDocTitle.trim() + '\n\n',
-          parentId: selectedFolder?.id || null,
-          isPublic: false,
-          changeDescription: '创建文档'
+          updated: new Date().toLocaleString('zh-CN'),
+          content: fileContent,
+          folderId: folderId
+        }
+        
+        // 直接添加到docs数组
+        this.docs.push(newDoc)
+        
+        console.log('[confirmNewDoc] 文档创建成功（前端）:', newDoc)
+        this.$message?.success('文档创建成功！')
+        
+        // 关闭对话框
+        this.closeNewDocDialog()
+        
+        // 自动选择新创建的文档
+        this.activeId = tempId
+        this.currentPage = {
+          id: String(tempId),
+          title: newDoc.title,
+          content: newDoc.content,
+          pageType: 'DOCUMENT'
+        }
+        this.originalContent = newDoc.content
+        
+        // 如果文档在文件夹中，确保文件夹展开
+        if (folderId) {
+          const folder = this.folders.find(f => f.id === folderId)
+          if (folder && !folder.expanded) {
+            folder.expanded = true
+          }
+        }
+        
+        // 通知父组件
+        this.$emit('document-created', {
+          id: tempId,
+          title: newDoc.title
         })
         
-        if (response && response.code === 200) {
-          console.log('[confirmNewDoc] 文档创建成功:', response.data)
-          this.$message?.success('文档创建成功！')
-          
-          // 重新加载Wiki树
-          this.folders = []
-          this.docs = []
-          await this.loadWikiTree()
-          
-          // 选择新创建的文档
-          await this.selectDocument(response.data.id)
-          
-          this.closeNewDocDialog()
-          
-          // 通知父组件
-          this.$emit('document-created', {
-            id: response.data.id,
-            title: this.newDocTitle
-          })
-        } else {
-          console.error('[confirmNewDoc] 创建失败:', response)
-          this.$message?.error(response.msg || '创建文档失败')
-        }
+        console.log('[confirmNewDoc] 文档已添加到列表并自动选中')
       } catch (error) {
         console.error('[confirmNewDoc] 创建文档失败:', error)
-        this.$message?.error('创建文档失败，请重试')
+        this.$message?.error('创建文档失败：' + (error.message || '无法读取文件内容'))
       }
+    },
+    
+    readFileContent(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          resolve(e.target.result)
+        }
+        reader.onerror = () => {
+          reject(new Error('文件读取失败'))
+        }
+        reader.readAsText(file, 'UTF-8')
+      })
     },
     
     updateContent() {
@@ -481,39 +734,31 @@ export default {
       }
     },
     
-    async saveDocument() {
-      if (!this.activeDoc || !this.activeId) {
+    saveDocument() {
+      if (!this.activeDoc) {
         console.warn('[saveDocument] 没有活动文档')
+        this.$message?.error('没有可保存的文档')
         return
       }
       
       try {
-        console.log('[saveDocument] 保存文档, pageId:', this.activeId)
-        const response = await wikiAPI.page.updatePage(this.activeId, {
-          title: this.activeDoc.title,
-          content: this.activeDocContent,
-          changeDescription: '更新文档内容'
-        })
+        // 前端本地保存，不调用后端API
+        console.log('[saveDocument] 前端本地保存文档')
         
-        if (response && response.code === 200) {
-          console.log('[saveDocument] 文档保存成功')
-          this.$message?.success('文档保存成功！')
-          
-          // 更新文档数据
-          this.activeDoc.content = this.activeDocContent
-          this.activeDoc.updated = new Date().toLocaleString('zh-CN')
-          this.originalContent = this.activeDocContent
-          
-          // 标记已保存并退出编辑模式
-          this.hasUnsavedChanges = false
-          this.isEditing = false
-          
-          // 通知父组件
-          this.$emit('document-saved', this.activeDoc)
-        } else {
-          console.error('[saveDocument] 保存失败:', response)
-          this.$message?.error(response.msg || '保存文档失败')
-        }
+        // 更新文档内容
+        this.activeDoc.content = this.activeDocContent
+        this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+        this.originalContent = this.activeDocContent
+        
+        // 标记已保存并退出编辑模式
+        this.hasUnsavedChanges = false
+        this.isEditing = false
+        
+        console.log('[saveDocument] 文档保存成功（前端）')
+        this.$message?.success('文档保存成功！')
+        
+        // 通知父组件
+        this.$emit('document-saved', this.activeDoc)
       } catch (error) {
         console.error('[saveDocument] 保存文档失败:', error)
         this.$message?.error('保存文档失败，请重试')

@@ -839,6 +839,377 @@
   box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
 }
 
+/* ========== 节点选择器样式（输入框形式） ========== */
+.cabinet-view .node-selector {
+  position: relative;
+}
+
+.cabinet-view .node-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.cabinet-view .node-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  background: #ffffff;
+  color: #1e293b;
+  font-family: inherit;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.cabinet-view .node-input:focus {
+  outline: none;
+  border-color: #5EB6E4;
+  box-shadow: 0 0 0 4px rgba(94, 182, 228, 0.1), 0 4px 12px rgba(94, 182, 228, 0.15);
+  transform: translateY(-1px);
+}
+
+.cabinet-view .node-input::placeholder {
+  color: #94a3b8;
+}
+
+.cabinet-view .node-input-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.cabinet-view .node-input:focus + .node-input-icon,
+.cabinet-view .node-selector.show .node-input-icon {
+  transform: translateY(-50%) rotate(180deg);
+  color: #5EB6E4;
+}
+
+.cabinet-view .node-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cabinet-view .node-picker-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #334155;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.cabinet-view .node-picker-item:last-child {
+  border-bottom: none;
+}
+
+.cabinet-view .node-picker-item:hover {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.1) 0%, rgba(94, 182, 228, 0.05) 100%);
+  color: #0044CC;
+}
+
+.cabinet-view .node-picker-item.selected {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.15) 0%, rgba(94, 182, 228, 0.1) 100%);
+  color: #0044CC;
+  font-weight: 600;
+}
+
+.cabinet-view .node-picker-empty {
+  padding: 20px 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* ========== 黑暗模式 - 节点选择器 ========== */
+.dark-mode .cabinet-view .node-input {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .node-input:focus {
+  border-color: #5EB6E4;
+  box-shadow: 0 0 0 4px rgba(94, 182, 228, 0.2), 0 4px 12px rgba(94, 182, 228, 0.2);
+  background: #334155;
+}
+
+.dark-mode .cabinet-view .node-input::placeholder {
+  color: #64748b;
+}
+
+.dark-mode .cabinet-view .node-input-icon {
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .node-picker-dropdown {
+  background: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode .cabinet-view .node-picker-item {
+  color: #cbd5e1;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .cabinet-view .node-picker-item:hover {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.15) 0%, rgba(94, 182, 228, 0.08) 100%);
+  color: #60a5fa;
+}
+
+.dark-mode .cabinet-view .node-picker-item.selected {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.2) 0%, rgba(94, 182, 228, 0.15) 100%);
+  color: #60a5fa;
+}
+
+.dark-mode .cabinet-view .node-picker-empty {
+  color: #64748b;
+}
+
+/* ========== 文件上传样式 ========== */
+.cabinet-view .file-input-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.cabinet-view .file-upload-area {
+  position: relative;
+  min-height: 160px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.cabinet-view .file-upload-area:hover {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.15);
+  transform: translateY(-2px);
+}
+
+.cabinet-view .file-upload-area.has-file {
+  border-color: #5EB6E4;
+  border-style: solid;
+  background: #ffffff;
+  cursor: default;
+}
+
+.cabinet-view .file-upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.cabinet-view .upload-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.1) 0%, rgba(0, 68, 204, 0.05) 100%);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.cabinet-view .file-upload-area:hover .upload-icon-wrapper {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.15) 0%, rgba(0, 68, 204, 0.1) 100%);
+}
+
+.cabinet-view .upload-icon {
+  color: #5EB6E4;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.cabinet-view .upload-text {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.3px;
+}
+
+.cabinet-view .upload-hint {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.cabinet-view .file-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cabinet-view .file-preview-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.1) 0%, rgba(0, 68, 204, 0.05) 100%);
+  border-radius: 12px;
+  flex-shrink: 0;
+  color: #5EB6E4;
+}
+
+.cabinet-view .file-preview-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cabinet-view .file-preview-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.2px;
+}
+
+.cabinet-view .file-preview-meta {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.cabinet-view .file-preview-remove {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.cabinet-view .file-preview-remove:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.1);
+}
+
+.cabinet-view .file-preview-remove:active {
+  transform: scale(0.95);
+}
+
+/* ========== 黑暗模式 - 文件上传 ========== */
+.dark-mode .cabinet-view .file-upload-area {
+  border-color: #475569;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.dark-mode .cabinet-view .file-upload-area:hover {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.2);
+}
+
+.dark-mode .cabinet-view .file-upload-area.has-file {
+  border-color: #5EB6E4;
+  background: #1e293b;
+}
+
+.dark-mode .cabinet-view .upload-icon-wrapper {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.15) 0%, rgba(0, 68, 204, 0.1) 100%);
+}
+
+.dark-mode .cabinet-view .upload-text {
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .upload-hint {
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .file-preview-icon {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.15) 0%, rgba(0, 68, 204, 0.1) 100%);
+}
+
+.dark-mode .cabinet-view .file-preview-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .cabinet-view .file-preview-meta {
+  color: #94a3b8;
+}
+
+.dark-mode .cabinet-view .file-preview-remove {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.dark-mode .cabinet-view .file-preview-remove:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+
 .dark-mode .cabinet-view .editor-pane {
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border-color: rgba(71, 85, 105, 0.6);
