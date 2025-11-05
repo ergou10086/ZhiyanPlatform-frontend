@@ -788,24 +788,6 @@
   white-space: nowrap;
 }
 
-.task-priority.�?{
-  background: #dc2626 !important;
-  color: #ffffff !important;
-  font-weight: 600;
-}
-
-.task-priority.�?{
-  background: #d97706 !important;
-  color: #ffffff !important;
-  font-weight: 600;
-}
-
-.task-priority.�?{
-  background: #059669 !important;
-  color: #ffffff !important;
-  font-weight: 600;
-}
-
 /* 使用属性选择器确保优先级样式在正常模式下生效 */
 .task-priority[class*="高"] {
   background: #dc2626 !important;
@@ -912,11 +894,6 @@
   font-weight: 500;
 }
 
-.task-status.进行�?{
-  background: #d4edda;
-  color: #155724;
-}
-
 .task-status.暂停 {
   background: #f8d7da;
   color: #721c24;
@@ -949,20 +926,6 @@
 
 .task-status-btn:hover {
   background: #dee2e6;
-}
-
-.task-status-btn.待接�?{
-  background: #6c757d !important;
-  color: white !important;
-  border-color: #6c757d !important;
-  font-weight: 600;
-}
-
-.task-status-btn.进行�?{
-  background: #007bff !important;
-  color: white !important;
-  border-color: #007bff !important;
-  font-weight: 600;
 }
 
 .task-status-btn.暂停 {

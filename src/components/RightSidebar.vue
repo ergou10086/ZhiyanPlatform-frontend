@@ -426,7 +426,7 @@ export default {
   padding-right: 4px;
 }
 
-/* 任务列表滚动条样式 */
+/* 自定义滚动条样式 */
 .urgent-task-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -882,15 +882,22 @@ export default {
 }
 
 /* 暗色模式下的任务列表滚动条样式 */
+.dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar {
+  width: 6px;
+}
+
 .dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar-track {
-  background: #334155 !important;
+  background: #1e293b;
+  border-radius: 3px;
 }
 
 .dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar-thumb {
-  background: #475569 !important;
+  background: #475569;
+  border-radius: 3px;
+  transition: background 0.3s ease;
 }
 
 .dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar-thumb:hover {
-  background: #64748b !important;
+  background: #64748b;
 }
 </style>

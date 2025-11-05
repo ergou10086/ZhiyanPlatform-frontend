@@ -31,10 +31,8 @@
     <!-- 主要内容区域 -->
     <div class="main-content">
       <h1 class="page-main-title">AI 实验分析助手</h1>
-      <!-- 主内容布局：左侧对话区域，右侧文件列表 -->
-      <div class="main-layout">
-        <!-- AI对话区域 -->
-        <div class="ai-chat-section">
+      <!-- AI对话区域 -->
+      <div class="ai-chat-section">
         <div class="chat-header">
           <button class="view-history-btn" @click="viewChatHistory" title="查看聊天记录">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1002,7 +1000,7 @@ export default {
             this.difyConversationId = data.conversation_id
             console.log('[AI助手] 💾 保存Dify对话ID:', this.difyConversationId)
           }
-          
+
           this.finishTypewriter()
 
           setTimeout(() => {
@@ -1022,7 +1020,7 @@ export default {
           this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。\n错误详情：' + (error.message || error)
           this.isSending = false
           this.saveCurrentChatSession()
-          
+
           this.$nextTick(() => {
             this.scrollToBottom()
           })
@@ -1249,6 +1247,7 @@ export default {
         })
 
         // 将文件名添加到输入框（仅在已有消息时添加提示）
+        // 将文件名添加到输入框
         const fileNames = files.map(file => file.name).join('、')
         // 只有用户已经输入了问题时，才添加文件提示
         if (this.userMessage.trim()) {
@@ -1372,8 +1371,8 @@ export default {
     confirmFileSelection() {
       if (this.selectedFiles.length === 0) return
       
-      const selectedFiles = this.files.filter(file => this.selectedFiles.includes(file.id))
-      const selectedFileNames = selectedFiles
+      const selectedFileNames = this.files
+        .filter(file => this.selectedFiles.includes(file.id))
         .map(file => file.name || file.title || '未命名文件')
         .join('、')
       
@@ -1402,7 +1401,7 @@ export default {
       
       // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
       console.log('选中的文件ID:', this.selectedFiles)
-      console.log('选中的文件:', selectedFiles)
+      console.log('选中的文件:', this.files.filter(file => this.selectedFiles.includes(file.id)))
       
       this.closeFileDialog()
     },
