@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="ai-assistant-container">
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
@@ -31,8 +31,10 @@
     <!-- 主要内容区域 -->
     <div class="main-content">
       <h1 class="page-main-title">AI 实验分析助手</h1>
-      <!-- AI对话区域 -->
-      <div class="ai-chat-section">
+      <!-- 主内容布局：左侧对话区域，右侧文件列表 -->
+      <div class="main-layout">
+        <!-- AI对话区域 -->
+        <div class="ai-chat-section">
         <div class="chat-header">
           <button class="view-history-btn" @click="viewChatHistory" title="查看聊天记录">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -168,6 +170,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     <!-- 聊天记录侧边栏 -->
     <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
@@ -343,7 +346,7 @@
         </div>
       </div>
     </div>
-    </div>
+  </div>
 </template>
 
 <script>
@@ -1371,7 +1374,7 @@ export default {
       if (this.selectedFiles.length === 0) return
       
       const selectedFileObjects = this.files.filter(file => this.selectedFiles.includes(file.id))
-      
+
       const selectedFileNames = selectedFileObjects
         .map(file => file.name || file.title || '未命名文件')
         .join('、')
@@ -1401,7 +1404,7 @@ export default {
       
       // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
       console.log('选中的文件ID:', this.selectedFiles)
-      console.log('选中的文件:', this.files.filter(file => this.selectedFiles.includes(file.id)))
+      console.log('选中的文件:', selectedFiles)
       
       this.closeFileDialog()
     },
