@@ -173,7 +173,8 @@ export default {
       modalMessage: '',
       isLoading: true, // 添加加载状态
       showToast: false,
-      toastMessage: ''
+      toastMessage: '',
+      saveStateTimer: null // 防抖定时器
     }
   },
   computed: {
@@ -201,20 +202,54 @@ export default {
       return result
     }
   },
+  watch: {
+    searchText: {
+      handler(newVal) {
+        // 搜索文本改变时，重置到第一页并保存状态
+        if (this.currentPage !== 1) {
+          this.currentPage = 1
+        }
+        // 使用防抖，避免频繁保存
+        this.debounceSaveState()
+      }
+    }
+  },
   mounted() {
     // 清理旧的图片 URL（包含 localhost 的错误 URL）
     this.cleanupOldImageUrls()
+    
+    // 恢复页面状态（页码、搜索、筛选）
+    this.restorePageState()
     
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
   },
   activated() {
-    // 当页面被激活时（从其他页面返回），重新加载项目数据
-    // 这样可以获取到最新上传的图片
-    console.log('页面被激活，重新加载项目数据')
-    this.loadProjects()
+    // 当页面被激活时（从其他页面返回），优先显示缓存，后台更新
+    // 这样可以快速显示，同时获取最新数据
+    
+    // 恢复页面状态（页码、搜索、筛选）
+    this.restorePageState()
+    
+    if (this.projects.length === 0) {
+      // 如果没有数据，先加载缓存
+      this.loadProjectsFromLocalStorage()
+    }
+    // 后台静默更新数据
+    this.loadProjects(true) // 传入true表示后台更新模式
+  },
+  beforeRouteLeave(to, from, next) {
+    // 保存页面状态（离开前）
+    this.savePageState()
+    next()
   },
   beforeDestroy() {
+    // 清除防抖定时器
+    if (this.saveStateTimer) {
+      clearTimeout(this.saveStateTimer)
+    }
+    // 保存页面状态（组件销毁前）
+    this.savePageState()
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
@@ -281,37 +316,54 @@ export default {
         this.statusOpen = false
       }
     },
-    async loadProjects() {
-      this.isLoading = true
+    async loadProjects(backgroundUpdate = false) {
+      // 如果不是后台更新模式，先尝试从缓存加载
+      if (!backgroundUpdate) {
+        const cachedProjects = localStorage.getItem('projects')
+        if (cachedProjects) {
+          try {
+            const projects = JSON.parse(cachedProjects)
+            const publicProjects = projects.filter(p => p.visibility === 'PUBLIC')
+            if (publicProjects.length > 0) {
+              // 先显示缓存数据
+              this.projects = publicProjects.map(project => ({
+                ...project,
+                status: this.getStatusDisplay(project.status),
+                image: normalizeProjectCoverUrl(project.image || project.imageUrl),
+                imageUrl: normalizeProjectCoverUrl(project.imageUrl || project.image)
+              }))
+              this.isLoading = false
+              // 后台更新数据
+              setTimeout(() => this.loadProjects(true), 100)
+              return
+            }
+          } catch (e) {
+            // 缓存读取失败，继续从API加载
+          }
+        }
+      }
+      
+      // 如果是后台更新或没有缓存，才显示loading
+      if (!backgroundUpdate) {
+        this.isLoading = true
+      }
       
       try {
-        console.log('====== 开始加载项目广场数据 ======')
-        
         // 从后端API加载公开项目
         const { projectAPI } = await import('@/api/project')
         
-        console.log('调用后端API获取公开活跃项目...')
         const response = await projectAPI.getPublicActiveProjects(0, 100) // 获取前100个公开项目
         
-        console.log('API响应:', response)
-        console.log('响应code:', response?.code)
-        console.log('响应data类型:', typeof response?.data)
-        
         if (response && response.code === 200) {
-          console.log('成功获取公开项目数据')
-          
           // 处理后端返回的分页数据
           let backendProjects = []
           if (response.data && response.data.content) {
             // Spring Data Page对象
             backendProjects = response.data.content
-            console.log('从Page对象获取项目列表，数量:', backendProjects.length)
           } else if (Array.isArray(response.data)) {
             // 直接返回数组
             backendProjects = response.data
-            console.log('直接获取项目数组，数量:', backendProjects.length)
           } else {
-            console.warn('未知的数据格式:', response.data)
             backendProjects = []
           }
           
@@ -384,12 +436,10 @@ export default {
               return true
             })
           
-          // 调试日志已简化以提升性能
-          console.log('转换后的项目数量:', this.projects.length)
-          // if (this.projects.length > 0) {
-          //   console.log('项目数据示例:', this.projects[0])
-          //   console.log('所有项目的状态:', this.projects.map(...))
-          // }
+          // 只在非后台更新模式下输出日志
+          if (!backgroundUpdate) {
+            console.log('转换后的项目数量:', this.projects.length)
+          }
           
           // 先使用缓存或默认值显示项目列表，不阻塞UI
           this.projects.forEach(project => {
@@ -411,13 +461,16 @@ export default {
           // 保存合并后的数据到localStorage（先保存，不等待成员数量）
           localStorage.setItem('projects', JSON.stringify(this.projects))
           
+          // 如果不是后台更新模式，立即显示列表
+          if (!backgroundUpdate) {
+            this.isLoading = false
+          }
+          
           // 后台延迟加载成员数量（不阻塞UI显示）
           // 使用 setTimeout 确保UI先渲染
           setTimeout(async () => {
-            console.log('后台开始加载成员数量...')
             const memberCountPromises = this.projects.map(async (project) => {
               try {
-                // 如果已有缓存且数据较新，可以跳过（这里简化处理，每次都更新）
                 const memberResponse = await projectAPI.getProjectMembers(project.id, 0, 100) // 只获取前100个即可统计数量
                 let memberCount = 0
                 
@@ -456,25 +509,29 @@ export default {
             
             // 并行获取，但不等待所有完成（使用 Promise.allSettled 避免单个失败影响整体）
             await Promise.allSettled(memberCountPromises)
-            console.log('后台成员数量加载完成')
-          }, 100) // 延迟100ms，确保UI先渲染
+          }, backgroundUpdate ? 0 : 100) // 后台更新时立即开始，否则延迟100ms
           
-          console.log('====== 项目加载完成，显示', this.projects.length, '个公开项目 ======')
+          // 如果是后台更新，不显示日志
+          if (!backgroundUpdate) {
+            console.log('====== 项目加载完成，显示', this.projects.length, '个公开项目 ======')
+          }
         } else {
           console.error('获取公开项目失败，code:', response?.code, 'msg:', response?.msg)
-          // 失败时从localStorage加载
-          this.loadProjectsFromLocalStorage()
+          // 失败时从localStorage加载（只在非后台更新模式下）
+          if (!backgroundUpdate) {
+            this.loadProjectsFromLocalStorage()
+          }
         }
       } catch (error) {
-        console.error('====== 加载项目失败 ======')
-        console.error('错误类型:', error.constructor.name)
-        console.error('错误信息:', error.message)
-        console.error('错误详情:', error)
-        
-        // 发生错误时从localStorage加载
-        this.loadProjectsFromLocalStorage()
+        console.error('====== 加载项目失败 ======', error)
+        // 发生错误时从localStorage加载（只在非后台更新模式下）
+        if (!backgroundUpdate) {
+          this.loadProjectsFromLocalStorage()
+        }
       } finally {
-        this.isLoading = false
+        if (!backgroundUpdate) {
+          this.isLoading = false
+        }
       }
     },
     
@@ -611,11 +668,13 @@ export default {
       this.selectedStatus = s
       this.statusOpen = false
       this.currentPage = 1
+      this.savePageState() // 保存状态
     },
     resetFilters() {
       this.searchText = ''
       this.selectedStatus = ''
       this.currentPage = 1
+      this.savePageState() // 保存状态
     },
     /**
      * 处理图片加载错误
@@ -641,15 +700,72 @@ export default {
       }
     },
     goPrev() {
-      if (this.currentPage > 1) this.currentPage--
+      if (this.currentPage > 1) {
+        this.currentPage--
+        this.savePageState() // 保存状态
+      }
     },
     goNext() {
-      if (this.currentPage < this.totalPages) this.currentPage++
+      if (this.currentPage < this.totalPages) {
+        this.currentPage++
+        this.savePageState() // 保存状态
+      }
     },
     goPage(p) {
       this.currentPage = p
+      this.savePageState() // 保存状态
+    },
+    savePageState() {
+      // 保存当前页面状态到 localStorage
+      try {
+        const pageState = {
+          currentPage: this.currentPage,
+          searchText: this.searchText,
+          selectedStatus: this.selectedStatus,
+          timestamp: Date.now()
+        }
+        localStorage.setItem('project_square_state', JSON.stringify(pageState))
+      } catch (e) {
+        // 忽略保存错误
+      }
+    },
+    restorePageState() {
+      // 从 localStorage 恢复页面状态
+      try {
+        const savedState = localStorage.getItem('project_square_state')
+        if (savedState) {
+          const pageState = JSON.parse(savedState)
+          // 检查状态是否过期（30分钟）
+          if (pageState.timestamp && Date.now() - pageState.timestamp < 30 * 60 * 1000) {
+            if (pageState.currentPage) {
+              this.currentPage = pageState.currentPage
+            }
+            if (pageState.searchText !== undefined) {
+              this.searchText = pageState.searchText
+            }
+            if (pageState.selectedStatus !== undefined) {
+              this.selectedStatus = pageState.selectedStatus
+            }
+          }
+        }
+      } catch (e) {
+        // 忽略恢复错误
+      }
+    },
+    debounceSaveState() {
+      // 清除之前的定时器
+      if (this.saveStateTimer) {
+        clearTimeout(this.saveStateTimer)
+      }
+      // 设置新的定时器，500ms后保存
+      this.saveStateTimer = setTimeout(() => {
+        this.savePageState()
+      }, 500)
     },
     viewProjectDetail(project) {
+      // 保存页面状态（进入详情页前）
+      this.savePageState()
+      
       // 检查用户是否已登录
       const token = localStorage.getItem('access_token')
       const userInfo = localStorage.getItem('user_info')

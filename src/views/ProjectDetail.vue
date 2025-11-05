@@ -1103,20 +1103,15 @@ export default {
       }
 
       try {
-        console.log('[loadProjectTasks] 开始从后端加载任务数据，项目ID:', projectId)
-        
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
         
         // 调用后端API获取任务列表
         const response = await taskAPI.getProjectTasks(projectId, 0, 100) // 获取前100个任务
         
-        console.log('[loadProjectTasks] API返回结果:', response)
-        
         // 检查返回结果
         if (response && response.code === 200 && response.data) {
           const tasksData = response.data
-          console.log('[loadProjectTasks] 任务数据:', tasksData)
           
           // 处理分页数据
           let taskList = []
@@ -1127,8 +1122,6 @@ export default {
             // 后端返回的是数组
             taskList = tasksData
           }
-          
-          console.log('[loadProjectTasks] 解析的任务列表:', taskList)
           
           // 转换任务数据格式，优先使用后端返回的创建人信息，如果没有则使用本地用户信息
           const currentUserId = this.getCurrentUserId()
@@ -1194,7 +1187,7 @@ export default {
         const foundProject = projects.find(p => String(p.id) === String(projectId))
         
         if (foundProject && foundProject.tasks) {
-          console.log('[loadTasksFromLocalStorage] 从localStorage加载任务:', foundProject.tasks)
+          // 从localStorage加载任务（已简化日志）
           
           this.tasks = (foundProject.tasks || []).map(task => ({
             id: task.id,
@@ -1217,7 +1210,26 @@ export default {
     
     async loadProject() {
       const projectId = this.$route.params.id
-      console.log('正在加载项目ID:', projectId, '类型:', typeof projectId)
+      
+      // 先尝试从缓存加载，立即显示
+      try {
+        const cachedProject = localStorage.getItem(`project_detail_${projectId}`)
+        if (cachedProject) {
+          const parsed = JSON.parse(cachedProject)
+          // 检查缓存是否过期（3分钟）
+          if (parsed.timestamp && Date.now() - parsed.timestamp < 3 * 60 * 1000) {
+            this.project = parsed.data.project
+            this.teamMembers = parsed.data.teamMembers || []
+            this.tasks = parsed.data.tasks || []
+            this.isLoading = false
+            // 后台更新数据
+            this.loadProjectFromAPI()
+            return
+          }
+        }
+      } catch (e) {
+        // 缓存读取失败，继续从API加载
+      }
       
       // 优先从后端API获取最新的项目数据
       try {
@@ -1225,7 +1237,6 @@ export default {
         const response = await projectAPI.getProjectById(projectId)
         
         if (response && response.code === 200 && response.data) {
-          console.log('从API获取到最新项目数据:', response.data)
           const apiProject = response.data
           
           // 使用API返回的最新数据
@@ -1253,18 +1264,19 @@ export default {
             creatorName: apiProject.creatorName || '未知' // 保存创建者名称
           }
           
-          console.log('项目加载完成，最新imageUrl:', this.project.imageUrl)
-          console.log('项目创建者:', apiProject.creatorName, '负责人设置为:', this.project.manager)
-          
-          // 加载团队成员（从localStorage或使用默认值）
-          // 加载完团队成员后，会更新负责人为项目拥有者
-          await this.loadTeamMembers()
-          // 加载完团队成员后，更新负责人为项目拥有者（如果有的话）
-          this.updateManagerFromTeamMembers()
-          
-          // 加载任务数据
-          this.loadProjectTasks()
+          // 并行加载团队成员和任务数据，提升加载速度
           this.isLoading = false
+          Promise.all([
+            this.loadTeamMembers(),
+            this.loadProjectTasks()
+          ]).then(() => {
+            // 加载完团队成员后，更新负责人为项目拥有者（如果有的话）
+            this.updateManagerFromTeamMembers()
+            // 保存到缓存
+            this.saveProjectDetailCache()
+          }).catch(error => {
+            console.error('并行加载数据时出错:', error)
+          })
           return
         }
       } catch (error) {
@@ -1273,54 +1285,38 @@ export default {
       
       // 如果API失败，从localStorage加载项目数据（作为后备）
       const savedProjects = localStorage.getItem('projects')
-      console.log('localStorage中的项目数据:', savedProjects)
       
       if (savedProjects) {
         const projects = JSON.parse(savedProjects)
-        console.log('解析后的项目列表:', projects)
-        console.log('项目ID列表:', projects.map(p => ({ id: p.id, type: typeof p.id })))
         
         // 使用字符串比较，因为后端返回的是字符串ID
         const foundProject = projects.find(p => String(p.id) === String(projectId))
         
         if (foundProject) {
-          console.log('找到的项目数据:', foundProject)
-          
           // 将项目广场的数据格式转换为详情页面的格式
           this.project = {
             id: foundProject.id,
-            name: foundProject.name || foundProject.title, // 添加数据库字段名
+            name: foundProject.name || foundProject.title,
             title: foundProject.title || foundProject.name,
             description: foundProject.description || foundProject.dataAssets || foundProject.direction || '暂无描述',
-            // 保存日期字段（用于编辑）
             startDate: foundProject.startDate || foundProject.start_date || '',
             endDate: foundProject.endDate || foundProject.end_date || '',
-            // 显示周期字段
             period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
               `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
               '未设置',
-            status: this.getStatusValue(foundProject.status), // 转换为枚举值
-            visibility: foundProject.visibility || 'PRIVATE', // 添加可见性字段
+            status: this.getStatusValue(foundProject.status),
+            visibility: foundProject.visibility || 'PRIVATE',
             imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || 'https://via.placeholder.com/400x225?text=Project+Image',
             image: normalizeProjectCoverUrl(foundProject.image || foundProject.imageUrl),
-            manager: foundProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
+            manager: foundProject.creatorName || '未知',
             teamSize: foundProject.teamSize,
             category: foundProject.category,
             aiCore: foundProject.aiCore,
             tags: foundProject.tags || [],
             tasks: foundProject.tasks || [],
-            created_by: foundProject.created_by || 1, // 添加创建人字段
-            creatorName: foundProject.creatorName || '未知' // 保存创建者名称
+            created_by: foundProject.created_by || 1,
+            creatorName: foundProject.creatorName || '未知'
           }
-          
-          console.log('加载的项目数据 - ID:', this.project.id, 'startDate:', this.project.startDate, 'endDate:', this.project.endDate)
-          console.log('项目imageUrl:', this.project.imageUrl)
-          
-          console.log('项目周期:', foundProject.startDate, foundProject.endDate)
-          console.log('项目任务:', foundProject.tasks)
-          
-          // 注意：任务数据现在通过loadProjectTasks方法从后端API加载
-          // 这里不再从localStorage加载任务，以确保数据是最新的
           
           // 加载团队成员数据
           this.teamMembers = foundProject.teamMembers || []
@@ -1329,25 +1325,29 @@ export default {
           // 从团队成员中查找项目拥有者，更新负责人
           this.updateManagerFromTeamMembers()
           
+          // 并行加载任务和团队成员数据
+          this.isLoading = false
+          Promise.all([
+            this.loadProjectTasks(),
+            this.loadTeamMembers()
+          ]).then(() => {
+            this.updateManagerFromTeamMembers()
+            this.saveProjectDetailCache()
+          }).catch(error => {
+            console.error('并行加载数据时出错:', error)
+          })
         } else {
-          console.log('未找到项目，ID:', projectId)
-          console.log('所有项目ID:', projects.map(p => p.id))
-          console.log('ID类型比较:', projects.map(p => ({ 
-            id: p.id, 
-            type: typeof p.id, 
-            matches: String(p.id) === String(projectId) 
-          })))
           this.project = {
-        id: projectId,
-        title: '项目不存在',
-        description: '抱歉，未找到指定的项目',
-        period: '未知',
-        status: '未知',
-        manager: '未知'
-      }
+            id: projectId,
+            title: '项目不存在',
+            description: '抱歉，未找到指定的项目',
+            period: '未知',
+            status: '未知',
+            manager: '未知'
+          }
+          this.isLoading = false
         }
       } else {
-        console.log('localStorage中没有项目数据')
         this.project = {
           id: projectId,
           title: '项目不存在',
@@ -1356,14 +1356,73 @@ export default {
           status: '未知',
           manager: '未知'
         }
+        this.isLoading = false
       }
-      
-      // 加载完成
-      this.isLoading = false
-      console.log('项目加载完成，project:', this.project)
-      
-      // 加载项目任务数据
-      this.loadProjectTasks()
+    },
+    
+    async loadProjectFromAPI() {
+      // 后台更新项目数据
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const projectId = this.$route.params.id
+        const response = await projectAPI.getProjectById(projectId)
+        
+        if (response && response.code === 200 && response.data) {
+          const apiProject = response.data
+          
+          this.project = {
+            id: apiProject.id,
+            name: apiProject.name,
+            title: apiProject.name,
+            description: apiProject.description || '暂无描述',
+            startDate: apiProject.startDate || '',
+            endDate: apiProject.endDate || '',
+            period: (apiProject.startDate && apiProject.endDate) ? 
+              `${apiProject.startDate} 至 ${apiProject.endDate}` : 
+              '未设置',
+            status: apiProject.status || 'PLANNING',
+            visibility: apiProject.visibility || 'PRIVATE',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            manager: apiProject.creatorName || '未知',
+            teamSize: apiProject.teamSize || 1,
+            category: apiProject.category || '其他',
+            aiCore: '待定',
+            tags: apiProject.tags || [],
+            tasks: [],
+            created_by: apiProject.creatorId || 1,
+            creatorName: apiProject.creatorName || '未知'
+          }
+          
+          // 并行加载团队成员和任务数据
+          await Promise.all([
+            this.loadTeamMembers(),
+            this.loadProjectTasks()
+          ])
+          
+          this.updateManagerFromTeamMembers()
+          this.saveProjectDetailCache()
+        }
+      } catch (error) {
+        console.error('后台更新项目数据失败:', error)
+      }
+    },
+    
+    saveProjectDetailCache() {
+      // 保存项目详情到缓存
+      try {
+        const projectId = this.$route.params.id
+        localStorage.setItem(`project_detail_${projectId}`, JSON.stringify({
+          data: {
+            project: this.project,
+            teamMembers: this.teamMembers,
+            tasks: this.tasks
+          },
+          timestamp: Date.now()
+        }))
+      } catch (e) {
+        // 忽略缓存写入错误
+      }
     },
     
     loadTeamMembersFromLocalStorage() {
@@ -1588,8 +1647,6 @@ export default {
         
         const response = await projectAPI.getProjectMembers(projectId, 0, 50)
         
-        console.log('团队成员响应:', response)
-        
         if (response && response.code === 200) {
           // 处理成员数据
           if (response.data && response.data.content) {
@@ -1607,9 +1664,6 @@ export default {
               avatar: this.parseAvatarUrl(member.avatar)
             }))
           }
-          
-          console.log('✅ 团队成员加载完成:', this.teamMembers.length, '人')
-          console.log('成员ID列表:', this.teamMembers.map(m => m.id))
 
           // 将团队成员数量写入缓存，供项目广场读取显示
           try {
