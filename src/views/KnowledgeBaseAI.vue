@@ -670,14 +670,15 @@ export default {
      * 启动打字机效果
      */
     startTypewriterEffect() {
-      // 打字机速度：每600ms显示一个字符（慢速，明显的打字效果）
-      const typeSpeed = 600
+      // ⭐ 修复：打字机速度从600ms改为6ms（之前的设置太慢了！）
+      // 每6ms显示一个字符，提供流畅的打字效果
+      const typeSpeed = 6
       
       console.log('[打字机启动] 开始打字机效果，速度:', typeSpeed, 'ms/字')
       
       // 添加空转计数器，避免无限等待
       let emptyLoopCount = 0
-      const maxEmptyLoops = 2 // 最多空转2次（2*600ms = 1.2秒）
+      const maxEmptyLoops = 20 // ⭐ 优化：从2次增加到20次，对应120ms等待时间
       
       this.typewriterTimer = setInterval(() => {
           // 🔥 首要安全检查：如果状态已被清除，立即退出
@@ -739,12 +740,13 @@ export default {
             return
           }
           
-          // 逐字显示：从缓冲区取一个字符追加到显示内容
+          // ⭐ 优化：每次显示多个字符（3个），而不是1个，加快显示速度
+          const charsToTake = Math.min(3, this.streamingBuffer.length - this.streamingContent.length)
           const prevLength = this.streamingContent.length
-          this.streamingContent = this.streamingBuffer.substring(0, this.streamingContent.length + 1)
-          const newChar = this.streamingContent.charAt(prevLength)
+          this.streamingContent = this.streamingBuffer.substring(0, this.streamingContent.length + charsToTake)
+          const newChars = this.streamingContent.substring(prevLength)
           
-          console.log('[打字机⌨️] 显示进度:', this.streamingContent.length, '/', this.streamingBuffer.length, '新字符:', newChar)
+          console.log('[打字机⌨️] 显示进度:', this.streamingContent.length, '/', this.streamingBuffer.length, '新增:', newChars.length, '字符')
           
           // 🔥 直接操作DOM更新文字（绕过Vue响应式系统）
           const elementId = 'typewriter-' + this.streamingMessageId

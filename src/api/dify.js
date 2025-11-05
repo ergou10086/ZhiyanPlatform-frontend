@@ -41,6 +41,93 @@ api.interceptors.response.use(
 )
 
 /**
+ * ⭐ 辅助函数：解析和处理SSE消息
+ * @param {Array<string>} dataLines - data行数组
+ * @param {string} eventType - 事件类型
+ * @param {function} onMessage - 消息回调
+ * @param {function} onError - 错误回调
+ * @param {function} onConversationId - 保存conversationId的回调
+ */
+function parseAndHandleSSEMessage(dataLines, eventType, onMessage, onError, onConversationId) {
+  if (!dataLines || dataLines.length === 0) {
+    return
+  }
+  
+  try {
+    // 将多行data内容合并（通常只有一行）
+    const jsonStr = dataLines.join('')
+    const message = JSON.parse(jsonStr)
+    
+    // ⭐ 详细日志：显示完整消息结构
+    console.log('[Dify API] ✅ 解析消息 (新版):', {
+      rawEvent: eventType,
+      msgEvent: message.event,
+      msgData: message.data,
+      msgDataType: typeof message.data,
+      msgDataLength: message.data?.length || 0,
+      hasConvId: !!(message.conversation_id || message.conversationId)
+    })
+    
+    // 保存conversation_id
+    if (message.conversation_id || message.conversationId) {
+      const convId = message.conversation_id || message.conversationId
+      if (onConversationId) {
+        onConversationId(convId)
+      }
+    }
+    
+    // 获取事件类型（优先使用传入的eventType）
+    const event = eventType || message.event || message.eventType
+    
+    // 获取消息内容（后端包装在data字段中）
+    const content = message.data || message.answer
+    
+    // ⭐ 调试日志：检查内容获取
+    console.log('[Dify API] 🔍 内容获取:', {
+      content: content,
+      contentType: typeof content,
+      contentLength: content?.length,
+      isUndefined: content === undefined,
+      isNull: content === null,
+      isEmpty: content === ''
+    })
+    
+    // 根据事件类型处理
+    if (event === 'message' || event === 'agent_message') {
+      // AI消息事件 - 传递增量内容
+      // ⭐ 修复：只跳过 undefined 和 null，空字符串也应该传递（可能是有意义的）
+      if (content !== undefined && content !== null && onMessage) {
+        // ⭐ 但是如果是空字符串，不需要调用回调
+        if (content === '') {
+          console.log('[Dify API] ⚠️ 内容为空字符串，跳过')
+          return
+        }
+        console.log(`[Dify API] ✨ 增量内容 [${content.length}字]:`, JSON.stringify(content).substring(0, 100))
+        console.log(`[Dify API] 🔊 正在调用 onMessage 回调...`)
+        onMessage(content, message)
+        console.log(`[Dify API] ✅ onMessage 回调已调用`)
+      } else {
+        console.warn('[Dify API] ⚠️ 内容为空或未定义，跳过回调')
+      }
+    } else if (event === 'message_end') {
+      console.log('[Dify API] 🏁 消息结束')
+    } else if (event === 'error') {
+      console.error('[Dify API] ❌ 错误事件:', message)
+      if (onError) {
+        const errorMsg = message.message || message.error_message || message.data || 'Unknown error'
+        onError(new Error(errorMsg))
+      }
+    } else {
+      // 其他事件（workflow_started, node_started等）
+      console.log('[Dify API] ℹ️  其他事件:', event)
+    }
+  } catch (e) {
+    console.error('[Dify API] ❌ JSON解析失败:', e.message)
+    console.error('[Dify API] 原始数据:', dataLines.join('').substring(0, 200))
+  }
+}
+
+/**
  * 发送聊天消息（非流式）- 通过后端代理
  * @param {string} query - 用户问题
  * @param {string} conversationId - 对话ID（可选，用于保持上下文）
@@ -119,16 +206,16 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    let buffer = ''
-    let lastAnswer = '' // 追踪上一次的完整答案，用于计算增量
+    let buffer = '' // 行缓冲区
     let chunkCount = 0
     let finalConversationId = null
     let currentEvent = null
-    let jsonBuffer = [] // 用于累积多行JSON数据
+    let currentDataLines = [] // 累积当前消息的data行
     const startTime = Date.now()
 
     console.log('[Dify API] 🔄 开始读取流式响应...', new Date().toLocaleTimeString())
 
+    // ⭐⭐⭐ 完全重写的SSE解析逻辑
     while (true) {
       const { done, value } = await reader.read()
       
@@ -144,20 +231,39 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
       chunkCount++
       const chunk = decoder.decode(value, { stream: true })
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
-      console.log(`[Dify API] 📦 数据块 #${chunkCount} (${elapsed}s):`, chunk.substring(0, 100) + (chunk.length > 100 ? '...' : ''))
+      console.log(`[Dify API] 📦 数据块 #${chunkCount} (${elapsed}s, ${chunk.length}字节)`)
       
+      // 将chunk添加到缓冲区并按行分割
       buffer += chunk
       const lines = buffer.split('\n')
-      buffer = lines.pop() // 保留最后一行不完整的数据
+      // 保留最后一个不完整的行
+      buffer = lines.pop() || ''
 
+      // 逐行处理
       for (const line of lines) {
         const trimmedLine = line.trim()
+        
+        // 跳过空行（SSE消息分隔符）
+        if (trimmedLine === '') {
+          // 如果有累积的data行，尝试解析
+          if (currentDataLines.length > 0) {
+            parseAndHandleSSEMessage(
+              currentDataLines, 
+              currentEvent, 
+              onMessage, 
+              onError,
+              (convId) => { finalConversationId = convId }
+            )
+            currentDataLines = []
+            currentEvent = null
+          }
+          continue
+        }
         
         // 处理event行
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim()
-          console.log('[Dify API] 事件类型:', currentEvent)
-          jsonBuffer = [] // 重置JSON缓冲区
+          console.log('[Dify API] 📌 事件:', currentEvent)
           continue
         }
         
@@ -165,76 +271,39 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
         if (trimmedLine.startsWith('data:')) {
           const dataContent = trimmedLine.substring(5).trim()
           
-          // 累积JSON片段（处理多行JSON）
-          if (dataContent.startsWith('{')) {
-            // 新的JSON对象开始
-            jsonBuffer = [dataContent]
-          } else if (jsonBuffer.length > 0) {
-            // 继续累积JSON片段
-            jsonBuffer.push(dataContent)
+          // 如果是新的JSON对象开始，先处理之前累积的
+          if (dataContent.startsWith('{') && currentDataLines.length > 0) {
+            parseAndHandleSSEMessage(
+              currentDataLines, 
+              currentEvent, 
+              onMessage, 
+              onError,
+              (convId) => { finalConversationId = convId }
+            )
+            currentDataLines = []
           }
           
-          // 检查是否JSON对象结束
-          if (dataContent.endsWith('}') && jsonBuffer.length > 0) {
-            // 组合成完整JSON并解析
-            const jsonStr = jsonBuffer.join('\n').replace(/\n/g, '').replace(/\s+/g, ' ')
-            try {
-              const message = JSON.parse(jsonStr)
-              console.log('[Dify API] 解析SSE消息:', message)
-              
-              // 保存conversationId
-              if (message.conversation_id || message.conversationId) {
-                finalConversationId = message.conversation_id || message.conversationId
-              }
-              
-              // 处理不同类型的事件
-              const eventType = currentEvent || message.event || message.eventType
-              
-              // 优先使用message.data（后端包装的数据）
-              const answerText = message.data || message.answer
-              
-              if (eventType === 'message' || eventType === 'agent_message') {
-                // 普通消息或代理消息
-                if (answerText && onMessage) {
-                  // 后端返回的是完整的累积文本，需要计算增量
-                  const currentAnswer = answerText
-                  if (currentAnswer !== lastAnswer) {
-                    const delta = currentAnswer.substring(lastAnswer.length)
-                    console.log(`[Dify API] ✨ 增量内容 [长度:${delta.length}]:`, delta)
-                    lastAnswer = currentAnswer
-                    onMessage(delta, message)
-                  }
-                }
-              } else if (eventType === 'message_end') {
-                // 消息结束
-                console.log('[Dify API] 消息结束, conversation_id:', finalConversationId)
-              } else if (eventType === 'error') {
-                // 错误事件
-                console.error('[Dify API] Dify错误:', message)
-                if (onError) {
-                  onError(new Error(message.message || message.error_message || message.data || 'Unknown error'))
-                }
-              } else {
-                // 其他事件类型（workflow_started, node_started等）
-                console.log('[Dify API] Dify事件:', eventType)
-              }
-              
-              jsonBuffer = [] // 重置缓冲区
-            } catch (e) {
-              console.error('[Dify API] 解析JSON失败:', e, 'JSON字符串:', jsonStr)
-              jsonBuffer = []
-            }
+          // 累积当前data行
+          currentDataLines.push(dataContent)
+          
+          // 如果这行以}结尾，说明JSON对象完整，立即处理
+          if (dataContent.endsWith('}')) {
+            parseAndHandleSSEMessage(
+              currentDataLines, 
+              currentEvent, 
+              onMessage, 
+              onError,
+              (convId) => { finalConversationId = convId }
+            )
+            currentDataLines = []
           }
           continue
         }
         
-        // 空行表示一个SSE消息结束
-        if (trimmedLine === '') {
-          currentEvent = null
-          if (jsonBuffer.length > 0) {
-            console.warn('[Dify API] 遇到空行但JSON未完成，重置缓冲区')
-            jsonBuffer = []
-          }
+        // 其他行（注释等）
+        if (trimmedLine.startsWith(':')) {
+          console.log('[Dify API] 💬 注释:', trimmedLine)
+          continue
         }
       }
     }
@@ -341,16 +410,16 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
     // 处理流式响应（SSE）
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    let buffer = ''
-    let lastAnswer = '' // 用于计算增量内容
+    let buffer = '' // 行缓冲区
     let chunkCount = 0
     let finalConversationId = null
     let currentEvent = null
-    let jsonBuffer = []
+    let currentDataLines = [] // 累积当前消息的data行
     const startTime = Date.now()
 
     console.log('[Dify API] 🔄 开始读取流式响应...', new Date().toLocaleTimeString())
 
+    // ⭐⭐⭐ 完全重写的SSE解析逻辑（与sendChatMessageStream一致）
     while (true) {
       const { done, value } = await reader.read()
       
@@ -367,120 +436,80 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
       chunkCount++
       const chunk = decoder.decode(value, { stream: true })
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
+      console.log(`[Dify API] 📦 数据块 #${chunkCount} (${elapsed}s, ${chunk.length}字节)`)
       
-      // ⭐ 添加详细的数据块调试信息
-      console.log(`[Dify API] 📦 数据块 #${chunkCount} (${elapsed}s, ${chunk.length} bytes):`, 
-                  chunk.substring(0, 150).replace(/\n/g, '\\n') + (chunk.length > 150 ? '...' : ''))
-      
+      // 将chunk添加到缓冲区并按行分割
       buffer += chunk
       const lines = buffer.split('\n')
-      buffer = lines.pop() // 保留不完整的行
-      
-      console.log(`[Dify API] 📝 本次处理 ${lines.length} 行，缓冲区剩余: ${buffer.length} 字符`)
+      // 保留最后一个不完整的行
+      buffer = lines.pop() || ''
 
+      // 逐行处理
       for (const line of lines) {
         const trimmedLine = line.trim()
         
-        // ⭐ 跳过空行
+        // 跳过空行（SSE消息分隔符）
         if (trimmedLine === '') {
-          if (jsonBuffer.length > 0) {
-            console.warn('[Dify API] ⚠️ 遇到空行但JSON缓冲区未完成，重置缓冲区')
-            jsonBuffer = []
+          // 如果有累积的data行，尝试解析
+          if (currentDataLines.length > 0) {
+            parseAndHandleSSEMessage(
+              currentDataLines, 
+              currentEvent, 
+              onMessage, 
+              onError,
+              (convId) => { finalConversationId = convId }
+            )
+            currentDataLines = []
+            currentEvent = null
           }
-          currentEvent = null
           continue
         }
         
-        // 处理 SSE event 行
+        // 处理event行
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim()
-          console.log('[Dify API] 🏷️ 事件类型:', currentEvent)
-          jsonBuffer = []
+          console.log('[Dify API] 📌 事件:', currentEvent)
           continue
         }
         
-        // 处理 SSE data 行
+        // 处理data行
         if (trimmedLine.startsWith('data:')) {
           const dataContent = trimmedLine.substring(5).trim()
           
-          console.log('[Dify API] 📄 data行:', dataContent.substring(0, 100) + (dataContent.length > 100 ? '...' : ''))
-          
-          if (dataContent.startsWith('{')) {
-            jsonBuffer = [dataContent]
-            console.log('[Dify API] 🆕 开始新的JSON对象')
-          } else if (jsonBuffer.length > 0) {
-            jsonBuffer.push(dataContent)
-            console.log('[Dify API] ➕ 累积JSON片段，当前缓冲区大小:', jsonBuffer.length)
+          // 如果是新的JSON对象开始，先处理之前累积的
+          if (dataContent.startsWith('{') && currentDataLines.length > 0) {
+            parseAndHandleSSEMessage(
+              currentDataLines, 
+              currentEvent, 
+              onMessage, 
+              onError,
+              (convId) => { finalConversationId = convId }
+            )
+            currentDataLines = []
           }
           
-          // 检查JSON是否完整
-          if (dataContent.endsWith('}') && jsonBuffer.length > 0) {
-            const jsonStr = jsonBuffer.join('\n').replace(/\n/g, '').replace(/\s+/g, ' ')
-            console.log('[Dify API] 🔍 尝试解析JSON，长度:', jsonStr.length)
-            try {
-              const message = JSON.parse(jsonStr)
-              console.log('[Dify API] ✅ 解析SSE消息成功:', message)
-              
-              // 保存 conversation_id
-              if (message.conversation_id || message.conversationId) {
-                finalConversationId = message.conversation_id || message.conversationId
-              }
-              
-              const eventType = currentEvent || message.event || message.eventType
-              const answerText = message.data || message.answer
-              
-              // 处理不同事件类型
-              if (eventType === 'message' || eventType === 'agent_message') {
-                // AI 消息事件
-                if (answerText && onMessage) {
-                  const currentAnswer = answerText
-                  if (currentAnswer !== lastAnswer) {
-                    const delta = currentAnswer.substring(lastAnswer.length)
-                    console.log(`[Dify API] ✨ 增量内容 [长度:${delta.length}]:`, delta)
-                    lastAnswer = currentAnswer
-                    onMessage(delta, message)
-                  }
-                }
-              } else if (eventType === 'message_end') {
-                // 消息结束事件
-                console.log('[Dify API] 消息结束, conversation_id:', finalConversationId)
-              } else if (eventType === 'error') {
-                // 错误事件
-                console.error('[Dify API] Dify错误:', message)
-                if (onError) {
-                  let errorMsg = 'Unknown error'
-                  if (message.message) {
-                    errorMsg = message.message
-                  } else if (message.error_message) {
-                    errorMsg = message.error_message
-                  } else if (message.data) {
-                    errorMsg = message.data
-                  } else {
-                    // data 为 null 时的友好提示
-                    errorMsg = '⚠️ AI 工作流执行完成但未返回内容。\n' +
-                               '可能原因：\n' +
-                               '1. Dify 工作流的 LLM 节点提示词中缺少用户问题变量 {{#sys.query#}}\n' +
-                               '2. Answer 节点未正确连接 LLM 输出\n' +
-                               '3. 文件提取失败或内容为空'
-                  }
-                  onError(new Error(errorMsg))
-                }
-              } else {
-                // 其他事件（workflow_started, node_started, node_finished 等）
-                console.log('[Dify API] Dify事件:', eventType)
-              }
-              
-              jsonBuffer = []
-            } catch (e) {
-              console.error('[Dify API] 解析JSON失败:', e, 'JSON字符串:', jsonStr)
-              jsonBuffer = []
-            }
+          // 累积当前data行
+          currentDataLines.push(dataContent)
+          
+          // 如果这行以}结尾，说明JSON对象完整，立即处理
+          if (dataContent.endsWith('}')) {
+            parseAndHandleSSEMessage(
+              currentDataLines, 
+              currentEvent, 
+              onMessage, 
+              onError,
+              (convId) => { finalConversationId = convId }
+            )
+            currentDataLines = []
           }
           continue
         }
         
-        // 其他未识别的行
-        console.warn('[Dify API] ⚠️ 未识别的行:', trimmedLine.substring(0, 100))
+        // 其他行（注释等）
+        if (trimmedLine.startsWith(':')) {
+          console.log('[Dify API] 💬 注释:', trimmedLine)
+          continue
+        }
       }
     }
   } catch (error) {

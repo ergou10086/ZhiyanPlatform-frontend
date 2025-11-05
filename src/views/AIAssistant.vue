@@ -54,7 +54,10 @@
             <div :class="message.type === 'ai' ? 'message-bubble ai-bubble' : 'user-bubble'">
               <!-- AI消息：支持Markdown渲染和光标闪烁 -->
               <div v-if="message.type === 'ai'" class="ai-content">
-                <span v-html="formatMarkdown(message.content)"></span>
+                <!-- ⭐ 修复：打字时显示纯文本，避免不完整内容被错误格式化 -->
+                <span v-if="isTyping && currentTypingMessageIndex === index" style="white-space: pre-wrap;">{{ message.content }}</span>
+                <!-- 打字完成后才进行Markdown格式化 -->
+                <span v-else v-html="formatMarkdown(message.content)"></span>
                 <!-- 打字光标（仅在打字时显示） -->
                 <span v-if="isTyping && currentTypingMessageIndex === index" class="typing-cursor">|</span>
               </div>
@@ -992,8 +995,10 @@ export default {
 
         // 回调函数（相同的处理逻辑）
         const onMessage = (answerDelta, data) => {
-          console.log('[AI助手] 📥 收到消息片段:', answerDelta.substring(0, 20) + '...')
+          console.log('[AI助手] 📥 收到消息片段 [长度:' + answerDelta.length + ']:', answerDelta.substring(0, 50))
+          console.log('[AI助手] 🎯 调用 startTypewriter, aiMessageIndex:', aiMessageIndex)
           this.startTypewriter(aiMessageIndex, answerDelta)
+          console.log('[AI助手] ✅ startTypewriter 调用完成')
         }
 
         const onEnd = (data) => {
@@ -1005,6 +1010,7 @@ export default {
 
           this.finishTypewriter()
 
+          // ⭐ 优化：延长延迟时间，确保打字机有足够时间完成
           setTimeout(() => {
             this.saveCurrentChatSession()
             this.isSending = false
@@ -1013,7 +1019,7 @@ export default {
             this.$nextTick(() => {
               this.scrollToBottom()
             })
-          }, 500)
+          }, 2500) // 从500ms改为2500ms，与finishTypewriter的maxWaitTime对应
         }
 
         const onError = (error) => {
@@ -1077,26 +1083,40 @@ export default {
      * @param {string} newContent - 新增的内容
      */
     startTypewriter(messageIndex, newContent) {
+      console.log('[打字机] 📝 startTypewriter 被调用:', {
+        messageIndex,
+        newContentLength: newContent?.length || 0,
+        newContent: newContent?.substring(0, 50),
+        currentQueue: this.typewriterQueue.length,
+        isTyping: this.isTyping,
+        currentIndex: this.currentTypingMessageIndex
+      })
+
       // 将新内容添加到队列
       this.typewriterQueue += newContent
+      console.log('[打字机] 队列已更新，新长度:', this.typewriterQueue.length)
 
       // 如果已经在打字，直接返回（队列会自动处理）
       if (this.isTyping && this.currentTypingMessageIndex === messageIndex) {
+        console.log('[打字机] 已在打字中，内容已加入队列')
         return
       }
 
       // 如果是新消息，重置打字机状态
       if (this.currentTypingMessageIndex !== messageIndex) {
+        console.log('[打字机] 新消息，重置打字机状态')
         this.stopTypewriter()
         this.currentTypingMessageIndex = messageIndex
         this.typewriterQueue = newContent
       }
 
       // 开始打字
+      console.log('[打字机] 🚀 开始打字效果...')
       this.isTyping = true
 
       // 打字机速度（毫秒/字符）
-      const typingSpeed = 30 // 调整这个值可以控制打字速度（数字越小越快）
+      // ⭐ 优化：减少延迟，从30ms改为8ms，提升显示速度
+      const typingSpeed = 8 // 调整这个值可以控制打字速度（数字越小越快）
 
       this.typewriterTimer = setInterval(() => {
         if (this.typewriterQueue.length === 0) {
@@ -1104,20 +1124,26 @@ export default {
           return
         }
 
-        // 从队列中取出一个字符
-        const char = this.typewriterQueue.charAt(0)
-        this.typewriterQueue = this.typewriterQueue.substring(1)
+        // ⭐ 优化：每次取出多个字符（3个），而不是1个，提升显示速度
+        const charsToTake = Math.min(3, this.typewriterQueue.length)
+        const chars = this.typewriterQueue.substring(0, charsToTake)
+        this.typewriterQueue = this.typewriterQueue.substring(charsToTake)
+
+        console.log('[打字机] ⌨️ 输出字符:', JSON.stringify(chars), '剩余队列:', this.typewriterQueue.length)
 
         // 添加到消息内容
         if (this.chatMessages[messageIndex]) {
-          this.chatMessages[messageIndex].content += char
+          this.chatMessages[messageIndex].content += chars
+          console.log('[打字机] 当前消息长度:', this.chatMessages[messageIndex].content.length)
 
           // 每添加几个字符滚动一次（优化性能）
-          if (this.chatMessages[messageIndex].content.length % 5 === 0) {
+          if (this.chatMessages[messageIndex].content.length % 10 === 0) {
             this.$nextTick(() => {
               this.scrollToBottom()
             })
           }
+        } else {
+          console.error('[打字机] ❌ 消息不存在，索引:', messageIndex)
         }
       }, typingSpeed)
     },
@@ -1137,9 +1163,11 @@ export default {
         if (this.chatMessages[messageIndex]) {
           this.chatMessages[messageIndex].content += this.typewriterQueue
           this.typewriterQueue = ''
+          console.log('[打字机] 剩余内容已追加，当前长度:', this.chatMessages[messageIndex].content.length)
         }
       }
 
+      // ⭐ 标记打字结束（这会触发模板切换到Markdown渲染）
       this.isTyping = false
       this.currentTypingMessageIndex = -1
       this.typewriterQueue = ''
@@ -1153,11 +1181,28 @@ export default {
      * 完成打字（流式响应结束时调用）
      */
     finishTypewriter() {
-      // 等待队列完全打完
+      // ⭐ 优化：不再使用轮询等待，而是加速显示剩余内容
+      // 如果队列中还有大量内容，直接显示，避免用户等待太久
+      const maxWaitTime = 2000 // 最多等待2秒
+      const startTime = Date.now()
+      
       const checkQueue = setInterval(() => {
-        if (this.typewriterQueue.length === 0) {
+        const elapsed = Date.now() - startTime
+        
+        // 如果队列为空，或者等待超时
+        if (this.typewriterQueue.length === 0 || elapsed >= maxWaitTime) {
           clearInterval(checkQueue)
+          // 如果还有剩余内容（超时情况），直接显示
+          if (this.typewriterQueue.length > 0) {
+            console.log('[打字机] 超时，直接显示剩余内容:', this.typewriterQueue.length, '字符')
+          }
           this.stopTypewriter()
+          
+          // ⭐ 打字完成后，强制Vue重新渲染以应用Markdown格式
+          this.$nextTick(() => {
+            console.log('[打字机] ✅ 打字完成，触发Markdown格式化')
+            this.scrollToBottom()
+          })
         }
       }, 100)
     },
