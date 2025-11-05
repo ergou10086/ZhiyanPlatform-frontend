@@ -3,6 +3,8 @@
   background-color: #f8f9fa;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .knowledge-base-container .top-header {
@@ -79,14 +81,20 @@
 .knowledge-base-container .content-layout.leftbar { 
   display: block;
   height: calc(100vh - 64px);
+  position: relative;
+  transform: translateZ(0);
 }
 
 .knowledge-base-container .left-options { 
   position: fixed; 
-  top: 104px;
+  top: 38px;
   left: 20px; 
   width: 200px; 
   z-index: 100;
+  transform: translateZ(0);
+  will-change: auto;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .knowledge-base-container .options-card { 
@@ -95,11 +103,15 @@
   border-radius: 16px; 
   padding: 16px; 
   margin-bottom: 12px; 
-  height: calc(100vh - 104px - 20px);
+  margin-top: 0;
+  height: calc(100vh - 88px - 20px);
   display: flex; 
   flex-direction: column;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  transition: box-shadow 0.3s ease;
+  transform: translateZ(0);
+  opacity: 1;
+  visibility: visible;
 }
 
 .knowledge-base-container .options-card:hover {
@@ -167,6 +179,10 @@
   background: #f8f9fa;
   border-radius: 12px;
   overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  transform: translateZ(0);
+  will-change: auto;
 }
 
 /* 主页内容样式 */
@@ -175,6 +191,7 @@
   flex-direction: column;
   gap: 20px;
   justify-content: flex-start;
+  transform: translateZ(0);
 }
 
 .knowledge-base-container .kb-header {
@@ -186,6 +203,8 @@
   position: relative;
   overflow: visible;
   min-height: 140px;
+  transform: translateZ(0);
+  will-change: auto;
 }
 
 .knowledge-base-container .kb-header::before {

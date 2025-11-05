@@ -208,6 +208,22 @@
   color: #a0aec0;
 }
 
+/* 确保注册页面在夜间模式下也保持白日模式的输入框样式 */
+.dark-mode .register-container .form-group input {
+  background: #ffffff !important;
+  color: #2d3748 !important;
+  border-color: #e2e8f0 !important;
+}
+
+.dark-mode .register-container .form-group input:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark-mode .register-container .form-group input::placeholder {
+  color: #a0aec0 !important;
+}
+
 .register-container .code-input-group {
   display: flex;
   gap: 10px;
