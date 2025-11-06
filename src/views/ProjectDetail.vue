@@ -438,7 +438,6 @@
               <select v-model="editProjectData.visibility" class="form-select">
                 <option value="PUBLIC">公开</option>
                 <option value="PRIVATE">私有</option>
-                <option value="TEAM">团队</option>
               </select>
             </div>
             
