@@ -9,6 +9,20 @@ import { formatFileSize, getFileExtension, getMimeType, createPlaceholderContent
  */
 export function downloadSingleFile(file) {
   try {
+    // 如果有 downloadUrl，直接通过URL下载
+    if (file.downloadUrl) {
+      console.log('通过URL下载文件:', file.name, 'URL:', file.downloadUrl)
+      const a = document.createElement('a')
+      a.href = file.downloadUrl
+      a.download = file.name || file.originalFileName || '下载文件'
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      console.log('文件下载成功:', file.name)
+      return
+    }
+    
     // 优先使用 ArrayBuffer，如果没有则使用 File 对象
     let fileData = null
     
