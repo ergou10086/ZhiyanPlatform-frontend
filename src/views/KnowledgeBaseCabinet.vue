@@ -338,17 +338,48 @@
     <div v-if="showSaveSlotDialog" class="upload-dialog-overlay" @click="closeSaveSlotDialog">
       <div class="upload-dialog save-slot-dialog" @click.stop>
         <div class="dialog-header">
-          <h3>保存到存档位 {{ selectedSlotNumber }}</h3>
+          <h3>保存版本到存档位</h3>
           <button class="close-btn" @click="closeSaveSlotDialog">×</button>
         </div>
         <div class="dialog-content">
+          <div class="form-group">
+            <label>选择存档位：</label>
+            <div class="slot-selector">
+              <div 
+                v-for="slot in 3" 
+                :key="slot" 
+                class="slot-option"
+                :class="{ 'selected': selectedSlotNumber === slot, 'occupied': getArchiveSlot(slot) }"
+                @click="selectedSlotNumber = slot">
+                <div class="slot-option-header">
+                  <div class="slot-option-number">存档位 {{ slot }}</div>
+                  <div class="slot-option-status" v-if="getArchiveSlot(slot)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="slot-option-content" v-if="getArchiveSlot(slot)">
+                  <div class="slot-option-name">{{ getArchiveSlot(slot).customName || `版本 ${getArchiveSlot(slot).version}` }}</div>
+                  <div class="slot-option-time">{{ formatDateTime(getArchiveSlot(slot).createdAt) }}</div>
+                  <div class="overwrite-hint">⚠️ 将覆盖此存档</div>
+                </div>
+                <div class="slot-option-content empty" v-else>
+                  <div class="empty-slot-hint">空存档位</div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="form-group">
             <label>存档名称（可选）：</label>
             <input v-model="archiveCustomName" type="text" placeholder="例如：完成XX功能" maxlength="50" />
           </div>
           <div class="dialog-actions">
             <button class="btn secondary" @click="closeSaveSlotDialog">取消</button>
-            <button class="btn primary" @click="confirmSaveToSlot">确认保存</button>
+            <button class="btn primary" @click="confirmSaveToSlot" :disabled="!selectedSlotNumber">
+              {{ getArchiveSlot(selectedSlotNumber) ? '覆盖保存' : '确认保存' }}
+            </button>
           </div>
         </div>
       </div>
@@ -1325,30 +1356,48 @@ export default {
      * 显示保存当前版本到存档位的对话框
      */
     async showSaveToSlotDialog(slotNumber) {
-      this.selectedSlotNumber = slotNumber
+      // 如果指定了存档位，使用该存档位，否则找第一个空的或使用存档位1
+      if (slotNumber) {
+        this.selectedSlotNumber = slotNumber
+      } else {
+        // 找到第一个空的存档位，如果都满了则默认选择存档位1
+        let foundEmpty = false
+        for (let i = 1; i <= 3; i++) {
+          if (!this.getArchiveSlot(i)) {
+            this.selectedSlotNumber = i
+            foundEmpty = true
+            break
+          }
+        }
+        if (!foundEmpty) {
+          this.selectedSlotNumber = 1 // 默认选择存档位1
+        }
+      }
+      
       this.archiveCustomName = ''
       this.versionToArchive = null // 保存当前版本（最新版本）
       this.showSaveSlotDialog = true
     },
-
+    
     /**
      * 显示保存指定版本到存档位的对话框
      */
     showSaveVersionToSlotDialog(version) {
-      // 如果所有存档位都满了，提示用户
-      if (this.archiveSlots.length >= 3) {
-        this.$message?.warning('所有存档位已满，请先清空一个存档位')
-        return
-      }
-
-      // 找到第一个空的存档位
+      // 找到第一个空的存档位，如果都满了则默认选择存档位1
+      let foundEmpty = false
       for (let i = 1; i <= 3; i++) {
         if (!this.getArchiveSlot(i)) {
           this.selectedSlotNumber = i
+          foundEmpty = true
           break
         }
       }
-
+      
+      if (!foundEmpty) {
+        // 所有存档位都满了，默认选择存档位1让用户选择覆盖
+        this.selectedSlotNumber = 1
+      }
+      
       this.archiveCustomName = ''
       this.versionToArchive = version
       this.showSaveSlotDialog = true
@@ -2518,6 +2567,99 @@ export default {
 
 /* 保存到存档位对话框 */
 .save-slot-dialog {
-  max-width: 500px;
+  max-width: 550px;
+}
+
+/* 存档位选择器 */
+.slot-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.slot-option {
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.slot-option:hover {
+  border-color: #5EB6E4;
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.15);
+  transform: translateY(-2px);
+}
+
+.slot-option.selected {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.25);
+}
+
+.slot-option.occupied {
+  background: #fef3c7;
+}
+
+.slot-option.occupied.selected {
+  background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%);
+  border-color: #f59e0b;
+}
+
+.slot-option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.slot-option-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.slot-option-status {
+  color: #10b981;
+  display: flex;
+  align-items: center;
+}
+
+.slot-option-content {
+  font-size: 13px;
+}
+
+.slot-option-content.empty {
+  color: #9ca3af;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.empty-slot-hint {
+  font-style: italic;
+}
+
+.slot-option-name {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.slot-option-time {
+  color: #6b7280;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.overwrite-hint {
+  color: #f59e0b;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
 }
 </style>
