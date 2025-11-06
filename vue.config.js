@@ -101,7 +101,59 @@ module.exports = {
         logLevel: 'debug',
         pathRewrite: {
           '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/coze/*
-        }
+        },
+        
+        // ⭐ 请求前的钩子
+        onProxyReq: function(proxyReq, req, res) {
+          // 检测流式请求
+          if (req.url.includes('/stream')) {
+            console.log('🚀 [Vue Proxy - Coze] 转发流式请求:', req.url)
+          }
+        },
+        
+        // ⭐⭐⭐ 关键配置：禁用代理缓冲，支持流式响应（SSE）
+        onProxyRes: function (proxyRes, req, res) {
+          // 对于流式接口，配置无缓冲响应
+          if (req.url.includes('/stream')) {
+            console.log('📥 [Vue Proxy - Coze] 收到流式响应，配置无缓冲模式')
+            console.log('   Content-Type:', proxyRes.headers['content-type'])
+            console.log('   Transfer-Encoding:', proxyRes.headers['transfer-encoding'])
+            
+            // 设置响应头，确保流式传输
+            res.setHeader('Cache-Control', 'no-cache, no-transform')
+            res.setHeader('X-Accel-Buffering', 'no')
+            res.setHeader('Connection', 'keep-alive')
+            
+            // 删除可能导致缓冲的头
+            delete proxyRes.headers['content-length']
+            delete proxyRes.headers['content-encoding']
+            
+            // 确保是chunked传输
+            if (!proxyRes.headers['transfer-encoding']) {
+              proxyRes.headers['transfer-encoding'] = 'chunked'
+            }
+            
+            // ⭐ 监听数据流（用于调试）
+            let chunkCount = 0
+            proxyRes.on('data', (chunk) => {
+              chunkCount++
+              console.log(`📦 [Vue Proxy - Coze] 转发数据块 #${chunkCount}: ${chunk.length} bytes`)
+            })
+            
+            proxyRes.on('end', () => {
+              console.log(`🏁 [Vue Proxy - Coze] 流式响应结束，共转发 ${chunkCount} 个数据块`)
+            })
+          }
+        },
+        
+        // ⭐ 禁用代理自动处理响应
+        selfHandleResponse: false,
+        
+        // ⭐ 禁用缓冲
+        buffer: false,
+        
+        // ⭐ 设置超时时间（0表示无限制）
+        timeout: 0
       },
       // ✅ Dify AI相关API - 转发到8097端口（Dify AI服务）
       // URL示例：/zhiyan/api/ai/* → http://localhost:8097/api/ai/*

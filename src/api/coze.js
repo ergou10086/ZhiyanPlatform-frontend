@@ -255,25 +255,18 @@ export const cozeAPI = {
       return Promise.reject(error)
     }
     
-    // 构建URL（使用相对路径，确保通过Vue代理）
-    let url = '/zhiyan/api/coze/chat/stream'
-    const params = new URLSearchParams()
-    params.append('query', query)
-    if (conversationId) {
-      params.append('conversationId', conversationId)
-    }
-    url += '?' + params.toString()
+    // ⭐ 修复：将query和conversationId放到POST body中，避免URL过长导致431错误
+    const url = '/zhiyan/api/coze/chat/stream'
     
-    // 构建请求体（自定义变量）
-    let body = null
-    if (customVariables && Object.keys(customVariables).length > 0) {
-      body = JSON.stringify(customVariables)
-    } else {
-      // 即使没有自定义变量，也要发送空对象，确保是 POST 请求
-      body = '{}'
+    // 构建请求体（包含query、conversationId和自定义变量）
+    const requestBody = {
+      query: query,
+      conversationId: conversationId || null,
+      customVariables: customVariables || null
     }
     
     console.log('[cozeAPI.chatStream] 请求URL:', url)
+    console.log('[cozeAPI.chatStream] 请求体长度:', JSON.stringify(requestBody).length, '字符')
     console.log('[cozeAPI.chatStream] Token存在:', !!token)
     
     // 使用fetch API处理SSE（支持POST和自定义请求头）
@@ -285,7 +278,7 @@ export const cozeAPI = {
         'Accept': 'text/event-stream',
         'Cache-Control': 'no-cache'
       },
-      body: body,
+      body: JSON.stringify(requestBody),
       credentials: 'include' // 确保cookies也被传递
     })
       .then(response => {
