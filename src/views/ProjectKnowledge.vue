@@ -134,6 +134,7 @@ import KnowledgeBaseCabinet from './KnowledgeBaseCabinet.vue'
 import KnowledgeBaseAI from './KnowledgeBaseAI.vue'
 import { knowledgeAPI } from '@/api/knowledge'
 import { projectAPI } from '@/api/project'
+import { wikiAPI } from '@/api/wiki'
 import '@/assets/styles/ProjectKnowledge.css'
 
 export default {
@@ -382,9 +383,9 @@ export default {
     },
     
     /**
-     * 加载知识文档数量（从知识柜的localStorage获取真实数据）
+     * 加载知识文档数量（从后端Wiki API获取真实数据）
      */
-    loadDocumentsCount() {
+    async loadDocumentsCount() {
       if (!this.projectId) {
         console.warn('projectId为空，无法加载文档数量')
         this.documentsCount = 0
@@ -392,21 +393,36 @@ export default {
       }
       
       try {
-        const storageKey = `knowledgeBaseDocs_${this.projectId}`
-        const saved = localStorage.getItem(storageKey)
-        if (saved) {
-          const data = JSON.parse(saved)
-          const count = data.docs && Array.isArray(data.docs) ? data.docs.length : 0
-          this.documentsCount = count
+        console.log('从后端加载知识文档数量, projectId:', this.projectId)
+        const response = await wikiAPI.page.getProjectStatistics(this.projectId)
+        console.log('Wiki统计响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          // 获取文档数量（不包括目录）
+          this.documentsCount = response.data.documentCount || 0
           console.log('✅ 知识文档数量加载完成:', this.documentsCount, '篇')
         } else {
-          // 如果没有存储的数据，初始化为0
+          console.warn('Wiki统计响应格式异常:', response)
           this.documentsCount = 0
-          console.log('知识柜暂无文档数据')
         }
       } catch (error) {
         console.error('加载文档数量失败:', error)
-        this.documentsCount = 0
+        // 如果API失败，尝试从localStorage读取作为后备
+        try {
+          const storageKey = `knowledgeBaseDocs_${this.projectId}`
+          const saved = localStorage.getItem(storageKey)
+          if (saved) {
+            const data = JSON.parse(saved)
+            const count = data.docs && Array.isArray(data.docs) ? data.docs.length : 0
+            this.documentsCount = count
+            console.log('从localStorage读取文档数量（后备）:', this.documentsCount)
+          } else {
+            this.documentsCount = 0
+          }
+        } catch (localError) {
+          console.error('从localStorage读取文档数量失败:', localError)
+          this.documentsCount = 0
+        }
       }
     },
     
