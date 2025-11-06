@@ -173,10 +173,12 @@
               </div>
             </div>
           </div>
-          <div class="dialog-actions">
-            <button class="btn secondary" @click="closeNewDocDialog">取消</button>
-            <button class="btn primary" @click="confirmNewDoc" :disabled="!selectedFile || !newDocTitle.trim()">确认创建</button>
-          </div>
+           <div class="dialog-actions">
+             <button class="btn secondary" @click="closeNewDocDialog" :disabled="isCreatingDoc">取消</button>
+             <button class="btn primary" @click="confirmNewDoc" :disabled="!selectedFile || !newDocTitle.trim() || isCreatingDoc">
+               {{ isCreatingDoc ? '创建中...' : '确认创建' }}
+             </button>
+           </div>
         </div>
       </div>
     </div>
@@ -193,10 +195,12 @@
             <label>节点名称：</label>
             <input v-model="newFolderName" type="text" placeholder="请输入节点名称" />
           </div>
-          <div class="dialog-actions">
-            <button class="btn secondary" @click="closeNewFolderDialog">取消</button>
-            <button class="btn primary" @click="confirmNewFolder" :disabled="!newFolderName">确认创建</button>
-          </div>
+           <div class="dialog-actions">
+             <button class="btn secondary" @click="closeNewFolderDialog" :disabled="isCreatingFolder">取消</button>
+             <button class="btn primary" @click="confirmNewFolder" :disabled="!newFolderName || isCreatingFolder">
+               {{ isCreatingFolder ? '创建中...' : '确认创建' }}
+             </button>
+           </div>
         </div>
       </div>
     </div>
@@ -239,13 +243,17 @@ export default {
       loading: false,
       currentPage: null, // 当前查看的页面详情
       originalContent: '', // 原始内容（用于取消编辑）
-      selectedParentId: null // 新建页面时选择的父页面ID
+      selectedParentId: null, // 新建页面时选择的父页面ID
+      isCreatingFolder: false, // 防止重复创建节点
+      isCreatingDoc: false, // 防止重复创建文档
+      loadingDocIds: new Set() // 正在加载的文档ID集合，避免重复加载
     }
   },
   computed: {
     activeDoc() {
       if (!this.docs || this.docs.length === 0) return null
-      return this.docs.find(d => d.id === this.activeId) || this.docs[0]
+      if (!this.activeId) return null
+      return this.docs.find(d => String(d.id) === String(this.activeId)) || this.docs[0]
     },
     activeDocContent: {
       get() {
@@ -402,19 +410,60 @@ export default {
     async selectDocument(pageId) {
       if (!pageId) return
       
+      const pageIdStr = String(pageId)
+      
+      // 如果已经选中该文档，直接返回
+      if (this.activeId === pageIdStr && this.currentPage) {
+        return
+      }
+      
+      // 先检查本地是否已有内容（已加载过的文档）
+      const existingDoc = this.docs.find(d => String(d.id) === pageIdStr)
+      if (existingDoc && existingDoc.content !== undefined && existingDoc.content !== '') {
+        // 本地已有内容，直接切换，不调用API
+        console.log('[selectDocument] 使用本地缓存:', existingDoc.title)
+        this.activeId = pageIdStr
+        this.currentPage = {
+          id: pageIdStr,
+          title: existingDoc.title,
+          content: existingDoc.content,
+          pageType: 'DOCUMENT',
+          updatedAt: existingDoc.updated
+        }
+        this.originalContent = existingDoc.content || ''
+        return
+      }
+      
+      // 防止重复加载同一个文档
+      if (this.loadingDocIds.has(pageIdStr)) {
+        console.log('[selectDocument] 文档正在加载中，跳过:', pageIdStr)
+        return
+      }
+      
+      this.loadingDocIds.add(pageIdStr)
+      
       try {
-        console.log('[selectDocument] 加载页面详情, pageId:', pageId)
+        console.log('[selectDocument] 从API加载页面详情, pageId:', pageId)
         const response = await wikiAPI.page.getPageDetail(pageId)
         
         if (response && response.code === 200) {
           this.currentPage = response.data
-          this.activeId = String(pageId) // 保持字符串格式
+          this.activeId = pageIdStr
           
           // 更新docs数组中的内容
-          const doc = this.docs.find(d => d.id === this.activeId)
+          const doc = this.docs.find(d => String(d.id) === pageIdStr)
           if (doc) {
             doc.content = this.currentPage.content || ''
             doc.updated = this.currentPage.updatedAt || doc.updated
+          } else {
+            // 如果文档不在docs数组中，添加到数组中
+            this.docs.push({
+              id: pageIdStr,
+              title: this.currentPage.title || '',
+              updated: this.currentPage.updatedAt || '',
+              content: this.currentPage.content || '',
+              folderId: null
+            })
           }
           
           // 保存原始内容
@@ -442,6 +491,8 @@ export default {
         } else {
           this.$message?.error('加载页面失败，请重试')
         }
+      } finally {
+        this.loadingDocIds.delete(pageIdStr)
       }
     },
     
@@ -456,6 +507,10 @@ export default {
     },
     
     closeNewDocDialog() {
+      // 如果正在创建中，不允许关闭对话框
+      if (this.isCreatingDoc) {
+        return
+      }
       this.showNewDocDialog = false
       this.newDocTitle = ''
       this.newDocCategory = ''
@@ -464,6 +519,7 @@ export default {
       this.nodeSearchText = ''
       this.selectedFile = null
       this.showNodePicker = false
+      this.isCreatingDoc = false
       // 清空文件输入框
       if (this.$refs.fileInput) {
         this.$refs.fileInput.value = ''
@@ -557,12 +613,25 @@ export default {
     },
     
     closeNewFolderDialog() {
+      // 如果正在创建中，不允许关闭对话框
+      if (this.isCreatingFolder) {
+        return
+      }
       this.showNewFolderDialog = false
       this.newFolderName = ''
+      this.isCreatingFolder = false
     },
 
     async confirmNewFolder() {
       if (!this.newFolderName.trim()) return
+      
+      // 防止重复点击
+      if (this.isCreatingFolder) {
+        console.log('[confirmNewFolder] 正在创建中，忽略重复点击')
+        return
+      }
+      
+      this.isCreatingFolder = true
       
       try {
         console.log('[confirmNewFolder] 创建新节点')
@@ -578,12 +647,15 @@ export default {
           console.log('[confirmNewFolder] 节点创建成功:', response.data)
           this.$message?.success('节点创建成功！')
           
-          //重新加载Wiki树
+          // 直接关闭对话框并重置状态
+          this.showNewFolderDialog = false
+          this.newFolderName = ''
+          this.isCreatingFolder = false
+          
+          // 重新加载Wiki树
           this.folders = []
           this.docs = []
           await this.loadWikiTree()
-          
-          this.closeNewFolderDialog()
         } else {
           console.error('[confirmNewFolder] 创建失败:', response)
           this.$message?.error(response.msg || '创建节点失败')
@@ -591,11 +663,13 @@ export default {
       } catch (error) {
         console.error('[confirmNewFolder] 创建节点失败:', error)
         this.$message?.error('创建节点失败，请重试')
+      } finally {
+        this.isCreatingFolder = false
       }
     },
 
     toggleFolder(folderId) {
-      const folder = this.folders.find(f => f.id === folderId)
+      const folder = this.folders.find(f => String(f.id) === String(folderId))
       if (folder) {
         folder.expanded = !folder.expanded
       }
@@ -606,7 +680,7 @@ export default {
     },
 
     getDocsInFolder(folderId) {
-      return this.docs.filter(doc => doc.folderId === folderId)
+      return this.docs.filter(doc => String(doc.folderId) === String(folderId))
     },
 
     toggleEditMode() {
@@ -653,6 +727,14 @@ export default {
         return
       }
       
+      // 防止重复点击
+      if (this.isCreatingDoc) {
+        console.log('[confirmNewDoc] 正在创建中，忽略重复点击')
+        return
+      }
+      
+      this.isCreatingDoc = true
+      
       try {
         console.log('[confirmNewDoc] 创建Wiki文档')
         
@@ -682,11 +764,26 @@ export default {
           console.log('[confirmNewDoc] 文档创建成功:', response.data)
           this.$message?.success('文档创建成功！')
           
+          // 保存文档标题用于后续使用
+          const docTitle = this.newDocTitle.trim()
+          
+          // 直接关闭对话框并重置状态
+          this.showNewDocDialog = false
+          this.newDocTitle = ''
+          this.newDocCategory = ''
+          this.selectedNodeId = null
+          this.selectedNodeName = ''
+          this.nodeSearchText = ''
+          this.selectedFile = null
+          this.showNodePicker = false
+          this.isCreatingDoc = false
+          // 清空文件输入框
+          if (this.$refs.fileInput) {
+            this.$refs.fileInput.value = ''
+          }
+          
           // 重新加载Wiki树以获取最新数据
           await this.loadWikiTree()
-          
-          // 关闭对话框
-          this.closeNewDocDialog()
           
           // 自动选择新创建的文档
           const newPageId = String(response.data.id || response.data)
@@ -705,7 +802,7 @@ export default {
           // 通知父组件
           this.$emit('document-created', {
             id: newPageId,
-            title: this.newDocTitle.trim()
+            title: docTitle
           })
           
           console.log('[confirmNewDoc] 文档已创建并自动选中')
@@ -716,6 +813,8 @@ export default {
       } catch (error) {
         console.error('[confirmNewDoc] 创建文档失败:', error)
         this.$message?.error('创建文档失败：' + (error.message || '请重试'))
+      } finally {
+        this.isCreatingDoc = false
       }
     },
     
