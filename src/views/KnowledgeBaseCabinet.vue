@@ -496,7 +496,7 @@ export default {
       selectedParentId: null, // 新建页面时选择的父页面ID
       isCreatingFolder: false, // 防止重复创建节点
       isCreatingDoc: false, // 防止重复创建文档
-      loadingDocIds: new Set() // 正在加载的文档ID集合，避免重复加载
+      loadingDocIds: new Set(), // 正在加载的文档ID集合，避免重复加载
 
       // 版本历史相关
       showVersionHistoryDialog: false,
