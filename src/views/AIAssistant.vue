@@ -115,7 +115,17 @@
             @keyup.enter="sendMessage"
             :disabled="isSending"
           />
-          <button class="send-btn" @click="sendMessage" :disabled="!userMessage.trim() || isSending">发送</button>
+          <button 
+            class="send-btn" 
+            :class="{ 'stop-btn': isSending }"
+            @click="isSending ? stopSending() : sendMessage()" 
+            :disabled="!isSending && !userMessage.trim()"
+          >
+            <span v-if="!isSending">发送</span>
+            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2"/>
+            </svg>
+          </button>
         </div>
         </div>
 
@@ -396,7 +406,10 @@ export default {
       typewriterTimer: null, // 打字机定时器
       typewriterQueue: '', // 打字机字符队列
       isTyping: false, // 是否正在打字
-      currentTypingMessageIndex: -1 // 当前正在打字的消息索引
+      currentTypingMessageIndex: -1, // 当前正在打字的消息索引
+      // 流式请求控制
+      currentStreamController: null, // 当前流式请求的控制器
+      currentAbortController: null // 用于中断请求的AbortController
     }
   },
   computed: {
@@ -1015,6 +1028,8 @@ export default {
           setTimeout(() => {
             this.saveCurrentChatSession()
             this.isSending = false
+            this.currentStreamController = null
+            this.currentAbortController = null
             // 发送成功后清空已上传文件列表
             this.uploadedFiles = []
             this.$nextTick(() => {
@@ -1026,8 +1041,18 @@ export default {
         const onError = (error) => {
           console.error('[AI助手] ❌ Dify API错误:', error)
           this.stopTypewriter()
-          this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。\n错误详情：' + (error.message || error)
+          
+          // 检查是否是用户主动中断
+          const errorMessage = error.message || error
+          if (errorMessage.includes('中断') || errorMessage.includes('abort')) {
+            this.chatMessages[aiMessageIndex].content = '对话已中断'
+          } else {
+            this.chatMessages[aiMessageIndex].content = '抱歉，AI服务暂时不可用，请稍后再试。\n错误详情：' + errorMessage
+          }
+          
           this.isSending = false
+          this.currentStreamController = null
+          this.currentAbortController = null
           this.saveCurrentChatSession()
 
           this.$nextTick(() => {
@@ -1035,26 +1060,31 @@ export default {
           })
         }
 
+        // 创建AbortController用于中断请求
+        this.currentAbortController = new AbortController()
+        
         // 根据是否有文件选择不同的API
         if (hasFiles) {
           console.log('[AI助手] 使用上传文件并对话接口')
-          await difyAPI.uploadAndChatStream(
+          this.currentStreamController = await difyAPI.uploadAndChatStream(
             messageContent,
             this.difyConversationId,
             knowledgeFileIds,
             localFiles,
             onMessage,
             onEnd,
-            onError
+            onError,
+            this.currentAbortController.signal
           )
         } else {
           console.log('[AI助手] 使用普通对话接口')
-          await difyAPI.sendChatMessageStream(
+          this.currentStreamController = await difyAPI.sendChatMessageStream(
             messageContent,
             this.difyConversationId,
             onMessage,
             onEnd,
-            onError
+            onError,
+            this.currentAbortController.signal
           )
         }
       } catch (error) {
@@ -1642,6 +1672,40 @@ export default {
       if (days < 7) return `${days}天前`
       
       return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+    },
+    
+    // 停止发送/中断当前请求
+    stopSending() {
+      console.log('[AI助手] 用户请求中断对话')
+      
+      // 中断AbortController
+      if (this.currentAbortController) {
+        this.currentAbortController.abort()
+        this.currentAbortController = null
+      }
+      
+      // 停止打字机效果
+      this.stopTypewriter()
+      
+      // 更新当前消息状态
+      if (this.currentTypingMessageIndex >= 0 && this.chatMessages[this.currentTypingMessageIndex]) {
+        const currentContent = this.chatMessages[this.currentTypingMessageIndex].content
+        this.chatMessages[this.currentTypingMessageIndex].content = currentContent + '\n\n[对话已中断]'
+      }
+      
+      // 重置状态
+      this.isSending = false
+      this.isTyping = false
+      this.currentTypingMessageIndex = -1
+      this.typewriterQueue = ''
+      this.currentStreamController = null
+      
+      // 保存会话
+      this.saveCurrentChatSession()
+      
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
     }
   }
 }

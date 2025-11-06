@@ -207,15 +207,18 @@
           :disabled="isSending"
         />
         <button 
-          class="send-btn" 
-          @click="sendMessage"
-          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && selectedKnowledgeFileIds.length === 0) || isSending"
+          class="send-btn"
+          :class="{ 'stop-btn': isSending }"
+          @click="isSending ? stopSending() : sendMessage()"
+          :disabled="!isSending && (!inputMessage.trim() && selectedLocalFiles.length === 0 && selectedKnowledgeFileIds.length === 0)"
         >
           <svg v-if="!isSending" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <div v-else class="loading-spinner"></div>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2"/>
+          </svg>
         </button>
         </div>
       </div>
@@ -1711,6 +1714,47 @@ export default {
       const month = date.getMonth() + 1
       const day = date.getDate()
       return `${month}月${day}日`
+    },
+    
+    /**
+     * 停止发送/中断当前请求
+     */
+    stopSending() {
+      console.log('[知识库AI] 用户请求中断对话')
+      
+      // 关闭流式连接
+      if (this.currentStreamController) {
+        try {
+          this.currentStreamController.close()
+        } catch (error) {
+          console.error('[知识库AI] 关闭流式连接失败:', error)
+        }
+        this.currentStreamController = null
+      }
+      
+      // 停止打字机效果
+      this.stopTypewriterEffect()
+      
+      // 查找当前正在输入的消息
+      const streamingMessage = this.messages.find(m => m.id === this.streamingMessageId)
+      if (streamingMessage) {
+        // 保存已显示的内容
+        streamingMessage.content = this.streamingBuffer + '\n\n[对话已中断]'
+      }
+      
+      // 清除流式状态
+      this.streamingMessageId = null
+      this.streamingContent = ''
+      this.streamingBuffer = ''
+      this.isStreaming = false
+      this.isSending = false
+      
+      // 保存会话
+      this.saveCurrentChatSession()
+      
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
     }
   }
 }

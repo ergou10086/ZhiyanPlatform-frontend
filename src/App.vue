@@ -9,16 +9,20 @@
       :is-dark-mode="isDarkMode"
       @theme-toggle="handleThemeToggle"
     />
+    <!-- 全局错误弹窗 -->
+    <GlobalErrorDialog />
   </div>
 </template>
 
 <script>
 import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
+import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
 
 export default {
   name: 'App',
   components: {
-    GlobalUserProfile
+    GlobalUserProfile,
+    GlobalErrorDialog
   },
   data() {
     return {
