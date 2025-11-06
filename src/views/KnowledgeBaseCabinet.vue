@@ -55,8 +55,8 @@
           <p>暂无文档内容</p>
         </div>
         <div class="editor-footer">
-          <button class="btn">版本历史</button>
-          <button class="btn">差异对比</button>
+          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc">版本历史</button>
+          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc">差异对比</button>
           <div class="flex-spacer" />
           <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing">
             编辑
@@ -200,6 +200,154 @@
         </div>
       </div>
     </div>
+
+    <!-- 版本历史对话框（带存档位） -->
+    <div v-if="showVersionHistoryDialog" class="upload-dialog-overlay" @click="closeVersionHistoryDialog">
+      <div class="upload-dialog version-history-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>版本历史</h3>
+          <button class="close-btn" @click="closeVersionHistoryDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <div v-if="loadingVersionHistory" class="loading-indicator">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+          </div>
+          <div v-else>
+            <!-- 三个存档位 -->
+            <div class="archive-slots">
+              <div v-for="slot in 3" :key="slot" class="archive-slot">
+                <div class="slot-header">
+                  <div class="slot-number">存档位 {{ slot }}</div>
+                  <button v-if="getArchiveSlot(slot)" class="btn-small danger" @click="clearArchiveSlot(slot)">清空</button>
+                </div>
+                <div v-if="getArchiveSlot(slot)" class="slot-content filled">
+                  <div class="slot-info">
+                    <div class="slot-title">{{ getArchiveSlot(slot).customName || `版本 ${getArchiveSlot(slot).version}` }}</div>
+                    <div class="slot-meta">
+                      <span>{{ getArchiveSlot(slot).creatorName || '未知' }}</span>
+                      <span>{{ formatDateTime(getArchiveSlot(slot).createdAt) }}</span>
+                    </div>
+                    <div class="slot-desc" v-if="getArchiveSlot(slot).changeDescription">
+                      {{ getArchiveSlot(slot).changeDescription }}
+                    </div>
+                  </div>
+                  <div class="slot-actions">
+                    <button class="btn-small" @click="viewVersionContent(getArchiveSlot(slot).version)">查看</button>
+                    <button class="btn-small primary" @click="restoreToVersion(getArchiveSlot(slot).version)">恢复</button>
+                  </div>
+                </div>
+                <div v-else class="slot-content empty">
+                  <div class="empty-slot-message">空存档位</div>
+                  <button class="btn-small" @click="showSaveToSlotDialog(slot)">保存当前版本</button>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 分隔线 -->
+            <div class="divider"></div>
+            
+            <!-- 所有版本历史 -->
+            <div class="version-history-section">
+              <h4 class="section-title">所有版本历史</h4>
+              <div v-if="versionHistoryList.length === 0" class="empty-state">
+                <p>暂无版本历史</p>
+              </div>
+              <div v-else class="version-list">
+                <div v-for="version in versionHistoryList" :key="version.version" class="version-item">
+                  <div class="version-info">
+                    <div class="version-number">版本 {{ version.version }}</div>
+                    <div class="version-meta">
+                      <span class="version-author">{{ version.creatorName || '未知' }}</span>
+                      <span class="version-time">{{ formatDateTime(version.createdAt) }}</span>
+                    </div>
+                    <div class="version-desc" v-if="version.changeDescription">
+                      {{ version.changeDescription }}
+                    </div>
+                  </div>
+                  <div class="version-actions">
+                    <button class="btn-small" @click="viewVersionContent(version.version)">查看</button>
+                    <button class="btn-small" @click="restoreToVersion(version.version)">恢复</button>
+                    <button class="btn-small" @click="showSaveVersionToSlotDialog(version)">存档</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 保存到存档位对话框 -->
+    <div v-if="showSaveSlotDialog" class="upload-dialog-overlay" @click="closeSaveSlotDialog">
+      <div class="upload-dialog save-slot-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>保存到存档位 {{ selectedSlotNumber }}</h3>
+          <button class="close-btn" @click="closeSaveSlotDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <div class="form-group">
+            <label>存档名称（可选）：</label>
+            <input v-model="archiveCustomName" type="text" placeholder="例如：完成XX功能" maxlength="50" />
+          </div>
+          <div class="dialog-actions">
+            <button class="btn secondary" @click="closeSaveSlotDialog">取消</button>
+            <button class="btn primary" @click="confirmSaveToSlot">确认保存</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 版本对比对话框（使用存档位） -->
+    <div v-if="showVersionCompareDialog" class="upload-dialog-overlay" @click="closeVersionCompareDialog">
+      <div class="upload-dialog version-compare-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>差异对比</h3>
+          <button class="close-btn" @click="closeVersionCompareDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <!-- 存档位选择 -->
+          <div class="compare-slots">
+            <div class="compare-slot-item" v-for="slot in archiveSlots" :key="slot.slotNumber" 
+                 :class="{ 'selected': selectedCompareSlot === slot.slotNumber }"
+                 @click="selectCompareSlot(slot.slotNumber)">
+              <div class="compare-slot-info">
+                <div class="slot-badge">存档{{ slot.slotNumber }}</div>
+                <div class="slot-details">
+                  <div class="slot-name">{{ slot.customName || `版本 ${slot.version}` }}</div>
+                  <div class="slot-time">{{ formatDateTime(slot.createdAt) }}</div>
+                </div>
+              </div>
+              <div class="check-icon" v-if="selectedCompareSlot === slot.slotNumber">✓</div>
+            </div>
+            <div v-if="archiveSlots.length === 0" class="empty-compare-hint">
+              暂无保存的版本存档，请先在"版本历史"中保存版本
+            </div>
+            <div v-else-if="archiveSlots.length < 2" class="hint-message">
+              需要至少2个存档位才能进行对比
+            </div>
+          </div>
+          
+          <!-- 对比按钮 -->
+          <div class="compare-actions" v-if="archiveSlots.length >= 2">
+            <button class="btn primary" @click="compareArchiveSlots" :disabled="!selectedCompareSlot || loadingVersionCompare">
+              {{ loadingVersionCompare ? '对比中...' : '与其他存档对比' }}
+            </button>
+          </div>
+          
+          <!-- 差异显示 -->
+          <div v-if="versionDiff" class="version-diff">
+            <h4>差异内容：</h4>
+            <div class="diff-legend">
+              <span class="added">+ 新增内容</span>
+              <span class="removed">- 删除内容</span>
+              <span class="unchanged">  保持不变</span>
+            </div>
+            <pre class="diff-content">{{ versionDiff }}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -230,8 +378,8 @@ export default {
       nodeSearchText: '',
       newFolderName: '',
       hasUnsavedChanges: false,
-      autoSaveTimer: null,
       isEditing: false,
+      isSaving: false, // 防止重复保存的标志
       sidebarCollapsed: false,
       folders: [], // 从API获取的目录节点
       docs: [], // 从API获取的文档节点
@@ -239,7 +387,25 @@ export default {
       loading: false,
       currentPage: null, // 当前查看的页面详情
       originalContent: '', // 原始内容（用于取消编辑）
-      selectedParentId: null // 新建页面时选择的父页面ID
+      selectedParentId: null, // 新建页面时选择的父页面ID
+      
+      // 版本历史相关
+      showVersionHistoryDialog: false,
+      versionHistoryList: [],
+      loadingVersionHistory: false,
+      
+      // 版本存档位相关（3个存档位）
+      archiveSlots: [], // 存储用户保存的3个版本存档
+      showSaveSlotDialog: false,
+      selectedSlotNumber: null,
+      archiveCustomName: '',
+      versionToArchive: null, // 要保存到存档位的版本
+      
+      // 版本对比相关
+      showVersionCompareDialog: false,
+      selectedCompareSlot: null, // 选中要对比的存档位
+      versionDiff: '',
+      loadingVersionCompare: false
     }
   },
   computed: {
@@ -307,14 +473,6 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
-    // 组件销毁前保存数据
-    if (this.hasUnsavedChanges) {
-      this.saveDocument()
-    }
-    // 清除定时器
-    if (this.autoSaveTimer) {
-      clearTimeout(this.autoSaveTimer)
-    }
     // 移除事件监听器
     window.removeEventListener('beforeunload', this.handleBeforeUnload)
     document.removeEventListener('click', this.handleClickOutside)
@@ -736,16 +894,6 @@ export default {
       // 只有在编辑模式下才标记有未保存的更改
       if (this.isEditing) {
         this.hasUnsavedChanges = true
-        
-        // 清除之前的自动保存定时器
-        if (this.autoSaveTimer) {
-          clearTimeout(this.autoSaveTimer)
-        }
-        
-        // 设置新的自动保存定时器（3秒后自动保存）
-        this.autoSaveTimer = setTimeout(() => {
-          this.autoSave()
-        }, 3000)
       }
     },
     
@@ -761,6 +909,14 @@ export default {
         this.$message?.error('无法保存文档：缺少文档ID')
         return
       }
+      
+      // 防止重复保存 - 如果正在保存中，直接返回
+      if (this.isSaving) {
+        console.log('[saveDocument] 正在保存中，跳过重复请求')
+        return
+      }
+      
+      this.isSaving = true
       
       try {
         console.log('[saveDocument] 保存文档到后端, ID:', this.activeId)
@@ -793,30 +949,39 @@ export default {
       } catch (error) {
         console.error('[saveDocument] 保存文档失败:', error)
         this.$message?.error('保存文档失败：' + (error.message || '请重试'))
+      } finally {
+        this.isSaving = false
       }
     },
     
     async autoSave() {
-      if (this.activeDoc && this.hasUnsavedChanges && this.activeId) {
-        try {
-          console.log('[autoSave] 自动保存文档')
-          const response = await wikiAPI.page.updatePage(this.activeId, {
-            content: this.activeDocContent,
-            changeDescription: '自动保存'
-          })
+      // 如果正在保存或没有未保存的更改，跳过
+      if (this.isSaving || !this.hasUnsavedChanges || !this.activeDoc || !this.activeId) {
+        return
+      }
+      
+      this.isSaving = true
+      
+      try {
+        console.log('[autoSave] 自动保存文档')
+        const response = await wikiAPI.page.updatePage(this.activeId, {
+          content: this.activeDocContent,
+          changeDescription: '自动保存'
+        })
+        
+        if (response && response.code === 200) {
+          this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+          this.originalContent = this.activeDocContent
+          this.hasUnsavedChanges = false
+          console.log('[autoSave] 文档已自动保存')
           
-          if (response && response.code === 200) {
-            this.activeDoc.updated = new Date().toLocaleString('zh-CN')
-            this.originalContent = this.activeDocContent
-            this.hasUnsavedChanges = false
-            console.log('[autoSave] 文档已自动保存')
-            
-            // 通知父组件
-            this.$emit('document-auto-saved', this.activeDoc)
-          }
-        } catch (error) {
-          console.error('[autoSave] 自动保存失败:', error)
+          // 通知父组件
+          this.$emit('document-auto-saved', this.activeDoc)
         }
+      } catch (error) {
+        console.error('[autoSave] 自动保存失败:', error)
+      } finally {
+        this.isSaving = false
       }
     },
     
@@ -921,6 +1086,362 @@ export default {
         event.preventDefault()
         event.returnValue = '您有未保存的更改，确定要离开吗？'
         return '您有未保存的更改，确定要离开吗？'
+      }
+    },
+    
+    /**
+     * 显示版本历史
+     */
+    async showVersionHistory() {
+      if (!this.activeId) {
+        this.$message?.warning('请先选择一个文档')
+        return
+      }
+      
+      this.showVersionHistoryDialog = true
+      this.loadingVersionHistory = true
+      this.versionHistoryList = []
+      
+      // 加载存档位数据
+      this.loadArchiveSlotsFromStorage()
+      
+      try {
+        console.log('[showVersionHistory] 加载版本历史, pageId:', this.activeId)
+        const response = await wikiAPI.version.getVersionHistory(this.activeId)
+        
+        if (response && response.code === 200) {
+          this.versionHistoryList = response.data || []
+          console.log('[showVersionHistory] 版本历史加载成功, 共', this.versionHistoryList.length, '个版本')
+        } else {
+          console.error('[showVersionHistory] 加载失败:', response)
+          this.$message?.error(response.msg || '加载版本历史失败')
+        }
+      } catch (error) {
+        console.error('[showVersionHistory] 加载版本历史失败:', error)
+        this.$message?.error('加载版本历史失败：' + (error.message || '请重试'))
+      } finally {
+        this.loadingVersionHistory = false
+      }
+    },
+    
+    /**
+     * 关闭版本历史对话框
+     */
+    closeVersionHistoryDialog() {
+      this.showVersionHistoryDialog = false
+      this.versionHistoryList = []
+    },
+    
+    /**
+     * 查看指定版本的内容
+     */
+    async viewVersionContent(version) {
+      if (!this.activeId) return
+      
+      try {
+        console.log('[viewVersionContent] 查看版本内容, pageId:', this.activeId, 'version:', version)
+        const response = await wikiAPI.version.getVersionContent(this.activeId, version)
+        
+        if (response && response.code === 200) {
+          const content = response.data || ''
+          this.$message?.success(`正在查看版本 ${version}`)
+          
+          // 临时显示该版本内容（不保存，只是预览）
+          if (this.activeDoc) {
+            this.activeDoc.content = content
+            this.isEditing = false // 切换到只读模式
+          }
+          
+          // 关闭版本历史对话框
+          this.closeVersionHistoryDialog()
+        } else {
+          console.error('[viewVersionContent] 加载失败:', response)
+          this.$message?.error(response.msg || '加载版本内容失败')
+        }
+      } catch (error) {
+        console.error('[viewVersionContent] 加载版本内容失败:', error)
+        this.$message?.error('加载版本内容失败：' + (error.message || '请重试'))
+      }
+    },
+    
+    /**
+     * 恢复到指定版本
+     */
+    async restoreToVersion(version) {
+      if (!this.activeId) return
+      
+      if (!confirm(`确定要恢复到版本 ${version} 吗？这将创建一个新版本。`)) {
+        return
+      }
+      
+      try {
+        console.log('[restoreToVersion] 恢复到版本, pageId:', this.activeId, 'version:', version)
+        
+        // 先获取该版本的内容
+        const response = await wikiAPI.version.getVersionContent(this.activeId, version)
+        
+        if (response && response.code === 200) {
+          const content = response.data || ''
+          
+          // 使用该版本内容更新页面
+          const updateResponse = await wikiAPI.page.updatePage(this.activeId, {
+            content: content,
+            changeDescription: `恢复到版本 ${version}`
+          })
+          
+          if (updateResponse && updateResponse.code === 200) {
+            this.$message?.success('已恢复到指定版本')
+            
+            // 重新加载文档内容
+            await this.selectDocument(this.activeId)
+            
+            // 关闭版本历史对话框
+            this.closeVersionHistoryDialog()
+          } else {
+            this.$message?.error(updateResponse.msg || '恢复版本失败')
+          }
+        }
+      } catch (error) {
+        console.error('[restoreToVersion] 恢复版本失败:', error)
+        this.$message?.error('恢复版本失败：' + (error.message || '请重试'))
+      }
+    },
+    
+    /**
+     * 显示版本对比对话框
+     */
+    async showVersionCompare() {
+      if (!this.activeId) {
+        this.$message?.warning('请先选择一个文档')
+        return
+      }
+      
+      // 加载存档位数据
+      this.loadArchiveSlotsFromStorage()
+      
+      // 如果没有存档位，提示用户
+      if (this.archiveSlots.length === 0) {
+        this.$message?.warning('请先在"版本历史"中保存至少一个存档位')
+        return
+      }
+      
+      this.showVersionCompareDialog = true
+      this.selectedCompareSlot = null
+      this.versionDiff = ''
+    },
+    
+    /**
+     * 关闭版本对比对话框
+     */
+    closeVersionCompareDialog() {
+      this.showVersionCompareDialog = false
+      this.selectedCompareSlot = null
+      this.versionDiff = ''
+    },
+    
+    /**
+     * 格式化日期时间
+     */
+    formatDateTime(dateTime) {
+      if (!dateTime) return ''
+      const date = new Date(dateTime)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hour}:${minute}`
+    },
+    
+    /**
+     * 获取指定存档位的数据
+     */
+    getArchiveSlot(slotNumber) {
+      return this.archiveSlots.find(slot => slot.slotNumber === slotNumber)
+    },
+    
+    /**
+     * 显示保存当前版本到存档位的对话框
+     */
+    async showSaveToSlotDialog(slotNumber) {
+      this.selectedSlotNumber = slotNumber
+      this.archiveCustomName = ''
+      this.versionToArchive = null // 保存当前版本（最新版本）
+      this.showSaveSlotDialog = true
+    },
+    
+    /**
+     * 显示保存指定版本到存档位的对话框
+     */
+    showSaveVersionToSlotDialog(version) {
+      // 如果所有存档位都满了，提示用户
+      if (this.archiveSlots.length >= 3) {
+        this.$message?.warning('所有存档位已满，请先清空一个存档位')
+        return
+      }
+      
+      // 找到第一个空的存档位
+      for (let i = 1; i <= 3; i++) {
+        if (!this.getArchiveSlot(i)) {
+          this.selectedSlotNumber = i
+          break
+        }
+      }
+      
+      this.archiveCustomName = ''
+      this.versionToArchive = version
+      this.showSaveSlotDialog = true
+    },
+    
+    /**
+     * 关闭保存到存档位对话框
+     */
+    closeSaveSlotDialog() {
+      this.showSaveSlotDialog = false
+      this.selectedSlotNumber = null
+      this.archiveCustomName = ''
+      this.versionToArchive = null
+    },
+    
+    /**
+     * 确认保存到存档位
+     */
+    async confirmSaveToSlot() {
+      if (!this.selectedSlotNumber) return
+      
+      try {
+        let versionData
+        
+        if (this.versionToArchive) {
+          // 保存指定版本
+          versionData = this.versionToArchive
+        } else {
+          // 保存当前最新版本
+          if (this.versionHistoryList.length === 0) {
+            this.$message?.warning('暂无版本可保存')
+            return
+          }
+          versionData = this.versionHistoryList[0] // 第一个就是最新版本
+        }
+        
+        // 创建存档数据
+        const archiveData = {
+          slotNumber: this.selectedSlotNumber,
+          version: versionData.version,
+          customName: this.archiveCustomName.trim() || '',
+          creatorName: versionData.creatorName,
+          createdAt: versionData.createdAt,
+          changeDescription: versionData.changeDescription,
+          pageId: this.activeId
+        }
+        
+        // 移除该存档位的旧数据（如果有）
+        this.archiveSlots = this.archiveSlots.filter(slot => slot.slotNumber !== this.selectedSlotNumber)
+        
+        // 添加新存档
+        this.archiveSlots.push(archiveData)
+        
+        // 保存到 localStorage
+        this.saveArchiveSlotsToStorage()
+        
+        this.$message?.success(`已保存到存档位 ${this.selectedSlotNumber}`)
+        this.closeSaveSlotDialog()
+      } catch (error) {
+        console.error('[confirmSaveToSlot] 保存失败:', error)
+        this.$message?.error('保存失败，请重试')
+      }
+    },
+    
+    /**
+     * 清空指定存档位
+     */
+    clearArchiveSlot(slotNumber) {
+      if (!confirm(`确定要清空存档位 ${slotNumber} 吗？`)) {
+        return
+      }
+      
+      this.archiveSlots = this.archiveSlots.filter(slot => slot.slotNumber !== slotNumber)
+      this.saveArchiveSlotsToStorage()
+      this.$message?.success('存档位已清空')
+    },
+    
+    /**
+     * 保存存档位数据到 localStorage
+     */
+    saveArchiveSlotsToStorage() {
+      try {
+        const storageKey = this.activeId ? `wikiArchiveSlots_${this.activeId}` : 'wikiArchiveSlots'
+        localStorage.setItem(storageKey, JSON.stringify(this.archiveSlots))
+      } catch (error) {
+        console.error('[saveArchiveSlotsToStorage] 保存失败:', error)
+      }
+    },
+    
+    /**
+     * 从 localStorage 加载存档位数据
+     */
+    loadArchiveSlotsFromStorage() {
+      try {
+        const storageKey = this.activeId ? `wikiArchiveSlots_${this.activeId}` : 'wikiArchiveSlots'
+        const saved = localStorage.getItem(storageKey)
+        if (saved) {
+          this.archiveSlots = JSON.parse(saved)
+        }
+      } catch (error) {
+        console.error('[loadArchiveSlotsFromStorage] 加载失败:', error)
+      }
+    },
+    
+    /**
+     * 选择要对比的存档位
+     */
+    selectCompareSlot(slotNumber) {
+      this.selectedCompareSlot = slotNumber
+    },
+    
+    /**
+     * 对比存档位
+     */
+    async compareArchiveSlots() {
+      if (!this.selectedCompareSlot) {
+        this.$message?.warning('请选择一个存档位')
+        return
+      }
+      
+      if (this.archiveSlots.length < 2) {
+        this.$message?.warning('需要至少2个存档位才能对比')
+        return
+      }
+      
+      // 找到选中的存档位和第一个非选中的存档位进行对比
+      const selectedSlot = this.getArchiveSlot(this.selectedCompareSlot)
+      const otherSlot = this.archiveSlots.find(slot => slot.slotNumber !== this.selectedCompareSlot)
+      
+      if (!otherSlot) {
+        this.$message?.warning('没有其他存档位可供对比')
+        return
+      }
+      
+      this.loadingVersionCompare = true
+      
+      try {
+        const response = await wikiAPI.version.compareVersions(
+          this.activeId,
+          selectedSlot.version,
+          otherSlot.version
+        )
+        
+        if (response && response.code === 200) {
+          this.versionDiff = response.data || '两个版本内容相同'
+          this.$message?.success(`对比完成：存档${selectedSlot.slotNumber} vs 存档${otherSlot.slotNumber}`)
+        } else {
+          this.$message?.error(response.msg || '版本对比失败')
+        }
+      } catch (error) {
+        console.error('[compareArchiveSlots] 对比失败:', error)
+        this.$message?.error('版本对比失败')
+      } finally {
+        this.loadingVersionCompare = false
       }
     }
   }
@@ -1276,5 +1797,401 @@ export default {
 
 @media (max-width: 900px) {
   .cabinet-layout { grid-template-columns: 1fr; }
+}
+
+/* 版本历史对话框样式 */
+.version-history-dialog {
+  max-width: 800px;
+  max-height: 85vh;
+}
+
+/* 存档位样式 */
+.archive-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.archive-slot {
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.archive-slot:hover {
+  border-color: #5EB6E4;
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.2);
+}
+
+.slot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.slot-number {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.btn-small.danger {
+  background: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+.btn-small.danger:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.slot-content {
+  padding: 16px;
+}
+
+.slot-content.filled {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+}
+
+.slot-content.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: #f9fafb;
+  padding: 24px;
+}
+
+.empty-slot-message {
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.slot-info {
+  flex: 1;
+}
+
+.slot-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.slot-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.slot-desc {
+  font-size: 13px;
+  color: #64748b;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+.slot-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 分隔线 */
+.divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+  margin: 24px 0;
+}
+
+/* 版本历史区域 */
+.version-history-section {
+  margin-top: 24px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #5EB6E4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+}
+
+.version-list {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.version-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.version-item:hover {
+  background: #f9fafb;
+  border-color: #5EB6E4;
+  transform: translateX(4px);
+}
+
+.version-info {
+  flex: 1;
+}
+
+.version-number {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.version-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.version-author {
+  font-weight: 500;
+}
+
+.version-time {
+  color: #9ca3af;
+}
+
+.version-desc {
+  font-size: 13px;
+  color: #4b5563;
+  font-style: italic;
+  margin-top: 6px;
+}
+
+.version-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-small {
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: #374151;
+}
+
+.btn-small:hover {
+  background: #5EB6E4;
+  color: white;
+  border-color: #5EB6E4;
+  transform: translateY(-1px);
+}
+
+/* 版本对比对话框样式 */
+.version-compare-dialog {
+  max-width: 900px;
+  max-height: 90vh;
+}
+
+/* 对比存档位选择 */
+.compare-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.compare-slot-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.compare-slot-item:hover {
+  border-color: #5EB6E4;
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.15);
+  transform: translateY(-2px);
+}
+
+.compare-slot-item.selected {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.25);
+}
+
+.compare-slot-info {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slot-badge {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.slot-details {
+  flex: 1;
+}
+
+.slot-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.slot-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.check-icon {
+  font-size: 24px;
+  color: #5EB6E4;
+  font-weight: bold;
+}
+
+.empty-compare-hint {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.hint-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 16px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.compare-actions {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 20px;
+}
+
+.version-diff {
+  margin-top: 20px;
+}
+
+.version-diff h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.diff-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.diff-legend .added {
+  color: #16a34a;
+}
+
+.diff-legend .removed {
+  color: #dc2626;
+}
+
+.diff-legend .unchanged {
+  color: #6b7280;
+}
+
+.diff-content {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #374151;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+/* 保存到存档位对话框 */
+.save-slot-dialog {
+  max-width: 500px;
 }
 </style>
