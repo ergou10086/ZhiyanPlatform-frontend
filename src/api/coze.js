@@ -478,10 +478,14 @@ export const cozeAPI = {
       })
     }
     
-    // 添加知识库文件ID
+    // 添加知识库文件ID（后端期望 List<Long>，所以传递数字）
     if (knowledgeFileIds && knowledgeFileIds.length > 0) {
       knowledgeFileIds.forEach(fileId => {
-        formData.append('knowledgeFileIds', fileId.toString())
+        // 确保是数字类型，后端会转换为 Long
+        const numId = typeof fileId === 'number' ? fileId : Number(fileId)
+        if (!isNaN(numId)) {
+          formData.append('knowledgeFileIds', numId.toString())
+        }
       })
     }
     

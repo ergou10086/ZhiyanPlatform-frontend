@@ -207,18 +207,15 @@
           :disabled="isSending"
         />
         <button 
-          class="send-btn"
-          :class="{ 'stop-btn': isSending }"
-          @click="isSending ? stopSending() : sendMessage()"
-          :disabled="!isSending && (!inputMessage.trim() && selectedLocalFiles.length === 0 && selectedKnowledgeFileIds.length === 0)"
+          class="send-btn" 
+          @click="sendMessage"
+          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && selectedKnowledgeFileIds.length === 0) || isSending"
         >
           <svg v-if="!isSending" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="6" y="6" width="12" height="12" fill="currentColor" rx="2"/>
-          </svg>
+          <div v-else class="loading-spinner"></div>
         </button>
         </div>
       </div>
@@ -391,7 +388,7 @@ export default {
       files: [],
       loadingFiles: false,
       selectedFiles: [],
-      selectedLocalFiles: [], // 选中的本地文件
+      selectedLocalFiles: [], // 选中的本地文件（发送消息时一起传给后端）
       selectedKnowledgeFileIds: [], // 选中的知识库文件ID
       knowledgeFileInfoMap: {}, // 知识库文件信息映射 { fileId: { fileName, fileSize, fileType } }
       conversationId: null, // 对话ID，用于维持会话
@@ -401,6 +398,7 @@ export default {
       streamingMessageId: null, // 当前正在流式输入的消息ID
       isStreaming: false, // 是否正在流式输入
       typewriterTimer: null, // 打字机定时器
+      messageIdCounter: 0, // 消息ID计数器，确保每个消息ID唯一
       // 聊天历史记录相关
       showChatHistoryModal: false, // 是否显示历史记录弹窗
       chatSessions: [], // 所有对话会话列表
@@ -438,6 +436,41 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    /**
+     * 生成唯一的消息ID
+     */
+    generateUniqueMessageId() {
+      this.messageIdCounter++
+      return `${Date.now()}_${this.messageIdCounter}`
+    },
+    
+    /**
+     * 迁移旧的消息ID（修复重复key问题）
+     */
+    migrateOldMessageIds(messages) {
+      if (!messages || messages.length === 0) return messages
+      
+      // 检查是否有旧格式的ID（纯数字）
+      const hasOldFormat = messages.some(msg => typeof msg.id === 'number' || !String(msg.id).includes('_'))
+      
+      if (hasOldFormat) {
+        console.log('[消息ID迁移] 检测到旧格式的消息ID，开始迁移...')
+        const migratedMessages = messages.map(msg => {
+          // 如果ID是纯数字或不包含下划线，重新生成ID
+          if (typeof msg.id === 'number' || !String(msg.id).includes('_')) {
+            const newId = this.generateUniqueMessageId()
+            console.log(`[消息ID迁移] ${msg.id} -> ${newId}`)
+            return { ...msg, id: newId }
+          }
+          return msg
+        })
+        console.log('[消息ID迁移] 迁移完成')
+        return migratedMessages
+      }
+      
+      return messages
+    },
+    
     async sendMessage() {
       // 如果没有输入消息且没有文件，则不允许发送
       if ((!this.inputMessage.trim() && this.selectedLocalFiles.length === 0 && this.selectedKnowledgeFileIds.length === 0) || this.isSending) return
@@ -491,7 +524,7 @@ export default {
       // 如果有文件，先发送文件消息（独立的消息气泡）
       if (messageFiles.length > 0) {
         const fileMessage = {
-          id: Date.now(),
+          id: this.generateUniqueMessageId(),
           type: 'right',
           content: '', // 文件消息不显示文字内容
           files: messageFiles,
@@ -503,7 +536,7 @@ export default {
       // 如果有文字内容，再发送文字消息（独立的消息气泡）
       if (userTextContent) {
         const textMessage = {
-          id: Date.now() + (messageFiles.length > 0 ? 1 : 0),
+          id: this.generateUniqueMessageId(),
           type: 'right',
           content: userTextContent,
           files: undefined,
@@ -519,7 +552,7 @@ export default {
       this.isSending = true
       
       // 创建AI回复消息占位符
-      const aiMessageId = Date.now() + 1
+      const aiMessageId = this.generateUniqueMessageId()
       const aiMessage = {
         id: aiMessageId,
         type: 'left',
@@ -553,32 +586,44 @@ export default {
       })
       
       try {
-        // 准备本地文件和知识库文件ID
-        const localFiles = this.selectedLocalFiles.length > 0 ? this.selectedLocalFiles : null
-        const knowledgeFileIds = this.selectedKnowledgeFileIds.length > 0 ? this.selectedKnowledgeFileIds.map(id => {
+      // 准备本地文件和知识库文件ID
+      const localFiles = this.selectedLocalFiles.length > 0 ? this.selectedLocalFiles : null
+      
+      // 处理知识库文件ID：转换为数字（后端期望 List<Long>）
+      let knowledgeFileIds = null
+      if (this.selectedKnowledgeFileIds.length > 0) {
+        knowledgeFileIds = this.selectedKnowledgeFileIds.map(id => {
           // 处理虚拟文件ID（成果目录）
           if (typeof id === 'string' && id.startsWith('achievement_')) {
-            // 提取成果ID，保持字符串格式避免精度丢失
+            // 提取成果ID并转换为数字
             const achievementId = id.replace('achievement_', '')
-            return achievementId
+            const numId = Number(achievementId)
+            return isNaN(numId) ? null : numId
           }
-          // 保持ID为字符串类型，避免精度丢失
-          return String(id)
-        }).filter(id => id !== null && id !== '' && id !== 'null' && id !== 'undefined') : null
+          // 转换为数字类型
+          const numId = typeof id === 'number' ? id : Number(id)
+          return isNaN(numId) ? null : numId
+        }).filter(id => id !== null && id !== undefined && !isNaN(id))
         
-        // 清空选中的文件
-        this.selectedLocalFiles = []
-        this.selectedKnowledgeFileIds = []
-         this.knowledgeFileInfoMap = {}
+        // 如果过滤后为空，设置为 null
+        if (knowledgeFileIds.length === 0) {
+          knowledgeFileIds = null
+        }
+      }
+      
+      // 发送后清空文件（下次需要重新选择）
+      this.selectedLocalFiles = []
+      this.selectedKnowledgeFileIds = []
+      this.knowledgeFileInfoMap = {}
         
-        // 判断是否需要调用带文件的接口
         if (localFiles || knowledgeFileIds) {
           // 调用带文件的流式对话接口
+          console.log('[调用API] 使用带文件接口，localFiles:', localFiles?.length, 'knowledgeFileIds:', knowledgeFileIds?.length, 'conversationId:', this.conversationId)
           this.currentStreamController = await cozeAPI.chatStreamWithFiles(
             query,
             this.conversationId,
-            localFiles,
-            knowledgeFileIds,
+            localFiles, // 直接传递 File 对象
+            knowledgeFileIds, // 知识库文件ID
             null, // customVariables
             (message) => {
               // 处理流式消息
@@ -595,6 +640,7 @@ export default {
           )
         } else {
           // 调用不带文件的流式对话接口
+          console.log('[调用API] 使用普通接口，conversationId:', this.conversationId)
           this.currentStreamController = await cozeAPI.chatStream(
             query,
             this.conversationId,
@@ -769,14 +815,14 @@ export default {
      * 启动打字机效果
      */
     startTypewriterEffect() {
-      // 打字机速度：每500ms显示一个字符（慢速，明显的打字效果）
-      const typeSpeed = 500
+      // 打字机速度：每300ms显示一个字符（慢速，明显的打字效果）
+      const typeSpeed = 300
       
       console.log('[打字机启动] 开始打字机效果，速度:', typeSpeed, 'ms/字')
       
       // 添加空转计数器，避免无限等待
       let emptyLoopCount = 0
-      const maxEmptyLoops = 2 // 最多空转2次（2*600ms = 1.2秒）
+      const maxEmptyLoops = 2 // 最多空转2次（2*300ms = 0.6秒）
       
       this.typewriterTimer = setInterval(() => {
           // 🔥 首要安全检查：如果状态已被清除，立即退出
@@ -988,8 +1034,15 @@ export default {
         const storageKey = this.projectId ? `aiChatMessages_${this.projectId}` : 'aiChatMessages'
         const saved = localStorage.getItem(storageKey)
         if (saved) {
-          this.messages = JSON.parse(saved)
+          let messages = JSON.parse(saved)
+          // 迁移旧的消息ID
+          messages = this.migrateOldMessageIds(messages)
+          this.messages = messages
           console.log(`AI对话数据已从本地存储加载 (项目ID: ${this.projectId})`)
+          // 如果进行了迁移，立即保存
+          if (messages.length > 0) {
+            this.saveMessagesToStorage()
+          }
         } else {
           // 如果没有保存的消息，保持空数组
           this.messages = []
@@ -1026,13 +1079,14 @@ export default {
       this.$refs.fileInput.click()
     },
     
-    // 处理文件上传
+    // 处理文件选择（暂存，发送消息时一起传给后端）
     handleFileUpload(event) {
       const files = Array.from(event.target.files)
       if (files.length > 0) {
         console.log('选择了本地文件:', files)
         // 保存选中的本地文件（追加到现有列表）
         this.selectedLocalFiles.push(...files)
+        this.$message.success(`已选择 ${files.length} 个文件`)
       }
       // 清空文件输入
       this.$refs.fileInput.value = ''
@@ -1049,6 +1103,7 @@ export default {
        if (confirm('确定要清除当前对话历史吗？')) {
          this.messages = []
          this.conversationId = null
+         // 清空文件
          this.selectedLocalFiles = []
          this.selectedKnowledgeFileIds = []
          this.knowledgeFileInfoMap = {}
@@ -1422,9 +1477,31 @@ export default {
         const storageKey = this.getStorageKey('aiChatSessions')
         const saved = localStorage.getItem(storageKey)
         if (saved) {
-          this.chatSessions = JSON.parse(saved)
+          let sessions = JSON.parse(saved)
+          let needsSave = false
+          
+          // 迁移每个会话中的消息ID
+          sessions = sessions.map(session => {
+            if (session.messages && session.messages.length > 0) {
+              const originalIds = session.messages.map(m => m.id).join(',')
+              session.messages = this.migrateOldMessageIds(session.messages)
+              const newIds = session.messages.map(m => m.id).join(',')
+              if (originalIds !== newIds) {
+                needsSave = true
+              }
+            }
+            return session
+          })
+          
+          this.chatSessions = sessions
           // 按创建时间倒序排列
           this.chatSessions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          
+          // 如果进行了迁移，立即保存
+          if (needsSave) {
+            console.log('[会话ID迁移] 会话中存在旧格式ID，已迁移并保存')
+            this.saveChatSessionsToStorage()
+          }
         } else {
           this.chatSessions = []
         }
@@ -1498,8 +1575,8 @@ export default {
         this.saveCurrentChatSession()
       }
       
-      // 创建新会话
-      const newSessionId = Date.now().toString()
+      // 创建新会话（使用唯一ID生成器）
+      const newSessionId = this.generateUniqueMessageId()
       const newSession = {
         id: newSessionId,
         title: '新对话',
@@ -1514,13 +1591,16 @@ export default {
       this.chatSessions.unshift(newSession)
       this.saveChatSessionsToStorage()
       
+      // 🔥 清空会话相关状态（包括文件）
+      this.conversationId = null
+      this.selectedLocalFiles = []
+      this.selectedKnowledgeFileIds = []
+      this.knowledgeFileInfoMap = {}
+      console.log('[新建对话] 已清空会话文件和 conversationId')
+      
       // 切换到新会话
        this.currentChatSessionId = newSessionId
        this.messages = []
-       this.conversationId = null
-       this.selectedLocalFiles = []
-       this.selectedKnowledgeFileIds = []
-       this.knowledgeFileInfoMap = {}
        
        // 清除流式状态
       this.streamingMessageId = null
@@ -1556,10 +1636,15 @@ export default {
         this.saveCurrentChatSession()
       }
       
-      // 加载会话数据
+      // 加载会话数据并迁移消息ID
       this.currentChatSessionId = sessionId
-      this.messages = session.messages || []
+      this.messages = this.migrateOldMessageIds(session.messages || [])
       this.conversationId = session.conversationId || null
+      
+      // 🔥 清空文件（切换会话时不继承文件，需要重新选择）
+      this.selectedLocalFiles = []
+      this.selectedKnowledgeFileIds = []
+      this.knowledgeFileInfoMap = {}
       
       // 清除流式状态
       this.streamingMessageId = null
@@ -1714,47 +1799,6 @@ export default {
       const month = date.getMonth() + 1
       const day = date.getDate()
       return `${month}月${day}日`
-    },
-    
-    /**
-     * 停止发送/中断当前请求
-     */
-    stopSending() {
-      console.log('[知识库AI] 用户请求中断对话')
-      
-      // 关闭流式连接
-      if (this.currentStreamController) {
-        try {
-          this.currentStreamController.close()
-        } catch (error) {
-          console.error('[知识库AI] 关闭流式连接失败:', error)
-        }
-        this.currentStreamController = null
-      }
-      
-      // 停止打字机效果
-      this.stopTypewriterEffect()
-      
-      // 查找当前正在输入的消息
-      const streamingMessage = this.messages.find(m => m.id === this.streamingMessageId)
-      if (streamingMessage) {
-        // 保存已显示的内容
-        streamingMessage.content = this.streamingBuffer + '\n\n[对话已中断]'
-      }
-      
-      // 清除流式状态
-      this.streamingMessageId = null
-      this.streamingContent = ''
-      this.streamingBuffer = ''
-      this.isStreaming = false
-      this.isSending = false
-      
-      // 保存会话
-      this.saveCurrentChatSession()
-      
-      this.$nextTick(() => {
-        this.scrollToBottom()
-      })
     }
   }
 }
