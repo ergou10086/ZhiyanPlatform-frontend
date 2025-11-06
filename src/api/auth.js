@@ -82,7 +82,7 @@ api.interceptors.response.use(
       }
       return Promise.reject(data || error)
     } else if (error.request) {
-      // 网络错误
+      // 网络错误，yxy干的
       console.error('网络错误详情:', error.request)
       console.error('请求配置:', error.config)
       return Promise.reject(new Error('网络连接失败，请检查后端服务是否启动（端口8091）'))

@@ -937,7 +937,7 @@
 
 <script>
 import '@/assets/styles/ProjectDetail.css'
-import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
+import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage } from '@/utils/imageUtils'
 
 export default {
   name: 'ProjectDetail',
@@ -1252,7 +1252,7 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(apiProject.imageUrl),
             manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
@@ -1306,7 +1306,7 @@ export default {
               '未设置',
             status: this.getStatusValue(foundProject.status),
             visibility: foundProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(foundProject.image || foundProject.imageUrl),
             manager: foundProject.creatorName || '未知',
             teamSize: foundProject.teamSize,
@@ -1382,7 +1382,7 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(apiProject.imageUrl),
             manager: apiProject.creatorName || '未知',
             teamSize: apiProject.teamSize || 1,
@@ -1812,7 +1812,7 @@ export default {
         endDate: this.project.endDate || '',
         visibility: this.project.visibility || 'PRIVATE',
         status: statusValue || 'ONGOING',
-        imageUrl: this.project.imageUrl || this.project.image || 'https://via.placeholder.com/400x225?text=Project+Image'
+        imageUrl: this.project.imageUrl || this.project.image || getDefaultProjectImage('Project Image')
       }
       
       console.log('编辑项目数据初始化:', this.editProjectData)
@@ -2064,11 +2064,43 @@ export default {
           this.closeTaskModal()
           this.showSuccessToast('任务创建成功！')
         } else {
-          alert('创建任务失败：' + (response.msg || '未知错误'))
+          // 检查是否是401认证错误
+          if (response && response.code === 401) {
+            alert('登录已过期，请重新登录')
+            // 清除token并跳转到登录页
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_info')
+            window.location.href = '/login'
+          } else {
+            alert('创建任务失败：' + (response.msg || '未知错误'))
+          }
         }
       } catch (error) {
         console.error('[saveNewTask] 创建任务失败:', error)
-        alert('创建任务失败，请稍后重试')
+        
+        // 检查是否是401认证错误
+        if (error && (error.code === 401 || error.status === 401 || 
+            (error.response && error.response.status === 401))) {
+          alert('登录已过期，请重新登录')
+          // 清除token并跳转到登录页
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user_info')
+          window.location.href = '/login'
+        } else {
+          // 检查错误消息中是否包含认证相关信息
+          const errorMsg = error?.msg || error?.message || String(error)
+          if (errorMsg.includes('登录') || errorMsg.includes('Token') || errorMsg.includes('认证')) {
+            alert('登录已过期，请重新登录')
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_info')
+            window.location.href = '/login'
+          } else {
+            alert('创建任务失败：' + errorMsg)
+          }
+        }
       } finally {
         // 1秒后才能再次点击
         setTimeout(() => {
