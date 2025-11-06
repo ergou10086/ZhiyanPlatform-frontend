@@ -155,10 +155,10 @@ module.exports = {
         // ⭐ 设置超时时间（0表示无限制）
         timeout: 0
       },
-      // ✅ Dify AI相关API - 转发到8097端口（Dify AI服务）
-      // URL示例：/zhiyan/api/ai/* → http://localhost:8097/api/ai/*
+      // ✅ Dify AI相关API - 转发到8096端口（Dify AI服务）
+      // URL示例：/zhiyan/api/ai/* → http://localhost:8096/api/ai/*
       '/zhiyan/api/ai': {
-        target: 'http://localhost:8097',
+        target: 'http://localhost:8096',
         changeOrigin: true,
         secure: false,
         ws: true,

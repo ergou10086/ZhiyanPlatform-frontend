@@ -14,9 +14,9 @@ function parseJSONWithBigInt(data) {
   }
 }
 
-// 后端Dify服务配置（直连8097端口）
+// 后端Dify服务配置（直连8096端口）
 const BACKEND_DIFY_CONFIG = {
-  baseUrl: '/zhiyan/api/ai', // 通过Vue代理转发到8097端口
+  baseUrl: '/zhiyan/api/ai', // 通过Vue代理转发到8096端口
   timeout: 120000, // axios 超时：2分钟
   streamTimeout: 300000 // fetch 流式响应超时：5分钟（AI文档分析需要更长时间）
 }
@@ -177,7 +177,7 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
     // ⭐ 开发环境可选择直接连接后端或通过代理
     // 设置为 true 可以跳过 Vue 代理，用于测试
     const USE_DIRECT_CONNECTION = false  // 默认使用代理，调试时改为 true
-    const baseUrl = USE_DIRECT_CONNECTION ? 'http://localhost:8097' : ''
+    const baseUrl = USE_DIRECT_CONNECTION ? 'http://localhost:8096' : ''
     
     console.log('[Dify API] 🚀 发送流式请求:', {
       mode: USE_DIRECT_CONNECTION ? '直连后端' : '通过Vue代理',
