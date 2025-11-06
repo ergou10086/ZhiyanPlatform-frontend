@@ -371,6 +371,38 @@
       </div>
     </div>
 
+    <!-- 恢复版本确认对话框 -->
+    <div v-if="showRestoreConfirmDialog" class="upload-dialog-overlay" @click="closeRestoreConfirmDialog">
+      <div class="upload-dialog restore-confirm-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>确认恢复版本</h3>
+          <button class="close-btn" @click="closeRestoreConfirmDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <div class="restore-warning">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="warning-icon">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="restore-message">
+              确定要恢复到版本 <strong>{{ pendingRestoreVersion }}</strong> 吗？
+            </p>
+            <p class="restore-tip">
+              ⚠️ 这将创建一个新版本，当前内容将被替换为指定版本的内容。
+            </p>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="closeRestoreConfirmDialog">取消</button>
+          <button class="btn primary" @click="confirmRestoreVersion" :disabled="restoring">
+            {{ restoring ? '恢复中...' : '确认恢复' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 保存到存档位对话框 -->
     <div v-if="showSaveSlotDialog" class="upload-dialog-overlay" @click="closeSaveSlotDialog">
       <div class="upload-dialog save-slot-dialog" @click.stop>
@@ -638,8 +670,10 @@ export default {
       versionDiff: null, // 差异数据
       loadingVersionCompare: false,
       isScrolling: false, // 防止滚动循环
-      scrollSyncTimer: null, // 滚动同步防抖定时器
+      scrollSyncTimer: null, // 滚动同步节流定时器
+      scrollSyncRaf: null, // requestAnimationFrame ID
       lastScrollPositions: { left: 0, right: 0 }, // 上次滚动位置，用于检测异常重置
+      scrollSyncEnabled: { left: true, right: true }, // 控制每个面板的滚动同步是否启用
 
       // 查看版本内容相关
       showVersionViewDialog: false,
@@ -647,7 +681,13 @@ export default {
       viewingVersionContent: '', // 正在查看的版本内容
       viewingVersionInfo: null, // 正在查看的版本信息
       viewingArchiveName: null, // 正在查看的版本对应的存档名字
-      loadingVersionContent: false
+      loadingVersionContent: false,
+
+      // 恢复版本确认对话框相关
+      showRestoreConfirmDialog: false,
+      pendingRestoreVersion: null, // 待恢复的版本号
+      pendingRestoreSource: null, // 恢复来源：'archive' 或 'view'
+      restoring: false // 是否正在恢复中
     }
   },
   computed: {
@@ -724,6 +764,16 @@ export default {
     // 移除事件监听器
     window.removeEventListener('beforeunload', this.handleBeforeUnload)
     document.removeEventListener('click', this.handleClickOutside)
+    
+    // 清理滚动同步资源
+    if (this.scrollSyncRaf) {
+      cancelAnimationFrame(this.scrollSyncRaf)
+      this.scrollSyncRaf = null
+    }
+    if (this.scrollSyncTimer) {
+      clearTimeout(this.scrollSyncTimer)
+      this.scrollSyncTimer = null
+    }
   },
   methods: {
     /**
@@ -1395,6 +1445,7 @@ export default {
         this.$message?.error('保存文档失败：' + (error.message || '请重试'))
       } finally {
         this.isSaving = false
+        this.saving = false // 重置保存状态，确保按钮恢复正常显示
       }
     },
     
@@ -1625,87 +1676,125 @@ export default {
     /**
      * 恢复到指定版本
      */
-    async restoreToVersion(version) {
+    restoreToVersion(version) {
       if (!this.activeId) return
+      
+      // 显示确认对话框
+      this.pendingRestoreVersion = version
+      this.pendingRestoreSource = 'archive'
+      this.showRestoreConfirmDialog = true
+    },
 
-      if (!confirm(`确定要恢复到版本 ${version} 吗？这将创建一个新版本。`)) {
-        return
-      }
+    /**
+     * 关闭恢复版本确认对话框
+     */
+    closeRestoreConfirmDialog() {
+      this.showRestoreConfirmDialog = false
+      this.pendingRestoreVersion = null
+      this.pendingRestoreSource = null
+      this.restoring = false
+    },
+
+    /**
+     * 确认恢复版本
+     */
+    async confirmRestoreVersion() {
+      if (!this.activeId || !this.pendingRestoreVersion) return
+
+      if (this.restoring) return
+
+      this.restoring = true
 
       try {
-        console.log('[restoreToVersion] 恢复到版本, pageId:', this.activeId, 'version:', version)
+        const version = this.pendingRestoreVersion
+        console.log('[confirmRestoreVersion] 恢复到版本, pageId:', this.activeId, 'version:', version)
 
-        // 先获取该版本的内容
-        const response = await wikiAPI.version.getVersionContent(this.activeId, version)
+        let content = ''
 
-        if (response && response.code === 200) {
-          const content = response.data || ''
-
-          // 使用该版本内容更新页面
-          const updateResponse = await wikiAPI.page.updatePage(this.activeId, {
-            content: content,
-            changeDescription: `恢复到版本 ${version}`
-          })
-
-          if (updateResponse && updateResponse.code === 200) {
-            this.$message?.success('已恢复到指定版本')
-
-            // 重新加载文档内容
-            await this.selectDocument(this.activeId)
-
-            // 关闭版本历史对话框
-            this.closeVersionHistoryDialog()
+        if (this.pendingRestoreSource === 'view') {
+          // 从查看对话框恢复，使用已加载的内容
+          content = this.viewingVersionContent
+        } else {
+          // 从存档位恢复，需要先获取该版本的内容
+          const response = await wikiAPI.version.getVersionContent(this.activeId, version)
+          if (response && response.code === 200) {
+            content = response.data || ''
           } else {
-            this.$message?.error(updateResponse.msg || '恢复版本失败')
+            this.$message?.error(response?.msg || '获取版本内容失败')
+            return
           }
         }
+
+        // 使用该版本内容更新页面
+        const updateResponse = await wikiAPI.page.updatePage(this.activeId, {
+          content: content,
+          changeDescription: `恢复到版本 ${version}`
+        })
+
+        if (updateResponse && updateResponse.code === 200) {
+          this.$message?.success('已恢复到指定版本')
+
+          // 关闭确认对话框
+          this.closeRestoreConfirmDialog()
+
+          // 如果是从查看对话框恢复，先关闭查看对话框
+          if (this.pendingRestoreSource === 'view') {
+            this.closeVersionViewDialog()
+          }
+
+          // 清除本地缓存，强制重新加载
+          const doc = this.docs.find(d => String(d.id) === String(this.activeId))
+          if (doc) {
+            doc.content = '' // 清空缓存内容
+          }
+          // 清除加载标记，允许重新加载
+          this.loadingDocIds.delete(String(this.activeId))
+          // 清除currentPage，强制重新加载
+          this.currentPage = null
+
+          // 重新加载文档内容
+          await this.selectDocument(this.activeId)
+
+          // 关闭版本历史对话框
+          this.closeVersionHistoryDialog()
+        } else {
+          this.$message?.error(updateResponse.msg || '恢复版本失败')
+        }
       } catch (error) {
-        console.error('[restoreToVersion] 恢复版本失败:', error)
+        console.error('[confirmRestoreVersion] 恢复版本失败:', error)
         this.$message?.error('恢复版本失败：' + (error.message || '请重试'))
+      } finally {
+        this.restoring = false
       }
     },
 
     /**
      * 从查看版本对话框恢复到该版本
      */
-    async restoreFromViewDialog() {
+    restoreFromViewDialog() {
       if (!this.viewingVersion || !this.activeId) return
-
-      if (!confirm(`确定要恢复到版本 ${this.viewingVersion} 吗？这将创建一个新版本。`)) {
-        return
-      }
-
-      try {
-        // 使用正在查看的内容更新页面
-        const updateResponse = await wikiAPI.page.updatePage(this.activeId, {
-          content: this.viewingVersionContent,
-          changeDescription: `恢复到版本 ${this.viewingVersion}`
-        })
-
-        if (updateResponse && updateResponse.code === 200) {
-          this.$message?.success('已恢复到指定版本')
-
-          // 关闭查看版本对话框
-          this.closeVersionViewDialog()
-
-          // 重新加载文档内容
-          await this.selectDocument(this.activeId)
-
-          // 关闭版本历史对话框（如果打开的话）
-          this.closeVersionHistoryDialog()
-        } else {
-          this.$message?.error(updateResponse.msg || '恢复版本失败')
-        }
-      } catch (error) {
-        console.error('[restoreFromViewDialog] 恢复版本失败:', error)
-        this.$message?.error('恢复版本失败：' + (error.message || '请重试'))
-      }
+      
+      // 显示确认对话框
+      this.pendingRestoreVersion = this.viewingVersion
+      this.pendingRestoreSource = 'view'
+      this.showRestoreConfirmDialog = true
     },
 
     /**
      * 显示版本对比对话框
      */
     async showVersionCompare() {
+      // 重置滚动同步状态
+      this.scrollSyncEnabled = { left: true, right: true }
+      this.lastScrollPositions = { left: 0, right: 0 }
+      if (this.scrollSyncRaf) {
+        cancelAnimationFrame(this.scrollSyncRaf)
+        this.scrollSyncRaf = null
+      }
+      if (this.scrollSyncTimer) {
+        clearTimeout(this.scrollSyncTimer)
+        this.scrollSyncTimer = null
+      }
       if (!this.activeId) {
         this.$message?.warning('请先选择一个文档')
         return
@@ -1729,6 +1818,18 @@ export default {
      * 关闭版本对比对话框
      */
     closeVersionCompareDialog() {
+      // 清理滚动同步资源
+      if (this.scrollSyncRaf) {
+        cancelAnimationFrame(this.scrollSyncRaf)
+        this.scrollSyncRaf = null
+      }
+      if (this.scrollSyncTimer) {
+        clearTimeout(this.scrollSyncTimer)
+        this.scrollSyncTimer = null
+      }
+      this.scrollSyncEnabled = { left: true, right: true }
+      this.lastScrollPositions = { left: 0, right: 0 }
+      
       this.showVersionCompareDialog = false
       this.selectedCompareSlot = null
       this.compareVersionContent = ''
@@ -1964,10 +2065,13 @@ export default {
     },
 
     /**
-     * 同步左右滚动
+     * 同步左右滚动 - 优化版本，使用 requestAnimationFrame 和临时禁用目标面板监听
      */
     syncScroll(source, event) {
-      if (this.isScrolling) return
+      // 如果当前面板的滚动同步被禁用，说明是程序触发的滚动，不处理
+      if (!this.scrollSyncEnabled[source]) {
+        return
+      }
 
       const sourcePanel = source === 'left' ? this.$refs.leftScrollPanel : this.$refs.rightScrollPanel
       if (!sourcePanel) return
@@ -1976,9 +2080,7 @@ export default {
       const lastScrollTop = this.lastScrollPositions[source]
 
       // 检测滚动位置是否异常重置（从较大值突然变为0或很小的值）
-      // 如果滚动位置突然大幅减小，可能是内容更新导致的重置，不进行同步
       if (lastScrollTop > 50 && currentScrollTop < 10) {
-        // 这是异常重置，不进行同步，但更新记录
         this.lastScrollPositions[source] = currentScrollTop
         return
       }
@@ -1986,33 +2088,35 @@ export default {
       // 更新记录
       this.lastScrollPositions[source] = currentScrollTop
 
-      // 清除之前的防抖定时器
+      // 清除之前的定时器和 RAF
       if (this.scrollSyncTimer) {
         clearTimeout(this.scrollSyncTimer)
+        this.scrollSyncTimer = null
+      }
+      if (this.scrollSyncRaf) {
+        cancelAnimationFrame(this.scrollSyncRaf)
+        this.scrollSyncRaf = null
       }
 
-      // 使用防抖，延迟执行同步
-      this.scrollSyncTimer = setTimeout(() => {
+      // 使用 requestAnimationFrame 优化性能，在下一帧执行同步
+      this.scrollSyncRaf = requestAnimationFrame(() => {
+        const targetSource = source === 'left' ? 'right' : 'left'
         const targetPanel = source === 'left' ? this.$refs.rightScrollPanel : this.$refs.leftScrollPanel
 
-        if (!sourcePanel || !targetPanel || this.isScrolling) return
+        if (!sourcePanel || !targetPanel) return
 
         // 再次检查滚动位置，确保没有被重置
         const currentScrollTopCheck = sourcePanel.scrollTop
         if (Math.abs(currentScrollTopCheck - currentScrollTop) > 10) {
-          // 滚动位置发生了变化，可能是重置，不进行同步
           return
         }
-
-        this.isScrolling = true
 
         const scrollHeight = sourcePanel.scrollHeight
         const clientHeight = sourcePanel.clientHeight
         const maxScroll = scrollHeight - clientHeight
 
         // 如果滚动位置为0或没有可滚动内容，不进行同步
-        if (maxScroll <= 0 || currentScrollTopCheck === 0) {
-          this.isScrolling = false
+        if (maxScroll <= 0) {
           return
         }
 
@@ -2026,15 +2130,22 @@ export default {
 
         if (targetMaxScroll > 0) {
           const targetScrollTop = scrollRatio * targetMaxScroll
-          // 直接设置，不使用 requestAnimationFrame，避免延迟
+          
+          // 临时禁用目标面板的滚动监听，避免循环触发
+          this.scrollSyncEnabled[targetSource] = false
+          
+          // 设置目标面板的滚动位置
           targetPanel.scrollTop = targetScrollTop
+          
+          // 更新目标面板的滚动位置记录
+          this.lastScrollPositions[targetSource] = targetScrollTop
+          
+          // 在下一帧重新启用目标面板的滚动监听
+          requestAnimationFrame(() => {
+            this.scrollSyncEnabled[targetSource] = true
+          })
         }
-
-        // 延迟重置标志，避免滚动事件触发循环
-        setTimeout(() => {
-          this.isScrolling = false
-        }, 100)
-      }, 16) // 约一帧的时间，减少延迟感
+      })
     },
 
     /**
@@ -3825,6 +3936,43 @@ export default {
 /* 删除确认对话框样式 */
 .delete-dialog {
   max-width: 450px;
+}
+
+/* 恢复版本确认对话框样式 */
+.restore-confirm-dialog {
+  max-width: 450px;
+}
+
+.restore-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.restore-warning .warning-icon {
+  color: #f59e0b;
+  margin-bottom: 16px;
+}
+
+.restore-message {
+  font-size: 16px;
+  color: #333;
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+.restore-message strong {
+  color: #5b6bff;
+  font-weight: 600;
+}
+
+.restore-tip {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
 }
 
 .delete-warning {
