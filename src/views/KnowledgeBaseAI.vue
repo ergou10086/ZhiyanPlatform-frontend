@@ -461,10 +461,8 @@ export default {
       // 添加知识库文件信息
       this.selectedKnowledgeFileIds.forEach(fileId => {
         const fileIdStr = String(fileId)
-        // 尝试多种键格式查找文件信息
-        let fileInfo = this.knowledgeFileInfoMap[fileId] ||
-                      this.knowledgeFileInfoMap[fileIdStr] ||
-                      (!isNaN(parseInt(fileIdStr)) ? this.knowledgeFileInfoMap[parseInt(fileIdStr)] : null)
+        // 统一使用字符串作为键查找文件信息，避免精度丢失
+        let fileInfo = this.knowledgeFileInfoMap[fileIdStr]
 
         if (fileInfo) {
           messageFiles.push({
@@ -557,17 +555,13 @@ export default {
         const knowledgeFileIds = this.selectedKnowledgeFileIds.length > 0 ? this.selectedKnowledgeFileIds.map(id => {
           // 处理虚拟文件ID（成果目录）
           if (typeof id === 'string' && id.startsWith('achievement_')) {
-            // 提取成果ID
-            const achievementId = parseInt(id.replace('achievement_', ''), 10)
-            if (!isNaN(achievementId)) {
-              // 返回成果ID，后端可能需要特殊处理
-              return achievementId
-            }
+            // 提取成果ID，保持字符串格式避免精度丢失
+            const achievementId = id.replace('achievement_', '')
+            return achievementId
           }
-          // 确保ID是数字类型
-          const numId = typeof id === 'string' ? parseInt(id, 10) : id
-          return isNaN(numId) ? null : numId
-        }).filter(id => id !== null) : null
+          // 保持ID为字符串类型，避免精度丢失
+          return String(id)
+        }).filter(id => id !== null && id !== '' && id !== 'null' && id !== 'undefined') : null
         
         // 清空选中的文件
         this.selectedLocalFiles = []
@@ -1195,20 +1189,19 @@ export default {
                 // 提取文件ID并添加到列表，并保存文件信息到映射中
                 files.forEach(file => {
                   if (file && file.id) {
-                    const fileId = typeof file.id === 'string' ? parseInt(file.id, 10) : file.id
-                    if (!isNaN(fileId)) {
-                      // 避免重复添加
-                      if (!allFileIds.includes(fileId)) {
-                        allFileIds.push(fileId)
-                      }
-                       // 保存文件信息到映射中（使用 Vue.set 确保响应式）
-                       this.$set(this.knowledgeFileInfoMap, fileId, {
-                         fileName: file.fileName || file.name || file.originalName || achievement.title || achievement.name || '未命名文件',
-                         fileSize: file.fileSize || file.size || 0,
-                         fileType: file.fileType || file.type || (file.fileName ? file.fileName.split('.').pop()?.toUpperCase() : (file.originalName ? file.originalName.split('.').pop()?.toUpperCase() : '未知')) || '未知'
-                       })
-                      console.log('保存文件信息:', fileId, this.knowledgeFileInfoMap[fileId])
+                    // 保持ID为字符串类型，避免精度丢失
+                    const fileId = String(file.id)
+                    // 避免重复添加
+                    if (!allFileIds.includes(fileId)) {
+                      allFileIds.push(fileId)
                     }
+                    // 保存文件信息到映射中（使用 Vue.set 确保响应式）
+                    this.$set(this.knowledgeFileInfoMap, fileId, {
+                      fileName: file.fileName || file.name || file.originalName || achievement.title || achievement.name || '未命名文件',
+                      fileSize: file.fileSize || file.size || 0,
+                      fileType: file.fileType || file.type || (file.fileName ? file.fileName.split('.').pop()?.toUpperCase() : (file.originalName ? file.originalName.split('.').pop()?.toUpperCase() : '未知')) || '未知'
+                    })
+                    console.log('保存文件信息:', fileId, this.knowledgeFileInfoMap[fileId])
                   }
                 })
               }
@@ -1322,13 +1315,9 @@ export default {
       * 获取知识库文件名
       */
      getKnowledgeFileName(fileId) {
-       // 首先从文件信息映射中查找（尝试多种键格式）
-       let fileInfo = this.knowledgeFileInfoMap[fileId]
-       if (!fileInfo) {
-         const fileIdStr = String(fileId)
-         const fileIdNum = parseInt(fileId, 10)
-         fileInfo = this.knowledgeFileInfoMap[fileIdStr] || (!isNaN(fileIdNum) ? this.knowledgeFileInfoMap[fileIdNum] : null)
-       }
+       // 统一使用字符串作为键，避免精度丢失
+       const fileIdStr = String(fileId)
+       let fileInfo = this.knowledgeFileInfoMap[fileIdStr]
 
        if (fileInfo && fileInfo.fileName) {
          return fileInfo.fileName
@@ -1339,16 +1328,14 @@ export default {
          try {
            if (achievement.files && Array.isArray(achievement.files)) {
              const file = achievement.files.find(f => {
-               const fId = typeof f.id === 'string' ? parseInt(f.id, 10) : f.id
-               const targetId = typeof fileId === 'string' ? parseInt(fileId, 10) : fileId
-               return fId === targetId || String(fId) === String(targetId)
+               // 使用字符串比较，避免精度丢失
+               return String(f.id) === fileIdStr
              })
              if (file) {
                // 保存到映射中以便下次使用
                const savedFileName = file.fileName || file.name || '未命名文件'
-               const key = isNaN(parseInt(fileId)) ? fileId : parseInt(fileId)
-               if (!this.knowledgeFileInfoMap[key]) {
-                 this.$set(this.knowledgeFileInfoMap, key, {
+               if (!this.knowledgeFileInfoMap[fileIdStr]) {
+                 this.$set(this.knowledgeFileInfoMap, fileIdStr, {
                    fileName: savedFileName,
                    fileSize: file.fileSize || 0,
                    fileType: file.fileType || savedFileName.split('.').pop()?.toUpperCase() || '未知'
@@ -1386,18 +1373,19 @@ export default {
        }
        
        // 如果映射中没有，尝试从files数组中查找（兼容旧数据）
+       // 统一使用字符串作为键，避免精度丢失
+       const fileIdStr = String(fileId)
        for (const achievement of this.files) {
          try {
            if (achievement.files && Array.isArray(achievement.files)) {
              const file = achievement.files.find(f => {
-               const fId = typeof f.id === 'string' ? parseInt(f.id, 10) : f.id
-               const targetId = typeof fileId === 'string' ? parseInt(fileId, 10) : fileId
-               return fId === targetId || String(fId) === String(targetId)
+               // 使用字符串比较，避免精度丢失
+               return String(f.id) === fileIdStr
              })
              if (file && file.fileSize) {
                // 保存到映射中以便下次使用
-               if (!this.knowledgeFileInfoMap[fileId]) {
-                 this.knowledgeFileInfoMap[fileId] = {
+               if (!this.knowledgeFileInfoMap[fileIdStr]) {
+                 this.knowledgeFileInfoMap[fileIdStr] = {
                    fileName: file.fileName || file.name || '未命名文件',
                    fileSize: file.fileSize,
                    fileType: file.fileType || (file.fileName || file.name || '').split('.').pop()?.toUpperCase() || '未知'
