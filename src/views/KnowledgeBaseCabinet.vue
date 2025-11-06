@@ -13,15 +13,35 @@
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
-                 :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
-              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <div class="title-actions">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                   :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <button class="delete-node-btn"
+                      @click.stop="confirmDeleteNode(folder.id, 'folder', folder.name)"
+                      title="删除节点">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <ul v-if="folder.expanded" class="doc-list">
             <li v-for="doc in getDocsInFolder(folder.id)" :key="doc.id" 
-                :class="{ active: doc.id===activeId }" 
-                @click="selectDocument(doc.id)">{{ doc.title }}</li>
+                :class="{ active: doc.id===activeId }"
+                class="doc-item">
+              <span @click="selectDocument(doc.id)" class="doc-title">{{ doc.title }}</span>
+              <button class="delete-doc-btn"
+                      @click.stop="confirmDeleteNode(doc.id, 'document', doc.title)"
+                      title="删除文档">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </li>
           </ul>
         </div>
         <!-- 折叠按钮 -->
@@ -66,6 +86,42 @@
           </button>
           <button class="btn primary" @click="saveDocument" :disabled="!activeDoc">
             {{ hasUnsavedChanges ? '保存*' : '已保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除确认对话框 -->
+    <div v-if="showDeleteDialog" class="upload-dialog-overlay" @click="closeDeleteDialog">
+      <div class="upload-dialog delete-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>确认删除</h3>
+          <button class="close-btn" @click="closeDeleteDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <div class="delete-warning">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="warning-icon">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="delete-message">
+              {{ deleteNodeType === 'folder' ? '确定要删除节点' : '确定要删除文档' }}
+              <strong>"{{ deleteNodeName }}"</strong>吗？
+            </p>
+            <p class="delete-tip" v-if="deleteNodeType === 'folder'">
+              ⚠️ 删除节点将递归删除其下所有子节点和文档，此操作不可恢复！
+            </p>
+            <p class="delete-tip" v-else>
+              ⚠️ 此操作不可恢复！
+            </p>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="closeDeleteDialog">取消</button>
+          <button class="btn danger" @click="executeDeleteNode" :disabled="deleting">
+            {{ deleting ? '删除中...' : '确认删除' }}
           </button>
         </div>
       </div>
@@ -243,10 +299,10 @@
                 </div>
               </div>
             </div>
-            
+
             <!-- 分隔线 -->
             <div class="divider"></div>
-            
+
             <!-- 所有版本历史 -->
             <div class="version-history-section">
               <h4 class="section-title">所有版本历史</h4>
@@ -277,7 +333,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- 保存到存档位对话框 -->
     <div v-if="showSaveSlotDialog" class="upload-dialog-overlay" @click="closeSaveSlotDialog">
       <div class="upload-dialog save-slot-dialog" @click.stop>
@@ -308,7 +364,7 @@
         <div class="dialog-content">
           <!-- 存档位选择 -->
           <div class="compare-slots">
-            <div class="compare-slot-item" v-for="slot in archiveSlots" :key="slot.slotNumber" 
+            <div class="compare-slot-item" v-for="slot in archiveSlots" :key="slot.slotNumber"
                  :class="{ 'selected': selectedCompareSlot === slot.slotNumber }"
                  @click="selectCompareSlot(slot.slotNumber)">
               <div class="compare-slot-info">
@@ -327,14 +383,14 @@
               需要至少2个存档位才能进行对比
             </div>
           </div>
-          
+
           <!-- 对比按钮 -->
           <div class="compare-actions" v-if="archiveSlots.length >= 2">
             <button class="btn primary" @click="compareArchiveSlots" :disabled="!selectedCompareSlot || loadingVersionCompare">
               {{ loadingVersionCompare ? '对比中...' : '与其他存档对比' }}
             </button>
           </div>
-          
+
           <!-- 差异显示 -->
           <div v-if="versionDiff" class="version-diff">
             <h4>差异内容：</h4>
@@ -369,6 +425,11 @@ export default {
       activeId: null,
       showNewDocDialog: false,
       showNewFolderDialog: false,
+      showDeleteDialog: false,
+      deleteNodeId: null,
+      deleteNodeType: null,
+      deleteNodeName: '',
+      deleting: false,
       newDocTitle: '',
       newDocCategory: '',
       selectedFile: null,
@@ -388,19 +449,19 @@ export default {
       currentPage: null, // 当前查看的页面详情
       originalContent: '', // 原始内容（用于取消编辑）
       selectedParentId: null, // 新建页面时选择的父页面ID
-      
+
       // 版本历史相关
       showVersionHistoryDialog: false,
       versionHistoryList: [],
       loadingVersionHistory: false,
-      
+
       // 版本存档位相关（3个存档位）
       archiveSlots: [], // 存储用户保存的3个版本存档
       showSaveSlotDialog: false,
       selectedSlotNumber: null,
       archiveCustomName: '',
       versionToArchive: null, // 要保存到存档位的版本
-      
+
       // 版本对比相关
       showVersionCompareDialog: false,
       selectedCompareSlot: null, // 选中要对比的存档位
@@ -488,11 +549,11 @@ export default {
       }
       
       this.loading = true
-      
+
       // 清空现有数据，避免重复添加
       this.folders = []
       this.docs = []
-      
+
       try {
         console.log('[loadWikiTree] 加载Wiki树, projectId:', this.projectId)
         const response = await wikiAPI.page.getProjectWikiTree(this.projectId)
@@ -568,8 +629,8 @@ export default {
           this.currentPage = response.data
           this.activeId = String(pageId) // 保持字符串格式
           
-          // 更新docs数组中的内容
-          const doc = this.docs.find(d => d.id === this.activeId)
+          // 更新docs数组中的内容（使用字符串比较）
+          const doc = this.docs.find(d => String(d.id) === String(this.activeId))
           if (doc) {
             doc.content = this.currentPage.content || ''
             doc.updated = this.currentPage.updatedAt || doc.updated
@@ -582,7 +643,7 @@ export default {
         } else {
           console.error('[selectDocument] 加载页面失败:', response)
           this.$message?.error(response.msg || '加载页面失败')
-          
+
           // 如果页面不存在，重新加载Wiki树
           if (response.code === 404 || response.msg?.includes('不存在')) {
             console.warn('[selectDocument] 页面不存在，重新加载Wiki树')
@@ -591,7 +652,7 @@ export default {
         }
       } catch (error) {
         console.error('[selectDocument] 加载页面失败:', error)
-        
+
         // 检查是否是404错误（页面不存在）
         if (error.response?.status === 404 || error.message?.includes('不存在')) {
           this.$message?.error('页面不存在，可能已被删除')
@@ -839,18 +900,18 @@ export default {
         if (response && response.code === 200) {
           console.log('[confirmNewDoc] 文档创建成功:', response.data)
           this.$message?.success('文档创建成功！')
-          
+
           // 重新加载Wiki树以获取最新数据
           await this.loadWikiTree()
-          
+
           // 关闭对话框
           this.closeNewDocDialog()
-          
+
           // 自动选择新创建的文档
           const newPageId = String(response.data.id || response.data)
           if (newPageId && newPageId !== 'null' && newPageId !== 'undefined') {
             await this.selectDocument(newPageId)
-            
+
             // 如果文档在文件夹中，确保文件夹展开
             if (parentId) {
               const folder = this.folders.find(f => String(f.id) === String(parentId))
@@ -859,13 +920,13 @@ export default {
               }
             }
           }
-          
+
           // 通知父组件
           this.$emit('document-created', {
             id: newPageId,
             title: this.newDocTitle.trim()
           })
-          
+
           console.log('[confirmNewDoc] 文档已创建并自动选中')
         } else {
           console.error('[confirmNewDoc] 创建失败:', response)
@@ -909,15 +970,15 @@ export default {
         this.$message?.error('无法保存文档：缺少文档ID')
         return
       }
-      
+
       // 防止重复保存 - 如果正在保存中，直接返回
       if (this.isSaving) {
         console.log('[saveDocument] 正在保存中，跳过重复请求')
         return
       }
-      
+
       this.isSaving = true
-      
+
       try {
         console.log('[saveDocument] 保存文档到后端, ID:', this.activeId)
         
@@ -926,20 +987,20 @@ export default {
           content: this.activeDocContent,
           changeDescription: '手动保存'
         })
-        
+
         if (response && response.code === 200) {
           // 更新本地文档内容
           this.activeDoc.content = this.activeDocContent
           this.activeDoc.updated = new Date().toLocaleString('zh-CN')
           this.originalContent = this.activeDocContent
-          
+
           // 标记已保存并退出编辑模式
           this.hasUnsavedChanges = false
           this.isEditing = false
-          
+
           console.log('[saveDocument] 文档保存成功')
           this.$message?.success('文档保存成功！')
-          
+
           // 通知父组件
           this.$emit('document-saved', this.activeDoc)
         } else {
@@ -959,22 +1020,22 @@ export default {
       if (this.isSaving || !this.hasUnsavedChanges || !this.activeDoc || !this.activeId) {
         return
       }
-      
+
       this.isSaving = true
-      
+
       try {
         console.log('[autoSave] 自动保存文档')
         const response = await wikiAPI.page.updatePage(this.activeId, {
           content: this.activeDocContent,
           changeDescription: '自动保存'
         })
-        
+
         if (response && response.code === 200) {
           this.activeDoc.updated = new Date().toLocaleString('zh-CN')
           this.originalContent = this.activeDocContent
           this.hasUnsavedChanges = false
           console.log('[autoSave] 文档已自动保存')
-          
+
           // 通知父组件
           this.$emit('document-auto-saved', this.activeDoc)
         }
@@ -1088,7 +1149,7 @@ export default {
         return '您有未保存的更改，确定要离开吗？'
       }
     },
-    
+
     /**
      * 显示版本历史
      */
@@ -1097,18 +1158,18 @@ export default {
         this.$message?.warning('请先选择一个文档')
         return
       }
-      
+
       this.showVersionHistoryDialog = true
       this.loadingVersionHistory = true
       this.versionHistoryList = []
-      
+
       // 加载存档位数据
       this.loadArchiveSlotsFromStorage()
-      
+
       try {
         console.log('[showVersionHistory] 加载版本历史, pageId:', this.activeId)
         const response = await wikiAPI.version.getVersionHistory(this.activeId)
-        
+
         if (response && response.code === 200) {
           this.versionHistoryList = response.data || []
           console.log('[showVersionHistory] 版本历史加载成功, 共', this.versionHistoryList.length, '个版本')
@@ -1123,7 +1184,7 @@ export default {
         this.loadingVersionHistory = false
       }
     },
-    
+
     /**
      * 关闭版本历史对话框
      */
@@ -1131,27 +1192,27 @@ export default {
       this.showVersionHistoryDialog = false
       this.versionHistoryList = []
     },
-    
+
     /**
      * 查看指定版本的内容
      */
     async viewVersionContent(version) {
       if (!this.activeId) return
-      
+
       try {
         console.log('[viewVersionContent] 查看版本内容, pageId:', this.activeId, 'version:', version)
         const response = await wikiAPI.version.getVersionContent(this.activeId, version)
-        
+
         if (response && response.code === 200) {
           const content = response.data || ''
           this.$message?.success(`正在查看版本 ${version}`)
-          
+
           // 临时显示该版本内容（不保存，只是预览）
           if (this.activeDoc) {
             this.activeDoc.content = content
             this.isEditing = false // 切换到只读模式
           }
-          
+
           // 关闭版本历史对话框
           this.closeVersionHistoryDialog()
         } else {
@@ -1163,38 +1224,38 @@ export default {
         this.$message?.error('加载版本内容失败：' + (error.message || '请重试'))
       }
     },
-    
+
     /**
      * 恢复到指定版本
      */
     async restoreToVersion(version) {
       if (!this.activeId) return
-      
+
       if (!confirm(`确定要恢复到版本 ${version} 吗？这将创建一个新版本。`)) {
         return
       }
-      
+
       try {
         console.log('[restoreToVersion] 恢复到版本, pageId:', this.activeId, 'version:', version)
-        
+
         // 先获取该版本的内容
         const response = await wikiAPI.version.getVersionContent(this.activeId, version)
-        
+
         if (response && response.code === 200) {
           const content = response.data || ''
-          
+
           // 使用该版本内容更新页面
           const updateResponse = await wikiAPI.page.updatePage(this.activeId, {
             content: content,
             changeDescription: `恢复到版本 ${version}`
           })
-          
+
           if (updateResponse && updateResponse.code === 200) {
             this.$message?.success('已恢复到指定版本')
-            
+
             // 重新加载文档内容
             await this.selectDocument(this.activeId)
-            
+
             // 关闭版本历史对话框
             this.closeVersionHistoryDialog()
           } else {
@@ -1206,7 +1267,7 @@ export default {
         this.$message?.error('恢复版本失败：' + (error.message || '请重试'))
       }
     },
-    
+
     /**
      * 显示版本对比对话框
      */
@@ -1215,21 +1276,21 @@ export default {
         this.$message?.warning('请先选择一个文档')
         return
       }
-      
+
       // 加载存档位数据
       this.loadArchiveSlotsFromStorage()
-      
+
       // 如果没有存档位，提示用户
       if (this.archiveSlots.length === 0) {
         this.$message?.warning('请先在"版本历史"中保存至少一个存档位')
         return
       }
-      
+
       this.showVersionCompareDialog = true
       this.selectedCompareSlot = null
       this.versionDiff = ''
     },
-    
+
     /**
      * 关闭版本对比对话框
      */
@@ -1238,7 +1299,7 @@ export default {
       this.selectedCompareSlot = null
       this.versionDiff = ''
     },
-    
+
     /**
      * 格式化日期时间
      */
@@ -1252,14 +1313,14 @@ export default {
       const minute = String(date.getMinutes()).padStart(2, '0')
       return `${year}-${month}-${day} ${hour}:${minute}`
     },
-    
+
     /**
      * 获取指定存档位的数据
      */
     getArchiveSlot(slotNumber) {
       return this.archiveSlots.find(slot => slot.slotNumber === slotNumber)
     },
-    
+
     /**
      * 显示保存当前版本到存档位的对话框
      */
@@ -1269,7 +1330,7 @@ export default {
       this.versionToArchive = null // 保存当前版本（最新版本）
       this.showSaveSlotDialog = true
     },
-    
+
     /**
      * 显示保存指定版本到存档位的对话框
      */
@@ -1279,7 +1340,7 @@ export default {
         this.$message?.warning('所有存档位已满，请先清空一个存档位')
         return
       }
-      
+
       // 找到第一个空的存档位
       for (let i = 1; i <= 3; i++) {
         if (!this.getArchiveSlot(i)) {
@@ -1287,12 +1348,12 @@ export default {
           break
         }
       }
-      
+
       this.archiveCustomName = ''
       this.versionToArchive = version
       this.showSaveSlotDialog = true
     },
-    
+
     /**
      * 关闭保存到存档位对话框
      */
@@ -1302,16 +1363,16 @@ export default {
       this.archiveCustomName = ''
       this.versionToArchive = null
     },
-    
+
     /**
      * 确认保存到存档位
      */
     async confirmSaveToSlot() {
       if (!this.selectedSlotNumber) return
-      
+
       try {
         let versionData
-        
+
         if (this.versionToArchive) {
           // 保存指定版本
           versionData = this.versionToArchive
@@ -1323,7 +1384,7 @@ export default {
           }
           versionData = this.versionHistoryList[0] // 第一个就是最新版本
         }
-        
+
         // 创建存档数据
         const archiveData = {
           slotNumber: this.selectedSlotNumber,
@@ -1334,16 +1395,16 @@ export default {
           changeDescription: versionData.changeDescription,
           pageId: this.activeId
         }
-        
+
         // 移除该存档位的旧数据（如果有）
         this.archiveSlots = this.archiveSlots.filter(slot => slot.slotNumber !== this.selectedSlotNumber)
-        
+
         // 添加新存档
         this.archiveSlots.push(archiveData)
-        
+
         // 保存到 localStorage
         this.saveArchiveSlotsToStorage()
-        
+
         this.$message?.success(`已保存到存档位 ${this.selectedSlotNumber}`)
         this.closeSaveSlotDialog()
       } catch (error) {
@@ -1351,7 +1412,7 @@ export default {
         this.$message?.error('保存失败，请重试')
       }
     },
-    
+
     /**
      * 清空指定存档位
      */
@@ -1359,12 +1420,12 @@ export default {
       if (!confirm(`确定要清空存档位 ${slotNumber} 吗？`)) {
         return
       }
-      
+
       this.archiveSlots = this.archiveSlots.filter(slot => slot.slotNumber !== slotNumber)
       this.saveArchiveSlotsToStorage()
       this.$message?.success('存档位已清空')
     },
-    
+
     /**
      * 保存存档位数据到 localStorage
      */
@@ -1376,7 +1437,7 @@ export default {
         console.error('[saveArchiveSlotsToStorage] 保存失败:', error)
       }
     },
-    
+
     /**
      * 从 localStorage 加载存档位数据
      */
@@ -1391,14 +1452,14 @@ export default {
         console.error('[loadArchiveSlotsFromStorage] 加载失败:', error)
       }
     },
-    
+
     /**
      * 选择要对比的存档位
      */
     selectCompareSlot(slotNumber) {
       this.selectedCompareSlot = slotNumber
     },
-    
+
     /**
      * 对比存档位
      */
@@ -1407,30 +1468,30 @@ export default {
         this.$message?.warning('请选择一个存档位')
         return
       }
-      
+
       if (this.archiveSlots.length < 2) {
         this.$message?.warning('需要至少2个存档位才能对比')
         return
       }
-      
+
       // 找到选中的存档位和第一个非选中的存档位进行对比
       const selectedSlot = this.getArchiveSlot(this.selectedCompareSlot)
       const otherSlot = this.archiveSlots.find(slot => slot.slotNumber !== this.selectedCompareSlot)
-      
+
       if (!otherSlot) {
         this.$message?.warning('没有其他存档位可供对比')
         return
       }
-      
+
       this.loadingVersionCompare = true
-      
+
       try {
         const response = await wikiAPI.version.compareVersions(
           this.activeId,
           selectedSlot.version,
           otherSlot.version
         )
-        
+
         if (response && response.code === 200) {
           this.versionDiff = response.data || '两个版本内容相同'
           this.$message?.success(`对比完成：存档${selectedSlot.slotNumber} vs 存档${otherSlot.slotNumber}`)
@@ -1442,6 +1503,104 @@ export default {
         this.$message?.error('版本对比失败')
       } finally {
         this.loadingVersionCompare = false
+      }
+    },
+
+    /**
+     * 确认删除节点（显示确认对话框）
+     */
+    confirmDeleteNode(nodeId, nodeType, nodeName) {
+      console.log('[confirmDeleteNode] 准备删除:', { nodeId, nodeType, nodeName })
+      this.deleteNodeId = nodeId
+      this.deleteNodeType = nodeType
+      this.deleteNodeName = nodeName
+      this.showDeleteDialog = true
+    },
+
+    /**
+     * 关闭删除确认对话框
+     */
+    closeDeleteDialog() {
+      this.showDeleteDialog = false
+      this.deleteNodeId = null
+      this.deleteNodeType = null
+      this.deleteNodeName = ''
+      this.deleting = false
+    },
+
+    /**
+     * 执行删除节点操作
+     */
+    async executeDeleteNode() {
+      if (!this.deleteNodeId) {
+        console.error('[executeDeleteNode] deleteNodeId为空')
+        return
+      }
+
+      this.deleting = true
+
+      try {
+        console.log('[executeDeleteNode] 删除节点:', {
+          id: this.deleteNodeId,
+          type: this.deleteNodeType,
+          name: this.deleteNodeName
+        })
+
+        let response
+        if (this.deleteNodeType === 'folder') {
+          // 递归删除节点及其子节点
+          response = await wikiAPI.page.deletePageRecursively(this.deleteNodeId)
+        } else {
+          // 删除单个文档
+          response = await wikiAPI.page.deletePage(this.deleteNodeId)
+        }
+
+        if (response && response.code === 200) {
+          console.log('[executeDeleteNode] 删除成功')
+
+          // 从本地数据中移除
+          if (this.deleteNodeType === 'folder') {
+            // 移除文件夹
+            this.folders = this.folders.filter(f => String(f.id) !== String(this.deleteNodeId))
+            // 移除该文件夹下的所有文档
+            this.docs = this.docs.filter(d => String(d.folderId) !== String(this.deleteNodeId))
+          } else {
+            // 移除文档
+            this.docs = this.docs.filter(d => String(d.id) !== String(this.deleteNodeId))
+
+            // 如果删除的是当前活动文档，清空选择
+            if (String(this.activeId) === String(this.deleteNodeId)) {
+              this.activeId = null
+              this.currentPage = null
+            }
+          }
+
+          // 保存到本地存储
+          this.saveToLocalStorage()
+
+          // 重新加载Wiki树
+          await this.loadWikiTree()
+
+          // 显示成功消息
+          if (this.$message) {
+            this.$message.success(`${this.deleteNodeType === 'folder' ? '节点' : '文档'}删除成功`)
+          }
+
+          // 关闭对话框
+          this.closeDeleteDialog()
+        } else {
+          console.error('[executeDeleteNode] 删除失败:', response)
+          if (this.$message) {
+            this.$message.error(response?.msg || '删除失败，请重试')
+          }
+        }
+      } catch (error) {
+        console.error('[executeDeleteNode] 删除失败:', error)
+        if (this.$message) {
+          this.$message.error('删除失败，请重试')
+        }
+      } finally {
+        this.deleting = false
       }
     }
   }
@@ -1591,10 +1750,102 @@ export default {
 .folder-section {
   margin-bottom: 8px;
 }
-.doc-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-.doc-list li { padding: 8px 10px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 13px; }
-.doc-list li:hover { background: #f6f7fb; }
-.doc-list li.active { background: #e0ebff; color: #0044CC; }
+
+/* 节点标题操作按钮容器 */
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 删除节点按钮 */
+.delete-node-btn {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.group-title:hover .delete-node-btn {
+  opacity: 1;
+}
+
+.delete-node-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+/* 文档列表项样式 */
+.doc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.doc-list .doc-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #374151;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.doc-list .doc-item .doc-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-list .doc-item:hover {
+  background: #f6f7fb;
+}
+
+.doc-list .doc-item.active {
+  background: #e0ebff;
+  color: #0044CC;
+}
+
+/* 删除文档按钮 */
+.delete-doc-btn {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.doc-item:hover .delete-doc-btn {
+  opacity: 1;
+}
+
+.delete-doc-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.1);
+}
 
 .editor-pane { 
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
@@ -1689,7 +1940,21 @@ export default {
 .btn.secondary:hover {
   background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
 }
-.btn.small { 
+.btn.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.btn.danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+.btn.danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn.small {
   height: 32px; 
   padding: 0 16px;
   font-size: 12px;
@@ -1793,6 +2058,67 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* 删除确认对话框样式 */
+.delete-dialog {
+  max-width: 450px;
+}
+
+.delete-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  color: #f59e0b;
+  margin-bottom: 16px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.delete-message {
+  font-size: 16px;
+  color: #374151;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.delete-message strong {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.delete-tip {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0;
+  padding: 12px 20px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fee2e2;
+  max-width: 90%;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 12px 12px;
 }
 
 @media (max-width: 900px) {
