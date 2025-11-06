@@ -638,6 +638,8 @@ export default {
       versionDiff: null, // 差异数据
       loadingVersionCompare: false,
       isScrolling: false, // 防止滚动循环
+      scrollSyncTimer: null, // 滚动同步防抖定时器
+      lastScrollPositions: { left: 0, right: 0 }, // 上次滚动位置，用于检测异常重置
 
       // 查看版本内容相关
       showVersionViewDialog: false,
@@ -1967,19 +1969,55 @@ export default {
     syncScroll(source, event) {
       if (this.isScrolling) return
 
-      this.isScrolling = true
-
       const sourcePanel = source === 'left' ? this.$refs.leftScrollPanel : this.$refs.rightScrollPanel
-      const targetPanel = source === 'left' ? this.$refs.rightScrollPanel : this.$refs.leftScrollPanel
+      if (!sourcePanel) return
 
-      if (sourcePanel && targetPanel) {
-        const scrollTop = sourcePanel.scrollTop
+      const currentScrollTop = sourcePanel.scrollTop
+      const lastScrollTop = this.lastScrollPositions[source]
+
+      // 检测滚动位置是否异常重置（从较大值突然变为0或很小的值）
+      // 如果滚动位置突然大幅减小，可能是内容更新导致的重置，不进行同步
+      if (lastScrollTop > 50 && currentScrollTop < 10) {
+        // 这是异常重置，不进行同步，但更新记录
+        this.lastScrollPositions[source] = currentScrollTop
+        return
+      }
+
+      // 更新记录
+      this.lastScrollPositions[source] = currentScrollTop
+
+      // 清除之前的防抖定时器
+      if (this.scrollSyncTimer) {
+        clearTimeout(this.scrollSyncTimer)
+      }
+
+      // 使用防抖，延迟执行同步
+      this.scrollSyncTimer = setTimeout(() => {
+        const targetPanel = source === 'left' ? this.$refs.rightScrollPanel : this.$refs.leftScrollPanel
+
+        if (!sourcePanel || !targetPanel || this.isScrolling) return
+
+        // 再次检查滚动位置，确保没有被重置
+        const currentScrollTopCheck = sourcePanel.scrollTop
+        if (Math.abs(currentScrollTopCheck - currentScrollTop) > 10) {
+          // 滚动位置发生了变化，可能是重置，不进行同步
+          return
+        }
+
+        this.isScrolling = true
+
         const scrollHeight = sourcePanel.scrollHeight
         const clientHeight = sourcePanel.clientHeight
         const maxScroll = scrollHeight - clientHeight
 
+        // 如果滚动位置为0或没有可滚动内容，不进行同步
+        if (maxScroll <= 0 || currentScrollTopCheck === 0) {
+          this.isScrolling = false
+          return
+        }
+
         // 计算滚动比例
-        const scrollRatio = maxScroll > 0 ? scrollTop / maxScroll : 0
+        const scrollRatio = currentScrollTopCheck / maxScroll
 
         // 同步到另一个面板
         const targetScrollHeight = targetPanel.scrollHeight
@@ -1987,14 +2025,16 @@ export default {
         const targetMaxScroll = targetScrollHeight - targetClientHeight
 
         if (targetMaxScroll > 0) {
-          targetPanel.scrollTop = scrollRatio * targetMaxScroll
+          const targetScrollTop = scrollRatio * targetMaxScroll
+          // 直接设置，不使用 requestAnimationFrame，避免延迟
+          targetPanel.scrollTop = targetScrollTop
         }
-      }
 
-      // 使用 nextTick 确保滚动完成后再允许下一次同步
-      this.$nextTick(() => {
-        this.isScrolling = false
-      })
+        // 延迟重置标志，避免滚动事件触发循环
+        setTimeout(() => {
+          this.isScrolling = false
+        }, 100)
+      }, 16) // 约一帧的时间，减少延迟感
     },
 
     /**
