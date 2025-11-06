@@ -8,7 +8,19 @@
             <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
             <button class="btn secondary small" @click="createNewFolder">+ 新建节点</button>
           </div>
-          <input class="search" type="text" placeholder="搜索文档" v-if="!sidebarCollapsed" />
+          <div class="search-container" v-if="!sidebarCollapsed">
+            <input 
+              class="search" 
+              type="text" 
+              placeholder="点击搜索文档..." 
+              readonly
+              @click="openSearchDialog"
+            />
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
         </div>
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
@@ -84,8 +96,8 @@
           <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
             取消
           </button>
-          <button class="btn primary" @click="saveDocument" :disabled="!activeDoc">
-            {{ hasUnsavedChanges ? '保存*' : '已保存' }}
+          <button class="btn primary" @click="saveDocument" :disabled="!activeDoc || saving">
+            {{ saving ? '保存中...' : (hasUnsavedChanges ? '保存*' : '已保存') }}
           </button>
         </div>
       </div>
@@ -256,13 +268,93 @@
         </div>
       </div>
     </div>
+
+    <!-- 搜索对话框 -->
+    <div v-if="showSearchDialog" class="search-dialog-overlay" @click="closeSearchDialog">
+      <div class="search-dialog" @click.stop>
+        <div class="search-dialog-header">
+          <svg class="search-header-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input 
+            ref="searchInput"
+            class="search-dialog-input" 
+            type="text" 
+            placeholder="搜索文档标题或内容..." 
+            v-model="searchKeyword"
+            @input="handleSearchInput"
+            @keyup.enter="performSearch"
+          />
+          <button class="search-dialog-close" @click="closeSearchDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+        
+        <div class="search-dialog-body">
+          <!-- 搜索提示 -->
+          <div v-if="!searchKeyword && !searching" class="search-tips">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="tips-icon">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p>输入关键词搜索文档</p>
+            <p class="tips-hint">支持搜索标题和内容</p>
+          </div>
+          
+          <!-- 搜索中 -->
+          <div v-else-if="searching" class="search-loading-state">
+            <div class="loading-ring"></div>
+            <p>搜索中...</p>
+          </div>
+          
+          <!-- 搜索结果 -->
+          <div v-else-if="searchKeyword && searchResults.length > 0" class="search-results-container">
+            <div class="results-count">找到 {{ searchResults.length }} 个结果</div>
+            <div class="results-list">
+              <div v-for="result in searchResults" 
+                   :key="result.wikiPageId || result.id"
+                   class="result-item"
+                   @click="selectSearchResultAndClose(result)">
+                <div class="result-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="result-content">
+                  <div class="result-title" v-html="highlightKeyword(result.title)"></div>
+                  <div v-if="result.matchedSnippet" class="result-snippet" v-html="highlightKeyword(result.matchedSnippet)"></div>
+                  <div class="result-meta">
+                    <span v-if="result.path" class="result-path">{{ result.path }}</span>
+                    <span class="result-date">{{ formatDate(result.updatedAt) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 无结果 -->
+          <div v-else-if="searchKeyword && searchResults.length === 0" class="search-no-results">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" class="no-results-icon">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="9" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <h3>未找到相关文档</h3>
+            <p>尝试更换关键词或检查拼写</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
 import '@/assets/styles/KnowledgeBaseCabinet.css'
-import { wikiAPI } from '@/api/wiki'
-import { PageType } from '@/api/wiki'
+import { wikiAPI, PageType } from '@/api/wiki'
 
 export default {
   name: 'KnowledgeBaseCabinet',
@@ -300,7 +392,13 @@ export default {
       loading: false,
       currentPage: null, // 当前查看的页面详情
       originalContent: '', // 原始内容（用于取消编辑）
-      selectedParentId: null // 新建页面时选择的父页面ID
+      selectedParentId: null, // 新建页面时选择的父页面ID
+      searchKeyword: '', // 搜索关键词
+      searchResults: [], // 搜索结果
+      showSearchDialog: false, // 是否显示搜索对话框
+      searching: false, // 是否正在搜索
+      searchTimer: null, // 搜索防抖定时器
+      saving: false // 保存状态标记，防止并发保存
     }
   },
   computed: {
@@ -823,7 +921,20 @@ export default {
         return
       }
 
+      // 防止并发保存
+      if (this.saving) {
+        console.warn('[saveDocument] 正在保存中，跳过本次保存')
+        return
+      }
+
+      // 清除自动保存定时器，避免冲突
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer)
+        this.autoSaveTimer = null
+      }
+
       try {
+        this.saving = true
         console.log('[saveDocument] 保存文档到后端, ID:', this.activeId)
         
         // 调用后端API更新文档内容
@@ -854,12 +965,21 @@ export default {
       } catch (error) {
         console.error('[saveDocument] 保存文档失败:', error)
         this.$message?.error('保存文档失败：' + (error.message || '请重试'))
+      } finally {
+        this.saving = false
       }
     },
     
     async autoSave() {
       if (this.activeDoc && this.hasUnsavedChanges && this.activeId) {
+        // 防止并发保存
+        if (this.saving) {
+          console.warn('[autoSave] 正在保存中，跳过自动保存')
+          return
+        }
+
         try {
+          this.saving = true
           console.log('[autoSave] 自动保存文档')
           const response = await wikiAPI.page.updatePage(this.activeId, {
             content: this.activeDocContent,
@@ -877,6 +997,9 @@ export default {
           }
         } catch (error) {
           console.error('[autoSave] 自动保存失败:', error)
+          // 自动保存失败不显示错误提示，避免打扰用户
+        } finally {
+          this.saving = false
         }
       }
     },
@@ -1007,10 +1130,296 @@ export default {
       this.deleting = false
     },
 
-    /**
-     * 执行删除节点操作
-     */
-    async executeDeleteNode() {
+     /**
+      * 打开搜索对话框
+      */
+     openSearchDialog() {
+       this.showSearchDialog = true
+       this.searchKeyword = ''
+       this.searchResults = []
+       this.searching = false
+       
+       // 等待DOM更新后聚焦输入框
+       this.$nextTick(() => {
+         if (this.$refs.searchInput) {
+           this.$refs.searchInput.focus()
+         }
+       })
+     },
+     
+     /**
+      * 关闭搜索对话框
+      */
+     closeSearchDialog() {
+       this.showSearchDialog = false
+       this.searchKeyword = ''
+       this.searchResults = []
+       this.searching = false
+       
+       if (this.searchTimer) {
+         clearTimeout(this.searchTimer)
+         this.searchTimer = null
+       }
+     },
+     
+     /**
+      * 选择搜索结果并关闭对话框
+      */
+     async selectSearchResultAndClose(result) {
+       await this.selectSearchResult(result)
+       this.closeSearchDialog()
+     },
+     
+     /**
+      * 处理搜索输入（防抖）
+      */
+     handleSearchInput() {
+       // 清除之前的定时器
+       if (this.searchTimer) {
+         clearTimeout(this.searchTimer)
+       }
+       
+       // 如果搜索关键词为空，清空搜索结果
+       if (!this.searchKeyword.trim()) {
+         this.clearSearch()
+         return
+       }
+       
+       // 设置新的定时器（500ms后自动搜索）
+       this.searchTimer = setTimeout(() => {
+         this.performSearch()
+       }, 500)
+     },
+     
+     /**
+      * 执行搜索（混合搜索：MongoDB全文搜索 + 本地模糊匹配）
+      */
+     async performSearch() {
+       const keyword = this.searchKeyword.trim()
+       if (!keyword) {
+         this.clearSearch()
+         return
+       }
+       
+      if (!this.projectId) {
+        console.error('[performSearch] ❌ 项目ID为空')
+        this.$message?.error('项目ID为空，无法搜索')
+        return
+      }
+      
+      this.searching = true
+      
+      try {
+         console.group('🔍 混合搜索 (MongoDB + 本地模糊匹配)')
+         console.log('📝 搜索关键词:', keyword)
+         console.log('🏷️ 项目ID:', this.projectId)
+         console.log('⏰ 搜索时间:', new Date().toLocaleString())
+         
+         let mongoResults = []
+         let localResults = []
+         
+         // ========== 第一步：MongoDB全文搜索 ==========
+         try {
+           // 检查 wikiAPI 是否存在
+           if (!wikiAPI || !wikiAPI.search || !wikiAPI.search.simpleSearch) {
+             console.warn('⚠️ wikiAPI.search.simpleSearch 未定义，跳过MongoDB搜索')
+           } else {
+             console.log('📡 正在调用MongoDB全文搜索...')
+             
+             const startTime = Date.now()
+             const response = await wikiAPI.search.simpleSearch(this.projectId, keyword, 20)
+             const elapsed = Date.now() - startTime
+             
+             console.log(`⏱️ MongoDB搜索耗时: ${elapsed}ms`)
+             console.log('📦 MongoDB响应:', response)
+             
+             if (response && response.code === 200) {
+               mongoResults = response.data || []
+               console.log(`✅ MongoDB搜索成功！找到 ${mongoResults.length} 个结果`)
+             } else {
+               console.warn('⚠️ MongoDB搜索失败:', response?.msg)
+             }
+           }
+         } catch (mongoError) {
+           console.warn('⚠️ MongoDB搜索异常:', mongoError.message)
+           console.log('💡 将使用本地搜索作为备用方案')
+         }
+         
+         // ========== 第二步：本地模糊搜索（作为增强或备用） ==========
+         console.log('🔍 执行本地模糊搜索...')
+         const localSearchModule = await import('@/utils/localSearch.js')
+         const { localFuzzySearch, mergeSearchResults } = localSearchModule.default || localSearchModule
+         
+         const localStartTime = Date.now()
+         localResults = localFuzzySearch(this.folders, keyword, 10)
+         const localElapsed = Date.now() - localStartTime
+         
+         console.log(`⏱️ 本地搜索耗时: ${localElapsed}ms`)
+         console.log(`📊 本地搜索找到 ${localResults.length} 个结果`)
+         
+         // ========== 第三步：合并结果 ==========
+         this.searchResults = mergeSearchResults(mongoResults, localResults, 20)
+         
+         console.log(`✅ 合并完成！总共 ${this.searchResults.length} 个结果`)
+         console.log(`   - MongoDB结果: ${mongoResults.length}`)
+         console.log(`   - 本地结果: ${localResults.length}`)
+         console.log(`   - 去重后: ${this.searchResults.length}`)
+         
+         if (this.searchResults.length > 0) {
+           console.table(this.searchResults.map((r, index) => ({
+             序号: index + 1,
+             来源: r.source === 'mongodb' ? '🗄️ MongoDB' : '💻 本地',
+             ID: r.wikiPageId,
+             标题: r.title,
+             路径: r.path || '无',
+             评分: r.score?.toFixed(2) || '无'
+           })))
+           
+           // 检查第一个结果的完整数据
+           console.log('📄 第一个结果详情:', this.searchResults[0])
+           
+           // 提示用户搜索结果的来源
+           const mongoCount = this.searchResults.filter(r => r.source === 'mongodb').length
+           const localCount = this.searchResults.filter(r => r.source === 'local').length
+           
+           if (localCount > 0 && mongoCount === 0) {
+             console.info('💡 提示：当前结果全部来自本地模糊匹配')
+           } else if (localCount > 0) {
+             console.info(`💡 提示：结果包含 ${mongoCount} 个MongoDB匹配 + ${localCount} 个本地匹配`)
+           }
+         } else {
+           console.warn('⚠️ 未找到匹配的文档')
+           console.log('💡 提示：')
+           console.log('  1. 检查项目中是否有Wiki文档')
+           console.log('  2. 确认MongoDB中wiki_contents集合有数据')
+           console.log('  3. 尝试使用不同的关键词')
+           console.log('  4. 检查文档标题中是否包含搜索词')
+         }
+       } catch (error) {
+         console.error('❌ 搜索异常')
+         console.error('错误类型:', error.name)
+         console.error('错误信息:', error.message)
+         console.error('完整堆栈:', error)
+         
+         if (error.response) {
+           console.error('HTTP状态:', error.response.status)
+           console.error('响应数据:', error.response.data)
+         }
+         
+         let errorMsg = '搜索失败，请重试'
+         if (error.message) {
+           errorMsg = error.message
+         } else if (error.response?.data?.msg) {
+           errorMsg = error.response.data.msg
+         }
+         
+         this.$message?.error(errorMsg)
+         this.searchResults = []
+       } finally {
+         this.searching = false
+         console.groupEnd()
+       }
+     },
+     
+     /**
+      * 清空搜索
+      */
+     clearSearch() {
+       this.searchKeyword = ''
+       this.searchResults = []
+       this.searching = false
+       
+       // 清除定时器
+       if (this.searchTimer) {
+         clearTimeout(this.searchTimer)
+         this.searchTimer = null
+       }
+     },
+     
+     /**
+      * 选择搜索结果
+      */
+     async selectSearchResult(result) {
+       console.log('[selectSearchResult] 选择搜索结果:', result)
+       
+       // 使用 wikiPageId 或 id（兼容不同的返回格式）
+       const pageId = result.wikiPageId || result.id
+       
+       if (!pageId) {
+         console.error('[selectSearchResult] 页面ID为空')
+         this.$message?.error('无法打开该页面：ID不存在')
+         return
+       }
+       
+       // 如果是目录，展开目录
+       if (result.pageType === 'DIRECTORY') {
+         const folder = this.folders.find(f => String(f.id) === String(pageId))
+         if (folder) {
+           folder.expanded = true
+         }
+         this.$message?.info('这是一个目录节点')
+       } else {
+         // 如果是文档，加载文档内容
+         await this.selectDocument(pageId)
+         
+         // 确保文档所在的文件夹展开
+         if (result.parentId) {
+           const folder = this.folders.find(f => String(f.id) === String(result.parentId))
+           if (folder && !folder.expanded) {
+             folder.expanded = true
+           }
+         }
+       }
+       
+       // 关闭搜索结果（可选，根据需求决定）
+       // this.clearSearch()
+     },
+     
+     /**
+      * 高亮搜索关键词
+      */
+     highlightKeyword(text) {
+       if (!text || !this.searchKeyword.trim()) {
+         return text || ''
+       }
+       
+       const keyword = this.searchKeyword.trim()
+       // 转义特殊字符
+       const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+       const regex = new RegExp(`(${escapedKeyword})`, 'gi')
+       
+       return text.replace(regex, '<mark class="search-highlight">$1</mark>')
+     },
+     
+     /**
+      * 格式化日期
+      */
+     formatDate(dateString) {
+       if (!dateString) return ''
+       try {
+         const date = new Date(dateString)
+         const now = new Date()
+         const diff = now - date
+         const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+         
+         if (days === 0) {
+           return '今天'
+         } else if (days === 1) {
+           return '昨天'
+         } else if (days < 7) {
+           return `${days}天前`
+         } else {
+           return date.toLocaleDateString('zh-CN')
+         }
+       } catch (e) {
+         return dateString
+       }
+     },
+ 
+     /**
+      * 执行删除节点操作
+      */
+     async executeDeleteNode() {
       if (!this.deleteNodeId) {
         console.error('[executeDeleteNode] deleteNodeId为空')
         return
@@ -1186,20 +1595,311 @@ export default {
   gap: 10px;
   align-items: center;
 }
+/* ========== 搜索框 ========== */
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
 .search { 
   width: 100%;
   height: 36px; 
   border: 2px solid #e5e7eb; 
   border-radius: 10px; 
-  padding: 0 12px; 
+  padding: 0 36px 0 12px; 
   font-size: 13px; 
   transition: all 0.3s ease;
   background: white;
+  cursor: pointer;
 }
-.search:focus {
+
+.search:hover {
+  border-color: #cbd5e1;
+}
+
+.search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* ========== 搜索对话框 ========== */
+.search-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 2000;
+  padding-top: 100px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.search-dialog {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 70vh;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 搜索对话框头部 */
+.search-dialog-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+}
+
+.search-header-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.search-dialog-input {
+  flex: 1;
+  border: none;
   outline: none;
-  border-color: #5EB6E4;
-  box-shadow: 0 0 0 3px rgba(94, 182, 228, 0.1);
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.search-dialog-input::placeholder {
+  color: #94a3b8;
+}
+
+.search-dialog-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-dialog-close:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* 搜索对话框主体 */
+.search-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: calc(70vh - 80px);
+}
+
+/* 搜索提示 */
+.search-tips {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.tips-icon {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.search-tips p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.tips-hint {
+  font-size: 13px !important;
+  color: #94a3b8 !important;
+  margin-top: 8px !important;
+}
+
+/* 搜索加载状态 */
+.search-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+}
+
+.loading-ring {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top-color: #5EB6E4;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.search-loading-state p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* 搜索结果容器 */
+.search-results-container {
+  padding: 16px;
+}
+
+.results-count {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+  padding: 0 8px;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 搜索结果项 */
+.result-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.result-item:hover {
+  background: #f8fafc;
+}
+
+.result-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0f2fe;
+  border-radius: 8px;
+  color: #0284c7;
+}
+
+.result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.result-snippet {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.result-path {
+  color: #5EB6E4;
+}
+
+.result-date {
+  color: #cbd5e1;
+}
+
+/* 无结果状态 */
+.search-no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.no-results-icon {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.search-no-results h3 {
+  margin: 0 0 8px 0;
+  color: #475569;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.search-no-results p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* 关键词高亮 */
+.search-highlight {
+  background: #fef08a;
+  color: #854d0e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 600;
 }
 .group-title { 
   color: #6b7280; 
