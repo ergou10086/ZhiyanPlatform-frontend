@@ -2394,35 +2394,71 @@ export default {
         // 否则，先从后端获取文件列表
         console.log('获取成果文件列表...')
         const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
-        console.log('文件列表响应:', filesResponse)
+        console.log('📁 文件列表响应:', filesResponse)
+        console.log('📁 响应数据类型:', typeof filesResponse)
+        console.log('📁 响应数据结构:', JSON.stringify(filesResponse, null, 2))
         
-        if (filesResponse && filesResponse.code === 200 && filesResponse.data && filesResponse.data.length > 0) {
-          // 将文件列表添加到成果对象中
-          const files = filesResponse.data.map(fileDto => ({
-            id: fileDto.id,
-            name: fileDto.fileName,
-            originalFileName: fileDto.originalFileName,
-            type: fileDto.mimeType,
-            size: fileDto.fileSize,
-            uploadTime: fileDto.uploadedAt,
-            downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+        // 检查响应数据格式
+        let fileList = []
+        if (filesResponse && filesResponse.code === 200) {
+          if (Array.isArray(filesResponse.data)) {
+            fileList = filesResponse.data
+          } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
+            fileList = filesResponse.data.content
+          }
+        }
+        
+        console.log('📁 解析后的文件列表:', fileList, '长度:', fileList.length)
+        
+        if (fileList.length > 0) {
+          // 为每个文件获取下载URL
+          const files = await Promise.all(fileList.map(async (fileDto) => {
+            let downloadUrl = fileDto.downloadUrl || fileDto.accessUrl || fileDto.url
+            
+            // 如果没有下载URL，尝试获取
+            if (!downloadUrl && fileDto.id) {
+              try {
+                console.log('📥 获取文件下载URL, fileId:', fileDto.id)
+                const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileDto.id)
+                console.log('📥 下载URL响应:', urlResponse)
+                if (urlResponse && urlResponse.code === 200 && urlResponse.data) {
+                  downloadUrl = urlResponse.data.url || urlResponse.data.downloadUrl || urlResponse.data
+                }
+              } catch (error) {
+                console.warn('获取下载URL失败:', error)
+              }
+            }
+            
+            return {
+              id: fileDto.id,
+              name: fileDto.fileName || fileDto.name,
+              originalFileName: fileDto.originalFileName || fileDto.fileName,
+              type: fileDto.mimeType || fileDto.type,
+              size: fileDto.fileSize || fileDto.size,
+              uploadTime: fileDto.uploadedAt || fileDto.createdAt,
+              downloadUrl: downloadUrl
+            }
           }))
           
-          console.log('处理后的文件列表:', files)
+          console.log('✅ 处理后的文件列表:', files)
           
           // 如果只有一个文件，直接下载
           if (files.length === 1) {
-            downloadSingleFile(files[0])
+            if (files[0].downloadUrl) {
+              downloadSingleFile(files[0])
+            } else {
+              alert('无法获取文件下载链接，请稍后重试')
+            }
           } else {
             // 多个文件，使用临时对象批量下载
             downloadAllFilesUtil({ ...achievement, files })
           }
         } else {
-          console.warn('未找到可下载的文件')
+          console.warn('⚠️ 未找到可下载的文件')
           alert('该成果暂无可下载的文件')
         }
       } catch (error) {
-        console.error('下载文件失败:', error)
+        console.error('❌ 下载文件失败:', error)
         alert('下载失败: ' + (error.message || '请重试'))
       }
     },
@@ -2430,42 +2466,72 @@ export default {
     // 下载所有文件（包装工具函数，支持从后端获取文件）
     async downloadAllFiles(achievement) {
       try {
-        console.log('下载成果所有文件, ID:', achievement.id, '名称:', achievement.name)
+        console.log('📦 下载成果所有文件, ID:', achievement.id, '名称:', achievement.name)
         
         // 如果成果已经有文件列表且有downloadUrl，直接下载
         if (achievement.files && achievement.files.length > 0 && achievement.files[0].downloadUrl) {
-          console.log('成果已有文件列表，直接批量下载')
+          console.log('✅ 成果已有文件列表，直接批量下载')
           downloadAllFilesUtil(achievement)
           return
         }
         
         // 否则，先从后端获取文件列表
-        console.log('获取成果文件列表...')
+        console.log('📡 获取成果文件列表...')
         const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
-        console.log('文件列表响应:', filesResponse)
+        console.log('📡 文件列表响应:', filesResponse)
         
-        if (filesResponse && filesResponse.code === 200 && filesResponse.data && filesResponse.data.length > 0) {
-          // 将文件列表添加到成果对象中
-          const files = filesResponse.data.map(fileDto => ({
-            id: fileDto.id,
-            name: fileDto.fileName,
-            originalFileName: fileDto.originalFileName,
-            type: fileDto.mimeType,
-            size: fileDto.fileSize,
-            uploadTime: fileDto.uploadedAt,
-            downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+        // 检查响应数据格式
+        let fileList = []
+        if (filesResponse && filesResponse.code === 200) {
+          if (Array.isArray(filesResponse.data)) {
+            fileList = filesResponse.data
+          } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
+            fileList = filesResponse.data.content
+          }
+        }
+        
+        console.log('📋 解析后的文件列表:', fileList, '长度:', fileList.length)
+        
+        if (fileList.length > 0) {
+          // 为每个文件获取下载URL
+          const files = await Promise.all(fileList.map(async (fileDto) => {
+            let downloadUrl = fileDto.downloadUrl || fileDto.accessUrl || fileDto.url
+            
+            // 如果没有下载URL，尝试获取
+            if (!downloadUrl && fileDto.id) {
+              try {
+                console.log('📥 获取文件下载URL, fileId:', fileDto.id)
+                const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileDto.id)
+                console.log('📥 下载URL响应:', urlResponse)
+                if (urlResponse && urlResponse.code === 200 && urlResponse.data) {
+                  downloadUrl = urlResponse.data.url || urlResponse.data.downloadUrl || urlResponse.data
+                }
+              } catch (error) {
+                console.warn('获取下载URL失败:', error)
+              }
+            }
+            
+            return {
+              id: fileDto.id,
+              name: fileDto.fileName || fileDto.name,
+              originalFileName: fileDto.originalFileName || fileDto.fileName,
+              type: fileDto.mimeType || fileDto.type,
+              size: fileDto.fileSize || fileDto.size,
+              uploadTime: fileDto.uploadedAt || fileDto.createdAt,
+              downloadUrl: downloadUrl
+            }
           }))
           
-          console.log('处理后的文件列表:', files, '共', files.length, '个文件')
+          console.log('✅ 处理后的文件列表:', files, '共', files.length, '个文件')
           
           // 批量下载
           downloadAllFilesUtil({ ...achievement, files })
         } else {
-          console.warn('未找到可下载的文件')
+          console.warn('⚠️ 未找到可下载的文件')
           alert('该成果暂无可下载的文件')
         }
       } catch (error) {
-        console.error('批量下载失败:', error)
+        console.error('❌ 批量下载失败:', error)
         alert('下载失败: ' + (error.message || '请重试'))
       }
     },

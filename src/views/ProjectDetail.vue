@@ -1729,10 +1729,32 @@ export default {
         console.log('未找到项目拥有者，负责人保持为:', this.project.manager)
       }
     },
-    removeTeamMember(memberId) {
-      if (confirm('确定要移除此成员吗？')) {
-        this.teamMembers = this.teamMembers.filter(m => m.id !== memberId)
-        this.saveProjectData()
+    async removeTeamMember(memberId) {
+      if (!confirm('确定要移除此成员吗？')) {
+        return
+      }
+      
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const projectId = this.$route.params.id
+        
+        // 调用后端API删除成员
+        const response = await projectAPI.removeMember(projectId, memberId)
+        
+        if (response && response.code === 200) {
+          // 删除成功，重新加载团队成员列表
+          await this.loadTeamMembers()
+          this.showSuccessToast('成员已成功移除')
+          console.log('成功移除成员:', memberId)
+        } else {
+          // 删除失败，显示错误信息
+          const errorMsg = response?.msg || response?.message || '移除成员失败'
+          this.showSuccessToast(errorMsg)
+          console.error('移除成员失败:', response)
+        }
+      } catch (error) {
+        console.error('移除成员时出错:', error)
+        this.showSuccessToast('移除成员失败: ' + (error.message || '网络错误'))
       }
     },
     removeInviteSlot(slotId) {
