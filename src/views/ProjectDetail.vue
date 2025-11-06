@@ -2042,11 +2042,43 @@ export default {
           this.closeTaskModal()
           this.showSuccessToast('任务创建成功！')
         } else {
-          alert('创建任务失败：' + (response.msg || '未知错误'))
+          // 检查是否是401认证错误
+          if (response && response.code === 401) {
+            alert('登录已过期，请重新登录')
+            // 清除token并跳转到登录页
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_info')
+            window.location.href = '/login'
+          } else {
+            alert('创建任务失败：' + (response.msg || '未知错误'))
+          }
         }
       } catch (error) {
         console.error('[saveNewTask] 创建任务失败:', error)
-        alert('创建任务失败，请稍后重试')
+        
+        // 检查是否是401认证错误
+        if (error && (error.code === 401 || error.status === 401 || 
+            (error.response && error.response.status === 401))) {
+          alert('登录已过期，请重新登录')
+          // 清除token并跳转到登录页
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user_info')
+          window.location.href = '/login'
+        } else {
+          // 检查错误消息中是否包含认证相关信息
+          const errorMsg = error?.msg || error?.message || String(error)
+          if (errorMsg.includes('登录') || errorMsg.includes('Token') || errorMsg.includes('认证')) {
+            alert('登录已过期，请重新登录')
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_info')
+            window.location.href = '/login'
+          } else {
+            alert('创建任务失败：' + errorMsg)
+          }
+        }
       } finally {
         // 1秒后才能再次点击
         setTimeout(() => {
