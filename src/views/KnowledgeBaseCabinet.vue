@@ -2074,12 +2074,12 @@ export default {
         // 左边（当前版本）：added = 当前版本新增的（绿色）
         // 右边（存档版本）：removed = 当前版本删除的（红色）
         if (diffType === 'added' && side === 'left' && !isEmpty) {
-          return `<div class="diff-line diff-added" data-line="${index}" data-type="added" style="background-color: #d1fae5; border-left: 5px solid #10b981; padding: 4px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 22px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.8;">${escapedLine || '\u00A0'}</div>`
+          return `<div class="diff-line diff-added" data-line="${index}" data-type="added" style="background: linear-gradient(90deg, #d1fae5 0%, #ecfdf5 100%); border-left: 4px solid #10b981; padding: 6px 16px 6px 20px; margin: 2px 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 24px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.9; border-radius: 4px; box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);">${escapedLine || '\u00A0'}</div>`
         } else if (diffType === 'removed' && side === 'right' && !isEmpty) {
-          return `<div class="diff-line diff-removed" data-line="${index}" data-type="removed" style="background-color: #fee2e2; border-left: 5px solid #ef4444; padding: 4px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 22px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.8;">${escapedLine || '\u00A0'}</div>`
+          return `<div class="diff-line diff-removed" data-line="${index}" data-type="removed" style="background: linear-gradient(90deg, #fee2e2 0%, #fef2f2 100%); border-left: 4px solid #ef4444; padding: 6px 16px 6px 20px; margin: 2px 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 24px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.9; border-radius: 4px; box-shadow: 0 1px 2px rgba(239, 68, 68, 0.1);">${escapedLine || '\u00A0'}</div>`
         } else {
           // 其他情况（包括空行和unchanged）都显示为白色背景，无高亮
-          return `<div class="diff-line diff-unchanged" data-line="${index}" data-type="unchanged" style="background-color: #ffffff; border-left: 5px solid transparent; padding: 4px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 22px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.8;">${escapedLine || '\u00A0'}</div>`
+          return `<div class="diff-line diff-unchanged" data-line="${index}" data-type="unchanged" style="background-color: #ffffff; border-left: 4px solid transparent; padding: 6px 16px; margin: 2px 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 24px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.9; color: #475569;">${escapedLine || '\u00A0'}</div>`
         }
       })
 
@@ -4207,39 +4207,66 @@ export default {
   height: 90vh;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 /* 对比存档位选择 */
 .compare-slots {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 24px;
   flex-shrink: 0;
+  padding: 4px;
 }
 
 .compare-slot-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: 18px 20px;
   border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  background: white;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.compare-slot-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #5EB6E4 0%, #0044CC 100%);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
 }
 
 .compare-slot-item:hover {
   border-color: #5EB6E4;
-  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(94, 182, 228, 0.2), 0 2px 8px rgba(94, 182, 228, 0.1);
+  transform: translateY(-3px);
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+}
+
+.compare-slot-item:hover::before {
+  transform: scaleX(1);
 }
 
 .compare-slot-item.selected {
   border-color: #5EB6E4;
   background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
-  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.25);
+  box-shadow: 0 8px 24px rgba(94, 182, 228, 0.3), 0 2px 8px rgba(94, 182, 228, 0.15);
+  transform: translateY(-2px);
+}
+
+.compare-slot-item.selected::before {
+  transform: scaleX(1);
 }
 
 .compare-slot-info {
@@ -4250,13 +4277,15 @@ export default {
 }
 
 .slot-badge {
-  padding: 6px 12px;
+  padding: 8px 14px;
   background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
   color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
+  letter-spacing: 0.5px;
 }
 
 .slot-details {
@@ -4276,9 +4305,31 @@ export default {
 }
 
 .check-icon {
-  font-size: 24px;
+  font-size: 28px;
   color: #5EB6E4;
   font-weight: bold;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.1) 0%, rgba(0, 68, 204, 0.1) 100%);
+  border-radius: 50%;
+  animation: checkPulse 0.3s ease;
+}
+
+@keyframes checkPulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .empty-compare-hint {
@@ -4357,8 +4408,8 @@ export default {
 }
 
 .version-compare-dialog .dialog-content {
-  padding: 20px;
-  background: #ffffff;
+  padding: 24px;
+  background: transparent;
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -4369,13 +4420,14 @@ export default {
 /* 版本对比显示区域 */
 .version-compare-viewer {
   display: flex;
-  gap: 1px;
+  gap: 2px;
   flex: 1;
   min-height: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  border-radius: 16px;
   overflow: hidden;
-  background: #e2e8f0;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .compare-panel-left,
@@ -4385,26 +4437,85 @@ export default {
   flex-direction: column;
   min-width: 0;
   background: #ffffff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.compare-panel-left {
+  margin-right: 1px;
+}
+
+.compare-panel-right {
+  margin-left: 1px;
 }
 
 .compare-panel-header {
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid #e2e8f0;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.compare-panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #5EB6E4 50%, transparent 100%);
+  opacity: 0.3;
 }
 
 .panel-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   color: #1e293b;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-title::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 2px;
 }
 
 .compare-panel-content {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: 16px;
+  padding: 20px 24px;
+  background: #ffffff;
+}
+
+/* 自定义滚动条样式 */
+.compare-panel-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.compare-panel-content::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 5px;
+}
+
+.compare-panel-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  border-radius: 5px;
+  border: 2px solid #f1f5f9;
+}
+
+.compare-panel-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
 }
 
 .compare-panel-content .markdown-viewer {
@@ -4418,26 +4529,50 @@ export default {
   font-size: 13px;
   line-height: 1.8;
   background: #ffffff;
+  border-radius: 8px;
 }
 
 .diff-line {
-  padding: 4px 12px;
-  margin: 0;
+  padding: 6px 16px;
+  margin: 2px 0;
   white-space: pre-wrap;
   word-break: break-word;
   display: block;
-  min-height: 22px;
-  border-left: 5px solid transparent;
+  min-height: 24px;
+  border-left: 4px solid transparent;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.8;
+  line-height: 1.9;
   background-color: #ffffff;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  position: relative;
+}
+
+.diff-line:hover {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .diff-line.diff-added {
-  background-color: #d1fae5 !important;
+  background: linear-gradient(90deg, #d1fae5 0%, #ecfdf5 100%) !important;
   border-left-color: #10b981 !important;
-  border-left-width: 5px !important;
+  border-left-width: 4px !important;
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.1);
+}
+
+.diff-line.diff-added::before {
+  content: '+';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #10b981;
+  font-weight: bold;
+  font-size: 16px;
+  opacity: 0.7;
+  width: 14px;
+  text-align: center;
+  line-height: 1;
 }
 
 .diff-line.diff-added:empty,
@@ -4447,9 +4582,25 @@ export default {
 }
 
 .diff-line.diff-removed {
-  background-color: #fee2e2 !important;
+  background: linear-gradient(90deg, #fee2e2 0%, #fef2f2 100%) !important;
   border-left-color: #ef4444 !important;
-  border-left-width: 5px !important;
+  border-left-width: 4px !important;
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.1);
+}
+
+.diff-line.diff-removed::before {
+  content: '−';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 16px;
+  opacity: 0.7;
+  width: 14px;
+  text-align: center;
+  line-height: 1;
 }
 
 .diff-line.diff-removed:empty,
@@ -4461,6 +4612,7 @@ export default {
 .diff-line.diff-unchanged {
   background-color: #ffffff;
   border-left-color: transparent;
+  color: #475569;
 }
 
 /* 确保差异行样式优先级 - 使用更高优先级选择器 */
