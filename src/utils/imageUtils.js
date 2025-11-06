@@ -12,7 +12,7 @@ export function normalizeProjectCoverUrl(url) {
     return null
   }
 
-  // 如果是base64数据URI，直接返回
+  // 如果是 Data URI（base64 图片），直接返回，不做任何处理
   if (url.startsWith('data:')) {
     return url
   }
@@ -63,7 +63,7 @@ export function normalizeImageUrl(url, defaultBucket = 'zhiyan') {
     return null
   }
 
-  // 如果是base64数据URI，直接返回
+  // 如果是 Data URI（base64 图片），直接返回，不做任何处理
   if (url.startsWith('data:')) {
     return url
   }
@@ -139,11 +139,6 @@ export function normalizeAvatarUrl(avatar) {
 export function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') {
     return false
-  }
-
-  // base64数据URI是有效的
-  if (url.startsWith('data:')) {
-    return true
   }
 
   // 包含localhost的URL被认为是无效的
@@ -262,5 +257,42 @@ export function removeTimestampFromUrl(url) {
   }
 
   return url.replace(/[?&]t=\d+/, '')
+}
+
+/**
+ * 检查URL是否是占位符图片
+ * @param {string} url - 要检查的URL
+ * @returns {boolean} 是否是占位符图片
+ */
+export function isPlaceholderImage(url) {
+  if (!url || typeof url !== 'string') {
+    return false
+  }
+  return url.includes('via.placeholder.com') || url.includes('placeholder')
+}
+
+/**
+ * 生成默认的项目图片（SVG Data URI）
+ * 使用本地生成的SVG，不依赖外部服务
+ * @param {string} text - 图片上显示的文本，默认为 'Project Image'
+ * @param {number} width - 图片宽度，默认为 400
+ * @param {number} height - 图片高度，默认为 225
+ * @returns {string} SVG Data URI格式的图片URL
+ */
+export function getDefaultProjectImage(text = 'Project Image', width = 400, height = 225) {
+  const svg = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grad)"/>
+      <text x="50%" y="50%" font-family="Arial, sans-serif" font-size="18" fill="white" 
+            text-anchor="middle" dominant-baseline="middle" opacity="0.8">${text}</text>
+    </svg>
+  `.trim()
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)))
 }
 

@@ -937,7 +937,7 @@
 
 <script>
 import '@/assets/styles/ProjectDetail.css'
-import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
+import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage } from '@/utils/imageUtils'
 
 export default {
   name: 'ProjectDetail',
@@ -1252,7 +1252,7 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(apiProject.imageUrl),
             manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
@@ -1306,7 +1306,7 @@ export default {
               '未设置',
             status: this.getStatusValue(foundProject.status),
             visibility: foundProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            imageUrl: normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(foundProject.image || foundProject.imageUrl),
             manager: foundProject.creatorName || '未知',
             teamSize: foundProject.teamSize,
@@ -1382,7 +1382,7 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || 'https://via.placeholder.com/400x225?text=Project+Image',
+            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(apiProject.imageUrl),
             manager: apiProject.creatorName || '未知',
             teamSize: apiProject.teamSize || 1,
@@ -1790,7 +1790,7 @@ export default {
         endDate: this.project.endDate || '',
         visibility: this.project.visibility || 'PRIVATE',
         status: statusValue || 'ONGOING',
-        imageUrl: this.project.imageUrl || this.project.image || 'https://via.placeholder.com/400x225?text=Project+Image'
+        imageUrl: this.project.imageUrl || this.project.image || getDefaultProjectImage('Project Image')
       }
       
       console.log('编辑项目数据初始化:', this.editProjectData)

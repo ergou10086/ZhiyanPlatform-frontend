@@ -909,7 +909,9 @@ export default {
         console.log('表单数据:', this.formData)
         
         // ✅ 如果有图片，先上传到MinIO
-        let imageUrl = 'https://via.placeholder.com/400x225?text=Project+Image' // 默认图片
+        // 使用本地默认图片，不依赖外部服务
+        const { getDefaultProjectImage } = await import('@/utils/imageUtils')
+        let imageUrl = getDefaultProjectImage('Project Image') // 默认图片
 
         if (this.projectImage && this.projectImage.startsWith('data:image')) {
           console.log('检测到base64图片，先上传到MinIO...')

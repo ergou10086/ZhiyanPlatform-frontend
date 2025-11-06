@@ -146,6 +146,18 @@ window.addEventListener('error', (event) => {
     const elementType = event.target.tagName?.toLowerCase() || '未知元素'
     const resourceSrc = event.target.src || event.target.href || '未知资源'
     
+    // 过滤掉图片加载失败的错误（这些不应该作为系统错误显示）
+    // 特别是占位符图片和外部图片服务的错误
+    if (elementType === 'img' && resourceSrc && (
+        resourceSrc.includes('via.placeholder.com') ||
+        resourceSrc.includes('placeholder') ||
+        resourceSrc.startsWith('data:') // Data URI 不应该触发加载错误
+    )) {
+      // 图片加载失败是正常的，只在控制台记录，不显示错误弹窗
+      console.warn('⚠️ [图片加载失败]', resourceSrc, '- 这是正常的，将使用默认图片')
+      return
+    }
+    
     console.error('🔴 [资源加载错误]', elementType, resourceSrc)
     
     showErrorDialog(new Error(`资源加载失败: ${resourceSrc}`), {
@@ -188,12 +200,29 @@ console.error = function(...args) {
     if (arg instanceof Error) {
       errorMessage = arg.message || ''
       errorStack = arg.stack || ''
+      
+      // 过滤掉图片加载失败的错误（这些不应该作为系统错误显示）
+      if (errorMessage && (
+          errorMessage.includes('via.placeholder.com') || 
+          (errorMessage.includes('资源加载失败') && (errorMessage.includes('placeholder') || errorMessage.includes('image') || errorMessage.includes('img')))
+      )) {
+        // 图片加载失败是正常的，不需要显示错误弹窗
+        return
+      }
+      
       // 检查是否有响应信息（网络错误）
       if (arg.response) {
         errorDetails += `状态码: ${arg.response.status}\n`
         errorDetails += `响应数据: ${JSON.stringify(arg.response.data, null, 2)}\n`
       }
     } else if (typeof arg === 'string') {
+      // 过滤掉图片加载失败的错误（这些不应该作为系统错误显示）
+      if (arg.includes('via.placeholder.com') || 
+          arg.includes('资源加载失败') && (arg.includes('placeholder') || arg.includes('image') || arg.includes('img'))) {
+        // 图片加载失败是正常的，不需要显示错误弹窗
+        return
+      }
+      
       // 如果是字符串，可能是错误消息
       if (arg.includes('错误') || arg.includes('error') || arg.includes('Error') || 
           arg.includes('失败') || arg.includes('失败') || arg.includes('500') ||
