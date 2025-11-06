@@ -12,6 +12,11 @@ export function normalizeProjectCoverUrl(url) {
     return null
   }
 
+  // 如果是base64数据URI，直接返回
+  if (url.startsWith('data:')) {
+    return url
+  }
+
   // 如果已经是完整的HTTP/HTTPS URL
   if (url.startsWith('http://') || url.startsWith('https://')) {
     // 过滤掉无效的URL
@@ -56,6 +61,11 @@ export function normalizeProjectCoverUrl(url) {
 export function normalizeImageUrl(url, defaultBucket = 'zhiyan') {
   if (!url || typeof url !== 'string') {
     return null
+  }
+
+  // 如果是base64数据URI，直接返回
+  if (url.startsWith('data:')) {
+    return url
   }
 
   // 如果已经是完整的HTTP/HTTPS URL，直接返回
@@ -129,6 +139,11 @@ export function normalizeAvatarUrl(avatar) {
 export function isValidImageUrl(url) {
   if (!url || typeof url !== 'string') {
     return false
+  }
+
+  // base64数据URI是有效的
+  if (url.startsWith('data:')) {
+    return true
   }
 
   // 包含localhost的URL被认为是无效的
