@@ -2,6 +2,19 @@ import axios from 'axios'
 import config from '@/config'
 
 /**
+ * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ */
+function parseJSONWithBigInt(data) {
+  if (typeof data !== 'string') return data
+  try {
+    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+  } catch (e) {
+    console.error('JSON解析错误:', e)
+    return data
+  }
+}
+
+/**
  * 项目服务API客户端
  * 
  * 注意：所有项目相关的API请求都通过Vue开发服务器的代理转发到8095端口（项目服务）
@@ -13,7 +26,11 @@ import config from '@/config'
 const api = axios.create({
   baseURL: '', // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
   timeout: config.api.timeout,
-  withCredentials: true
+  withCredentials: true,
+  // 自定义响应转换，将大整数转换为字符串
+  transformResponse: [function (data) {
+    return parseJSONWithBigInt(data)
+  }]
   // ✅ 不设置默认 Content-Type，让 Axios 根据数据类型自动处理
   // ✅ 对于 FormData，Axios 会自动设置为 multipart/form-data
   // headers: {

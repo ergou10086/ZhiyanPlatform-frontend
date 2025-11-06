@@ -13,15 +13,35 @@
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
-                 :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
-              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <div class="title-actions">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
+                   :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <button class="delete-node-btn" 
+                      @click.stop="confirmDeleteNode(folder.id, 'folder', folder.name)"
+                      title="删除节点">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" 
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <ul v-if="folder.expanded" class="doc-list">
             <li v-for="doc in getDocsInFolder(folder.id)" :key="doc.id" 
-                :class="{ active: doc.id===activeId }" 
-                @click="selectDocument(doc.id)">{{ doc.title }}</li>
+                :class="{ active: doc.id===activeId }"
+                class="doc-item">
+              <span @click="selectDocument(doc.id)" class="doc-title">{{ doc.title }}</span>
+              <button class="delete-doc-btn" 
+                      @click.stop="confirmDeleteNode(doc.id, 'document', doc.title)"
+                      title="删除文档">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" 
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </li>
           </ul>
         </div>
         <!-- 折叠按钮 -->
@@ -66,6 +86,42 @@
           </button>
           <button class="btn primary" @click="saveDocument" :disabled="!activeDoc">
             {{ hasUnsavedChanges ? '保存*' : '已保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除确认对话框 -->
+    <div v-if="showDeleteDialog" class="upload-dialog-overlay" @click="closeDeleteDialog">
+      <div class="upload-dialog delete-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>确认删除</h3>
+          <button class="close-btn" @click="closeDeleteDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <div class="delete-warning">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="warning-icon">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" 
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="delete-message">
+              {{ deleteNodeType === 'folder' ? '确定要删除节点' : '确定要删除文档' }}
+              <strong>"{{ deleteNodeName }}"</strong>吗？
+            </p>
+            <p class="delete-tip" v-if="deleteNodeType === 'folder'">
+              ⚠️ 删除节点将递归删除其下所有子节点和文档，此操作不可恢复！
+            </p>
+            <p class="delete-tip" v-else>
+              ⚠️ 此操作不可恢复！
+            </p>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="closeDeleteDialog">取消</button>
+          <button class="btn danger" @click="executeDeleteNode" :disabled="deleting">
+            {{ deleting ? '删除中...' : '确认删除' }}
           </button>
         </div>
       </div>
@@ -221,6 +277,11 @@ export default {
       activeId: null,
       showNewDocDialog: false,
       showNewFolderDialog: false,
+      showDeleteDialog: false,
+      deleteNodeId: null,
+      deleteNodeType: null,
+      deleteNodeName: '',
+      deleting: false,
       newDocTitle: '',
       newDocCategory: '',
       selectedFile: null,
@@ -265,7 +326,7 @@ export default {
         nodes.forEach(node => {
           if (node.pageType === 'DIRECTORY') {
             result.push({
-              id: parseInt(node.id),
+              id: String(node.id), // 保持ID为字符串，避免精度丢失
               title: node.title,
               level: level
             })
@@ -367,7 +428,7 @@ export default {
         if (node.pageType === 'DIRECTORY') {
           // 目录节点
           this.folders.push({
-            id: parseInt(node.id),
+            id: String(node.id), // 保持ID为字符串，避免精度丢失
             name: node.title,
             description: '',
             expanded: true,
@@ -376,12 +437,12 @@ export default {
           
           // 递归处理子节点
           if (node.children && node.children.length > 0) {
-            this.parseWikiTree(node.children, parseInt(node.id))
+            this.parseWikiTree(node.children, String(node.id))
           }
         } else if (node.pageType === 'DOCUMENT') {
           // 文档节点
           this.docs.push({
-            id: parseInt(node.id),
+            id: String(node.id), // 保持ID为字符串，避免精度丢失
             title: node.title,
             updated: node.updatedAt || node.createdAt || '',
             content: '', // 内容需要单独加载
@@ -403,10 +464,10 @@ export default {
         
         if (response && response.code === 200) {
           this.currentPage = response.data
-          this.activeId = parseInt(pageId)
+          this.activeId = String(pageId) // 保持ID为字符串，避免精度丢失
           
-          // 更新docs数组中的内容
-          const doc = this.docs.find(d => d.id === this.activeId)
+          // 更新docs数组中的内容（使用字符串比较）
+          const doc = this.docs.find(d => String(d.id) === String(this.activeId))
           if (doc) {
             doc.content = this.currentPage.content || ''
             doc.updated = this.currentPage.updatedAt || doc.updated
@@ -639,14 +700,10 @@ export default {
         console.log('[confirmNewDoc] 前端本地创建文档')
         
         // 确定父页面ID（如果选择了节点）
+        // 保持ID为字符串，避免精度丢失
         let folderId = null
         if (this.selectedNodeId !== null && this.selectedNodeId !== undefined) {
-          folderId = typeof this.selectedNodeId === 'string' 
-            ? parseInt(this.selectedNodeId) 
-            : Number(this.selectedNodeId)
-          if (isNaN(folderId)) {
-            folderId = null
-          }
+          folderId = String(this.selectedNodeId)
         }
         
         // 读取文件内容
@@ -891,6 +948,104 @@ export default {
         event.returnValue = '您有未保存的更改，确定要离开吗？'
         return '您有未保存的更改，确定要离开吗？'
       }
+    },
+    
+    /**
+     * 确认删除节点（显示确认对话框）
+     */
+    confirmDeleteNode(nodeId, nodeType, nodeName) {
+      console.log('[confirmDeleteNode] 准备删除:', { nodeId, nodeType, nodeName })
+      this.deleteNodeId = nodeId
+      this.deleteNodeType = nodeType
+      this.deleteNodeName = nodeName
+      this.showDeleteDialog = true
+    },
+    
+    /**
+     * 关闭删除确认对话框
+     */
+    closeDeleteDialog() {
+      this.showDeleteDialog = false
+      this.deleteNodeId = null
+      this.deleteNodeType = null
+      this.deleteNodeName = ''
+      this.deleting = false
+    },
+    
+    /**
+     * 执行删除节点操作
+     */
+    async executeDeleteNode() {
+      if (!this.deleteNodeId) {
+        console.error('[executeDeleteNode] deleteNodeId为空')
+        return
+      }
+      
+      this.deleting = true
+      
+      try {
+        console.log('[executeDeleteNode] 删除节点:', {
+          id: this.deleteNodeId,
+          type: this.deleteNodeType,
+          name: this.deleteNodeName
+        })
+        
+        let response
+        if (this.deleteNodeType === 'folder') {
+          // 递归删除节点及其子节点
+          response = await wikiAPI.page.deletePageRecursively(this.deleteNodeId)
+        } else {
+          // 删除单个文档
+          response = await wikiAPI.page.deletePage(this.deleteNodeId)
+        }
+        
+        if (response && response.code === 200) {
+          console.log('[executeDeleteNode] 删除成功')
+          
+          // 从本地数据中移除
+          if (this.deleteNodeType === 'folder') {
+            // 移除文件夹
+            this.folders = this.folders.filter(f => String(f.id) !== String(this.deleteNodeId))
+            // 移除该文件夹下的所有文档
+            this.docs = this.docs.filter(d => String(d.folderId) !== String(this.deleteNodeId))
+          } else {
+            // 移除文档
+            this.docs = this.docs.filter(d => String(d.id) !== String(this.deleteNodeId))
+            
+            // 如果删除的是当前活动文档，清空选择
+            if (String(this.activeId) === String(this.deleteNodeId)) {
+              this.activeId = null
+              this.currentPage = null
+            }
+          }
+          
+          // 保存到本地存储
+          this.saveToLocalStorage()
+          
+          // 重新加载Wiki树
+          await this.loadWikiTree()
+          
+          // 显示成功消息
+          if (this.$message) {
+            this.$message.success(`${this.deleteNodeType === 'folder' ? '节点' : '文档'}删除成功`)
+          }
+          
+          // 关闭对话框
+          this.closeDeleteDialog()
+        } else {
+          console.error('[executeDeleteNode] 删除失败:', response)
+          if (this.$message) {
+            this.$message.error(response?.msg || '删除失败，请重试')
+          }
+        }
+      } catch (error) {
+        console.error('[executeDeleteNode] 删除失败:', error)
+        if (this.$message) {
+          this.$message.error('删除失败，请重试')
+        }
+      } finally {
+        this.deleting = false
+      }
     }
   }
 }
@@ -1039,10 +1194,102 @@ export default {
 .folder-section {
   margin-bottom: 8px;
 }
-.doc-list { list-style: none; padding: 0; margin: 0; flex: 1; overflow-y: auto; }
-.doc-list li { padding: 8px 10px; border-radius: 8px; cursor: pointer; color: #374151; font-size: 13px; }
-.doc-list li:hover { background: #f6f7fb; }
-.doc-list li.active { background: #e0ebff; color: #0044CC; }
+
+/* 节点标题操作按钮容器 */
+.title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 删除节点按钮 */
+.delete-node-btn {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+}
+
+.group-title:hover .delete-node-btn {
+  opacity: 1;
+}
+
+.delete-node-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+/* 文档列表项样式 */
+.doc-list { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+  flex: 1; 
+  overflow-y: auto; 
+}
+
+.doc-list .doc-item { 
+  padding: 8px 10px; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  color: #374151; 
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.doc-list .doc-item .doc-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.doc-list .doc-item:hover { 
+  background: #f6f7fb; 
+}
+
+.doc-list .doc-item.active { 
+  background: #e0ebff; 
+  color: #0044CC; 
+}
+
+/* 删除文档按钮 */
+.delete-doc-btn {
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  flex-shrink: 0;
+}
+
+.doc-item:hover .delete-doc-btn {
+  opacity: 1;
+}
+
+.delete-doc-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  transform: scale(1.1);
+}
 
 .editor-pane { 
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
@@ -1136,6 +1383,20 @@ export default {
 }
 .btn.secondary:hover {
   background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+}
+.btn.danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+.btn.danger:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
+}
+.btn.danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .btn.small { 
   height: 32px; 
@@ -1241,6 +1502,67 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* 删除确认对话框样式 */
+.delete-dialog {
+  max-width: 450px;
+}
+
+.delete-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.warning-icon {
+  color: #f59e0b;
+  margin-bottom: 16px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.delete-message {
+  font-size: 16px;
+  color: #374151;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.delete-message strong {
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.delete-tip {
+  font-size: 13px;
+  color: #ef4444;
+  margin: 0;
+  padding: 12px 20px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fee2e2;
+  max-width: 90%;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 0 0 12px 12px;
 }
 
 @media (max-width: 900px) {

@@ -1,6 +1,19 @@
 import axios from 'axios'
 import config from '@/config'
 
+/**
+ * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ */
+function parseJSONWithBigInt(data) {
+  if (typeof data !== 'string') return data
+  try {
+    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+  } catch (e) {
+    console.error('JSON解析错误:', e)
+    return data
+  }
+}
+
 // 后端Dify服务配置（直连8097端口）
 const BACKEND_DIFY_CONFIG = {
   baseUrl: '/zhiyan/api/ai', // 通过Vue代理转发到8097端口
@@ -12,7 +25,11 @@ const BACKEND_DIFY_CONFIG = {
 const api = axios.create({
   baseURL: '', // 使用相对路径，通过Vue代理转发
   timeout: BACKEND_DIFY_CONFIG.timeout,
-  withCredentials: true
+  withCredentials: true,
+  // 自定义响应转换，将大整数转换为字符串
+  transformResponse: [function (data) {
+    return parseJSONWithBigInt(data)
+  }]
 })
 
 // 请求拦截器
