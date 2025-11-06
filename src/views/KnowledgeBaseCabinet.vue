@@ -14,15 +14,15 @@
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
             <div class="title-actions">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
                    :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
                 <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <button class="delete-node-btn" 
+              <button class="delete-node-btn"
                       @click.stop="confirmDeleteNode(folder.id, 'folder', folder.name)"
                       title="删除节点">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" 
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
@@ -33,11 +33,11 @@
                 :class="{ active: doc.id===activeId }"
                 class="doc-item">
               <span @click="selectDocument(doc.id)" class="doc-title">{{ doc.title }}</span>
-              <button class="delete-doc-btn" 
+              <button class="delete-doc-btn"
                       @click.stop="confirmDeleteNode(doc.id, 'document', doc.title)"
                       title="删除文档">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" 
+                  <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
@@ -101,7 +101,7 @@
         <div class="dialog-content">
           <div class="delete-warning">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="warning-icon">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" 
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -326,7 +326,7 @@ export default {
         nodes.forEach(node => {
           if (node.pageType === 'DIRECTORY') {
             result.push({
-              id: String(node.id), // 保持ID为字符串，避免精度丢失
+              id: String(node.id), // 保持字符串格式，避免大整数精度丢失
               title: node.title,
               level: level
             })
@@ -391,6 +391,11 @@ export default {
       }
       
       this.loading = true
+
+      // 清空现有数据，避免重复添加
+      this.folders = []
+      this.docs = []
+
       try {
         console.log('[loadWikiTree] 加载Wiki树, projectId:', this.projectId)
         const response = await wikiAPI.page.getProjectWikiTree(this.projectId)
@@ -426,9 +431,9 @@ export default {
       
       tree.forEach(node => {
         if (node.pageType === 'DIRECTORY') {
-          // 目录节点
+          // 目录节点 - 使用字符串 ID 避免精度丢失
           this.folders.push({
-            id: String(node.id), // 保持ID为字符串，避免精度丢失
+            id: String(node.id),
             name: node.title,
             description: '',
             expanded: true,
@@ -440,9 +445,9 @@ export default {
             this.parseWikiTree(node.children, String(node.id))
           }
         } else if (node.pageType === 'DOCUMENT') {
-          // 文档节点
+          // 文档节点 - 使用字符串 ID 避免精度丢失
           this.docs.push({
-            id: String(node.id), // 保持ID为字符串，避免精度丢失
+            id: String(node.id),
             title: node.title,
             updated: node.updatedAt || node.createdAt || '',
             content: '', // 内容需要单独加载
@@ -464,7 +469,7 @@ export default {
         
         if (response && response.code === 200) {
           this.currentPage = response.data
-          this.activeId = String(pageId) // 保持ID为字符串，避免精度丢失
+          this.activeId = String(pageId) // 保持字符串格式
           
           // 更新docs数组中的内容（使用字符串比较）
           const doc = this.docs.find(d => String(d.id) === String(this.activeId))
@@ -479,11 +484,25 @@ export default {
           console.log('[selectDocument] 页面详情加载成功:', this.currentPage.title)
         } else {
           console.error('[selectDocument] 加载页面失败:', response)
-          this.$message?.error('加载页面失败')
+          this.$message?.error(response.msg || '加载页面失败')
+
+          // 如果页面不存在，重新加载Wiki树
+          if (response.code === 404 || response.msg?.includes('不存在')) {
+            console.warn('[selectDocument] 页面不存在，重新加载Wiki树')
+            await this.loadWikiTree()
+          }
         }
       } catch (error) {
         console.error('[selectDocument] 加载页面失败:', error)
-        this.$message?.error('加载页面失败')
+
+        // 检查是否是404错误（页面不存在）
+        if (error.response?.status === 404 || error.message?.includes('不存在')) {
+          this.$message?.error('页面不存在，可能已被删除')
+          // 重新加载Wiki树以同步最新数据
+          await this.loadWikiTree()
+        } else {
+          this.$message?.error('加载页面失败，请重试')
+        }
       }
     },
     
@@ -696,68 +715,68 @@ export default {
       }
       
       try {
-        // 前端本地创建文档，不调用后端API
-        console.log('[confirmNewDoc] 前端本地创建文档')
+        console.log('[confirmNewDoc] 创建Wiki文档')
         
         // 确定父页面ID（如果选择了节点）
-        // 保持ID为字符串，避免精度丢失
-        let folderId = null
+        // 保持字符串格式，避免大整数精度丢失
+        let parentId = null
         if (this.selectedNodeId !== null && this.selectedNodeId !== undefined) {
-          folderId = String(this.selectedNodeId)
+          parentId = String(this.selectedNodeId)
+          console.log('[confirmNewDoc] 选择的父节点ID:', parentId)
         }
         
         // 读取文件内容
         const fileContent = await this.readFileContent(this.selectedFile)
         
-        // 生成临时唯一ID（使用时间戳 + 随机数）
-        const tempId = Date.now() + Math.floor(Math.random() * 1000)
-        
-        // 创建新文档对象
-        const newDoc = {
-          id: tempId,
+        // 调用后端API创建Wiki文档
+        const response = await wikiAPI.page.createPage({
+          projectId: this.projectId,
           title: this.newDocTitle.trim(),
-          updated: new Date().toLocaleString('zh-CN'),
+          pageType: 'DOCUMENT',
           content: fileContent,
-          folderId: folderId
-        }
-        
-        // 直接添加到docs数组
-        this.docs.push(newDoc)
-        
-        console.log('[confirmNewDoc] 文档创建成功（前端）:', newDoc)
-        this.$message?.success('文档创建成功！')
-        
-        // 关闭对话框
-        this.closeNewDocDialog()
-        
-        // 自动选择新创建的文档
-        this.activeId = tempId
-        this.currentPage = {
-          id: String(tempId),
-          title: newDoc.title,
-          content: newDoc.content,
-          pageType: 'DOCUMENT'
-        }
-        this.originalContent = newDoc.content
-        
-        // 如果文档在文件夹中，确保文件夹展开
-        if (folderId) {
-          const folder = this.folders.find(f => f.id === folderId)
-          if (folder && !folder.expanded) {
-            folder.expanded = true
-          }
-        }
-        
-        // 通知父组件
-        this.$emit('document-created', {
-          id: tempId,
-          title: newDoc.title
+          parentId: parentId, // 作为字符串传递，后端会自动转换为Long
+          isPublic: false,
+          changeDescription: '创建文档'
         })
         
-        console.log('[confirmNewDoc] 文档已添加到列表并自动选中')
+        if (response && response.code === 200) {
+          console.log('[confirmNewDoc] 文档创建成功:', response.data)
+          this.$message?.success('文档创建成功！')
+
+          // 重新加载Wiki树以获取最新数据
+          await this.loadWikiTree()
+
+          // 关闭对话框
+          this.closeNewDocDialog()
+
+          // 自动选择新创建的文档
+          const newPageId = String(response.data.id || response.data)
+          if (newPageId && newPageId !== 'null' && newPageId !== 'undefined') {
+            await this.selectDocument(newPageId)
+
+            // 如果文档在文件夹中，确保文件夹展开
+            if (parentId) {
+              const folder = this.folders.find(f => String(f.id) === String(parentId))
+              if (folder && !folder.expanded) {
+                folder.expanded = true
+              }
+            }
+          }
+
+          // 通知父组件
+          this.$emit('document-created', {
+            id: newPageId,
+            title: this.newDocTitle.trim()
+          })
+
+          console.log('[confirmNewDoc] 文档已创建并自动选中')
+        } else {
+          console.error('[confirmNewDoc] 创建失败:', response)
+          this.$message?.error(response.msg || '创建文档失败')
+        }
       } catch (error) {
         console.error('[confirmNewDoc] 创建文档失败:', error)
-        this.$message?.error('创建文档失败：' + (error.message || '无法读取文件内容'))
+        this.$message?.error('创建文档失败：' + (error.message || '请重试'))
       }
     },
     
@@ -791,34 +810,50 @@ export default {
       }
     },
     
-    saveDocument() {
+    async saveDocument() {
       if (!this.activeDoc) {
         console.warn('[saveDocument] 没有活动文档')
         this.$message?.error('没有可保存的文档')
         return
       }
       
+      if (!this.activeId) {
+        console.warn('[saveDocument] 没有活动文档ID')
+        this.$message?.error('无法保存文档：缺少文档ID')
+        return
+      }
+
       try {
-        // 前端本地保存，不调用后端API
-        console.log('[saveDocument] 前端本地保存文档')
+        console.log('[saveDocument] 保存文档到后端, ID:', this.activeId)
         
-        // 更新文档内容
-        this.activeDoc.content = this.activeDocContent
-        this.activeDoc.updated = new Date().toLocaleString('zh-CN')
-        this.originalContent = this.activeDocContent
-        
-        // 标记已保存并退出编辑模式
-        this.hasUnsavedChanges = false
-        this.isEditing = false
-        
-        console.log('[saveDocument] 文档保存成功（前端）')
-        this.$message?.success('文档保存成功！')
-        
-        // 通知父组件
-        this.$emit('document-saved', this.activeDoc)
+        // 调用后端API更新文档内容
+        const response = await wikiAPI.page.updatePage(this.activeId, {
+          content: this.activeDocContent,
+          changeDescription: '手动保存'
+        })
+
+        if (response && response.code === 200) {
+          // 更新本地文档内容
+          this.activeDoc.content = this.activeDocContent
+          this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+          this.originalContent = this.activeDocContent
+
+          // 标记已保存并退出编辑模式
+          this.hasUnsavedChanges = false
+          this.isEditing = false
+
+          console.log('[saveDocument] 文档保存成功')
+          this.$message?.success('文档保存成功！')
+
+          // 通知父组件
+          this.$emit('document-saved', this.activeDoc)
+        } else {
+          console.error('[saveDocument] 保存失败:', response)
+          this.$message?.error(response.msg || '保存文档失败')
+        }
       } catch (error) {
         console.error('[saveDocument] 保存文档失败:', error)
-        this.$message?.error('保存文档失败，请重试')
+        this.$message?.error('保存文档失败：' + (error.message || '请重试'))
       }
     },
     
@@ -949,7 +984,7 @@ export default {
         return '您有未保存的更改，确定要离开吗？'
       }
     },
-    
+
     /**
      * 确认删除节点（显示确认对话框）
      */
@@ -960,7 +995,7 @@ export default {
       this.deleteNodeName = nodeName
       this.showDeleteDialog = true
     },
-    
+
     /**
      * 关闭删除确认对话框
      */
@@ -971,7 +1006,7 @@ export default {
       this.deleteNodeName = ''
       this.deleting = false
     },
-    
+
     /**
      * 执行删除节点操作
      */
@@ -980,16 +1015,16 @@ export default {
         console.error('[executeDeleteNode] deleteNodeId为空')
         return
       }
-      
+
       this.deleting = true
-      
+
       try {
         console.log('[executeDeleteNode] 删除节点:', {
           id: this.deleteNodeId,
           type: this.deleteNodeType,
           name: this.deleteNodeName
         })
-        
+
         let response
         if (this.deleteNodeType === 'folder') {
           // 递归删除节点及其子节点
@@ -998,10 +1033,10 @@ export default {
           // 删除单个文档
           response = await wikiAPI.page.deletePage(this.deleteNodeId)
         }
-        
+
         if (response && response.code === 200) {
           console.log('[executeDeleteNode] 删除成功')
-          
+
           // 从本地数据中移除
           if (this.deleteNodeType === 'folder') {
             // 移除文件夹
@@ -1011,25 +1046,25 @@ export default {
           } else {
             // 移除文档
             this.docs = this.docs.filter(d => String(d.id) !== String(this.deleteNodeId))
-            
+
             // 如果删除的是当前活动文档，清空选择
             if (String(this.activeId) === String(this.deleteNodeId)) {
               this.activeId = null
               this.currentPage = null
             }
           }
-          
+
           // 保存到本地存储
           this.saveToLocalStorage()
-          
+
           // 重新加载Wiki树
           await this.loadWikiTree()
-          
+
           // 显示成功消息
           if (this.$message) {
             this.$message.success(`${this.deleteNodeType === 'folder' ? '节点' : '文档'}删除成功`)
           }
-          
+
           // 关闭对话框
           this.closeDeleteDialog()
         } else {
@@ -1228,19 +1263,19 @@ export default {
 }
 
 /* 文档列表项样式 */
-.doc-list { 
-  list-style: none; 
-  padding: 0; 
-  margin: 0; 
-  flex: 1; 
-  overflow-y: auto; 
+.doc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  overflow-y: auto;
 }
 
-.doc-list .doc-item { 
-  padding: 8px 10px; 
-  border-radius: 8px; 
-  cursor: pointer; 
-  color: #374151; 
+.doc-list .doc-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #374151;
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -1256,13 +1291,13 @@ export default {
   white-space: nowrap;
 }
 
-.doc-list .doc-item:hover { 
-  background: #f6f7fb; 
+.doc-list .doc-item:hover {
+  background: #f6f7fb;
 }
 
-.doc-list .doc-item.active { 
-  background: #e0ebff; 
-  color: #0044CC; 
+.doc-list .doc-item.active {
+  background: #e0ebff;
+  color: #0044CC;
 }
 
 /* 删除文档按钮 */
@@ -1398,7 +1433,7 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn.small { 
+.btn.small {
   height: 32px; 
   padding: 0 16px;
   font-size: 12px;
