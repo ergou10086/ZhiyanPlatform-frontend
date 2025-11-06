@@ -74,10 +74,10 @@
                 @error="handleImageError($event, project)"
               />
               <span v-else class="placeholder-text">{{ project.title }}</span>
-            </div>
-            <div class="card-body">
-              <div class="card-title-row">
-                <h3 class="card-title">{{ project.title }}</h3>
+          </div>
+          <div class="card-body">
+            <div class="card-title-row">
+              <h3 class="card-title">{{ project.title }}</h3>
                 <div class="badge-group">
                   <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,22 +85,22 @@
                       <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </span>
-                  <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
                 </div>
-              </div>
-              <ul class="meta-list">
-                <li>
+            </div>
+            <ul class="meta-list">
+              <li>
                   <span class="meta-label">创建者：</span>
                   <span class="meta-value">{{ project.creatorName || '未知用户' }}</span>
-                </li>
-                <li>
+              </li>
+              <li>
                   <span class="meta-label">团队规模：</span>
                   <span class="meta-value">{{ getTeamSize(project) }}人</span>
-                </li>
+              </li>
                 <li v-if="project.startDate && project.endDate">
                   <span class="meta-label">项目周期：</span>
                   <span class="meta-value">{{ formatDateRange(project.startDate, project.endDate) }}</span>
-                </li>
+              </li>
                 <li v-if="project.tags && project.tags.length > 0">
                   <span class="meta-label">标签：</span>
                   <span class="meta-value">
@@ -108,17 +108,17 @@
                       {{ tag }}{{ index < project.tags.length - 1 ? '、' : '' }}
                     </span>
                   </span>
-                </li>
-              </ul>
-            </div>
+              </li>
+            </ul>
           </div>
         </div>
+      </div>
 
-        <div class="pagination">
-          <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
-          <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
-          <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
-        </div>
+      <div class="pagination">
+        <button class="pager" :disabled="currentPage === 1" @click="goPrev">◀</button>
+        <button v-for="p in totalPages" :key="p" class="page-num" :class="{ active: p === currentPage }" @click="goPage(p)">{{ p }}</button>
+        <button class="pager" :disabled="currentPage === totalPages" @click="goNext">▶</button>
+      </div>
       </div>
     </div>
 
