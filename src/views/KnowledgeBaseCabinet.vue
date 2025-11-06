@@ -30,9 +30,10 @@
           </div>
           <ul v-if="folder.expanded" class="doc-list">
             <li v-for="doc in getDocsInFolder(folder.id)" :key="doc.id" 
-                :class="{ active: doc.id===activeId }"
-                class="doc-item">
-              <span @click="selectDocument(doc.id)" class="doc-title">{{ doc.title }}</span>
+                :class="{ active: String(doc.id) === String(activeId) }"
+                class="doc-item"
+                @click="selectDocument(doc.id)">
+              <span class="doc-title">{{ doc.title }}</span>
               <button class="delete-doc-btn"
                       @click.stop="confirmDeleteNode(doc.id, 'document', doc.title)"
                       title="删除文档">
@@ -58,18 +59,27 @@
         <div class="doc-meta" v-if="activeDoc">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
+          <button class="export-btn" @click="exportDocument" :disabled="!activeDoc" title="导出文档">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>导出</span>
+          </button>
         </div>
         <div class="doc-meta" v-else>
           <div class="doc-title">暂无文档</div>
           <div class="doc-updated">请创建或选择文档</div>
         </div>
+        <!-- 非编辑模式：显示渲染后的Markdown -->
+        <div v-if="activeDoc && !isEditing" class="markdown-viewer" v-html="renderedMarkdown"></div>
+        <!-- 编辑模式：显示源代码 -->
         <textarea 
+          v-else-if="activeDoc && isEditing"
           class="editor" 
-          :class="{ 'readonly': !isEditing }"
           v-model="activeDocContent" 
           @input="updateContent"
-          :readonly="!isEditing"
-          v-if="activeDoc"
         ></textarea>
         <div v-else class="empty-editor">
           <p>暂无文档内容</p>
@@ -326,6 +336,11 @@ export default {
         }
       }
     },
+    // 渲染后的Markdown内容
+    renderedMarkdown() {
+      if (!this.activeDocContent) return ''
+      return this.formatMarkdown(this.activeDocContent)
+    },
     // 扁平化树形结构用于节点选择器
     flatNodeList() {
       const result = []
@@ -400,6 +415,14 @@ export default {
       
       this.loading = true
       
+      // 在清空数据前，先保存已有文档的内容缓存
+      const contentCache = new Map()
+      this.docs.forEach(doc => {
+        if (doc.content && doc.content !== '') {
+          contentCache.set(String(doc.id), doc.content)
+        }
+      })
+      
       // 清空现有数据，避免重复添加
       this.folders = []
       this.docs = []
@@ -412,12 +435,18 @@ export default {
           this.wikiTree = response.data || []
           console.log('[loadWikiTree] Wiki树加载成功:', this.wikiTree)
           
-          // 解析树形结构，分离目录和文档
-          this.parseWikiTree(this.wikiTree)
+          // 解析树形结构，分离目录和文档（传递内容缓存）
+          this.parseWikiTree(this.wikiTree, null, contentCache)
           
-          // 如果有文档，自动选择第一个
+          // 延迟加载第一个文档，让界面先渲染，提升用户体验
           if (this.docs.length > 0) {
-            await this.selectDocument(this.docs[0].id)
+            // 使用 nextTick 确保界面先渲染，然后再异步加载文档内容
+            this.$nextTick(() => {
+              // 使用 setTimeout 进一步延迟，让用户先看到文档列表
+              setTimeout(() => {
+                this.selectDocument(this.docs[0].id)
+              }, 100)
+            })
           }
         } else {
           console.error('[loadWikiTree] API返回错误:', response)
@@ -433,9 +462,17 @@ export default {
     
     /**
      * 解析Wiki树形结构，分离目录和文档
+     * @param {Array} tree - Wiki树
+     * @param {String|null} parentId - 父节点ID
+     * @param {Map} contentCache - 内容缓存Map
      */
-    parseWikiTree(tree, parentId = null) {
+    parseWikiTree(tree, parentId = null, contentCache = null) {
       if (!Array.isArray(tree)) return
+      
+      // 如果是最外层调用且没有传入缓存，创建新的缓存
+      if (!contentCache) {
+        contentCache = new Map()
+      }
       
       tree.forEach(node => {
         if (node.pageType === 'DIRECTORY') {
@@ -448,17 +485,20 @@ export default {
             parentId: parentId
           })
           
-          // 递归处理子节点
+          // 递归处理子节点，传递同一个缓存
           if (node.children && node.children.length > 0) {
-            this.parseWikiTree(node.children, String(node.id))
+            this.parseWikiTree(node.children, String(node.id), contentCache)
           }
         } else if (node.pageType === 'DOCUMENT') {
           // 文档节点 - 使用字符串 ID 避免精度丢失
+          const docId = String(node.id)
+          // 从缓存中获取已有内容，避免重复加载
+          const cachedContent = contentCache.get(docId) || ''
           this.docs.push({
-            id: String(node.id),
+            id: docId,
             title: node.title,
             updated: node.updatedAt || node.createdAt || '',
-            content: '', // 内容需要单独加载
+            content: cachedContent, // 保留缓存内容，如果没有则为空
             folderId: parentId
           })
         }
@@ -473,49 +513,88 @@ export default {
       
       const pageIdStr = String(pageId)
 
-      // 如果已经选中该文档，直接返回
-      if (this.activeId === pageIdStr && this.currentPage) {
+      // 立即更新选中状态，确保界面立即响应（放在最前面）
+      this.activeId = pageIdStr
+
+      // 如果已经选中该文档且有完整内容，直接返回（避免重复操作）
+      if (this.currentPage && this.currentPage.id === pageIdStr && this.currentPage.content) {
         return
       }
 
       // 先检查本地是否已有内容（已加载过的文档）
       const existingDoc = this.docs.find(d => String(d.id) === pageIdStr)
-      if (existingDoc && existingDoc.content !== undefined && existingDoc.content !== '') {
-        // 本地已有内容，直接切换，不调用API
-        console.log('[selectDocument] 使用本地缓存:', existingDoc.title)
-        this.activeId = pageIdStr
+      if (existingDoc) {
+        // 如果本地已有完整内容，直接使用
+        if (existingDoc.content !== undefined && existingDoc.content !== '') {
+          console.log('[selectDocument] 使用本地缓存:', existingDoc.title)
+          this.currentPage = {
+            id: pageIdStr,
+            title: existingDoc.title,
+            content: existingDoc.content,
+            pageType: 'DOCUMENT',
+            updatedAt: existingDoc.updated
+          }
+          this.originalContent = existingDoc.content || ''
+          return
+        }
+        
+        // 如果本地没有内容，先显示基本信息，然后异步加载内容
         this.currentPage = {
           id: pageIdStr,
           title: existingDoc.title,
-          content: existingDoc.content,
+          content: '', // 暂时为空，等待加载
           pageType: 'DOCUMENT',
           updatedAt: existingDoc.updated
         }
-        this.originalContent = existingDoc.content || ''
-        return
+        this.originalContent = ''
+      } else {
+        // 如果文档不在列表中，立即创建基本结构
+        this.currentPage = {
+          id: pageIdStr,
+          title: '加载中...',
+          content: '',
+          pageType: 'DOCUMENT',
+          updatedAt: ''
+        }
+        this.originalContent = ''
       }
 
-      // 防止重复加载同一个文档
+      // 如果文档正在加载中，不重复加载，但界面已经更新了选中状态
       if (this.loadingDocIds.has(pageIdStr)) {
-        console.log('[selectDocument] 文档正在加载中，跳过:', pageIdStr)
+        console.log('[selectDocument] 文档正在加载中，界面已更新:', pageIdStr)
         return
       }
 
+      // 标记为正在加载，防止重复请求
       this.loadingDocIds.add(pageIdStr)
 
-      try {
-        console.log('[selectDocument] 从API加载页面详情, pageId:', pageId)
-        const response = await wikiAPI.page.getPageDetail(pageId)
+      // 使用 nextTick 确保界面已更新，然后再加载内容
+      this.$nextTick(async () => {
+        // 异步加载文档内容（不阻塞界面切换）
+        try {
+          console.log('[selectDocument] 从API加载页面详情, pageId:', pageId)
+          const response = await wikiAPI.page.getPageDetail(pageId)
         
         if (response && response.code === 200) {
-          this.currentPage = response.data
-          this.activeId = pageIdStr
+          // 检查是否仍然选中该文档（用户可能在加载过程中切换了其他文档）
+          if (String(this.activeId) !== pageIdStr) {
+            console.log('[selectDocument] 用户已切换文档，忽略此次加载结果')
+            return
+          }
           
-          // 更新docs数组中的内容（使用字符串比较）
-          const doc = this.docs.find(d => String(d.id) === String(this.activeId))
+          // 更新文档内容
+          this.currentPage = {
+            ...this.currentPage,
+            ...response.data,
+            content: response.data.content || ''
+          }
+          
+          // 更新docs数组中的内容
+          const doc = this.docs.find(d => String(d.id) === pageIdStr)
           if (doc) {
             doc.content = this.currentPage.content || ''
             doc.updated = this.currentPage.updatedAt || doc.updated
+            doc.title = this.currentPage.title || doc.title
           } else {
             // 如果文档不在docs数组中，添加到数组中
             this.docs.push({
@@ -552,9 +631,10 @@ export default {
         } else {
           this.$message?.error('加载页面失败，请重试')
         }
-      } finally {
-        this.loadingDocIds.delete(pageIdStr)
-      }
+        } finally {
+          this.loadingDocIds.delete(pageIdStr)
+        }
+      })
     },
     
     createNewDocument() {
@@ -1180,6 +1260,181 @@ export default {
       } finally {
         this.deleting = false
       }
+    },
+
+    /**
+     * 格式化Markdown内容为HTML
+     */
+    formatMarkdown(content) {
+      if (!content) return ''
+      
+      let formatted = content
+      
+      // 先保存代码块，避免被其他规则影响
+      const codeBlocks = []
+      formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        const id = `__CODE_BLOCK_${codeBlocks.length}__`
+        codeBlocks.push({
+          id,
+          lang: lang || 'text',
+          code: code.trim()
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+        })
+        return id
+      })
+      
+      // 转义HTML特殊字符
+      formatted = formatted
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+      
+      // 恢复代码块
+      codeBlocks.forEach(block => {
+        formatted = formatted.replace(block.id, `<pre class="markdown-code-block"><code class="language-${block.lang}">${block.code}</code></pre>`)
+      })
+      
+      // 行内代码（必须在代码块之后处理）
+      formatted = formatted.replace(/`([^`\n]+)`/g, '<code class="markdown-inline-code">$1</code>')
+      
+      // 标题（从大到小处理，避免冲突）
+      formatted = formatted.replace(/^######\s+(.+)$/gm, '<h6>$1</h6>')
+      formatted = formatted.replace(/^#####\s+(.+)$/gm, '<h5>$1</h5>')
+      formatted = formatted.replace(/^####\s+(.+)$/gm, '<h4>$1</h4>')
+      formatted = formatted.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>')
+      formatted = formatted.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>')
+      formatted = formatted.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>')
+      
+      // 粗体（** 和 __）
+      formatted = formatted.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      formatted = formatted.replace(/__([^_]+)__/g, '<strong>$1</strong>')
+      
+      // 斜体（单个 * 和 _，简单处理）
+      // 注意：这里不处理斜体，因为容易与粗体和列表冲突
+      // 如果需要支持斜体，可以使用更复杂的解析逻辑
+      
+      // 删除线
+      formatted = formatted.replace(/~~([^~]+)~~/g, '<del>$1</del>')
+      
+      // 链接
+      formatted = formatted.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+      
+      // 图片
+      formatted = formatted.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%;" />')
+      
+      // 水平分割线
+      formatted = formatted.replace(/^---$/gm, '<hr class="markdown-hr" />')
+      formatted = formatted.replace(/^\*\*\*$/gm, '<hr class="markdown-hr" />')
+      formatted = formatted.replace(/^___$/gm, '<hr class="markdown-hr" />')
+      
+      // 处理列表
+      const lines = formatted.split('\n')
+      let inList = false
+      let listType = null
+      let result = []
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        const orderedMatch = line.match(/^(\d+)\.\s+(.+)$/)
+        const unorderedMatch = line.match(/^[\*\-\+]\s+(.+)$/)
+        
+        // 跳过代码块和标题行
+        if (line.includes('markdown-code-block') || line.match(/^<h[1-6]>/)) {
+          if (inList) {
+            result.push(`</${listType}>`)
+            inList = false
+            listType = null
+          }
+          result.push(line)
+          continue
+        }
+        
+        if (orderedMatch) {
+          if (!inList || listType !== 'ol') {
+            if (inList) result.push(`</${listType}>`)
+            result.push('<ol>')
+            inList = true
+            listType = 'ol'
+          }
+          result.push(`<li>${orderedMatch[2]}</li>`)
+        } else if (unorderedMatch) {
+          if (!inList || listType !== 'ul') {
+            if (inList) result.push(`</${listType}>`)
+            result.push('<ul>')
+            inList = true
+            listType = 'ul'
+          }
+          result.push(`<li>${unorderedMatch[1]}</li>`)
+        } else {
+          if (inList) {
+            result.push(`</${listType}>`)
+            inList = false
+            listType = null
+          }
+          result.push(line)
+        }
+      }
+      if (inList) result.push(`</${listType}>`)
+      
+      formatted = result.join('\n')
+      
+      // 段落处理（将连续的非空行包裹成段落）
+      formatted = formatted.split('\n\n').map(para => {
+        para = para.trim()
+        if (!para) return ''
+        // 如果已经是HTML标签（h1-h6, pre, ul, ol, hr, p），不包裹
+        if (/^<(h[1-6]|pre|ul|ol|hr|p)/.test(para)) return para
+        // 如果包含列表，不包裹
+        if (para.includes('<ul>') || para.includes('<ol>')) return para
+        return `<p>${para}</p>`
+      }).join('\n')
+      
+      // 单个换行转换为 <br>（但不在代码块和列表内）
+      formatted = formatted.replace(/\n/g, '<br>')
+      
+      return formatted
+    },
+
+    /**
+     * 导出文档为Markdown文件
+     */
+    exportDocument() {
+      if (!this.activeDoc) {
+        this.$message?.error('没有可导出的文档')
+        return
+      }
+
+      try {
+        // 获取当前文档内容（使用最新的内容，包括未保存的修改）
+        const content = this.activeDocContent || this.activeDoc.content || ''
+        const fileName = `${this.activeDoc.title || '未命名文档'}.md`
+        
+        // 创建Blob对象
+        const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' })
+        
+        // 创建下载链接
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        link.style.display = 'none'
+        
+        // 触发下载
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        // 释放URL对象
+        URL.revokeObjectURL(url)
+        
+        console.log('[exportDocument] 文档导出成功:', fileName)
+        this.$message?.success('文档导出成功！')
+      } catch (error) {
+        console.error('[exportDocument] 导出文档失败:', error)
+        this.$message?.error('导出文档失败，请重试')
+      }
     }
   }
 }
@@ -1444,6 +1699,7 @@ export default {
   flex-shrink: 0;
   border-bottom: 1px solid #e5e7eb;
   margin-bottom: 6px;
+  position: relative;
 }
 .doc-title { 
   font-size: 16px; 
@@ -1460,6 +1716,198 @@ export default {
   margin-top: 4px;
   font-weight: 500;
 }
+.export-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 68, 204, 0.2);
+}
+.export-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  transform: translateY(-1px);
+}
+.export-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.export-btn svg {
+  flex-shrink: 0;
+}
+/* Markdown渲染视图 */
+.markdown-viewer {
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  background-color: #fff;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.markdown-viewer :deep(h1) {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 24px 0 16px;
+  color: #1e293b;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.markdown-viewer :deep(h2) {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 20px 0 12px;
+  color: #1e293b;
+}
+
+.markdown-viewer :deep(h3) {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 16px 0 10px;
+  color: #374151;
+}
+
+.markdown-viewer :deep(h4) {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 14px 0 8px;
+  color: #4b5563;
+}
+
+.markdown-viewer :deep(h5) {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 12px 0 6px;
+  color: #6b7280;
+}
+
+.markdown-viewer :deep(h6) {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 10px 0 4px;
+  color: #9ca3af;
+}
+
+.markdown-viewer :deep(p) {
+  margin: 8px 0;
+  line-height: 1.8;
+}
+
+.markdown-viewer :deep(strong) {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.markdown-viewer :deep(em) {
+  font-style: italic;
+}
+
+.markdown-viewer :deep(del) {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.markdown-viewer :deep(ul),
+.markdown-viewer :deep(ol) {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.markdown-viewer :deep(li) {
+  margin: 6px 0;
+  line-height: 1.6;
+}
+
+.markdown-viewer :deep(ul li) {
+  list-style-type: disc;
+}
+
+.markdown-viewer :deep(ol li) {
+  list-style-type: decimal;
+}
+
+.markdown-viewer :deep(a) {
+  color: #5EB6E4;
+  text-decoration: none;
+  border-bottom: 1px solid #5EB6E4;
+  transition: all 0.2s;
+}
+
+.markdown-viewer :deep(a:hover) {
+  color: #0044CC;
+  border-bottom-color: #0044CC;
+}
+
+.markdown-viewer :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-viewer :deep(.markdown-code-block) {
+  background-color: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 16px;
+  margin: 16px 0;
+  overflow-x: auto;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.markdown-viewer :deep(.markdown-code-block code) {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.markdown-viewer :deep(.markdown-inline-code) {
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 0.9em;
+  color: #ef4444;
+}
+
+.markdown-viewer :deep(.markdown-hr) {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 24px 0;
+}
+
+.markdown-viewer :deep(blockquote) {
+  border-left: 4px solid #5EB6E4;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
 .editor { 
   flex: 1; 
   border: 1px solid #e5e7eb; 
@@ -1469,17 +1917,9 @@ export default {
   resize: none; /* 禁用resize，使用flex布局控制高度 */
   min-height: 0; /* 允许flex子元素收缩 */
   transition: all 0.2s ease;
-}
-
-.editor.readonly {
-  background-color: #f9fafb;
-  color: #6b7280;
-  cursor: default;
-}
-
-.editor:not(.readonly) {
   background-color: #fff;
   color: #111827;
+  font-family: 'Courier New', Consolas, monospace;
 }
 .editor-footer { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-shrink: 0; padding-top: 6px; }
 .flex-spacer { flex: 1; }
