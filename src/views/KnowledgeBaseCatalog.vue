@@ -1174,7 +1174,7 @@ import {
   escapeHtml
 } from '@/utils/catalogHelpers'
 import { saveToLocalStorage, loadFromLocalStorage, updateFileContentInStorage } from '@/utils/catalogStorage'
-import { downloadFile, downloadSingleFile, downloadAllFiles, loadTextFile, loadImageFile, loadPdfFile, getFileInfo, testArrayBufferConversion } from '@/utils/catalogFileHandler'
+import { downloadFile as downloadFileUtil, downloadSingleFile, downloadAllFiles as downloadAllFilesUtil, loadTextFile, loadImageFile, loadPdfFile, getFileInfo, testArrayBufferConversion } from '@/utils/catalogFileHandler'
 import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 import { projectAPI } from '@/api/project'
@@ -1885,10 +1885,52 @@ export default {
       this.$refs.fileInput.value = ''
     },
     
-    viewFile(file) {
-      this.viewingFile = file
-      this.loadFileContent(file)
-      this.showViewDialog = true
+    async viewFile(file) {
+      try {
+        console.log('查看成果, ID:', file.id, '名称:', file.name)
+        
+        // 先获取完整的成果详情（包括文件列表）
+        const response = await knowledgeAPI.getAchievementDetail(file.id)
+        console.log('成果详情响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          // 转换DTO为前端格式
+          const detailData = convertFromDTO(response.data)
+          console.log('转换后的成果详情:', detailData)
+          
+          // 获取文件列表
+          const filesResponse = await knowledgeAPI.getAchievementFiles(file.id)
+          console.log('文件列表响应:', filesResponse)
+          
+          if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
+            // 将文件列表添加到成果对象中
+            detailData.files = filesResponse.data.map(fileDto => ({
+              id: fileDto.id,
+              name: fileDto.fileName,
+              originalFileName: fileDto.originalFileName,
+              type: fileDto.mimeType,
+              size: fileDto.fileSize,
+              uploadTime: fileDto.uploadedAt,
+              downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+            }))
+            detailData.fileCount = detailData.files.length
+            console.log('文件列表处理完成，共', detailData.files.length, '个文件')
+          } else {
+            console.warn('获取文件列表失败或文件列表为空')
+            detailData.files = []
+            detailData.fileCount = 0
+          }
+          
+          this.viewingFile = detailData
+          this.loadFileContent(detailData)
+          this.showViewDialog = true
+        } else {
+          throw new Error(response?.msg || '获取成果详情失败')
+        }
+      } catch (error) {
+        console.error('查看成果失败:', error)
+        alert('查看成果失败: ' + (error.message || '请重试'))
+      }
     },
     
     loadFileContent(file) {
@@ -2207,17 +2249,34 @@ export default {
     async deleteFile(file) {
       if (confirm(`确定要删除成果"${file.name}"吗？此操作不可撤销。`)) {
         try {
-          console.log('删除成果, ID:', file.id)
+          console.log('删除成果, ID:', file.id, '名称:', file.name)
           
           // 调用后端API删除成果
           const response = await knowledgeAPI.deleteAchievement(file.id)
           console.log('删除成果响应:', response)
+          console.log('响应类型:', typeof response)
+          console.log('响应码:', response?.code)
+          console.log('响应消息:', response?.msg)
           
-          if (response && response.code === 200) {
+          // 检查多种可能的成功响应格式
+          const isSuccess = response && (
+            response.code === 200 || 
+            response.code === '200' || 
+            response.status === 200 ||
+            response.status === 'success' ||
+            (response.data !== undefined && response.code !== 500)
+          )
+          
+          if (isSuccess) {
+            console.log('✅ 删除成功，更新本地数据')
+            
             // 从本地列表中删除
             const uploadedIndex = this.uploadedFiles.findIndex(f => f.id === file.id)
             if (uploadedIndex !== -1) {
               this.uploadedFiles.splice(uploadedIndex, 1)
+              console.log('✅ 已从uploadedFiles中删除，索引:', uploadedIndex)
+            } else {
+              console.warn('⚠️ 在uploadedFiles中未找到该成果')
             }
             
             // 如果处于搜索状态，也从搜索结果中删除
@@ -2225,6 +2284,7 @@ export default {
               const searchIndex = this.searchResults.findIndex(f => f.id === file.id)
               if (searchIndex !== -1) {
                 this.searchResults.splice(searchIndex, 1)
+                console.log('✅ 已从searchResults中删除，索引:', searchIndex)
               }
             }
             
@@ -2234,15 +2294,23 @@ export default {
             // 如果当前页没有数据了，跳转到上一页
             if (this.paginatedFiles.length === 0 && this.currentPage > 1) {
               this.currentPage = this.currentPage - 1
+              console.log('✅ 当前页无数据，跳转到上一页:', this.currentPage)
             }
             
             alert('成果删除成功！')
           } else {
-            throw new Error(response.msg || '删除失败')
+            const errorMsg = response?.msg || response?.message || '删除失败，服务器返回异常'
+            console.error('❌ 删除失败:', errorMsg)
+            throw new Error(errorMsg)
           }
         } catch (error) {
-          console.error('删除成果失败:', error)
-          alert('删除失败: ' + (error.message || '请重试'))
+          console.error('❌ 删除成果异常:', error)
+          console.error('错误详情:', {
+            message: error.message,
+            response: error.response,
+            stack: error.stack
+          })
+          alert('删除失败: ' + (error.message || error.toString() || '请重试'))
         }
       }
     },
@@ -2311,9 +2379,95 @@ export default {
       }
     },
     
-    // 下载文件（包装工具函数）
-    downloadFile(file) {
-      downloadFile(file)
+    // 下载文件（包装工具函数，支持从后端获取文件）
+    async downloadFile(achievement) {
+      try {
+        console.log('下载成果文件, ID:', achievement.id, '名称:', achievement.name)
+        
+        // 如果成果已经有文件列表且有downloadUrl，直接下载
+        if (achievement.files && achievement.files.length > 0 && achievement.files[0].downloadUrl) {
+          console.log('成果已有文件列表，直接下载')
+          downloadFileUtil(achievement)
+          return
+        }
+        
+        // 否则，先从后端获取文件列表
+        console.log('获取成果文件列表...')
+        const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
+        console.log('文件列表响应:', filesResponse)
+        
+        if (filesResponse && filesResponse.code === 200 && filesResponse.data && filesResponse.data.length > 0) {
+          // 将文件列表添加到成果对象中
+          const files = filesResponse.data.map(fileDto => ({
+            id: fileDto.id,
+            name: fileDto.fileName,
+            originalFileName: fileDto.originalFileName,
+            type: fileDto.mimeType,
+            size: fileDto.fileSize,
+            uploadTime: fileDto.uploadedAt,
+            downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+          }))
+          
+          console.log('处理后的文件列表:', files)
+          
+          // 如果只有一个文件，直接下载
+          if (files.length === 1) {
+            downloadSingleFile(files[0])
+          } else {
+            // 多个文件，使用临时对象批量下载
+            downloadAllFilesUtil({ ...achievement, files })
+          }
+        } else {
+          console.warn('未找到可下载的文件')
+          alert('该成果暂无可下载的文件')
+        }
+      } catch (error) {
+        console.error('下载文件失败:', error)
+        alert('下载失败: ' + (error.message || '请重试'))
+      }
+    },
+    
+    // 下载所有文件（包装工具函数，支持从后端获取文件）
+    async downloadAllFiles(achievement) {
+      try {
+        console.log('下载成果所有文件, ID:', achievement.id, '名称:', achievement.name)
+        
+        // 如果成果已经有文件列表且有downloadUrl，直接下载
+        if (achievement.files && achievement.files.length > 0 && achievement.files[0].downloadUrl) {
+          console.log('成果已有文件列表，直接批量下载')
+          downloadAllFilesUtil(achievement)
+          return
+        }
+        
+        // 否则，先从后端获取文件列表
+        console.log('获取成果文件列表...')
+        const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
+        console.log('文件列表响应:', filesResponse)
+        
+        if (filesResponse && filesResponse.code === 200 && filesResponse.data && filesResponse.data.length > 0) {
+          // 将文件列表添加到成果对象中
+          const files = filesResponse.data.map(fileDto => ({
+            id: fileDto.id,
+            name: fileDto.fileName,
+            originalFileName: fileDto.originalFileName,
+            type: fileDto.mimeType,
+            size: fileDto.fileSize,
+            uploadTime: fileDto.uploadedAt,
+            downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+          }))
+          
+          console.log('处理后的文件列表:', files, '共', files.length, '个文件')
+          
+          // 批量下载
+          downloadAllFilesUtil({ ...achievement, files })
+        } else {
+          console.warn('未找到可下载的文件')
+          alert('该成果暂无可下载的文件')
+        }
+      } catch (error) {
+        console.error('批量下载失败:', error)
+        alert('下载失败: ' + (error.message || '请重试'))
+      }
     },
     
     // 获取类型样式类名（包装工具函数）
