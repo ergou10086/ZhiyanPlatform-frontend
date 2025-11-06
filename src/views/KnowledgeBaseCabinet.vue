@@ -909,14 +909,41 @@ export default {
         }
       } catch (error) {
         console.error('[selectDocument] 加载页面失败:', error)
+        console.error('[selectDocument] 错误详情:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+          pageId: pageId
+        })
 
         // 检查是否是404错误（页面不存在）
         if (error.response?.status === 404 || error.message?.includes('不存在')) {
           this.$message?.error('页面不存在，可能已被删除')
           // 重新加载Wiki树以同步最新数据
           await this.loadWikiTree()
+        } else if (error.response?.status === 403) {
+          // 权限不足
+          this.$message?.error('无权访问该页面')
+        } else if (error.response?.status === 401) {
+          // 未登录或token过期
+          this.$message?.error('登录已过期，请重新登录')
+          // 可以跳转到登录页
+          // this.$router.push('/login')
         } else {
-          this.$message?.error('加载页面失败，请重试')
+          // 其他错误
+          const errorMsg = error.response?.data?.msg || error.message || '加载页面失败，请重试'
+          this.$message?.error(errorMsg)
+          
+          // 降级处理：显示基本信息
+          if (existingDoc) {
+            this.currentPage = {
+              id: pageIdStr,
+              title: existingDoc.title,
+              content: '加载失败，请稍后重试',
+              pageType: 'DOCUMENT',
+              updatedAt: existingDoc.updated
+            }
+          }
         }
         } finally {
           this.loadingDocIds.delete(pageIdStr)
