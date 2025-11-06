@@ -5,16 +5,28 @@
       <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
         <div class="toolbar">
           <div class="toolbar-buttons" v-if="!sidebarCollapsed">
-            <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
+          <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
             <button class="btn secondary small" @click="createNewFolder">+ 新建节点</button>
           </div>
-          <input class="search" type="text" placeholder="搜索文档" v-if="!sidebarCollapsed" />
+          <div class="search-container" v-if="!sidebarCollapsed">
+            <input
+              class="search"
+              type="text"
+              placeholder="点击搜索文档..."
+              readonly
+              @click="openSearchDialog"
+            />
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
         </div>
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
             <div class="title-actions">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" 
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
                  :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
               <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -75,9 +87,9 @@
         <!-- 非编辑模式：显示渲染后的Markdown -->
         <div v-if="activeDoc && !isEditing" class="markdown-viewer" v-html="renderedMarkdown"></div>
         <!-- 编辑模式：显示源代码 -->
-        <textarea 
+        <textarea
           v-else-if="activeDoc && isEditing"
-          class="editor" 
+          class="editor"
           v-model="activeDocContent" 
           @input="updateContent"
         ></textarea>
@@ -94,8 +106,8 @@
           <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
             取消
           </button>
-          <button class="btn primary" @click="saveDocument" :disabled="!activeDoc">
-            {{ hasUnsavedChanges ? '保存*' : '已保存' }}
+          <button class="btn primary" @click="saveDocument" :disabled="!activeDoc || saving">
+            {{ saving ? '保存中...' : (hasUnsavedChanges ? '保存*' : '已保存') }}
           </button>
         </div>
       </div>
@@ -261,7 +273,7 @@
             <label>节点名称：</label>
             <input v-model="newFolderName" type="text" placeholder="请输入节点名称" />
           </div>
-          <div class="dialog-actions">
+           <div class="dialog-actions">
              <button class="btn secondary" @click="closeNewFolderDialog" :disabled="isCreatingFolder">取消</button>
              <button class="btn primary" @click="confirmNewFolder" :disabled="!newFolderName || isCreatingFolder">
                {{ isCreatingFolder ? '创建中...' : '确认创建' }}
@@ -279,13 +291,8 @@
           <button class="close-btn" @click="closeVersionHistoryDialog">×</button>
         </div>
         <div class="dialog-content">
-          <div v-if="loadingVersionHistory" class="loading-indicator">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
-          </div>
-          <div v-else>
-            <!-- 三个存档位 -->
-            <div class="archive-slots">
+          <!-- 三个存档位 -->
+          <div class="archive-slots">
               <div v-for="slot in 3" :key="slot" class="archive-slot">
                 <div class="slot-header">
                   <div class="slot-number">存档位 {{ slot }}</div>
@@ -295,6 +302,7 @@
                   <div class="slot-info">
                     <div class="slot-title">{{ getArchiveSlot(slot).customName || `版本 ${getArchiveSlot(slot).version}` }}</div>
                     <div class="slot-meta">
+                      <span>版本号: {{ getArchiveSlot(slot).version }}</span>
                       <span>{{ getArchiveSlot(slot).creatorName || '未知' }}</span>
                       <span>{{ formatDateTime(getArchiveSlot(slot).createdAt) }}</span>
                     </div>
@@ -313,37 +321,52 @@
                 </div>
               </div>
             </div>
+        </div>
+      </div>
+    </div>
 
-            <!-- 分隔线 -->
-            <div class="divider"></div>
-
-            <!-- 所有版本历史 -->
-            <div class="version-history-section">
-              <h4 class="section-title">所有版本历史</h4>
-              <div v-if="versionHistoryList.length === 0" class="empty-state">
-                <p>暂无版本历史</p>
-              </div>
-              <div v-else class="version-list">
-                <div v-for="version in versionHistoryList" :key="version.version" class="version-item">
-                  <div class="version-info">
-                    <div class="version-number">版本 {{ version.version }}</div>
-                    <div class="version-meta">
-                      <span class="version-author">{{ version.creatorName || '未知' }}</span>
-                      <span class="version-time">{{ formatDateTime(version.createdAt) }}</span>
-                    </div>
-                    <div class="version-desc" v-if="version.changeDescription">
-                      {{ version.changeDescription }}
-                    </div>
-                  </div>
-                  <div class="version-actions">
-                    <button class="btn-small" @click="viewVersionContent(version.version)">查看</button>
-                    <button class="btn-small" @click="restoreToVersion(version.version)">恢复</button>
-                    <button class="btn-small" @click="showSaveVersionToSlotDialog(version)">存档</button>
-                  </div>
-                </div>
-              </div>
+    <!-- 查看版本内容对话框 -->
+    <div v-if="showVersionViewDialog" class="upload-dialog-overlay" @click="closeVersionViewDialog">
+      <div class="upload-dialog version-view-dialog" @click.stop>
+        <div class="dialog-header">
+          <h3>{{ viewingArchiveName || `查看版本 ${viewingVersion}` }}</h3>
+          <button class="close-btn" @click="closeVersionViewDialog">×</button>
+        </div>
+        <div class="dialog-content">
+          <!-- 版本信息 -->
+          <div v-if="viewingVersionInfo || viewingVersion" class="version-info-header">
+            <div class="version-info-item" v-if="viewingVersion">
+              <span class="info-label">版本号：</span>
+              <span class="info-value">{{ viewingVersion }}</span>
+            </div>
+            <div class="version-info-item" v-if="viewingVersionInfo">
+              <span class="info-label">创建者：</span>
+              <span class="info-value">{{ viewingVersionInfo.creatorName || '未知' }}</span>
+            </div>
+            <div class="version-info-item" v-if="viewingVersionInfo">
+              <span class="info-label">创建时间：</span>
+              <span class="info-value">{{ formatDateTime(viewingVersionInfo.createdAt) }}</span>
+            </div>
+            <div class="version-info-item" v-if="viewingVersionInfo && viewingVersionInfo.changeDescription">
+              <span class="info-label">变更说明：</span>
+              <span class="info-value">{{ viewingVersionInfo.changeDescription }}</span>
             </div>
           </div>
+
+          <!-- 加载状态 -->
+          <div v-if="loadingVersionContent" class="loading-indicator">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+          </div>
+
+          <!-- 版本内容（Markdown渲染） -->
+          <div v-else class="version-content-viewer">
+            <div class="markdown-viewer" v-html="formatMarkdown(viewingVersionContent)"></div>
+          </div>
+        </div>
+        <div class="dialog-footer">
+          <button class="btn secondary" @click="closeVersionViewDialog">关闭</button>
+          <button class="btn primary" @click="restoreFromViewDialog">恢复到此版本</button>
         </div>
       </div>
     </div>
@@ -409,42 +432,136 @@
         <div class="dialog-content">
           <!-- 存档位选择 -->
           <div class="compare-slots">
-            <div class="compare-slot-item" v-for="slot in archiveSlots" :key="slot.slotNumber"
-                 :class="{ 'selected': selectedCompareSlot === slot.slotNumber }"
-                 @click="selectCompareSlot(slot.slotNumber)">
+            <div class="compare-slot-item" v-for="slot in 3" :key="slot"
+                 :class="{ 'selected': selectedCompareSlot === slot, 'occupied': getArchiveSlot(slot) }"
+                 @click="selectCompareSlot(slot)">
               <div class="compare-slot-info">
-                <div class="slot-badge">存档{{ slot.slotNumber }}</div>
-                <div class="slot-details">
-                  <div class="slot-name">{{ slot.customName || `版本 ${slot.version}` }}</div>
-                  <div class="slot-time">{{ formatDateTime(slot.createdAt) }}</div>
+                <div class="slot-badge">存档{{ slot }}</div>
+                <div class="slot-details" v-if="getArchiveSlot(slot)">
+                  <div class="slot-name">{{ getArchiveSlot(slot).customName || `版本 ${getArchiveSlot(slot).version}` }}</div>
+                  <div class="slot-time">{{ formatDateTime(getArchiveSlot(slot).createdAt) }}</div>
+                </div>
+                <div class="slot-details" v-else>
+                  <div class="slot-name empty">空存档位</div>
                 </div>
               </div>
-              <div class="check-icon" v-if="selectedCompareSlot === slot.slotNumber">✓</div>
-            </div>
-            <div v-if="archiveSlots.length === 0" class="empty-compare-hint">
-              暂无保存的版本存档，请先在"版本历史"中保存版本
-            </div>
-            <div v-else-if="archiveSlots.length < 2" class="hint-message">
-              需要至少2个存档位才能进行对比
+              <div class="check-icon" v-if="selectedCompareSlot === slot">✓</div>
             </div>
           </div>
 
-          <!-- 对比按钮 -->
-          <div class="compare-actions" v-if="archiveSlots.length >= 2">
-            <button class="btn primary" @click="compareArchiveSlots" :disabled="!selectedCompareSlot || loadingVersionCompare">
-              {{ loadingVersionCompare ? '对比中...' : '与其他存档对比' }}
-            </button>
+          <!-- 版本对比显示区域 -->
+          <div v-if="selectedCompareSlot" class="version-compare-viewer">
+            <div class="compare-panel-left">
+              <div class="compare-panel-header">
+                <span class="panel-title">当前版本</span>
+              </div>
+              <div
+                class="compare-panel-content"
+                ref="leftScrollPanel"
+                @scroll="syncScroll('left', $event)">
+                <div v-if="loadingVersionCompare" class="loading-indicator">
+                  <div class="loading-spinner"></div>
+                  <p>加载中...</p>
+                </div>
+                <div v-else class="diff-viewer" v-html="formatDiffContent(activeDocContent, versionDiff, 'left')"></div>
+              </div>
+            </div>
+            <div class="compare-panel-right">
+              <div class="compare-panel-header">
+                <span class="panel-title">{{ getArchiveSlot(selectedCompareSlot)?.customName || `版本 ${getArchiveSlot(selectedCompareSlot)?.version}` }}</span>
+              </div>
+              <div
+                class="compare-panel-content"
+                ref="rightScrollPanel"
+                @scroll="syncScroll('right', $event)">
+                <div v-if="loadingVersionCompare" class="loading-indicator">
+                  <div class="loading-spinner"></div>
+                  <p>加载中...</p>
+                </div>
+                <div v-else class="diff-viewer" v-html="formatDiffContent(compareVersionContent, versionDiff, 'right')"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 搜索对话框 -->
+    <div v-if="showSearchDialog" class="search-dialog-overlay" @click="closeSearchDialog">
+      <div class="search-dialog" @click.stop>
+        <div class="search-dialog-header">
+          <svg class="search-header-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+            <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <input
+            ref="searchInput"
+            class="search-dialog-input"
+            type="text"
+            placeholder="搜索文档标题或内容..."
+            v-model="searchKeyword"
+            @input="handleSearchInput"
+            @keyup.enter="performSearch"
+          />
+          <button class="search-dialog-close" @click="closeSearchDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
+              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="search-dialog-body">
+          <!-- 搜索提示 -->
+          <div v-if="!searchKeyword && !searching" class="search-tips">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="tips-icon">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p>输入关键词搜索文档</p>
+            <p class="tips-hint">支持搜索标题和内容</p>
           </div>
 
-          <!-- 差异显示 -->
-          <div v-if="versionDiff" class="version-diff">
-            <h4>差异内容：</h4>
-            <div class="diff-legend">
-              <span class="added">+ 新增内容</span>
-              <span class="removed">- 删除内容</span>
-              <span class="unchanged">  保持不变</span>
+          <!-- 搜索中 -->
+          <div v-else-if="searching" class="search-loading-state">
+            <div class="loading-ring"></div>
+            <p>搜索中...</p>
+          </div>
+
+          <!-- 搜索结果 -->
+          <div v-else-if="searchKeyword && searchResults.length > 0" class="search-results-container">
+            <div class="results-count">找到 {{ searchResults.length }} 个结果</div>
+            <div class="results-list">
+              <div v-for="result in searchResults"
+                   :key="result.wikiPageId || result.id"
+                   class="result-item"
+                   @click="selectSearchResultAndClose(result)">
+                <div class="result-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M9 12h6M9 16h6M9 8h6M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="result-content">
+                  <div class="result-title" v-html="highlightKeyword(result.title)"></div>
+                  <div v-if="result.matchedSnippet" class="result-snippet" v-html="highlightKeyword(result.matchedSnippet)"></div>
+                  <div class="result-meta">
+                    <span v-if="result.path" class="result-path">{{ result.path }}</span>
+                    <span class="result-date">{{ formatDate(result.updatedAt) }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <pre class="diff-content">{{ versionDiff }}</pre>
+          </div>
+
+          <!-- 无结果 -->
+          <div v-else-if="searchKeyword && searchResults.length === 0" class="search-no-results">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" class="no-results-icon">
+              <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="9" y1="11" x2="13" y2="11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <h3>未找到相关文档</h3>
+            <p>尝试更换关键词或检查拼写</p>
           </div>
         </div>
       </div>
@@ -454,8 +571,7 @@
 
 <script>
 import '@/assets/styles/KnowledgeBaseCabinet.css'
-import { wikiAPI } from '@/api/wiki'
-import { PageType } from '@/api/wiki'
+import { wikiAPI, PageType } from '@/api/wiki'
 
 export default {
   name: 'KnowledgeBaseCabinet',
@@ -494,14 +610,18 @@ export default {
       currentPage: null, // 当前查看的页面详情
       originalContent: '', // 原始内容（用于取消编辑）
       selectedParentId: null, // 新建页面时选择的父页面ID
+      searchKeyword: '', // 搜索关键词
+      searchResults: [], // 搜索结果
+      showSearchDialog: false, // 是否显示搜索对话框
+      searching: false, // 是否正在搜索
+      searchTimer: null, // 搜索防抖定时器
+      saving: false,// 保存状态标记，防止并发保
       isCreatingFolder: false, // 防止重复创建节点
       isCreatingDoc: false, // 防止重复创建文档
       loadingDocIds: new Set(), // 正在加载的文档ID集合，避免重复加载
 
       // 版本历史相关
       showVersionHistoryDialog: false,
-      versionHistoryList: [],
-      loadingVersionHistory: false,
 
       // 版本存档位相关（3个存档位）
       archiveSlots: [], // 存储用户保存的3个版本存档
@@ -513,8 +633,19 @@ export default {
       // 版本对比相关
       showVersionCompareDialog: false,
       selectedCompareSlot: null, // 选中要对比的存档位
-      versionDiff: '',
-      loadingVersionCompare: false
+      compareVersionContent: '', // 对比版本的内容
+      currentVersionNumber: null, // 当前版本的版本号
+      versionDiff: null, // 差异数据
+      loadingVersionCompare: false,
+      isScrolling: false, // 防止滚动循环
+
+      // 查看版本内容相关
+      showVersionViewDialog: false,
+      viewingVersion: null, // 正在查看的版本号
+      viewingVersionContent: '', // 正在查看的版本内容
+      viewingVersionInfo: null, // 正在查看的版本信息
+      viewingArchiveName: null, // 正在查看的版本对应的存档名字
+      loadingVersionContent: false
     }
   },
   computed: {
@@ -662,7 +793,7 @@ export default {
       if (!contentCache) {
         contentCache = new Map()
       }
-      
+
       tree.forEach(node => {
         if (node.pageType === 'DIRECTORY') {
           // 目录节点 - 使用字符串 ID 避免精度丢失
@@ -762,7 +893,7 @@ export default {
         // 异步加载文档内容（不阻塞界面切换）
         try {
           console.log('[selectDocument] 从API加载页面详情, pageId:', pageId)
-        const response = await wikiAPI.page.getPageDetail(pageId)
+          const response = await wikiAPI.page.getPageDetail(pageId)
         
         if (response && response.code === 200) {
           // 检查是否仍然选中该文档（用户可能在加载过程中切换了其他文档）
@@ -777,7 +908,7 @@ export default {
             ...response.data,
             content: response.data.content || ''
           }
-          
+
           // 更新docs数组中的内容
           const doc = this.docs.find(d => String(d.id) === pageIdStr)
           if (doc) {
@@ -811,14 +942,41 @@ export default {
         }
       } catch (error) {
         console.error('[selectDocument] 加载页面失败:', error)
+        console.error('[selectDocument] 错误详情:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+          pageId: pageId
+        })
 
         // 检查是否是404错误（页面不存在）
         if (error.response?.status === 404 || error.message?.includes('不存在')) {
           this.$message?.error('页面不存在，可能已被删除')
           // 重新加载Wiki树以同步最新数据
           await this.loadWikiTree()
+        } else if (error.response?.status === 403) {
+          // 权限不足
+          this.$message?.error('无权访问该页面')
+        } else if (error.response?.status === 401) {
+          // 未登录或token过期
+          this.$message?.error('登录已过期，请重新登录')
+          // 可以跳转到登录页
+          // this.$router.push('/login')
         } else {
-          this.$message?.error('加载页面失败，请重试')
+          // 其他错误
+          const errorMsg = error.response?.data?.msg || error.message || '加载页面失败，请重试'
+          this.$message?.error(errorMsg)
+
+          // 降级处理：显示基本信息
+          if (existingDoc) {
+            this.currentPage = {
+              id: pageIdStr,
+              title: existingDoc.title,
+              content: '加载失败，请稍后重试',
+              pageType: 'DOCUMENT',
+              updatedAt: existingDoc.updated
+            }
+          }
         }
         } finally {
           this.loadingDocIds.delete(pageIdStr)
@@ -962,7 +1120,7 @@ export default {
       }
 
       this.isCreatingFolder = true
-      
+
       try {
         console.log('[confirmNewFolder] 创建新节点')
         const response = await wikiAPI.page.createPage({
@@ -1092,8 +1250,8 @@ export default {
         
         if (response && response.code === 200) {
           console.log('[confirmNewDoc] 文档创建成功:', response.data)
-        this.$message?.success('文档创建成功！')
-        
+          this.$message?.success('文档创建成功！')
+
           // 保存文档标题用于后续使用
           const docTitle = this.newDocTitle.trim()
 
@@ -1119,18 +1277,18 @@ export default {
           const newPageId = String(response.data.id || response.data)
           if (newPageId && newPageId !== 'null' && newPageId !== 'undefined') {
             await this.selectDocument(newPageId)
-        
-        // 如果文档在文件夹中，确保文件夹展开
+
+            // 如果文档在文件夹中，确保文件夹展开
             if (parentId) {
               const folder = this.folders.find(f => String(f.id) === String(parentId))
-          if (folder && !folder.expanded) {
-            folder.expanded = true
+              if (folder && !folder.expanded) {
+                folder.expanded = true
               }
+            }
           }
-        }
-        
-        // 通知父组件
-        this.$emit('document-created', {
+
+          // 通知父组件
+          this.$emit('document-created', {
             id: newPageId,
             title: docTitle
           })
@@ -1181,6 +1339,18 @@ export default {
         return
       }
 
+      // 防止并发保存
+      if (this.saving) {
+        console.warn('[saveDocument] 正在保存中，跳过本次保存')
+        return
+      }
+
+      // 清除自动保存定时器，避免冲突
+      if (this.autoSaveTimer) {
+        clearTimeout(this.autoSaveTimer)
+        this.autoSaveTimer = null
+      }
+
       // 防止重复保存 - 如果正在保存中，直接返回
       if (this.isSaving) {
         console.log('[saveDocument] 正在保存中，跳过重复请求')
@@ -1190,6 +1360,7 @@ export default {
       this.isSaving = true
 
       try {
+        this.saving = true
         console.log('[saveDocument] 保存文档到后端, ID:', this.activeId)
         
         // 调用后端API更新文档内容
@@ -1202,17 +1373,17 @@ export default {
           // 更新本地文档内容
         this.activeDoc.content = this.activeDocContent
         this.activeDoc.updated = new Date().toLocaleString('zh-CN')
-        this.originalContent = this.activeDocContent
-        
+          this.originalContent = this.activeDocContent
+
         // 标记已保存并退出编辑模式
         this.hasUnsavedChanges = false
         this.isEditing = false
-        
+
           console.log('[saveDocument] 文档保存成功')
-        this.$message?.success('文档保存成功！')
-        
-        // 通知父组件
-        this.$emit('document-saved', this.activeDoc)
+          this.$message?.success('文档保存成功！')
+
+          // 通知父组件
+          this.$emit('document-saved', this.activeDoc)
         } else {
           console.error('[saveDocument] 保存失败:', response)
           this.$message?.error(response.msg || '保存文档失败')
@@ -1233,24 +1404,24 @@ export default {
 
       this.isSaving = true
 
-        try {
-          console.log('[autoSave] 自动保存文档')
-          const response = await wikiAPI.page.updatePage(this.activeId, {
-            content: this.activeDocContent,
-            changeDescription: '自动保存'
-          })
-          
-          if (response && response.code === 200) {
-            this.activeDoc.updated = new Date().toLocaleString('zh-CN')
-            this.originalContent = this.activeDocContent
-            this.hasUnsavedChanges = false
-            console.log('[autoSave] 文档已自动保存')
-            
-            // 通知父组件
-            this.$emit('document-auto-saved', this.activeDoc)
-          }
-        } catch (error) {
-          console.error('[autoSave] 自动保存失败:', error)
+      try {
+        console.log('[autoSave] 自动保存文档')
+        const response = await wikiAPI.page.updatePage(this.activeId, {
+          content: this.activeDocContent,
+          changeDescription: '自动保存'
+        })
+
+        if (response && response.code === 200) {
+        this.activeDoc.updated = new Date().toLocaleString('zh-CN')
+          this.originalContent = this.activeDocContent
+        this.hasUnsavedChanges = false
+          console.log('[autoSave] 文档已自动保存')
+
+          // 通知父组件
+        this.$emit('document-auto-saved', this.activeDoc)
+        }
+      } catch (error) {
+        console.error('[autoSave] 自动保存失败:', error)
       } finally {
         this.isSaving = false
       }
@@ -1363,36 +1534,17 @@ export default {
     /**
      * 显示版本历史
      */
-    async showVersionHistory() {
+    showVersionHistory() {
       if (!this.activeId) {
         this.$message?.warning('请先选择一个文档')
         return
       }
 
       this.showVersionHistoryDialog = true
-      this.loadingVersionHistory = true
-      this.versionHistoryList = []
+      this.loadingVersionHistory = false
 
       // 加载存档位数据
       this.loadArchiveSlotsFromStorage()
-
-      try {
-        console.log('[showVersionHistory] 加载版本历史, pageId:', this.activeId)
-        const response = await wikiAPI.version.getVersionHistory(this.activeId)
-
-        if (response && response.code === 200) {
-          this.versionHistoryList = response.data || []
-          console.log('[showVersionHistory] 版本历史加载成功, 共', this.versionHistoryList.length, '个版本')
-        } else {
-          console.error('[showVersionHistory] 加载失败:', response)
-          this.$message?.error(response.msg || '加载版本历史失败')
-        }
-      } catch (error) {
-        console.error('[showVersionHistory] 加载版本历史失败:', error)
-        this.$message?.error('加载版本历史失败：' + (error.message || '请重试'))
-      } finally {
-        this.loadingVersionHistory = false
-      }
     },
 
     /**
@@ -1400,14 +1552,27 @@ export default {
      */
     closeVersionHistoryDialog() {
       this.showVersionHistoryDialog = false
-      this.versionHistoryList = []
     },
 
     /**
-     * 查看指定版本的内容
+     * 查看指定版本的内容（在新弹窗中显示）
      */
     async viewVersionContent(version) {
       if (!this.activeId) return
+
+      // 关闭版本历史对话框（如果打开的话）
+      this.closeVersionHistoryDialog()
+
+      // 查找对应的存档位，获取存档名字
+      const archiveSlot = this.archiveSlots.find(slot => slot.version === version)
+      this.viewingArchiveName = archiveSlot ? archiveSlot.customName : null
+
+      // 打开查看版本弹窗
+      this.showVersionViewDialog = true
+      this.viewingVersion = version
+      this.viewingVersionContent = ''
+      this.viewingVersionInfo = null
+      this.loadingVersionContent = true
 
       try {
         console.log('[viewVersionContent] 查看版本内容, pageId:', this.activeId, 'version:', version)
@@ -1415,24 +1580,44 @@ export default {
 
         if (response && response.code === 200) {
           const content = response.data || ''
-          this.$message?.success(`正在查看版本 ${version}`)
+          this.viewingVersionContent = content
 
-          // 临时显示该版本内容（不保存，只是预览）
-          if (this.activeDoc) {
-            this.activeDoc.content = content
-            this.isEditing = false // 切换到只读模式
+          // 尝试获取版本信息（如果有的话）
+          try {
+            const versionHistoryResponse = await wikiAPI.version.getVersionHistory(this.activeId)
+            if (versionHistoryResponse && versionHistoryResponse.code === 200) {
+              const versionInfo = versionHistoryResponse.data.find(v => v.version === version)
+              if (versionInfo) {
+                this.viewingVersionInfo = versionInfo
+              }
+            }
+          } catch (e) {
+            console.warn('[viewVersionContent] 获取版本信息失败:', e)
           }
-
-          // 关闭版本历史对话框
-          this.closeVersionHistoryDialog()
         } else {
           console.error('[viewVersionContent] 加载失败:', response)
           this.$message?.error(response.msg || '加载版本内容失败')
+          this.closeVersionViewDialog()
         }
       } catch (error) {
         console.error('[viewVersionContent] 加载版本内容失败:', error)
         this.$message?.error('加载版本内容失败：' + (error.message || '请重试'))
+        this.closeVersionViewDialog()
+      } finally {
+        this.loadingVersionContent = false
       }
+    },
+
+    /**
+     * 关闭版本查看对话框
+     */
+    closeVersionViewDialog() {
+      this.showVersionViewDialog = false
+      this.viewingVersion = null
+      this.viewingVersionContent = ''
+      this.viewingVersionInfo = null
+      this.viewingArchiveName = null
+      this.loadingVersionContent = false
     },
 
     /**
@@ -1479,6 +1664,43 @@ export default {
     },
 
     /**
+     * 从查看版本对话框恢复到该版本
+     */
+    async restoreFromViewDialog() {
+      if (!this.viewingVersion || !this.activeId) return
+
+      if (!confirm(`确定要恢复到版本 ${this.viewingVersion} 吗？这将创建一个新版本。`)) {
+        return
+      }
+
+      try {
+        // 使用正在查看的内容更新页面
+        const updateResponse = await wikiAPI.page.updatePage(this.activeId, {
+          content: this.viewingVersionContent,
+          changeDescription: `恢复到版本 ${this.viewingVersion}`
+        })
+
+        if (updateResponse && updateResponse.code === 200) {
+          this.$message?.success('已恢复到指定版本')
+
+          // 关闭查看版本对话框
+          this.closeVersionViewDialog()
+
+          // 重新加载文档内容
+          await this.selectDocument(this.activeId)
+
+          // 关闭版本历史对话框（如果打开的话）
+          this.closeVersionHistoryDialog()
+        } else {
+          this.$message?.error(updateResponse.msg || '恢复版本失败')
+        }
+      } catch (error) {
+        console.error('[restoreFromViewDialog] 恢复版本失败:', error)
+        this.$message?.error('恢复版本失败：' + (error.message || '请重试'))
+      }
+    },
+
+    /**
      * 显示版本对比对话框
      */
     async showVersionCompare() {
@@ -1498,7 +1720,7 @@ export default {
 
       this.showVersionCompareDialog = true
       this.selectedCompareSlot = null
-      this.versionDiff = ''
+      this.compareVersionContent = ''
     },
 
     /**
@@ -1507,7 +1729,7 @@ export default {
     closeVersionCompareDialog() {
       this.showVersionCompareDialog = false
       this.selectedCompareSlot = null
-      this.versionDiff = ''
+      this.compareVersionContent = ''
     },
 
     /**
@@ -1558,29 +1780,6 @@ export default {
       this.showSaveSlotDialog = true
     },
 
-    /**
-     * 显示保存指定版本到存档位的对话框
-     */
-    showSaveVersionToSlotDialog(version) {
-      // 找到第一个空的存档位，如果都满了则默认选择存档位1
-      let foundEmpty = false
-      for (let i = 1; i <= 3; i++) {
-        if (!this.getArchiveSlot(i)) {
-          this.selectedSlotNumber = i
-          foundEmpty = true
-          break
-        }
-      }
-
-      if (!foundEmpty) {
-        // 所有存档位都满了，默认选择存档位1让用户选择覆盖
-        this.selectedSlotNumber = 1
-      }
-
-      this.archiveCustomName = ''
-      this.versionToArchive = version
-      this.showSaveSlotDialog = true
-    },
 
     /**
      * 关闭保存到存档位对话框
@@ -1599,18 +1798,36 @@ export default {
       if (!this.selectedSlotNumber) return
 
       try {
+        // 获取当前文档的最新版本信息
         let versionData
-
         if (this.versionToArchive) {
-          // 保存指定版本
+          // 保存指定版本（从存档位传入）
           versionData = this.versionToArchive
         } else {
-          // 保存当前最新版本
-          if (this.versionHistoryList.length === 0) {
-            this.$message?.warning('暂无版本可保存')
-            return
+          // 保存当前最新版本，需要先获取版本历史
+          try {
+            const response = await wikiAPI.version.getVersionHistory(this.activeId)
+            if (response && response.code === 200 && response.data && response.data.length > 0) {
+              versionData = response.data[0] // 第一个就是最新版本
+            } else {
+              // 如果没有版本历史，创建一个临时版本数据
+              versionData = {
+                version: 1,
+                creatorName: '当前用户',
+                createdAt: new Date().toISOString(),
+                changeDescription: '当前版本'
+              }
+            }
+          } catch (error) {
+            console.error('[confirmSaveToSlot] 获取版本历史失败:', error)
+            // 如果获取失败，创建临时版本数据
+            versionData = {
+              version: 1,
+              creatorName: '当前用户',
+              createdAt: new Date().toISOString(),
+              changeDescription: '当前版本'
+            }
           }
-          versionData = this.versionHistoryList[0] // 第一个就是最新版本
         }
 
         // 创建存档数据
@@ -1674,64 +1891,404 @@ export default {
         const storageKey = this.activeId ? `wikiArchiveSlots_${this.activeId}` : 'wikiArchiveSlots'
         const saved = localStorage.getItem(storageKey)
         if (saved) {
-          this.archiveSlots = JSON.parse(saved)
+          const loaded = JSON.parse(saved)
+          // 只保留slotNumber为1、2、3的存档位，过滤掉脏数据
+          this.archiveSlots = Array.isArray(loaded)
+            ? loaded.filter(slot => slot.slotNumber >= 1 && slot.slotNumber <= 3)
+            : []
+          // 如果过滤后数据有变化，保存回去
+          if (loaded.length !== this.archiveSlots.length) {
+            this.saveArchiveSlotsToStorage()
+          }
+        } else {
+          this.archiveSlots = []
         }
       } catch (error) {
         console.error('[loadArchiveSlotsFromStorage] 加载失败:', error)
+        this.archiveSlots = []
       }
     },
 
     /**
      * 选择要对比的存档位
      */
-    selectCompareSlot(slotNumber) {
+    async selectCompareSlot(slotNumber) {
       this.selectedCompareSlot = slotNumber
-    },
+      this.compareVersionContent = ''
+      this.versionDiff = null
+      this.currentVersionNumber = null
 
-    /**
-     * 对比存档位
-     */
-    async compareArchiveSlots() {
-      if (!this.selectedCompareSlot) {
-        this.$message?.warning('请选择一个存档位')
-        return
-      }
-
-      if (this.archiveSlots.length < 2) {
-        this.$message?.warning('需要至少2个存档位才能对比')
-        return
-      }
-
-      // 找到选中的存档位和第一个非选中的存档位进行对比
-      const selectedSlot = this.getArchiveSlot(this.selectedCompareSlot)
-      const otherSlot = this.archiveSlots.find(slot => slot.slotNumber !== this.selectedCompareSlot)
-
-      if (!otherSlot) {
-        this.$message?.warning('没有其他存档位可供对比')
-        return
-      }
+      // 自动加载选中版本的内容
+      const selectedSlot = this.getArchiveSlot(slotNumber)
+      if (!selectedSlot || !this.activeId) return
 
       this.loadingVersionCompare = true
 
       try {
-        const response = await wikiAPI.version.compareVersions(
-          this.activeId,
-          selectedSlot.version,
-          otherSlot.version
-        )
+        // 获取当前版本的版本号
+        try {
+          const versionHistoryResponse = await wikiAPI.version.getVersionHistory(this.activeId)
+          if (versionHistoryResponse && versionHistoryResponse.code === 200 && versionHistoryResponse.data && versionHistoryResponse.data.length > 0) {
+            this.currentVersionNumber = versionHistoryResponse.data[0].version // 第一个是最新版本
+          }
+        } catch (e) {
+          console.warn('[selectCompareSlot] 获取当前版本号失败:', e)
+        }
 
-        if (response && response.code === 200) {
-          this.versionDiff = response.data || '两个版本内容相同'
-          this.$message?.success(`对比完成：存档${selectedSlot.slotNumber} vs 存档${otherSlot.slotNumber}`)
+        // 并行加载版本内容和差异数据
+        const [contentResponse, diffResponse] = await Promise.allSettled([
+          wikiAPI.version.getVersionContent(this.activeId, selectedSlot.version),
+          this.currentVersionNumber ? wikiAPI.version.compareVersions(this.activeId, this.currentVersionNumber, selectedSlot.version) : Promise.resolve(null)
+        ])
+
+        if (contentResponse.status === 'fulfilled' && contentResponse.value && contentResponse.value.code === 200) {
+          this.compareVersionContent = contentResponse.value.data || ''
         } else {
-          this.$message?.error(response.msg || '版本对比失败')
+          this.$message?.error(contentResponse.value?.msg || '加载版本内容失败')
+        }
+
+        if (diffResponse.status === 'fulfilled' && diffResponse.value && diffResponse.value.code === 200) {
+          this.versionDiff = diffResponse.value.data
+          console.log('[selectCompareSlot] 差异数据:', this.versionDiff)
+        } else {
+          console.warn('[selectCompareSlot] 获取差异数据失败:', diffResponse)
         }
       } catch (error) {
-        console.error('[compareArchiveSlots] 对比失败:', error)
-        this.$message?.error('版本对比失败')
+        console.error('[selectCompareSlot] 加载失败:', error)
+        this.$message?.error('加载版本内容失败：' + (error.message || '请重试'))
       } finally {
         this.loadingVersionCompare = false
       }
+    },
+
+    /**
+     * 同步左右滚动
+     */
+    syncScroll(source, event) {
+      if (this.isScrolling) return
+
+      this.isScrolling = true
+
+      const sourcePanel = source === 'left' ? this.$refs.leftScrollPanel : this.$refs.rightScrollPanel
+      const targetPanel = source === 'left' ? this.$refs.rightScrollPanel : this.$refs.leftScrollPanel
+
+      if (sourcePanel && targetPanel) {
+        const scrollTop = sourcePanel.scrollTop
+        const scrollHeight = sourcePanel.scrollHeight
+        const clientHeight = sourcePanel.clientHeight
+        const maxScroll = scrollHeight - clientHeight
+
+        // 计算滚动比例
+        const scrollRatio = maxScroll > 0 ? scrollTop / maxScroll : 0
+
+        // 同步到另一个面板
+        const targetScrollHeight = targetPanel.scrollHeight
+        const targetClientHeight = targetPanel.clientHeight
+        const targetMaxScroll = targetScrollHeight - targetClientHeight
+
+        if (targetMaxScroll > 0) {
+          targetPanel.scrollTop = scrollRatio * targetMaxScroll
+        }
+      }
+
+      // 使用 nextTick 确保滚动完成后再允许下一次同步
+      this.$nextTick(() => {
+        this.isScrolling = false
+      })
+    },
+
+    /**
+     * 格式化差异内容显示
+     */
+    formatDiffContent(content, diffData, side) {
+      console.log('[formatDiffContent] side:', side, 'content length:', content?.length, 'activeDocContent length:', this.activeDocContent?.length, 'compareVersionContent length:', this.compareVersionContent?.length)
+
+      // 获取两个版本的内容用于对比
+      const leftLines = this.activeDocContent ? this.activeDocContent.split('\n') : []
+      const rightLines = this.compareVersionContent ? this.compareVersionContent.split('\n') : []
+      const lines = content ? content.split('\n') : []
+
+      console.log('[formatDiffContent] leftLines:', leftLines.length, 'rightLines:', rightLines.length, 'current lines:', lines.length)
+
+      let diffMap = {}
+
+      // 解析差异数据
+      if (diffData) {
+        // 如果是字符串格式的unified diff
+        if (typeof diffData === 'string' && diffData.trim()) {
+          const diffLines = diffData.split('\n')
+          diffMap = this.parseDiff(diffLines, side)
+          console.log('[formatDiffContent] parsed diffMap (string):', diffMap)
+        }
+        // 如果是对象格式
+        else if (typeof diffData === 'object') {
+          // 如果包含lines数组
+          if (Array.isArray(diffData.lines)) {
+            diffData.lines.forEach((diffLine, index) => {
+              if (diffLine && diffLine.type) {
+                diffMap[index] = diffLine.type
+              }
+            })
+            console.log('[formatDiffContent] parsed diffMap (lines array):', diffMap)
+          }
+          // 如果包含diff字符串
+          else if (diffData.diff && typeof diffData.diff === 'string') {
+            const diffLines = diffData.diff.split('\n')
+            diffMap = this.parseDiff(diffLines, side)
+            console.log('[formatDiffContent] parsed diffMap (diff string):', diffMap)
+          }
+        }
+      }
+
+      // 始终使用内容对比生成差异（不依赖后端差异数据）
+      // 强制重新计算，确保对比当前显示的内容和存档内容
+      if (leftLines.length > 0 || rightLines.length > 0) {
+        // 总是使用内容对比生成差异，确保准确性
+        diffMap = this.simpleLineDiff(leftLines, rightLines, side)
+        console.log('[formatDiffContent] generated diffMap (simple diff):', Object.keys(diffMap).length, 'entries')
+
+        // 统计差异数量并显示前几个差异行的索引
+        const added = Object.entries(diffMap).filter(([idx, v]) => v === 'added').map(([idx]) => parseInt(idx))
+        const removed = Object.entries(diffMap).filter(([idx, v]) => v === 'removed').map(([idx]) => parseInt(idx))
+        const unchanged = Object.values(diffMap).filter(v => v === 'unchanged').length
+        console.log('[formatDiffContent] diff stats - added:', added.length, 'lines:', added.slice(0, 10), 'removed:', removed.length, 'lines:', removed.slice(0, 10), 'unchanged:', unchanged)
+      }
+
+      // 将内容按行分割并添加高亮（使用内联样式确保生效）
+      const linesWithDiff = lines.map((line, index) => {
+        let diffType = diffMap[index]
+        const escapedLine = this.escapeHtml(line || '')
+        const isEmpty = !line || line.trim() === ''
+
+        // 强制：空行始终标记为unchanged，不显示高亮
+        if (isEmpty) {
+          diffType = 'unchanged'
+        }
+
+        // 如果没有diffType，默认为unchanged
+        if (!diffType) {
+          diffType = 'unchanged'
+        }
+
+        // 使用内联样式确保高亮显示
+        // 左边（当前版本）：added = 当前版本新增的（绿色）
+        // 右边（存档版本）：removed = 当前版本删除的（红色）
+        if (diffType === 'added' && side === 'left' && !isEmpty) {
+          return `<div class="diff-line diff-added" data-line="${index}" data-type="added" style="background-color: #d1fae5; border-left: 5px solid #10b981; padding: 4px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 22px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.8;">${escapedLine || '\u00A0'}</div>`
+        } else if (diffType === 'removed' && side === 'right' && !isEmpty) {
+          return `<div class="diff-line diff-removed" data-line="${index}" data-type="removed" style="background-color: #fee2e2; border-left: 5px solid #ef4444; padding: 4px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 22px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.8;">${escapedLine || '\u00A0'}</div>`
+        } else {
+          // 其他情况（包括空行和unchanged）都显示为白色背景，无高亮
+          return `<div class="diff-line diff-unchanged" data-line="${index}" data-type="unchanged" style="background-color: #ffffff; border-left: 5px solid transparent; padding: 4px 12px; margin: 0; white-space: pre-wrap; word-break: break-word; display: block; min-height: 22px; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 13px; line-height: 1.8;">${escapedLine || '\u00A0'}</div>`
+        }
+      })
+
+      // 统计实际生成的差异行
+      const addedLines = linesWithDiff.filter((line, idx) => diffMap[idx] === 'added' && side === 'left').length
+      const removedLines = linesWithDiff.filter((line, idx) => diffMap[idx] === 'removed' && side === 'right').length
+      console.log('[formatDiffContent] generated HTML with', linesWithDiff.length, 'lines, added:', addedLines, 'removed:', removedLines)
+
+      return linesWithDiff.join('')
+    },
+
+    /**
+     * 简单的行级别差异对比（使用LCS算法思路，忽略空行位置差异）
+     */
+    simpleLineDiff(leftLines, rightLines, side) {
+      const diffMap = {}
+
+      // 过滤掉空行，只对比有内容的行
+      const leftNonEmpty = leftLines.map((line, idx) => ({ line: line.trim(), originalIdx: idx })).filter(item => item.line !== '')
+      const rightNonEmpty = rightLines.map((line, idx) => ({ line: line.trim(), originalIdx: idx })).filter(item => item.line !== '')
+
+      const leftLength = leftNonEmpty.length
+      const rightLength = rightNonEmpty.length
+
+      // 创建匹配矩阵（只匹配非空行）
+      const dp = []
+      for (let i = 0; i <= leftLength; i++) {
+        dp[i] = []
+        for (let j = 0; j <= rightLength; j++) {
+          if (i === 0 || j === 0) {
+            dp[i][j] = 0
+          } else if (leftNonEmpty[i - 1].line === rightNonEmpty[j - 1].line) {
+            dp[i][j] = dp[i - 1][j - 1] + 1
+          } else {
+            dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+          }
+        }
+      }
+
+      // 回溯找出匹配的非空行
+      const matched = new Set()
+      let i = leftLength
+      let j = rightLength
+      while (i > 0 && j > 0) {
+        if (leftNonEmpty[i - 1].line === rightNonEmpty[j - 1].line) {
+          matched.add(`${leftNonEmpty[i - 1].originalIdx}-${rightNonEmpty[j - 1].originalIdx}`)
+          i--
+          j--
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+          i--
+        } else {
+          j--
+        }
+      }
+
+      // 标记差异（只标记非空行的差异，空行都标记为unchanged）
+      // 左边（当前版本）：如果当前版本有但存档版本没有，标记为 'added'（绿色，表示新增）
+      // 右边（存档版本）：如果存档版本有但当前版本没有，标记为 'removed'（红色，表示删除）
+      if (side === 'left') {
+        for (let idx = 0; idx < leftLines.length; idx++) {
+          const line = leftLines[idx]
+          const isEmpty = !line || line.trim() === ''
+
+          // 空行都标记为unchanged
+          if (isEmpty) {
+            diffMap[idx] = 'unchanged'
+            continue
+          }
+
+          // 检查非空行是否在右侧有匹配
+          let found = false
+          for (let jdx = 0; jdx < rightLines.length; jdx++) {
+            if (matched.has(`${idx}-${jdx}`)) {
+              diffMap[idx] = 'unchanged'
+              found = true
+              break
+            }
+          }
+          // 当前版本有但存档版本没有 = 新增（绿色）
+          if (!found) {
+            diffMap[idx] = 'added'
+          }
+        }
+      } else {
+        for (let idx = 0; idx < rightLines.length; idx++) {
+          const line = rightLines[idx]
+          const isEmpty = !line || line.trim() === ''
+
+          // 空行都标记为unchanged
+          if (isEmpty) {
+            diffMap[idx] = 'unchanged'
+            continue
+          }
+
+          // 检查非空行是否在左侧有匹配
+          let found = false
+          for (let jdx = 0; jdx < leftLines.length; jdx++) {
+            if (matched.has(`${jdx}-${idx}`)) {
+              diffMap[idx] = 'unchanged'
+              found = true
+              break
+            }
+          }
+          // 存档版本有但当前版本没有 = 删除（红色）
+          if (!found) {
+            diffMap[idx] = 'removed'
+          }
+        }
+      }
+
+      // 验证：检查是否有实际差异
+      const addedCount = Object.values(diffMap).filter(v => v === 'added').length
+      const removedCount = Object.values(diffMap).filter(v => v === 'removed').length
+      console.log('[simpleLineDiff] side:', side, 'leftLines:', leftLines.length, 'rightLines:', rightLines.length, 'leftNonEmpty:', leftLength, 'rightNonEmpty:', rightLength, 'matched pairs:', matched.size, 'added:', addedCount, 'removed:', removedCount)
+
+      return diffMap
+    },
+
+    /**
+     * 解析unified diff格式
+     */
+    parseDiff(diffLines, side) {
+      const diffMap = {}
+      let leftLineIndex = -1
+      let rightLineIndex = -1
+
+      for (let i = 0; i < diffLines.length; i++) {
+        const line = diffLines[i]
+
+        // 跳过文件头信息
+        if (line.startsWith('---') || line.startsWith('+++')) {
+          continue
+        }
+
+        // 匹配 @@ 开头的行号信息行
+        if (line.startsWith('@@')) {
+          const match = line.match(/@@ -(\d+),?(\d*) \+(\d+),?(\d*) @@/)
+          if (match) {
+            leftLineIndex = parseInt(match[1]) - 1
+            rightLineIndex = parseInt(match[3]) - 1
+          }
+          continue
+        }
+
+        // 处理差异行
+        // unified diff 格式：- 表示左侧（原始版本/旧版本），+ 表示右侧（新版本）
+        // 我们的场景：左边面板=当前版本（新），右边面板=存档版本（旧）
+        // 在 unified diff 中：leftLineIndex 对应旧版本，rightLineIndex 对应新版本
+        // 所以：+ 行（新版本）应该在左边面板显示为 added（绿色），- 行（旧版本）应该在右边面板显示为 removed（红色）
+        if (line.startsWith('+') && !line.startsWith('+++')) {
+          // + 表示新版本新增的行（相对于旧版本）
+          const content = line.substring(1)
+          const isEmpty = !content || content.trim() === ''
+
+          // 空行标记为unchanged，不标记为added
+          if (isEmpty) {
+            if (side === 'left') {
+              diffMap[rightLineIndex] = 'unchanged'
+            }
+          } else {
+            // + 行在左边面板（当前版本，新版本）显示为 added（绿色）
+            // rightLineIndex 对应新版本的行号
+            if (side === 'left') {
+              diffMap[rightLineIndex] = 'added'
+            }
+          }
+          rightLineIndex++
+        } else if (line.startsWith('-') && !line.startsWith('---')) {
+          // - 表示旧版本删除的行（相对于新版本，即新版本没有的）
+          const content = line.substring(1)
+          const isEmpty = !content || content.trim() === ''
+
+          // 空行标记为unchanged，不标记为removed
+          if (isEmpty) {
+            if (side === 'right') {
+              diffMap[leftLineIndex] = 'unchanged'
+            }
+          } else {
+            // - 行在右边面板（存档版本，旧版本）显示为 removed（红色）
+            // leftLineIndex 对应旧版本的行号
+            if (side === 'right') {
+              diffMap[leftLineIndex] = 'removed'
+            }
+          }
+          leftLineIndex++
+        } else if (line.startsWith(' ') || line === '') {
+          // 未变化的行（包括空行）
+          // 两边都有这一行，所以两边都标记为unchanged
+          if (side === 'left') {
+            diffMap[rightLineIndex] = 'unchanged'
+          } else {
+            diffMap[leftLineIndex] = 'unchanged'
+          }
+          leftLineIndex++
+          rightLineIndex++
+        }
+      }
+
+      console.log('[parseDiff] side:', side, 'diffMap:', diffMap)
+      return diffMap
+    },
+
+    /**
+     * HTML转义
+     */
+    escapeHtml(text) {
+      const div = document.createElement('div')
+      div.textContent = text
+      return div.innerHTML
     },
 
     /**
@@ -1756,10 +2313,296 @@ export default {
       this.deleting = false
     },
 
-    /**
-     * 执行删除节点操作
-     */
-    async executeDeleteNode() {
+     /**
+      * 打开搜索对话框
+      */
+     openSearchDialog() {
+       this.showSearchDialog = true
+       this.searchKeyword = ''
+       this.searchResults = []
+       this.searching = false
+
+       // 等待DOM更新后聚焦输入框
+       this.$nextTick(() => {
+         if (this.$refs.searchInput) {
+           this.$refs.searchInput.focus()
+         }
+       })
+     },
+
+     /**
+      * 关闭搜索对话框
+      */
+     closeSearchDialog() {
+       this.showSearchDialog = false
+       this.searchKeyword = ''
+       this.searchResults = []
+       this.searching = false
+
+       if (this.searchTimer) {
+         clearTimeout(this.searchTimer)
+         this.searchTimer = null
+       }
+     },
+
+     /**
+      * 选择搜索结果并关闭对话框
+      */
+     async selectSearchResultAndClose(result) {
+       await this.selectSearchResult(result)
+       this.closeSearchDialog()
+     },
+
+     /**
+      * 处理搜索输入（防抖）
+      */
+     handleSearchInput() {
+       // 清除之前的定时器
+       if (this.searchTimer) {
+         clearTimeout(this.searchTimer)
+       }
+
+       // 如果搜索关键词为空，清空搜索结果
+       if (!this.searchKeyword.trim()) {
+         this.clearSearch()
+         return
+       }
+
+       // 设置新的定时器（500ms后自动搜索）
+       this.searchTimer = setTimeout(() => {
+         this.performSearch()
+       }, 500)
+     },
+
+     /**
+      * 执行搜索（混合搜索：MongoDB全文搜索 + 本地模糊匹配）
+      */
+     async performSearch() {
+       const keyword = this.searchKeyword.trim()
+       if (!keyword) {
+         this.clearSearch()
+         return
+       }
+
+      if (!this.projectId) {
+        console.error('[performSearch] ❌ 项目ID为空')
+        this.$message?.error('项目ID为空，无法搜索')
+        return
+      }
+
+      this.searching = true
+
+      try {
+         console.group('🔍 混合搜索 (MongoDB + 本地模糊匹配)')
+         console.log('📝 搜索关键词:', keyword)
+         console.log('🏷️ 项目ID:', this.projectId)
+         console.log('⏰ 搜索时间:', new Date().toLocaleString())
+
+         let mongoResults = []
+         let localResults = []
+
+         // ========== 第一步：MongoDB全文搜索 ==========
+         try {
+           // 检查 wikiAPI 是否存在
+           if (!wikiAPI || !wikiAPI.search || !wikiAPI.search.simpleSearch) {
+             console.warn('⚠️ wikiAPI.search.simpleSearch 未定义，跳过MongoDB搜索')
+           } else {
+             console.log('📡 正在调用MongoDB全文搜索...')
+
+             const startTime = Date.now()
+             const response = await wikiAPI.search.simpleSearch(this.projectId, keyword, 20)
+             const elapsed = Date.now() - startTime
+
+             console.log(`⏱️ MongoDB搜索耗时: ${elapsed}ms`)
+             console.log('📦 MongoDB响应:', response)
+
+             if (response && response.code === 200) {
+               mongoResults = response.data || []
+               console.log(`✅ MongoDB搜索成功！找到 ${mongoResults.length} 个结果`)
+             } else {
+               console.warn('⚠️ MongoDB搜索失败:', response?.msg)
+             }
+           }
+         } catch (mongoError) {
+           console.warn('⚠️ MongoDB搜索异常:', mongoError.message)
+           console.log('💡 将使用本地搜索作为备用方案')
+         }
+
+         // ========== 第二步：本地模糊搜索（作为增强或备用） ==========
+         console.log('🔍 执行本地模糊搜索...')
+         const localSearchModule = await import('@/utils/localSearch.js')
+         const { localFuzzySearch, mergeSearchResults } = localSearchModule.default || localSearchModule
+
+         const localStartTime = Date.now()
+         localResults = localFuzzySearch(this.folders, keyword, 10)
+         const localElapsed = Date.now() - localStartTime
+
+         console.log(`⏱️ 本地搜索耗时: ${localElapsed}ms`)
+         console.log(`📊 本地搜索找到 ${localResults.length} 个结果`)
+
+         // ========== 第三步：合并结果 ==========
+         this.searchResults = mergeSearchResults(mongoResults, localResults, 20)
+
+         console.log(`✅ 合并完成！总共 ${this.searchResults.length} 个结果`)
+         console.log(`   - MongoDB结果: ${mongoResults.length}`)
+         console.log(`   - 本地结果: ${localResults.length}`)
+         console.log(`   - 去重后: ${this.searchResults.length}`)
+
+         if (this.searchResults.length > 0) {
+           console.table(this.searchResults.map((r, index) => ({
+             序号: index + 1,
+             来源: r.source === 'mongodb' ? '🗄️ MongoDB' : '💻 本地',
+             ID: r.wikiPageId,
+             标题: r.title,
+             路径: r.path || '无',
+             评分: r.score?.toFixed(2) || '无'
+           })))
+
+           // 检查第一个结果的完整数据
+           console.log('📄 第一个结果详情:', this.searchResults[0])
+
+           // 提示用户搜索结果的来源
+           const mongoCount = this.searchResults.filter(r => r.source === 'mongodb').length
+           const localCount = this.searchResults.filter(r => r.source === 'local').length
+
+           if (localCount > 0 && mongoCount === 0) {
+             console.info('💡 提示：当前结果全部来自本地模糊匹配')
+           } else if (localCount > 0) {
+             console.info(`💡 提示：结果包含 ${mongoCount} 个MongoDB匹配 + ${localCount} 个本地匹配`)
+           }
+         } else {
+           console.warn('⚠️ 未找到匹配的文档')
+           console.log('💡 提示：')
+           console.log('  1. 检查项目中是否有Wiki文档')
+           console.log('  2. 确认MongoDB中wiki_contents集合有数据')
+           console.log('  3. 尝试使用不同的关键词')
+           console.log('  4. 检查文档标题中是否包含搜索词')
+         }
+       } catch (error) {
+         console.error('❌ 搜索异常')
+         console.error('错误类型:', error.name)
+         console.error('错误信息:', error.message)
+         console.error('完整堆栈:', error)
+
+         if (error.response) {
+           console.error('HTTP状态:', error.response.status)
+           console.error('响应数据:', error.response.data)
+         }
+
+         let errorMsg = '搜索失败，请重试'
+         if (error.message) {
+           errorMsg = error.message
+         } else if (error.response?.data?.msg) {
+           errorMsg = error.response.data.msg
+         }
+
+         this.$message?.error(errorMsg)
+         this.searchResults = []
+       } finally {
+         this.searching = false
+         console.groupEnd()
+       }
+     },
+
+     /**
+      * 清空搜索
+      */
+     clearSearch() {
+       this.searchKeyword = ''
+       this.searchResults = []
+       this.searching = false
+
+       // 清除定时器
+       if (this.searchTimer) {
+         clearTimeout(this.searchTimer)
+         this.searchTimer = null
+       }
+     },
+
+     /**
+      * 选择搜索结果
+      */
+     async selectSearchResult(result) {
+       console.log('[selectSearchResult] 选择搜索结果:', result)
+
+       // 使用 wikiPageId 或 id（兼容不同的返回格式）
+       const pageId = result.wikiPageId || result.id
+
+       if (!pageId) {
+         console.error('[selectSearchResult] 页面ID为空')
+         this.$message?.error('无法打开该页面：ID不存在')
+         return
+       }
+
+       // 如果是目录，展开目录
+       if (result.pageType === 'DIRECTORY') {
+         const folder = this.folders.find(f => String(f.id) === String(pageId))
+         if (folder) {
+           folder.expanded = true
+         }
+         this.$message?.info('这是一个目录节点')
+       } else {
+         // 如果是文档，加载文档内容
+         await this.selectDocument(pageId)
+
+         // 确保文档所在的文件夹展开
+         if (result.parentId) {
+           const folder = this.folders.find(f => String(f.id) === String(result.parentId))
+           if (folder && !folder.expanded) {
+             folder.expanded = true
+           }
+         }
+       }
+
+       // 关闭搜索结果（可选，根据需求决定）
+       // this.clearSearch()
+     },
+
+     /**
+      * 高亮搜索关键词
+      */
+     highlightKeyword(text) {
+       if (!text || !this.searchKeyword.trim()) {
+         return text || ''
+       }
+
+       const keyword = this.searchKeyword.trim()
+       // 转义特殊字符
+       const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+       const regex = new RegExp(`(${escapedKeyword})`, 'gi')
+
+       return text.replace(regex, '<mark class="search-highlight">$1</mark>')
+     },
+
+     /**
+      * 格式化日期
+      */
+     formatDate(dateString) {
+       if (!dateString) return ''
+       try {
+         const date = new Date(dateString)
+         const now = new Date()
+         const diff = now - date
+         const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+         if (days === 0) {
+           return '今天'
+         } else if (days === 1) {
+           return '昨天'
+         } else if (days < 7) {
+           return `${days}天前`
+         } else {
+           return date.toLocaleDateString('zh-CN')
+         }
+       } catch (e) {
+         return dateString
+       }
+     },
+
+     /**
+      * 执行删除节点操作
+      */
+     async executeDeleteNode() {
       if (!this.deleteNodeId) {
         console.error('[executeDeleteNode] deleteNodeId为空')
         return
@@ -2110,20 +2953,311 @@ export default {
   gap: 10px;
   align-items: center;
 }
-.search { 
+/* ========== 搜索框 ========== */
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search {
   width: 100%;
   height: 36px; 
   border: 2px solid #e5e7eb; 
   border-radius: 10px; 
-  padding: 0 12px; 
+  padding: 0 36px 0 12px;
   font-size: 13px; 
   transition: all 0.3s ease;
   background: white;
+  cursor: pointer;
 }
-.search:focus {
+
+.search:hover {
+  border-color: #cbd5e1;
+}
+
+.search-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+/* ========== 搜索对话框 ========== */
+.search-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 2000;
+  padding-top: 100px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.search-dialog {
+  width: 600px;
+  max-width: 90vw;
+  max-height: 70vh;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 搜索对话框头部 */
+.search-dialog-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 12px;
+}
+
+.search-header-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.search-dialog-input {
+  flex: 1;
+  border: none;
   outline: none;
-  border-color: #5EB6E4;
-  box-shadow: 0 0 0 3px rgba(94, 182, 228, 0.1);
+  font-size: 16px;
+  color: #1e293b;
+}
+
+.search-dialog-input::placeholder {
+  color: #94a3b8;
+}
+
+.search-dialog-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-dialog-close:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* 搜索对话框主体 */
+.search-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+  max-height: calc(70vh - 80px);
+}
+
+/* 搜索提示 */
+.search-tips {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.tips-icon {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.search-tips p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.tips-hint {
+  font-size: 13px !important;
+  color: #94a3b8 !important;
+  margin-top: 8px !important;
+}
+
+/* 搜索加载状态 */
+.search-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+}
+
+.loading-ring {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top-color: #5EB6E4;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.search-loading-state p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* 搜索结果容器 */
+.search-results-container {
+  padding: 16px;
+}
+
+.results-count {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+  padding: 0 8px;
+}
+
+.results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 搜索结果项 */
+.result-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.result-item:hover {
+  background: #f8fafc;
+}
+
+.result-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e0f2fe;
+  border-radius: 8px;
+  color: #0284c7;
+}
+
+.result-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.result-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.result-snippet {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.result-path {
+  color: #5EB6E4;
+}
+
+.result-date {
+  color: #cbd5e1;
+}
+
+/* 无结果状态 */
+.search-no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+}
+
+.no-results-icon {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.search-no-results h3 {
+  margin: 0 0 8px 0;
+  color: #475569;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.search-no-results p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* 关键词高亮 */
+.search-highlight {
+  background: #fef08a;
+  color: #854d0e;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-weight: 600;
 }
 .group-title { 
   color: #6b7280; 
@@ -2322,9 +3456,9 @@ export default {
 }
 /* Markdown渲染视图 */
 .markdown-viewer {
-  flex: 1; 
-  border: 1px solid #e5e7eb; 
-  border-radius: 8px; 
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   padding: 16px;
   font-size: 14px;
   line-height: 1.6;
@@ -2444,7 +3578,7 @@ export default {
   margin: 16px 0;
   overflow-x: auto;
   font-family: 'Courier New', Consolas, monospace;
-  font-size: 13px; 
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -2542,7 +3676,7 @@ export default {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn.small { 
+.btn.small {
   height: 32px; 
   padding: 0 16px;
   font-size: 12px;
@@ -2715,110 +3849,209 @@ export default {
 
 /* 版本历史对话框样式 */
 .version-history-dialog {
-  max-width: 800px;
+  max-width: 850px;
   max-height: 85vh;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.version-history-dialog .dialog-header {
+  background: #ffffff;
+  color: #1e293b;
+  border-bottom: 2px solid #f1f5f9;
+  padding: 24px 28px;
+}
+
+.version-history-dialog .dialog-header h3 {
+  color: #1e293b;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.version-history-dialog .dialog-header h3::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
+}
+
+.version-history-dialog .close-btn {
+  color: #64748b;
+  opacity: 0.8;
+}
+
+.version-history-dialog .close-btn:hover {
+  opacity: 1;
+  background: #f1f5f9;
+  border-radius: 50%;
+  color: #1e293b;
+}
+
+.version-history-dialog .dialog-content {
+  padding: 28px;
+  background: #ffffff;
 }
 
 /* 存档位样式 */
 .archive-slots {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 20px;
+  margin-bottom: 0;
 }
 
 .archive-slot {
-  border: 2px solid #e5e7eb;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.archive-slot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .archive-slot:hover {
-  border-color: #5EB6E4;
-  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.2);
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.archive-slot:hover::before {
+  opacity: 1;
 }
 
 .slot-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-bottom: 1px solid #e5e7eb;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
 }
 
 .slot-number {
   font-size: 14px;
   font-weight: 600;
-  color: #1e293b;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .btn-small.danger {
-  background: #dc2626;
-  color: white;
-  border-color: #dc2626;
+  background: #ffffff;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  box-shadow: none;
+  transition: all 0.2s ease;
 }
 
 .btn-small.danger:hover {
-  background: #b91c1c;
-  border-color: #b91c1c;
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+  transform: none;
 }
 
 .slot-content {
-  padding: 16px;
+  padding: 20px;
 }
 
 .slot-content.filled {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: #ffffff;
+  gap: 20px;
 }
 
 .slot-content.empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  background: #f9fafb;
-  padding: 24px;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 32px 24px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.slot-content.empty:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
 }
 
 .empty-slot-message {
-  color: #9ca3af;
+  color: #94a3b8;
   font-size: 14px;
+  font-weight: 500;
 }
 
 .slot-info {
   flex: 1;
+  min-width: 0;
 }
 
 .slot-title {
   font-size: 15px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  word-break: break-word;
 }
 
 .slot-meta {
   display: flex;
   gap: 16px;
   font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 6px;
+  color: #64748b;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.slot-meta span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-weight: 500;
 }
 
 .slot-desc {
   font-size: 13px;
   color: #64748b;
   font-style: italic;
-  margin-top: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-left: 3px solid #cbd5e1;
+  border-radius: 4px;
 }
 
 .slot-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 /* 分隔线 */
@@ -2933,29 +4166,47 @@ export default {
 }
 
 .btn-small {
-  height: 32px;
+  height: 34px;
   padding: 0 16px;
-  border: 1px solid #e5e7eb;
-  background: white;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
   border-radius: 6px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
-  color: #374151;
+  color: #475569;
+  box-shadow: none;
 }
 
 .btn-small:hover {
-  background: #5EB6E4;
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
+  transform: none;
+}
+
+.btn-small.primary {
+  background: #1e293b;
   color: white;
-  border-color: #5EB6E4;
-  transform: translateY(-1px);
+  border-color: #1e293b;
+  box-shadow: none;
+}
+
+.btn-small.primary:hover {
+  background: #334155;
+  border-color: #334155;
+  transform: none;
 }
 
 /* 版本对比对话框样式 */
 .version-compare-dialog {
-  max-width: 900px;
+  max-width: 1400px;
+  width: 95vw;
   max-height: 90vh;
+  height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 对比存档位选择 */
@@ -2964,6 +4215,7 @@ export default {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 16px;
   margin-bottom: 20px;
+  flex-shrink: 0;
 }
 
 .compare-slot-item {
@@ -3104,6 +4356,141 @@ export default {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
+.version-compare-dialog .dialog-content {
+  padding: 20px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 版本对比显示区域 */
+.version-compare-viewer {
+  display: flex;
+  gap: 1px;
+  flex: 1;
+  min-height: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.compare-panel-left,
+.compare-panel-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #ffffff;
+}
+
+.compare-panel-header {
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.compare-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 16px;
+}
+
+.compare-panel-content .markdown-viewer {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* 差异显示样式 */
+.diff-viewer {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  background: #ffffff;
+}
+
+.diff-line {
+  padding: 4px 12px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: block;
+  min-height: 22px;
+  border-left: 5px solid transparent;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  background-color: #ffffff;
+}
+
+.diff-line.diff-added {
+  background-color: #d1fae5 !important;
+  border-left-color: #10b981 !important;
+  border-left-width: 5px !important;
+}
+
+.diff-line.diff-added:empty,
+.diff-line.diff-added:empty::before {
+  content: '\00A0';
+  display: inline-block;
+}
+
+.diff-line.diff-removed {
+  background-color: #fee2e2 !important;
+  border-left-color: #ef4444 !important;
+  border-left-width: 5px !important;
+}
+
+.diff-line.diff-removed:empty,
+.diff-line.diff-removed:empty::before {
+  content: '\00A0';
+  display: inline-block;
+}
+
+.diff-line.diff-unchanged {
+  background-color: #ffffff;
+  border-left-color: transparent;
+}
+
+/* 确保差异行样式优先级 - 使用更高优先级选择器 */
+.version-compare-viewer .compare-panel-content .diff-viewer .diff-line.diff-added,
+.version-compare-viewer .compare-panel-left .diff-viewer .diff-line.diff-added,
+.version-compare-viewer .compare-panel-right .diff-viewer .diff-line.diff-added {
+  background-color: #d1fae5 !important;
+  border-left-color: #10b981 !important;
+  border-left-width: 5px !important;
+}
+
+.version-compare-viewer .compare-panel-content .diff-viewer .diff-line.diff-removed,
+.version-compare-viewer .compare-panel-left .diff-viewer .diff-line.diff-removed,
+.version-compare-viewer .compare-panel-right .diff-viewer .diff-line.diff-removed {
+  background-color: #fee2e2 !important;
+  border-left-color: #ef4444 !important;
+  border-left-width: 5px !important;
+}
+
+/* 确保data-type属性的样式生效 */
+.diff-viewer [data-type="added"].diff-added {
+  background-color: #d1fae5 !important;
+  border-left-color: #10b981 !important;
+}
+
+.diff-viewer [data-type="removed"].diff-removed {
+  background-color: #fee2e2 !important;
+  border-left-color: #ef4444 !important;
+}
+
 /* 保存到存档位对话框 */
 .save-slot-dialog {
   max-width: 550px;
@@ -3200,5 +4587,141 @@ export default {
   align-items: center;
   gap: 4px;
   margin-top: 6px;
+}
+
+/* 查看版本内容对话框样式 */
+.version-view-dialog {
+  max-width: 950px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.version-view-dialog .dialog-header {
+  background: #ffffff;
+  color: #1e293b;
+  border-bottom: 2px solid #f1f5f9;
+  padding: 10px 18px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.version-view-dialog .dialog-header h3 {
+  color: #1e293b;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-view-dialog .dialog-header h3::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(180deg, #6366f1 0%, #8b5cf6 100%);
+  border-radius: 2px;
+}
+
+.version-view-dialog .close-btn {
+  color: #64748b;
+  opacity: 0.8;
+}
+
+.version-view-dialog .close-btn:hover {
+  opacity: 1;
+  background: #f1f5f9;
+  border-radius: 50%;
+  color: #1e293b;
+}
+
+.version-view-dialog .dialog-content {
+  padding: 8px 18px;
+  background: #ffffff;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.version-info-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  margin-bottom: 0;
+  border: 1px solid #e2e8f0;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.version-info-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: #6366f1;
+  border-radius: 8px 0 0 8px;
+}
+
+.version-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #64748b;
+  min-width: 70px;
+  font-size: 12px;
+}
+
+.info-value {
+  color: #1e293b;
+  font-weight: 500;
+  padding: 4px 10px;
+  background: #ffffff;
+  border-radius: 4px;
+  flex: 1;
+  border: 1px solid #e2e8f0;
+}
+
+.version-content-viewer {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.version-content-viewer .markdown-viewer {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 32px 40px;
+  background: #ffffff;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+  flex: 1;
+  min-height: 100%;
+}
+
+.version-view-dialog .dialog-footer {
+  padding: 10px 18px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 12px 12px;
+  flex-shrink: 0;
 }
 </style>
