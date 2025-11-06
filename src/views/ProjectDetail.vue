@@ -1134,7 +1134,8 @@ export default {
             
             if (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0) {
               // 后端返回的是 assignees: [{userId, userName, email, avatarUrl}]
-              assigneeIds = task.assignees.map(a => Number(a.userId))
+              // 保持userId为字符串类型，避免精度丢失
+              assigneeIds = task.assignees.map(a => String(a.userId))
               assigneeNames = task.assignees.map(a => a.userName).join(', ')
             }
             

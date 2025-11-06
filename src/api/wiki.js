@@ -2,6 +2,19 @@ import axios from 'axios'
 import config from '@/config'
 
 /**
+ * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ */
+function parseJSONWithBigInt(data) {
+  if (typeof data !== 'string') return data
+  try {
+    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+  } catch (e) {
+    console.error('JSON解析错误:', e)
+    return data
+  }
+}
+
+/**
  * Wiki模块API客户端
  * 
  * 提供Wiki文档管理、版本控制、全文搜索、导入导出等功能
@@ -13,7 +26,11 @@ import config from '@/config'
 const api = axios.create({
   baseURL: '', // 使用相对路径，通过Vue代理转发
   timeout: config.api.timeout,
-  withCredentials: true
+  withCredentials: true,
+  // 自定义响应转换，将大整数转换为字符串
+  transformResponse: [function (data) {
+    return parseJSONWithBigInt(data)
+  }]
 })
 
 // 请求拦截器
@@ -244,7 +261,7 @@ export const wikiVersionAPI = {
    */
   getVersionHistory(pageId) {
     console.log('[wikiVersionAPI.getVersionHistory] 获取版本历史, 页面ID:', pageId)
-    return api.get(`/api/wiki/pages/${pageId}/versions`)
+    return api.get(`/api/wiki/content/pages/${pageId}/versions`)
   },
 
   /**
@@ -254,7 +271,47 @@ export const wikiVersionAPI = {
    */
   getVersionContent(pageId, version) {
     console.log('[wikiVersionAPI.getVersionContent] 获取版本内容, 页面ID:', pageId, '版本:', version)
-    return api.get(`/api/wiki/pages/${pageId}/versions/${version}`)
+    return api.get(`/api/wiki/content/pages/${pageId}/versions/${version}`)
+  },
+
+  /**
+   * 比较两个版本之间的差异
+   * @param {Number} pageId - 页面ID
+   * @param {Number} version1 - 版本1
+   * @param {Number} version2 - 版本2
+   */
+  compareVersions(pageId, version1, version2) {
+    console.log('[wikiVersionAPI.compareVersions] 比较版本差异, 页面ID:', pageId, 'v1:', version1, 'v2:', version2)
+    return api.get(`/api/wiki/content/pages/${pageId}/compare`, {
+      params: { version1, version2 }
+    })
+  },
+
+  /**
+   * 获取Wiki页面当前内容
+   * @param {Number} pageId - 页面ID
+   */
+  getCurrentContent(pageId) {
+    console.log('[wikiVersionAPI.getCurrentContent] 获取当前内容, 页面ID:', pageId)
+    return api.get(`/api/wiki/content/pages/${pageId}/current`)
+  },
+
+  /**
+   * 获取最近的版本历史（最多10个）
+   * @param {Number} pageId - 页面ID
+   */
+  getRecentVersions(pageId) {
+    console.log('[wikiVersionAPI.getRecentVersions] 获取最近版本, 页面ID:', pageId)
+    return api.get(`/api/wiki/content/pages/${pageId}/versions/recent`)
+  },
+
+  /**
+   * 获取所有版本历史（包括归档的）
+   * @param {Number} pageId - 页面ID
+   */
+  getAllVersionHistory(pageId) {
+    console.log('[wikiVersionAPI.getAllVersionHistory] 获取所有版本历史, 页面ID:', pageId)
+    return api.get(`/api/wiki/content/pages/${pageId}/versions/all`)
   }
 }
 

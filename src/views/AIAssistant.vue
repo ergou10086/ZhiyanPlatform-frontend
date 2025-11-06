@@ -454,8 +454,9 @@ export default {
     // 尝试恢复上次的聊天会话
     const lastChatSessionId = localStorage.getItem('lastChatSessionId')
     if (lastChatSessionId) {
-      const sessionId = parseInt(lastChatSessionId)
-      const session = this.chatSessions.find(s => s.id === sessionId)
+      // 保持ID为字符串类型，避免精度丢失
+      const sessionId = String(lastChatSessionId)
+      const session = this.chatSessions.find(s => String(s.id) === sessionId)
       if (session) {
         this.currentChatSessionId = sessionId
         this.chatMessages = session.messages ? [...session.messages] : []
