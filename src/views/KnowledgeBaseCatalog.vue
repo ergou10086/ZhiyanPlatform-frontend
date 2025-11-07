@@ -1393,21 +1393,26 @@ export default {
             })
           }
           
-          this.uploadedFiles = achievements.map(dto => convertFromDTO(dto))
+          // 使用响应式更新方式
+          const convertedAchievements = achievements.map(dto => convertFromDTO(dto))
+          
+          // 清空原数组并填充新数据，确保响应式
+          this.uploadedFiles.splice(0, this.uploadedFiles.length, ...convertedAchievements)
           
           // 对于uploader为null的记录，异步获取用户名
           await this.fetchMissingCreatorNames()
           
-          console.log('转换后的成果列表:', this.uploadedFiles)
+          console.log('✅ 转换后的成果列表:', this.uploadedFiles.length, '条记录')
+          console.log('✅ 成果列表详情:', this.uploadedFiles)
         } else {
           console.warn('成果列表响应格式异常:', response)
-          // 失败时设置为空数组，不使用默认数据
-          this.uploadedFiles = []
+          // 失败时清空数组，使用响应式方式
+          this.uploadedFiles.splice(0, this.uploadedFiles.length)
         }
       } catch (error) {
         console.error('加载成果列表失败:', error)
-        // 失败时设置为空数组，不使用默认数据
-        this.uploadedFiles = []
+        // 失败时清空数组，使用响应式方式
+        this.uploadedFiles.splice(0, this.uploadedFiles.length)
       }
     },
     
@@ -1734,26 +1739,32 @@ export default {
         if (response && response.code === 200 && response.data) {
           // 将搜索结果转换为前端格式
           const achievements = response.data.content || []
-          this.searchResults = achievements.map(dto => convertFromDTO(dto))
+          const convertedResults = achievements.map(dto => convertFromDTO(dto))
           
-          console.log('搜索结果:', this.searchResults)
+          // 使用响应式方式更新搜索结果
+          this.searchResults.splice(0, this.searchResults.length, ...convertedResults)
+          
+          console.log('✅ 搜索结果:', this.searchResults.length, '条记录')
           
           // 重置到第一页
           this.currentPage = 1
         } else {
           console.warn('搜索响应格式异常:', response)
-          this.searchResults = []
+          // 清空搜索结果，使用响应式方式
+          this.searchResults.splice(0, this.searchResults.length)
         }
       } catch (error) {
         console.error('搜索失败:', error)
-        this.searchResults = []
+        // 清空搜索结果，使用响应式方式
+        this.searchResults.splice(0, this.searchResults.length)
         alert('搜索失败: ' + (error.message || '请重试'))
       }
     },
     
     clearSearch() {
       this.searchText = ''
-      this.searchResults = []
+      // 清空搜索结果，使用响应式方式
+      this.searchResults.splice(0, this.searchResults.length)
       this.isSearching = false
       this.currentPage = 1
       
@@ -2268,34 +2279,32 @@ export default {
           )
           
           if (isSuccess) {
-            console.log('✅ 删除成功，更新本地数据')
+            console.log('✅ 删除成功，重新加载数据')
             
-            // 从本地列表中删除
-            const uploadedIndex = this.uploadedFiles.findIndex(f => f.id === file.id)
-            if (uploadedIndex !== -1) {
-              this.uploadedFiles.splice(uploadedIndex, 1)
-              console.log('✅ 已从uploadedFiles中删除，索引:', uploadedIndex)
-            } else {
-              console.warn('⚠️ 在uploadedFiles中未找到该成果')
+            // 如果当前页删除后没有数据了，跳转到上一页
+            const currentPageItems = this.paginatedFiles.length
+            if (currentPageItems === 1 && this.currentPage > 1) {
+              this.currentPage = this.currentPage - 1
+              console.log('✅ 当前页将无数据，先跳转到上一页:', this.currentPage)
             }
             
-            // 如果处于搜索状态，也从搜索结果中删除
-            if (this.isSearching) {
-              const searchIndex = this.searchResults.findIndex(f => f.id === file.id)
-              if (searchIndex !== -1) {
-                this.searchResults.splice(searchIndex, 1)
-                console.log('✅ 已从searchResults中删除，索引:', searchIndex)
-              }
+            // 重新从后端加载数据，确保数据一致性
+            await this.loadAchievements()
+            
+            // 如果处于搜索状态，重新执行搜索
+            if (this.isSearching && this.searchText.trim()) {
+              await this.performSearch()
             }
             
             // 触发删除事件，通知父组件
             this.$emit('file-deleted', file)
             
-            // 如果当前页没有数据了，跳转到上一页
-            if (this.paginatedFiles.length === 0 && this.currentPage > 1) {
-              this.currentPage = this.currentPage - 1
-              console.log('✅ 当前页无数据，跳转到上一页:', this.currentPage)
-            }
+            // 确保在下一个tick中强制更新视图，保证DOM更新完成
+            await this.$nextTick()
+            this.$forceUpdate()
+            
+            console.log('✅ 视图更新完成，当前列表数量:', this.uploadedFiles.length)
+            console.log('✅ 当前页数据:', this.paginatedFiles)
             
             alert('成果删除成功！')
           } else {
@@ -2353,16 +2362,33 @@ export default {
              (file.descriptions && file.descriptions.length > 0)
     },
     
-    deleteSingleFile(file, index) {
+    async deleteSingleFile(file, index) {
       const fileName = file.name || file.originalFileName || '未知文件'
       if (confirm(`确定要删除文件"${fileName}"吗？`)) {
-        // 从成果的文件列表中删除
+        try {
+          console.log('删除单个文件, fileId:', file.id, '文件名:', fileName)
+          
+          // 调用后端API删除文件
+          const response = await knowledgeAPI.deleteFile(file.id)
+          console.log('删除文件响应:', response)
+          
+          // 检查响应是否成功
+          const isSuccess = response && (
+            response.code === 200 || 
+            response.code === '200' || 
+            response.status === 200
+          )
+          
+          if (isSuccess) {
+            console.log('✅ 文件删除成功')
+            
+            // 从当前查看的成果文件列表中删除
         this.viewingFile.files.splice(index, 1)
         this.viewingFile.fileCount = this.viewingFile.files.length
         
         // 如果删除了所有文件，删除整个成果
         if (this.viewingFile.files.length === 0) {
-          this.deleteFile(this.viewingFile)
+              await this.deleteFile(this.viewingFile)
           this.closeViewDialog()
         } else {
           // 重新选择文件（如果删除的是当前选中的文件）
@@ -2372,9 +2398,17 @@ export default {
             this.selectedFileIndex = this.selectedFileIndex - 1
           }
           
-          // 保存到本地存储
-          saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
+              // 重新加载成果列表以保持数据同步
+              await this.loadAchievements()
+              
           alert('文件删除成功！')
+            }
+          } else {
+            throw new Error(response?.msg || '删除文件失败')
+          }
+        } catch (error) {
+          console.error('❌ 删除文件失败:', error)
+          alert('删除文件失败: ' + (error.message || '请重试'))
         }
       }
     },
@@ -2382,158 +2416,239 @@ export default {
     // 下载文件（包装工具函数，支持从后端获取文件）
     async downloadFile(achievement) {
       try {
-        console.log('下载成果文件, ID:', achievement.id, '名称:', achievement.name)
+        console.log('📥 [下载] 开始下载成果文件')
+        console.log('📥 [下载] 成果ID:', achievement.id)
+        console.log('📥 [下载] 成果名称:', achievement.name)
         
-        // 如果成果已经有文件列表且有downloadUrl，直接下载
-        if (achievement.files && achievement.files.length > 0 && achievement.files[0].downloadUrl) {
-          console.log('成果已有文件列表，直接下载')
-          downloadFileUtil(achievement)
-          return
+        // 1. 获取文件列表
+        const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
+        console.log('📥 [下载] 文件列表响应:', filesResponse)
+        
+        if (!filesResponse || filesResponse.code !== 200) {
+          throw new Error(filesResponse?.msg || '获取文件列表失败')
         }
         
-        // 否则，先从后端获取文件列表
-        console.log('获取成果文件列表...')
-        const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
-        console.log('📁 文件列表响应:', filesResponse)
-        console.log('📁 响应数据类型:', typeof filesResponse)
-        console.log('📁 响应数据结构:', JSON.stringify(filesResponse, null, 2))
-        
-        // 检查响应数据格式
+        // 2. 解析文件列表
         let fileList = []
-        if (filesResponse && filesResponse.code === 200) {
           if (Array.isArray(filesResponse.data)) {
             fileList = filesResponse.data
           } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
             fileList = filesResponse.data.content
           }
-        }
         
-        console.log('📁 解析后的文件列表:', fileList, '长度:', fileList.length)
-        
-        if (fileList.length > 0) {
-          // 为每个文件获取下载URL
-          const files = await Promise.all(fileList.map(async (fileDto) => {
-            let downloadUrl = fileDto.downloadUrl || fileDto.accessUrl || fileDto.url
-            
-            // 如果没有下载URL，尝试获取
-            if (!downloadUrl && fileDto.id) {
-              try {
-                console.log('📥 获取文件下载URL, fileId:', fileDto.id)
-                const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileDto.id)
-                console.log('📥 下载URL响应:', urlResponse)
-                if (urlResponse && urlResponse.code === 200 && urlResponse.data) {
-                  downloadUrl = urlResponse.data.url || urlResponse.data.downloadUrl || urlResponse.data
-                }
-              } catch (error) {
-                console.warn('获取下载URL失败:', error)
-              }
-            }
-            
-            return {
-              id: fileDto.id,
-              name: fileDto.fileName || fileDto.name,
-              originalFileName: fileDto.originalFileName || fileDto.fileName,
-              type: fileDto.mimeType || fileDto.type,
-              size: fileDto.fileSize || fileDto.size,
-              uploadTime: fileDto.uploadedAt || fileDto.createdAt,
-              downloadUrl: downloadUrl
-            }
-          }))
-          
-          console.log('✅ 处理后的文件列表:', files)
-          
-          // 如果只有一个文件，直接下载
-          if (files.length === 1) {
-            if (files[0].downloadUrl) {
-              downloadSingleFile(files[0])
-            } else {
-              alert('无法获取文件下载链接，请稍后重试')
-            }
-          } else {
-            // 多个文件，使用临时对象批量下载
-            downloadAllFilesUtil({ ...achievement, files })
-          }
-        } else {
-          console.warn('⚠️ 未找到可下载的文件')
+        if (fileList.length === 0) {
           alert('该成果暂无可下载的文件')
+          return
         }
+        
+        console.log('📥 [下载] 文件列表:', fileList.length, '个文件')
+        console.log('📥 [下载] 文件列表详情:', fileList)
+        
+        // 3. 为每个文件获取下载URL并立即下载
+        let successCount = 0
+        let failCount = 0
+        
+        for (let i = 0; i < fileList.length; i++) {
+          const fileDto = fileList[i]
+          
+          try {
+            console.log(`📥 [下载] 处理文件 ${i + 1}/${fileList.length}:`, fileDto.fileName)
+            console.log(`📥 [下载] 文件对象详情:`, fileDto)
+            
+            // 获取下载URL - 关键修复：确保fileId是字符串格式
+            const fileId = String(fileDto.id)
+            console.log(`📥 [下载] 准备获取下载URL`)
+            console.log(`📥 [下载] - fileId:`, fileId, '(类型:', typeof fileId, ')')
+            console.log(`📥 [下载] - fileName:`, fileDto.fileName)
+            
+            const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileId)
+            console.log(`📥 [下载] API响应:`, urlResponse)
+            console.log(`📥 [下载] 响应码:`, urlResponse?.code)
+            console.log(`📥 [下载] 响应数据:`, urlResponse?.data)
+            console.log(`📥 [下载] 响应消息:`, urlResponse?.msg)
+            
+            if (!urlResponse) {
+              throw new Error('API响应为空')
+            }
+            
+            if (urlResponse.code !== 200) {
+              throw new Error(`API返回错误: ${urlResponse.msg || urlResponse.code}`)
+            }
+            
+            if (!urlResponse.data) {
+              throw new Error('响应数据为空')
+            }
+            
+            // 提取下载URL
+            let downloadUrl = urlResponse.data
+            if (typeof downloadUrl === 'object') {
+              downloadUrl = downloadUrl.url || downloadUrl.downloadUrl || downloadUrl.accessUrl
+            }
+            
+            if (!downloadUrl || typeof downloadUrl !== 'string') {
+              console.error('❌ [下载] 无效的下载URL:', downloadUrl)
+              throw new Error('下载URL无效')
+            }
+            
+            console.log(`📥 [下载] 下载URL:`, downloadUrl)
+            
+            // 立即触发下载
+            const fileName = fileDto.fileName || fileDto.originalFileName || `文件${i + 1}`
+            this.triggerDownload(downloadUrl, fileName)
+            
+            successCount++
+            console.log(`✅ [下载] 文件下载触发成功: ${fileName}`)
+            
+            // 延迟避免浏览器阻止多文件下载
+            if (i < fileList.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+            
+          } catch (error) {
+            failCount++
+            console.error(`❌ [下载] 文件下载失败:`, fileDto.fileName)
+            console.error(`❌ [下载] 错误详情:`, error)
+            console.error(`❌ [下载] 错误消息:`, error.message)
+            console.error(`❌ [下载] 错误堆栈:`, error.stack)
+            
+            // 显示第一个文件的错误详情
+            if (i === 0) {
+              alert(`下载失败: ${error.message}\n文件: ${fileDto.fileName}\n\n请查看控制台获取详细信息`)
+            }
+            // 继续下载其他文件
+          }
+        }
+        
+        console.log(`📥 [下载] 下载完成统计: 成功 ${successCount} 个, 失败 ${failCount} 个`)
+        
+        if (fileList.length > 1) {
+          alert(`已触发下载 ${fileList.length} 个文件，请在浏览器下载栏查看`)
+        }
+        
       } catch (error) {
-        console.error('❌ 下载文件失败:', error)
-        alert('下载失败: ' + (error.message || '请重试'))
+        console.error('❌ [下载] 下载失败:', error)
+        
+        // 检查是否是认证错误
+        if (error.response && error.response.status === 401) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else if (error.code === 401 || error.msg?.includes('登录')) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else {
+          alert('下载失败: ' + (error.message || error.msg || '请重试'))
+        }
       }
     },
     
-    // 下载所有文件（包装工具函数，支持从后端获取文件）
-    async downloadAllFiles(achievement) {
+    // 触发浏览器下载
+    triggerDownload(url, filename) {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.target = '_blank'  // 在新标签页打开，避免导航
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      
+      // 延迟移除元素，确保下载已触发
+      setTimeout(() => {
+        document.body.removeChild(a)
+      }, 100)
+    },
+    
+    // 下载单个文件
+    async downloadSingleFile(file) {
       try {
-        console.log('📦 下载成果所有文件, ID:', achievement.id, '名称:', achievement.name)
+        console.log('📥 [单文件下载] ============ 开始 ============')
+        console.log('📥 [单文件下载] 文件对象:', file)
+        console.log('📥 [单文件下载] 文件名:', file.name || file.fileName)
+        console.log('📥 [单文件下载] 文件ID:', file.id, '类型:', typeof file.id)
         
-        // 如果成果已经有文件列表且有downloadUrl，直接下载
-        if (achievement.files && achievement.files.length > 0 && achievement.files[0].downloadUrl) {
-          console.log('✅ 成果已有文件列表，直接批量下载')
-          downloadAllFilesUtil(achievement)
+        // 如果文件对象已有downloadUrl，直接使用
+        if (file.downloadUrl) {
+          console.log('📥 [单文件下载] 使用已有的downloadUrl:', file.downloadUrl)
+          this.triggerDownload(file.downloadUrl, file.name || file.fileName || '下载文件')
           return
         }
         
-        // 否则，先从后端获取文件列表
-        console.log('📡 获取成果文件列表...')
-        const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
-        console.log('📡 文件列表响应:', filesResponse)
+        // 否则，获取下载URL
+        const fileId = String(file.id)
+        console.log('📥 [单文件下载] 准备调用API')
+        console.log('📥 [单文件下载] - 转换后fileId:', fileId, '类型:', typeof fileId)
+        console.log('📥 [单文件下载] - API路径:', `/zhiyan/achievement/file/${fileId}/download-url`)
         
-        // 检查响应数据格式
-        let fileList = []
-        if (filesResponse && filesResponse.code === 200) {
-          if (Array.isArray(filesResponse.data)) {
-            fileList = filesResponse.data
-          } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
-            fileList = filesResponse.data.content
+        try {
+          const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileId)
+          console.log('📥 [单文件下载] ✅ API调用成功')
+          console.log('📥 [单文件下载] 完整响应:', JSON.stringify(urlResponse, null, 2))
+          console.log('📥 [单文件下载] 响应码:', urlResponse?.code)
+          console.log('📥 [单文件下载] 响应消息:', urlResponse?.msg)
+          console.log('📥 [单文件下载] 响应数据:', urlResponse?.data)
+          console.log('📥 [单文件下载] 响应数据类型:', typeof urlResponse?.data)
+          
+          if (!urlResponse) {
+            throw new Error('API返回undefined或null')
           }
+          
+          if (urlResponse.code !== 200) {
+            throw new Error(`API错误: ${urlResponse.msg || urlResponse.code}`)
+          }
+          
+          if (!urlResponse.data) {
+            throw new Error('响应data字段为空')
+          }
+          
+          // 提取下载URL
+          let downloadUrl = urlResponse.data
+          if (typeof downloadUrl === 'object') {
+            console.log('📥 [单文件下载] data是对象，尝试提取URL')
+            downloadUrl = downloadUrl.url || downloadUrl.downloadUrl || downloadUrl.accessUrl
+            console.log('📥 [单文件下载] 提取后的URL:', downloadUrl)
+          }
+          
+          if (!downloadUrl || typeof downloadUrl !== 'string') {
+            console.error('❌ [单文件下载] 无效的URL:', downloadUrl, '类型:', typeof downloadUrl)
+            throw new Error('下载URL无效或不是字符串')
+          }
+          
+          console.log('📥 [单文件下载] 最终下载URL:', downloadUrl)
+          
+          const fileName = file.name || file.fileName || file.originalFileName || '下载文件'
+          this.triggerDownload(downloadUrl, fileName)
+          
+          console.log('✅ [单文件下载] ============ 成功 ============')
+          
+        } catch (apiError) {
+          console.error('❌ [单文件下载] API调用异常')
+          console.error('❌ [单文件下载] 错误对象:', apiError)
+          console.error('❌ [单文件下载] 错误消息:', apiError.message)
+          console.error('❌ [单文件下载] 错误响应:', apiError.response)
+          console.error('❌ [单文件下载] 错误堆栈:', apiError.stack)
+          throw apiError
         }
         
-        console.log('📋 解析后的文件列表:', fileList, '长度:', fileList.length)
-        
-        if (fileList.length > 0) {
-          // 为每个文件获取下载URL
-          const files = await Promise.all(fileList.map(async (fileDto) => {
-            let downloadUrl = fileDto.downloadUrl || fileDto.accessUrl || fileDto.url
-            
-            // 如果没有下载URL，尝试获取
-            if (!downloadUrl && fileDto.id) {
-              try {
-                console.log('📥 获取文件下载URL, fileId:', fileDto.id)
-                const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileDto.id)
-                console.log('📥 下载URL响应:', urlResponse)
-                if (urlResponse && urlResponse.code === 200 && urlResponse.data) {
-                  downloadUrl = urlResponse.data.url || urlResponse.data.downloadUrl || urlResponse.data
-                }
-              } catch (error) {
-                console.warn('获取下载URL失败:', error)
-              }
-            }
-            
-            return {
-              id: fileDto.id,
-              name: fileDto.fileName || fileDto.name,
-              originalFileName: fileDto.originalFileName || fileDto.fileName,
-              type: fileDto.mimeType || fileDto.type,
-              size: fileDto.fileSize || fileDto.size,
-              uploadTime: fileDto.uploadedAt || fileDto.createdAt,
-              downloadUrl: downloadUrl
-            }
-          }))
-          
-          console.log('✅ 处理后的文件列表:', files, '共', files.length, '个文件')
-          
-          // 批量下载
-          downloadAllFilesUtil({ ...achievement, files })
-        } else {
-          console.warn('⚠️ 未找到可下载的文件')
-          alert('该成果暂无可下载的文件')
-        }
       } catch (error) {
-        console.error('❌ 批量下载失败:', error)
-        alert('下载失败: ' + (error.message || '请重试'))
+        console.error('❌ [单文件下载] ============ 失败 ============')
+        console.error('❌ [单文件下载] 最终错误:', error)
+        
+        // 检查是否是认证错误
+        if (error.response && error.response.status === 401) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else if (error.code === 401 || error.msg?.includes('登录')) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else {
+          alert(`下载失败: ${error.message || error.msg || '未知错误'}\n\n请按F12查看控制台获取详细信息`)
+        }
       }
+    },
+    
+    // 下载所有文件（批量下载的快捷方法）
+    async downloadAllFiles(achievement) {
+      // 直接调用downloadFile方法，它已经支持多文件下载
+      await this.downloadFile(achievement)
     },
     
     // 获取类型样式类名（包装工具函数）
