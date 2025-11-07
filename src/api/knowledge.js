@@ -34,8 +34,19 @@ api.interceptors.request.use(
   config => {
     // 从localStorage获取token
     const token = localStorage.getItem('access_token')
+    
+    console.log('🔐 [Token检查]', {
+      url: config.url,
+      method: config.method,
+      hasToken: !!token,
+      tokenPrefix: token ? token.substring(0, 20) + '...' : 'null'
+    })
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+      console.log('🔐 [Token] 已设置Authorization header')
+    } else {
+      console.warn('⚠️ [Token] localStorage中没有access_token')
     }
     
     // 对于FormData，不要手动设置Content-Type，让浏览器自动设置
@@ -271,7 +282,9 @@ export const knowledgeAPI = {
    * @param {Number} expirySeconds - 过期时间（秒）
    */
   getFileDownloadUrl(fileId, expirySeconds = 3600) {
+    const token = localStorage.getItem('access_token')
     console.log('[knowledgeAPI.getFileDownloadUrl] 获取文件下载URL, fileId:', fileId)
+    console.log('[knowledgeAPI.getFileDownloadUrl] 当前Token:', token ? token.substring(0, 20) + '...' : 'null')
     return api.get(`/zhiyan/achievement/file/${fileId}/download-url`, {
       params: { expirySeconds }
     })
@@ -285,6 +298,36 @@ export const knowledgeAPI = {
   updateDetailFields(achievementId, fieldUpdates) {
     console.log('[knowledgeAPI.updateDetailFields] 更新成果详情字段, achievementId:', achievementId, 'fields:', fieldUpdates)
     return api.patch(`/zhiyan/achievement/detail/${achievementId}/fields`, fieldUpdates)
+  },
+
+  /**
+   * 验证Token有效性
+   * 调用auth模块验证当前token是否有效
+   * @returns {Promise} 返回包含用户ID、角色等信息的验证结果
+   */
+  validateToken() {
+    console.log('[knowledgeAPI.validateToken] 验证Token有效性')
+    return api.get('/zhiyan/achievement/token/validate')
+  },
+
+  /**
+   * 检查Token是否有效（简化版本）
+   * 只返回true/false
+   * @returns {Promise<Boolean>} 返回token是否有效
+   */
+  checkToken() {
+    console.log('[knowledgeAPI.checkToken] 检查Token')
+    return api.get('/zhiyan/achievement/token/check')
+  },
+
+  /**
+   * 从Token获取用户ID
+   * 用于文件下载等需要用户ID的场景
+   * @returns {Promise<Number>} 返回用户ID
+   */
+  getUserIdFromToken() {
+    console.log('[knowledgeAPI.getUserIdFromToken] 从Token获取用户ID')
+    return api.get('/zhiyan/achievement/token/user-id')
   }
 }
 
