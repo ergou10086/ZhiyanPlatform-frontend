@@ -902,30 +902,20 @@
               </div>
             </div>
             
-            <!-- 图片文件内容 -->
-            <div v-else-if="fileContentType === 'image'" class="image-content">
-              <img :src="fileContent" :alt="viewingFile?.name" />
-            </div>
-            
-            <!-- PDF文件内容 -->
-            <div v-else-if="fileContentType === 'pdf'" class="pdf-content">
-              <iframe :src="fileContent" width="100%" height="500px"></iframe>
-            </div>
-            
-            <!-- 文件信息 -->
-            <div v-else-if="fileContentType === 'info'" class="info-content">
+            <!-- 成果信息 -->
+            <div v-if="viewingFile" class="achievement-info-section">
               <div class="file-details">
                 <div class="detail-item">
-                  <span class="detail-label">文件名：</span>
-                  <span class="detail-value">{{ fileContent.name }}</span>
+                  <span class="detail-label">成果名：</span>
+                  <span class="detail-value">{{ viewingFile.name }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">文件类型：</span>
-                  <span class="detail-value">{{ fileContent.type }}</span>
+                  <span class="detail-label">成果类型：</span>
+                  <span class="detail-value">{{ viewingFile.type }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">上传者：</span>
-                  <span class="detail-value">{{ fileContent.uploader }}</span>
+                  <span class="detail-value">{{ viewingFile.uploader || '未知' }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">公开性：</span>
@@ -948,14 +938,12 @@
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">上传时间：</span>
-                  <span class="detail-value">{{ fileContent.time }}</span>
+                  <span class="detail-value">{{ viewingFile.time || viewingFile.uploadTime || '未知' }}</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">文件大小：</span>
-                  <span class="detail-value">{{ fileContent.size }}</span>
-                </div>
-                
-                <!-- 成果详细描述（单文件分支统一为可编辑版本） -->
+              </div>
+            </div>
+            
+            <!-- 成果详细描述（单文件分支统一为可编辑版本） -->
                 <div v-if="viewingFile" class="achievement-description">
                   <div class="description-header">
                   <div class="detail-label">成果详细描述：</div>
