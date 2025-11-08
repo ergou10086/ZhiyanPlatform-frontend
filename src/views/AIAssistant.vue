@@ -124,13 +124,16 @@
             style="display: none" 
             @change="handleFileUpload"
           />
-          <input
-            type="text"
+          <textarea
             placeholder="输入您的问题..."
             v-model="userMessage"
-            @keyup.enter="sendMessage"
+            @keydown.enter.exact.prevent="sendMessage"
+            @keydown.enter.shift.exact=""
+            @input="autoResizeTextarea"
             :disabled="isSending"
-          />
+            ref="messageTextarea"
+            rows="1"
+          ></textarea>
           <button 
             class="send-btn" 
             :class="{ 'stop-btn': isSending }"
@@ -495,6 +498,11 @@ export default {
     
     // 加载聊天会话列表
     this.loadChatSessionsFromStorage()
+    
+    // 初始化聊天框底部间距
+    this.$nextTick(() => {
+      this.autoResizeTextarea()
+    })
     
     // 尝试恢复上次的聊天会话
     const lastChatSessionId = localStorage.getItem('lastChatSessionId')
@@ -971,6 +979,16 @@ export default {
     getStatusClass(status) {
       return status
     },
+    autoResizeTextarea() {
+      const textarea = this.$refs.messageTextarea
+      if (textarea) {
+        // 重置高度以获取正确的scrollHeight
+        textarea.style.height = 'auto'
+        // 设置新高度，但不超过最大高度
+        const newHeight = Math.min(textarea.scrollHeight, 200)
+        textarea.style.height = newHeight + 'px'
+      }
+    },
     async sendMessage() {
       console.log('sendMessage called, userMessage:', this.userMessage)
       if (!this.userMessage.trim() || this.isSending) {
@@ -1002,6 +1020,11 @@ export default {
       // 清空输入框
       this.userMessage = ''
       console.log('Input cleared')
+      
+      // 重置 textarea 高度
+      this.$nextTick(() => {
+        this.autoResizeTextarea()
+      })
       
       // 设置发送状态
       this.isSending = true

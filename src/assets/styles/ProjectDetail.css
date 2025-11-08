@@ -615,6 +615,8 @@
   transition: all 0.2s ease;
   min-height: 60px;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .task-list-item:hover {
@@ -631,6 +633,7 @@
   flex-shrink: 0;
   min-width: 300px;
   max-width: 300px;
+  white-space: nowrap;
 }
 
 .task-item-content {
@@ -639,6 +642,8 @@
   display: flex;
   align-items: center;
   gap: 20px;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .task-item-title {
@@ -646,32 +651,59 @@
   font-weight: 600;
   color: #333;
   margin: 0;
-  min-width: 300px;
-  max-width: 300px;
+  min-width: 200px;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .task-item-description {
   font-size: 13px;
   color: #6c757d;
   margin: 0;
-  flex: 1;
-  min-width: 0;
+  min-width: 150px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .task-item-meta {
   display: flex;
+  flex-direction: row;
   gap: 16px;
   font-size: 12px;
   color: #6c757d;
-  min-width: 250px;
-  max-width: 250px;
+  min-width: 400px;
   flex-shrink: 0;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.task-item-meta span {
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.task-item-meta .task-date {
+  width: 180px;
+  text-align: right;
+}
+
+.task-item-meta .task-creator {
+  width: 120px;
+  text-align: right;
+}
+
+.task-item-meta .task-assignee {
+  width: 120px;
+  text-align: right;
 }
 
 .task-item-assign {
@@ -701,6 +733,29 @@
 .task-item-assign .assign-btn:hover {
   background: #0056b3;
   transform: translateY(-1px);
+}
+
+.task-item-assign .upload-result-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.task-item-assign .upload-result-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
 }
 
 /* 任务详情弹窗样式 */
@@ -1075,6 +1130,192 @@
   background: #0056b3;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* 已接取状态标识样式 */
+.assign-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #6ee7b7;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.assign-status-badge.assigned-by-me {
+  background: #d1fae5;
+  color: #059669;
+  border-color: #6ee7b7;
+}
+
+/* 上传结果按钮样式 */
+.upload-result-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.upload-result-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.upload-result-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.task-assign-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 上传结果模态框样式 */
+.modal-content.upload-result-modal {
+  max-width: 800px !important;
+  width: 90% !important;
+}
+
+.upload-result-info {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.upload-result-task-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.upload-result-task-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.result-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.optional-text {
+  color: #9ca3af;
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.image-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.upload-image-btn {
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  color: #6b7280;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-image-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.upload-image-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-count {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.image-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.image-preview-item {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.remove-image-btn:hover {
+  background: rgba(220, 38, 38, 0.8);
+  transform: scale(1.1);
+}
+
+.task-item-assign {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 
@@ -1952,6 +2193,31 @@
   opacity: 0.5;
 }
 
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  margin-top: 8px;
+}
+
+.load-more-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.load-more-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
 .empty-state p {
   color: #6c757d;
   font-size: 14px;
@@ -2816,6 +3082,80 @@
 .dark-mode .task-status-badge.completed {
   background: #064e3b !important;
   color: #6ee7b7 !important;
+}
+
+/* 暗黑模式下的已接取状态标识 */
+.dark-mode .project-detail-container .assign-status-badge {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2) !important;
+}
+
+.dark-mode .project-detail-container .assign-status-badge.assigned-by-me {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+}
+
+/* 暗黑模式下的上传结果按钮 */
+.dark-mode .project-detail-container .upload-result-btn {
+  background: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark-mode .project-detail-container .upload-result-btn:hover {
+  background: #047857 !important;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
+}
+
+.dark-mode .project-detail-container .upload-result-info {
+  background: #334155 !important;
+  border: 1px solid #475569 !important;
+}
+
+.dark-mode .project-detail-container .upload-result-task-title {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .upload-result-task-description {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .optional-text {
+  color: #64748b !important;
+}
+
+.dark-mode .project-detail-container .upload-image-btn {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .upload-image-btn:hover:not(:disabled) {
+  background: #475569 !important;
+  border-color: #64748b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .image-count {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .project-detail-container .image-preview-item {
+  border-color: #475569 !important;
+  background: #1e293b !important;
+}
+
+.dark-mode .project-detail-container .result-textarea {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .result-textarea::placeholder {
+  color: #64748b !important;
 }
 
 
