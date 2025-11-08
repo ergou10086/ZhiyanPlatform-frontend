@@ -3448,17 +3448,18 @@ export default {
 
 /* 删除节点按钮 */
 .delete-node-btn {
-  padding: 4px;
+  padding: 5px;
   border: none;
   background: transparent;
   color: #94a3b8;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0;
+  flex-shrink: 0;
 }
 
 .group-title:hover .delete-node-btn {
@@ -3468,7 +3469,8 @@ export default {
 .delete-node-btn:hover {
   background: #fee2e2;
   color: #ef4444;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
 /* 文档列表项样式 */
@@ -3511,16 +3513,16 @@ export default {
 
 /* 删除文档按钮 */
 .delete-doc-btn {
-  padding: 4px;
+  padding: 5px;
   border: none;
   background: transparent;
   color: #94a3b8;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0;
   flex-shrink: 0;
 }
@@ -3532,7 +3534,8 @@ export default {
 .delete-doc-btn:hover {
   background: #fee2e2;
   color: #ef4444;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
 .editor-pane { 

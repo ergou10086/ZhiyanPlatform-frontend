@@ -267,7 +267,6 @@
         <div class="section-header">
           <h2 class="section-title">团队成员</h2>
           <div class="section-actions" v-if="isProjectManager">
-            <button class="btn secondary" @click="addTeamMember">添加成员</button>
             <button class="btn primary" @click="inviteMember">邀请成员</button>
         </div>
         </div>
@@ -651,7 +650,7 @@
             </div>
             <div class="user-list">
               <div 
-                v-for="user in searchedUsers" 
+                v-for="user in displayedUsers" 
                 :key="user.id || user.userId" 
                 class="user-item"
                 :class="{ 'user-selected': selectedUserIds.includes(user.id || user.userId) }"
@@ -676,6 +675,12 @@
                   </svg>
                 </div>
               </div>
+            </div>
+            <!-- 更多按钮 -->
+            <div v-if="showMoreButton" class="load-more-container">
+              <button class="btn load-more-btn" @click="loadMoreUsers">
+                更多
+              </button>
             </div>
           </div>
           
@@ -1032,6 +1037,7 @@ export default {
       isInviting: false, // 邀请中状态
       hasSearched: false, // 是否已经搜索过
       searchDebounceTimer: null, // 搜索防抖定时器
+      displayedUserCount: 4, // 当前显示的用户数量
       // 图片裁切相关
       showCropModal: false, // 是否显示裁切模态框
       originalImage: null, // 原始图片对象
@@ -1085,10 +1091,17 @@ export default {
       if (Array.isArray(this.teamMembers) && this.teamMembers.length > 0) {
         return this.teamMembers.length
       }
-      if (this.project && typeof this.project.teamSize === 'number') {
-        return this.project.teamSize
+    },
+    // 显示的用户列表（分页）
+    displayedUsers() {
+      if (!Array.isArray(this.searchedUsers)) {
+        return []
       }
-      return 0
+      return this.searchedUsers.slice(0, this.displayedUserCount)
+    },
+    // 是否显示"更多"按钮
+    showMoreButton() {
+      return Array.isArray(this.searchedUsers) && this.searchedUsers.length > this.displayedUserCount
     },
     isProjectManager() {
       // 判断当前用户是否是项目负责人
@@ -1555,6 +1568,7 @@ export default {
       this.hasSearched = false
       this.isSearching = false
       this.isInviting = false
+      this.displayedUserCount = 4 // 重置显示数量
       if (this.searchDebounceTimer) {
         clearTimeout(this.searchDebounceTimer)
         this.searchDebounceTimer = null
@@ -1583,6 +1597,7 @@ export default {
       
       this.isSearching = true
       this.hasSearched = false
+      this.displayedUserCount = 4 // 重置显示数量
       
       try {
         const { projectAPI } = await import('@/api/project')
@@ -1630,6 +1645,10 @@ export default {
         this.selectedUserIds.push(userId)
         console.log('选中用户:', user.name, '当前已选:', this.selectedUserIds.length)
       }
+    },
+    loadMoreUsers() {
+      // 每次点击"更多"按钮，增加4个用户
+      this.displayedUserCount += 4
     },
     async confirmInvite() {
       if (this.selectedUserIds.length === 0) {

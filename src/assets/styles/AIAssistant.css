@@ -959,7 +959,7 @@
 .ai-assistant-container .user-input-area {
   display: flex;
   gap: 12px;
-  padding: 20px;
+  padding: 8px 20px;
   border-top: 2px solid rgba(94, 182, 228, 0.2);
   flex-shrink: 0;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(240, 247, 255, 0.95) 100%);
@@ -1781,6 +1781,7 @@
   background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.95) 100%);
   border-top-color: #475569;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+  padding: 8px 20px;
 }
 
 .dark-mode .ai-assistant-container .file-select-btn {

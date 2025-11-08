@@ -20,7 +20,8 @@ export function convertToCreateDTO(formData, projectId, fileType) {
     projectId: projectId,
     title: formData.name,
     type: TYPE_MAPPING[fileType] || 'custom',
-    status: 'draft' // 默认为草稿状态
+    status: 'draft', // 默认为草稿状态
+    isPublic: formData.isPublic !== undefined ? formData.isPublic : false // 公开性，默认为私有
   }
 
   // 构建detailData（详细信息）
@@ -120,6 +121,7 @@ export function convertFromDTO(dto) {
     creatorId: dto.creatorId, // 保存creatorId以便异步获取用户名
     time: formatDateTime(dto.createdAt),
     fileCount: dto.fileCount || 0,
+    isPublic: dto.isPublic || false, // 公开性
     files: [] // 列表DTO不包含文件列表，留空
   }
 
