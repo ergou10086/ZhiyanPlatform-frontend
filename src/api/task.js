@@ -338,6 +338,78 @@ export const taskAPI = {
   countProjectTasks(projectId) {
     console.log('[taskAPI.countProjectTasks] 统计项目任务')
     return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/count`)
+  },
+
+  /**
+   * 上传任务结果
+   * @param {Number} taskId - 任务ID
+   * @param {String} resultText - 结果文字描述
+   * @param {Array<File>} resultImages - 结果图片文件列表
+   */
+  uploadTaskResult(taskId, resultText, resultImages = []) {
+    console.log('[taskAPI.uploadTaskResult] 上传任务结果, 任务ID:', taskId, '文字长度:', resultText?.length, '图片数量:', resultImages?.length)
+    
+    const formData = new FormData()
+    formData.append('resultText', resultText || '')
+    
+    // 添加图片文件
+    if (resultImages && resultImages.length > 0) {
+      resultImages.forEach((file) => {
+        formData.append('resultImages', file)
+      })
+    }
+    
+    // 创建临时axios实例处理FormData（不设置Content-Type，让浏览器自动设置）
+    const tempApi = axios.create({
+      baseURL: '',
+      timeout: config.api.timeout,
+      withCredentials: true
+    })
+    
+    // 请求拦截器 - 添加token
+    tempApi.interceptors.request.use(
+      config => {
+        const token = localStorage.getItem('access_token')
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`
+        }
+        // 对于FormData，不设置Content-Type，让浏览器自动设置
+        if (config.data instanceof FormData) {
+          delete config.headers['Content-Type']
+        }
+        return config
+      },
+      error => Promise.reject(error)
+    )
+    
+    // 响应拦截器
+    tempApi.interceptors.response.use(
+      response => response.data,
+      error => {
+        if (error.response) {
+          const { status, data } = error.response
+          if (status === 401) {
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('user_info')
+            window.location.href = '/login'
+          }
+          return Promise.reject(data || error)
+        }
+        return Promise.reject(error)
+      }
+    )
+    
+    return tempApi.post(`/zhiyan/api/projects/tasks/${taskId}/result`, formData)
+  },
+
+  /**
+   * 获取任务结果
+   * @param {Number} taskId - 任务ID
+   */
+  getTaskResult(taskId) {
+    console.log('[taskAPI.getTaskResult] 获取任务结果, 任务ID:', taskId)
+    return api.get(`/zhiyan/api/projects/tasks/${taskId}/result`)
   }
 }
 
