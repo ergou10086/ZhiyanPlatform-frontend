@@ -33,7 +33,7 @@
             <span class="add-name">论文</span>
           </div>
           <div class="add-desc">上传学术论文成果</div>
-          <button class="add-btn" @click="uploadFile('论文')">上传论文</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('论文')">上传论文</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -41,7 +41,7 @@
             <span class="add-name">专利</span>
           </div>
           <div class="add-desc">记录专利信息</div>
-          <button class="add-btn" @click="uploadFile('专利')">上传专利</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('专利')">上传专利</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -49,7 +49,7 @@
             <span class="add-name">数据集</span>
           </div>
           <div class="add-desc">上传研究数据集</div>
-          <button class="add-btn" @click="uploadFile('数据集')">上传数据集</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('数据集')">上传数据集</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -57,7 +57,7 @@
             <span class="add-name">模型文件</span>
           </div>
           <div class="add-desc">存储已训练模型</div>
-          <button class="add-btn" @click="uploadFile('模型文件')">上传模型</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('模型文件')">上传模型</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -65,7 +65,7 @@
             <span class="add-name">实验报告</span>
           </div>
           <div class="add-desc">上传实验报告文档</div>
-          <button class="add-btn" @click="uploadFile('实验报告')">上传报告</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('实验报告')">上传报告</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -73,7 +73,7 @@
             <span class="add-name">自定义项目</span>
           </div>
           <div class="add-desc">创建自定义成果类型</div>
-          <button class="add-btn" @click="createCustomType">新建类型</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="createCustomType">新建类型</button>
         </div>
       </div>
     </div>
@@ -390,7 +390,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- 文件上传区域 -->
           <div class="form-group">
             <label>上传文件：</label>
@@ -881,62 +881,41 @@
               <!-- 预览区域已移除 -->
             </div>
           
-          <!-- 单文件内容（保持原有逻辑） -->
+          <!-- 单文件内容（显示文件卡片样式） -->
           <div v-else>
-            <!-- 文本文件内容 -->
-            <div v-if="fileContentType === 'text'" class="text-content">
-              <div class="content-header">
-                <h4>文档内容</h4>
-                <div class="content-actions">
-                  <button v-if="!isEditingContent" class="edit-content-btn" @click="toggleContentEdit">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    编辑
-                  </button>
-                  <div v-else class="content-edit-actions">
-                    <button class="save-content-btn" @click="saveContentChanges" :disabled="!hasContentChanges">保存</button>
-                    <button class="cancel-content-btn" @click="cancelContentEdit">取消</button>
+            <!-- 文件卡片样式（类似AI赋能） -->
+            <div v-if="viewingFile && viewingFile.files && viewingFile.files.length > 0" class="single-file-card-container">
+              <div class="file-preview-card">
+                <div class="file-preview-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="file-preview-info">
+                  <div class="file-preview-name">{{ viewingFile.files[0].name || viewingFile.files[0].originalFileName || viewingFile.name || '未知文件' }}</div>
+                  <div class="file-preview-meta">
+                    <span class="file-preview-type">{{ getFileTypeDisplay(viewingFile.files[0].type) || '未知类型' }}</span>
+                    <span v-if="viewingFile.files[0].size" class="file-preview-size">{{ formatFileSize(viewingFile.files[0].size) }}</span>
                   </div>
                 </div>
               </div>
-              <div class="content-body">
-                <pre v-if="!isEditingContent" class="content-display">{{ fileContent }}</pre>
-                <textarea 
-                  v-else 
-                  v-model="editableContent" 
-                  class="content-editor"
-                  @input="markContentChanged"
-                  placeholder="请输入文档内容..."
-                ></textarea>
-              </div>
             </div>
             
-            <!-- 图片文件内容 -->
-            <div v-else-if="fileContentType === 'image'" class="image-content">
-              <img :src="fileContent" :alt="viewingFile?.name" />
-            </div>
-            
-            <!-- PDF文件内容 -->
-            <div v-else-if="fileContentType === 'pdf'" class="pdf-content">
-              <iframe :src="fileContent" width="100%" height="500px"></iframe>
-            </div>
-            
-            <!-- 文件信息 -->
-            <div v-else-if="fileContentType === 'info'" class="info-content">
+            <!-- 成果信息 -->
+            <div v-if="viewingFile" class="achievement-info-section">
               <div class="file-details">
                 <div class="detail-item">
-                  <span class="detail-label">文件名：</span>
-                  <span class="detail-value">{{ fileContent.name }}</span>
+                  <span class="detail-label">成果名：</span>
+                  <span class="detail-value">{{ viewingFile.name }}</span>
                 </div>
                 <div class="detail-item">
-                  <span class="detail-label">文件类型：</span>
-                  <span class="detail-value">{{ fileContent.type }}</span>
+                  <span class="detail-label">成果类型：</span>
+                  <span class="detail-value">{{ viewingFile.type }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">上传者：</span>
-                  <span class="detail-value">{{ fileContent.uploader }}</span>
+                  <span class="detail-value">{{ viewingFile.uploader || '未知' }}</span>
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">公开性：</span>
@@ -959,14 +938,12 @@
                 </div>
                 <div class="detail-item">
                   <span class="detail-label">上传时间：</span>
-                  <span class="detail-value">{{ fileContent.time }}</span>
+                  <span class="detail-value">{{ viewingFile.time || viewingFile.uploadTime || '未知' }}</span>
                 </div>
-                <div class="detail-item">
-                  <span class="detail-label">文件大小：</span>
-                  <span class="detail-value">{{ fileContent.size }}</span>
-                </div>
-                
-                <!-- 成果详细描述（单文件分支统一为可编辑版本） -->
+              </div>
+            </div>
+            
+            <!-- 成果详细描述（单文件分支统一为可编辑版本） -->
                 <div v-if="viewingFile" class="achievement-description">
                   <div class="description-header">
                   <div class="detail-label">成果详细描述：</div>
@@ -1063,11 +1040,6 @@
                     </div>
                   </div>
                 </div>
-              </div>
-              <div class="file-preview-notice">
-                <p>此文件类型暂不支持在线预览，您可以点击下载按钮下载到本地查看。</p>
-              </div>
-            </div>
           </div>
         </div>
         <div class="file-view-footer">
@@ -1241,6 +1213,10 @@ export default {
     projectId: {
       type: [String, Number],
       default: null
+    },
+    isNotMember: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -1593,6 +1569,10 @@ export default {
     },
     
     uploadFile(type) {
+      // 如果不是项目成员，禁止上传
+      if (this.isNotMember) {
+        return
+      }
       this.currentFileType = type
       this.fileAccept = getFileAccept(type)
       // 重置表单数据
@@ -1864,6 +1844,10 @@ export default {
     },
     
     createCustomType() {
+      // 如果不是项目成员，禁止创建
+      if (this.isNotMember) {
+        return
+      }
       // 打开自定义上传弹窗并重置表单
       this.resetCustomForm()
       this.showCustomDialog = true
@@ -2171,32 +2155,32 @@ export default {
     async toggleVisibility(achievement) {
       try {
         const newVisibility = !achievement.isPublic
-        const confirmMsg = newVisibility 
-          ? '确定要将此成果设置为公开吗？所有人都可以查看。' 
+        const confirmMsg = newVisibility
+          ? '确定要将此成果设置为公开吗？所有人都可以查看。'
           : '确定要将此成果设置为项目私有吗？只有项目成员可以查看。'
-        
+
         if (!confirm(confirmMsg)) {
           return
         }
-        
+
         // 调用API更新公开性
         await knowledgeAPI.updateAchievementVisibility(achievement.id, newVisibility)
-        
+
         // 更新本地数据
         achievement.isPublic = newVisibility
-        
+
         // 如果当前正在查看这个成果，也更新查看对话框中的数据
         if (this.viewingFile && this.viewingFile.id === achievement.id) {
           this.viewingFile.isPublic = newVisibility
         }
-        
+
         alert(`公开性已更新为：${newVisibility ? '公开' : '项目私有'}`)
       } catch (error) {
         console.error('更新公开性失败:', error)
         alert('更新公开性失败: ' + (error.message || '请重试'))
       }
     },
-    
+
     // 保存描述修改
     async saveDescriptionChanges() {
       if (!this.viewingFile) return

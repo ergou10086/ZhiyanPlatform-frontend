@@ -54,7 +54,7 @@ export function createAxiosInstance(useProxy = false) {
       
       // ==================== 主动刷新检查 ====================
       // 在发送请求前，检查token是否即将过期
-      if (token && tokenManager.isTokenExpiringSoon()) {
+      if (token && tokenManager.isTokenExpiringSoon(token)) {
         console.log('⚠️ Token即将过期，主动刷新')
         
         // 如果TokenManager的定时器还没触发，这里手动触发刷新

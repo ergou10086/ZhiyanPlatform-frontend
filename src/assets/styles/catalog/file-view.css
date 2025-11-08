@@ -760,3 +760,60 @@
   color: #60a5fa;
 }
 
+/* 成果信息部分样式 */
+.achievement-info-section {
+  padding: 24px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.achievement-info-section .file-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.achievement-info-section .detail-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.achievement-info-section .detail-item:last-child {
+  border-bottom: none;
+}
+
+.achievement-info-section .detail-label {
+  font-weight: 600;
+  color: #374151;
+  min-width: 100px;
+  font-size: 14px;
+}
+
+.achievement-info-section .detail-value {
+  color: #6b7280;
+  font-size: 14px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dark-mode .achievement-info-section {
+  background: #1f2937;
+}
+
+.dark-mode .achievement-info-section .detail-item {
+  border-bottom-color: #374151;
+}
+
+.dark-mode .achievement-info-section .detail-label {
+  color: #e5e7eb;
+}
+
+.dark-mode .achievement-info-section .detail-value {
+  color: #9ca3af;
+}
+
