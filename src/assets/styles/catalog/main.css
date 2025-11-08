@@ -231,6 +231,29 @@
   box-shadow: 0 2px 8px rgba(91, 107, 255, 0.3);
 }
 
+.add-btn.disabled,
+.add-btn:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  color: #e5e7eb;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
+.add-btn.disabled:hover,
+.add-btn:disabled:hover {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+  transform: none;
+  box-shadow: none;
+}
+
+.add-btn.disabled:active,
+.add-btn:disabled:active {
+  transform: none;
+  box-shadow: none;
+}
+
 /* 类型标识圆点 */
 .dot { 
   width: 12px; 

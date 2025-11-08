@@ -248,14 +248,30 @@ console.error = function(...args) {
     }
   }
   
-  // 如果检测到错误信息，触发弹窗
-  if (errorMessage || errorStack || args.some(arg => 
+  // 过滤掉 Wiki 相关的错误，不显示全局错误弹窗
+  const isWikiError = args.some(arg => {
+    const argStr = typeof arg === 'string' ? arg : (typeof arg === 'object' ? JSON.stringify(arg) : String(arg))
+    return argStr.includes('[loadWikiTree]') || 
+           argStr.includes('[selectDocument]') ||
+           argStr.includes('Wiki') ||
+           argStr.includes('wiki') ||
+           argStr.includes('知识库') ||
+           argStr.includes('项目wiki文档') ||
+           argStr.includes('KnowledgeBaseCabinet') ||
+           argStr.includes('ProjectKnowledge')
+  }) || errorStack?.includes('KnowledgeBaseCabinet') || 
+      errorStack?.includes('ProjectKnowledge') ||
+      errorStack?.includes('wiki') ||
+      errorStack?.includes('Wiki')
+  
+  // 如果检测到错误信息，触发弹窗（但排除 Wiki 相关错误）
+  if (!isWikiError && (errorMessage || errorStack || args.some(arg => 
     typeof arg === 'string' && (
       arg.includes('错误') || arg.includes('error') || arg.includes('Error') ||
       arg.includes('失败') || arg.includes('500') || 
       arg.includes('ECONNREFUSED') || arg.includes('Proxy error')
     )
-  )) {
+  ))) {
     // 生成错误唯一标识（用于去重）
     const errorKey = errorMessage + (errorStack ? errorStack.substring(0, 100) : '')
     

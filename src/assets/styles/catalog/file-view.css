@@ -690,3 +690,68 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
+/* 文件卡片样式（类似AI赋能） */
+.single-file-card-container {
+  padding: 24px;
+}
+
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+}
+
+.file-preview-card:hover {
+  border-color: #5EB6E4;
+  box-shadow: 0 2px 8px rgba(94, 182, 228, 0.15);
+}
+
+.file-preview-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.file-preview-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.file-preview-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.file-preview-type {
+  font-weight: 500;
+}
+
+.file-preview-size {
+  color: #94a3b8;
+}
+

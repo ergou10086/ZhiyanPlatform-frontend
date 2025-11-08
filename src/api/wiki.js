@@ -9,7 +9,8 @@ function parseJSONWithBigInt(data) {
   try {
     return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
   } catch (e) {
-    console.error('JSON解析错误:', e)
+    // 使用 console.warn，避免触发全局错误处理器
+    console.warn('JSON解析错误:', e)
     return data
   }
 }
@@ -58,7 +59,8 @@ api.interceptors.request.use(
     return config
   },
   error => {
-    console.error('[Wiki API请求拦截器] 错误:', error)
+    // 使用 console.warn，避免触发全局错误处理器
+    console.warn('[Wiki API请求拦截器] 错误:', error)
     return Promise.reject(error)
   }
 )
@@ -70,26 +72,43 @@ api.interceptors.response.use(
     return response.data
   },
   error => {
-    console.error('[Wiki API错误]:', error)
+    // 重要：不调用 console.error，避免被全局错误处理器捕获
+    // 只在开发环境或非权限错误时记录日志
     
     if (error.response) {
       const { status, data } = error.response
-      console.error('服务器错误:', status, data)
       
-      if (status === 401 || status === 403) {
-        // token过期或无权限，跳转到登录页
+      // 401 是认证错误，需要跳转登录
+      if (status === 401) {
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('user_info')
         window.location.href = '/login'
+        return Promise.reject(data || error)
+      }
+      
+      // 403 是权限错误，不跳转登录，让组件自己处理
+      // 不调用 console.error，避免触发全局错误弹窗
+      if (status === 403) {
+        // 静默处理权限错误，让组件捕获并显示友好提示
+        return Promise.reject(data || error)
+      }
+      
+      // 其他服务器错误，使用 console.warn（不会触发全局错误处理器）
+      if (status >= 500) {
+        console.warn('[Wiki API] 服务器错误:', status, data)
+      } else {
+        console.warn('[Wiki API] 客户端错误:', status, data)
       }
       
       return Promise.reject(data || error)
     } else if (error.request) {
-      console.error('网络错误:', error.request)
+      // 网络错误，使用 console.warn
+      console.warn('[Wiki API] 网络错误:', error.request)
       return Promise.reject(new Error('网络连接失败，请检查Wiki服务'))
     } else {
-      console.error('其他错误:', error.message)
+      // 其他错误，使用 console.warn
+      console.warn('[Wiki API] 其他错误:', error.message)
       return Promise.reject(error)
     }
   }

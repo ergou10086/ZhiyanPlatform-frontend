@@ -28,10 +28,10 @@
             <div class="option-item" :class="{ active: activeTab==='catalog' }" @click="goTab('catalog')">
               <span>成果目录</span>
             </div>
-            <div class="option-item" :class="{ active: activeTab==='cabinet' }" @click="goTab('cabinet')">
+            <div class="option-item" :class="{ active: activeTab==='cabinet', disabled: permissionErrorShown }" @click="goTab('cabinet')">
               <span>项目wiki文档</span>
             </div>
-            <div class="option-item" :class="{ active: activeTab==='ai' }" @click="goTab('ai')">
+            <div class="option-item" :class="{ active: activeTab==='ai', disabled: permissionErrorShown }" @click="goTab('ai')">
               <span>AI 赋能</span>
             </div>
           </div>
@@ -112,6 +112,7 @@
             v-else-if="activeTab==='catalog'" 
             :archiveRows="archiveRows" 
             :projectId="projectId" 
+            :isNotMember="permissionErrorShown"
             @file-uploaded="handleFileUploaded"
             @file-deleted="handleFileDeleted"
             @file-edited="handleFileEdited"
@@ -122,6 +123,42 @@
 
           <!-- AI 赋能面板 -->
           <KnowledgeBaseAI v-else :projectId="projectId" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 权限错误弹窗 -->
+    <div v-if="showPermissionDialog" class="permission-dialog-overlay" @click.self="closePermissionDialog">
+      <div class="permission-dialog">
+        <div class="permission-dialog-header">
+          <div class="permission-dialog-header-content">
+            <div class="permission-dialog-icon-wrapper">
+              <svg class="permission-dialog-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="permission-dialog-title">提示</div>
+          </div>
+          <button class="permission-dialog-close" @click="closePermissionDialog">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="permission-dialog-body">
+          <div class="permission-dialog-main-icon">
+            <div class="permission-dialog-icon-bg"></div>
+            <svg class="permission-dialog-icon-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <p class="permission-dialog-message">你不是该项目成员</p>
+        </div>
+        <div class="permission-dialog-footer">
+          <button class="permission-dialog-btn" @click="closePermissionDialog">
+            <span>确定</span>
+          </button>
         </div>
       </div>
     </div>
@@ -154,7 +191,9 @@ export default {
       teamMembersCount: 0,
       onlineMembersCount: 0,
       activities: [],
-      archiveRows: []
+      archiveRows: [],
+      permissionErrorShown: false, // 标记是否已显示权限错误，防止重复显示
+      showPermissionDialog: false // 控制权限错误弹窗显示
     }
   },
   computed: {
@@ -220,6 +259,10 @@ export default {
     },
     goTab(tab) {
       if (this.activeTab === tab) return
+      // 如果不是项目成员，禁止切换到 AI 赋能和项目wiki文档
+      if ((tab === 'ai' || tab === 'cabinet') && this.permissionErrorShown) {
+        return
+      }
       this.activeTab = tab
     },
     async loadProjectName() {
@@ -239,7 +282,8 @@ export default {
           return
         }
       } catch (error) {
-        console.error('从API加载项目失败，回退到localStorage:', error)
+        // 使用 console.warn，避免触发全局错误处理器
+        console.warn('从API加载项目失败，回退到localStorage:', error)
       }
       
       // 如果API失败，从localStorage加载项目数据（作为后备）
@@ -265,7 +309,8 @@ export default {
             console.log('未找到项目，ID:', this.projectId, '可用项目ID:', projects.map(p => p.id))
           }
         } catch (error) {
-          console.error('解析项目数据失败:', error)
+          // 使用 console.warn，避免触发全局错误处理器
+          console.warn('解析项目数据失败:', error)
           this.projectName = '未知项目'
         }
       } else {
@@ -377,7 +422,29 @@ export default {
           this.achievementsCount = 0
         }
       } catch (error) {
-        console.error('加载成果总数失败:', error)
+        // 对于知识库 API 错误，如果不是明显的网络错误，都当作权限错误处理
+        const isNetworkError = error && (
+          error.code === 'ECONNABORTED' || 
+          error.code === 'NETWORK_ERROR' || 
+          error.message?.includes('网络') ||
+          error.message?.includes('Network') ||
+          (!error.response && error.request)
+        )
+        
+        const isServerError = error?.response?.status >= 500
+        const isPermissionError = !isNetworkError && !isServerError
+        
+        if (isPermissionError && !this.permissionErrorShown) {
+          // 权限错误：显示自定义弹窗
+          this.permissionErrorShown = true
+          this.showPermissionDialog = true
+          // 如果当前在 AI 页面或 wiki 页面，切换回主页
+          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
+            this.activeTab = 'home'
+          }
+        }
+        // 不调用 console.error，避免触发全局错误弹窗
+        
         this.achievementsCount = 0
       }
     },
@@ -406,7 +473,40 @@ export default {
           this.documentsCount = 0
         }
       } catch (error) {
-        console.error('加载文档数量失败:', error)
+        // 对于知识库 API 错误，如果不是明显的网络错误，都当作权限错误处理
+        // 这样可以避免显示技术错误弹窗
+        const isNetworkError = error && (
+          error.code === 'ECONNABORTED' || 
+          error.code === 'NETWORK_ERROR' || 
+          error.message?.includes('网络') ||
+          error.message?.includes('Network') ||
+          (!error.response && error.request) // 有请求但没有响应，可能是网络问题
+        )
+        
+        // 如果不是网络错误，且不是明显的服务器内部错误（500），就当作权限错误
+        const isServerError = error?.response?.status >= 500
+        const isPermissionError = !isNetworkError && !isServerError
+        
+        if (isPermissionError && !this.permissionErrorShown) {
+          // 权限错误：显示自定义弹窗
+          // 重要：完全不调用 console.error，避免被全局错误处理器捕获
+          this.permissionErrorShown = true
+          this.showPermissionDialog = true
+          this.documentsCount = 0
+          // 如果当前在 AI 页面或 wiki 页面，切换回主页
+          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
+            this.activeTab = 'home'
+          }
+          return // 直接返回，不执行后续代码
+        }
+        
+        // 只有网络错误或服务器错误才记录日志（但不显示弹窗）
+        if (isNetworkError || isServerError) {
+          // 静默处理，不调用 console.error，避免触发全局错误弹窗
+          // 只在控制台输出警告（不会触发全局错误处理器）
+          console.warn('加载文档数量失败（网络或服务器错误）:', error)
+        }
+        
         // 如果API失败，尝试从localStorage读取作为后备
         try {
           const storageKey = `knowledgeBaseDocs_${this.projectId}`
@@ -415,15 +515,103 @@ export default {
             const data = JSON.parse(saved)
             const count = data.docs && Array.isArray(data.docs) ? data.docs.length : 0
             this.documentsCount = count
-            console.log('从localStorage读取文档数量（后备）:', this.documentsCount)
           } else {
             this.documentsCount = 0
           }
         } catch (localError) {
-          console.error('从localStorage读取文档数量失败:', localError)
+          // 静默处理，不调用 console.error
           this.documentsCount = 0
         }
       }
+    },
+    
+    /**
+     * 检查错误是否是权限错误（非项目成员访问）
+     */
+    isPermissionError(error) {
+      // 检查响应状态码
+      if (error && error.response) {
+        const status = error.response.status
+        // 403 Forbidden 通常表示权限不足
+        if (status === 403) {
+          return true
+        }
+        
+        // 检查响应数据中的错误消息
+        const responseData = error.response.data
+        if (responseData) {
+          const errorMsg = (
+            responseData.message || 
+            responseData.msg || 
+            responseData.error || 
+            responseData.data ||
+            (typeof responseData === 'string' ? responseData : JSON.stringify(responseData))
+          ).toLowerCase()
+          if (errorMsg.includes('权限') || errorMsg.includes('permission') || 
+              errorMsg.includes('成员') || errorMsg.includes('member') ||
+              errorMsg.includes('无权') || errorMsg.includes('forbidden') ||
+              errorMsg.includes('不是项目成员') || errorMsg.includes('not a member') ||
+              errorMsg.includes('不是该项目的成员') || errorMsg.includes('无权访问') ||
+              errorMsg.includes('您不是项目成员') || errorMsg.includes('您不是该项目的成员')) {
+            return true
+          }
+        }
+      }
+      
+      // 检查错误消息
+      if (error && error.message) {
+        const errorMsg = error.message.toLowerCase()
+        if (errorMsg.includes('权限') || errorMsg.includes('permission') || 
+            errorMsg.includes('成员') || errorMsg.includes('member') ||
+            errorMsg.includes('无权') || errorMsg.includes('forbidden') ||
+            errorMsg.includes('不是项目成员') || errorMsg.includes('not a member') ||
+            errorMsg.includes('不是该项目的成员') || errorMsg.includes('无权访问') ||
+            errorMsg.includes('您不是项目成员') || errorMsg.includes('您不是该项目的成员')) {
+          return true
+        }
+      }
+      
+      // 检查错误对象中的其他字段
+      if (error && typeof error === 'object') {
+        // 检查 code 字段
+        if (error.code === 403 || error.code === 'PERMISSION_DENIED' || 
+            (typeof error.code === 'string' && error.code.toLowerCase().includes('permission'))) {
+          return true
+        }
+        
+        // 检查 data 字段
+        if (error.data) {
+          const dataStr = typeof error.data === 'string' 
+            ? error.data 
+            : JSON.stringify(error.data)
+          const dataMsg = dataStr.toLowerCase()
+          if (dataMsg.includes('权限') || dataMsg.includes('permission') || 
+              dataMsg.includes('成员') || dataMsg.includes('member') ||
+              dataMsg.includes('无权') || dataMsg.includes('forbidden') ||
+              dataMsg.includes('不是项目成员') || dataMsg.includes('not a member') ||
+              dataMsg.includes('不是该项目的成员') || dataMsg.includes('无权访问') ||
+              dataMsg.includes('您不是项目成员') || dataMsg.includes('您不是该项目的成员')) {
+            return true
+          }
+        }
+        
+        // 最后，检查整个错误对象的字符串表示
+        try {
+          const errorStr = JSON.stringify(error).toLowerCase()
+          if (errorStr.includes('权限') || errorStr.includes('permission') || 
+              errorStr.includes('成员') || errorStr.includes('member') ||
+              errorStr.includes('无权') || errorStr.includes('forbidden') ||
+              errorStr.includes('不是项目成员') || errorStr.includes('not a member') ||
+              errorStr.includes('不是该项目的成员') || errorStr.includes('无权访问') ||
+              errorStr.includes('您不是项目成员') || errorStr.includes('您不是该项目的成员')) {
+            return true
+          }
+        } catch (e) {
+          // JSON.stringify 失败，忽略
+        }
+      }
+      
+      return false
     },
     
     /**
@@ -544,7 +732,29 @@ export default {
           console.log('⚠️ API调用失败，使用模拟在线人数:', this.onlineMembersCount, '人')
         }
       } catch (error) {
-        console.warn('获取团队成员详情失败，使用模拟在线人数:', error)
+        // 对于知识库 API 错误，如果不是明显的网络错误，都当作权限错误处理
+        const isNetworkError = error && (
+          error.code === 'ECONNABORTED' || 
+          error.code === 'NETWORK_ERROR' || 
+          error.message?.includes('网络') ||
+          error.message?.includes('Network') ||
+          (!error.response && error.request)
+        )
+        
+        const isServerError = error?.response?.status >= 500
+        const isPermissionError = !isNetworkError && !isServerError
+        
+        if (isPermissionError && !this.permissionErrorShown) {
+          // 权限错误：显示自定义弹窗
+          this.permissionErrorShown = true
+          this.showPermissionDialog = true
+          // 如果当前在 AI 页面或 wiki 页面，切换回主页
+          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
+            this.activeTab = 'home'
+          }
+        }
+        // 不调用 console.error 或 console.warn，避免触发全局错误弹窗
+        
         // 出错时使用模拟数据
         this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)
       }
@@ -567,7 +777,8 @@ export default {
         localStorage.setItem(`projectKnowledge_${this.projectId}`, JSON.stringify(dataToSave))
         console.log('项目知识库数据已保存到本地存储')
       } catch (error) {
-        console.error('保存到本地存储失败:', error)
+        // 使用 console.warn，避免触发全局错误处理器
+        console.warn('保存到本地存储失败:', error)
       }
     },
     
@@ -582,7 +793,8 @@ export default {
           }
         }
       } catch (error) {
-        console.error('从本地存储加载失败:', error)
+        // 使用 console.warn，避免触发全局错误处理器
+        console.warn('从本地存储加载失败:', error)
       }
     },
     
@@ -596,7 +808,8 @@ export default {
           return data.uploadedFiles ? data.uploadedFiles.length : 0
         }
       } catch (error) {
-        console.error('获取上传文件数量失败:', error)
+        // 使用 console.warn，避免触发全局错误处理器
+        console.warn('获取上传文件数量失败:', error)
       }
       return 0
     },
@@ -611,7 +824,8 @@ export default {
           return data.docs ? data.docs.length : 0
         }
       } catch (error) {
-        console.error('获取文档数量失败:', error)
+        // 使用 console.warn，避免触发全局错误处理器
+        console.warn('获取文档数量失败:', error)
       }
       return 0
     },
@@ -679,6 +893,11 @@ export default {
         localStorage.setItem(storageKey, JSON.stringify(initialData))
         console.log(`已初始化项目 ${this.projectId} 的知识柜数据`)
       }
+    },
+    
+    // 关闭权限错误弹窗
+    closePermissionDialog() {
+      this.showPermissionDialog = false
     }
   }
 }

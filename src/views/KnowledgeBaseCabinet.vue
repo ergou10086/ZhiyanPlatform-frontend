@@ -821,12 +821,33 @@ export default {
             })
           }
         } else {
-          console.error('[loadWikiTree] API返回错误:', response)
-          this.$message?.error(response.msg || '加载Wiki失败')
+          // 使用 console.warn，避免触发全局错误处理器
+          console.warn('[loadWikiTree] API返回错误:', response)
+          // 检查是否是权限错误
+          if (response.code === 403 || response.msg?.includes('权限') || response.msg?.includes('成员')) {
+            // 权限错误：静默处理，不显示错误消息
+            // 由父组件 ProjectKnowledge 统一处理权限错误提示
+          } else {
+            this.$message?.error(response.msg || '加载Wiki失败')
+          }
         }
       } catch (error) {
-        console.error('[loadWikiTree] 加载Wiki树失败:', error)
-        this.$message?.error('加载Wiki失败，请重试')
+        // 检查是否是权限错误
+        const isPermissionError = error?.response?.status === 403 || 
+                                  error?.message?.includes('权限') ||
+                                  error?.message?.includes('成员') ||
+                                  error?.response?.data?.msg?.includes('权限') ||
+                                  error?.response?.data?.msg?.includes('成员')
+        
+        if (isPermissionError) {
+          // 权限错误：静默处理，不调用 console.error，不显示错误消息
+          // 由父组件 ProjectKnowledge 统一处理权限错误提示
+          console.warn('[loadWikiTree] 权限错误（已静默处理）:', error)
+        } else {
+          // 其他错误：使用 console.warn，避免触发全局错误处理器
+          console.warn('[loadWikiTree] 加载Wiki树失败:', error)
+          this.$message?.error('加载Wiki失败，请重试')
+        }
       } finally {
         this.loading = false
       }
@@ -983,7 +1004,8 @@ export default {
           
           console.log('[selectDocument] 页面详情加载成功:', this.currentPage.title)
         } else {
-          console.error('[selectDocument] 加载页面失败:', response)
+          // 使用 console.warn，避免触发全局错误处理器
+          console.warn('[selectDocument] 加载页面失败:', response)
           this.$message?.error(response.msg || '加载页面失败')
 
           // 如果页面不存在，重新加载Wiki树
@@ -993,40 +1015,51 @@ export default {
           }
         }
       } catch (error) {
-        console.error('[selectDocument] 加载页面失败:', error)
-        console.error('[selectDocument] 错误详情:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message,
-          pageId: pageId
-        })
-
-        // 检查是否是404错误（页面不存在）
-        if (error.response?.status === 404 || error.message?.includes('不存在')) {
-          this.$message?.error('页面不存在，可能已被删除')
-          // 重新加载Wiki树以同步最新数据
-          await this.loadWikiTree()
-        } else if (error.response?.status === 403) {
-          // 权限不足
-          this.$message?.error('无权访问该页面')
-        } else if (error.response?.status === 401) {
-          // 未登录或token过期
-          this.$message?.error('登录已过期，请重新登录')
-          // 可以跳转到登录页
-          // this.$router.push('/login')
+        // 检查是否是权限错误
+        const isPermissionError = error?.response?.status === 403 || 
+                                  error?.message?.includes('权限') ||
+                                  error?.message?.includes('成员') ||
+                                  error?.response?.data?.msg?.includes('权限') ||
+                                  error?.response?.data?.msg?.includes('成员')
+        
+        if (isPermissionError) {
+          // 权限错误：静默处理，不调用 console.error，不显示错误消息
+          // 由父组件 ProjectKnowledge 统一处理权限错误提示
+          console.warn('[selectDocument] 权限错误（已静默处理）:', error)
         } else {
-          // 其他错误
-          const errorMsg = error.response?.data?.msg || error.message || '加载页面失败，请重试'
-          this.$message?.error(errorMsg)
+          // 其他错误：使用 console.warn，避免触发全局错误处理器
+          console.warn('[selectDocument] 加载页面失败:', error)
+          console.warn('[selectDocument] 错误详情:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+            pageId: pageId
+          })
 
-          // 降级处理：显示基本信息
-          if (existingDoc) {
-            this.currentPage = {
-              id: pageIdStr,
-              title: existingDoc.title,
-              content: '加载失败，请稍后重试',
-              pageType: 'DOCUMENT',
-              updatedAt: existingDoc.updated
+          // 检查是否是404错误（页面不存在）
+          if (error.response?.status === 404 || error.message?.includes('不存在')) {
+            this.$message?.error('页面不存在，可能已被删除')
+            // 重新加载Wiki树以同步最新数据
+            await this.loadWikiTree()
+          } else if (error.response?.status === 401) {
+            // 未登录或token过期
+            this.$message?.error('登录已过期，请重新登录')
+            // 可以跳转到登录页
+            // this.$router.push('/login')
+          } else {
+            // 其他错误
+            const errorMsg = error.response?.data?.msg || error.message || '加载页面失败，请重试'
+            this.$message?.error(errorMsg)
+
+            // 降级处理：显示基本信息
+            if (existingDoc) {
+              this.currentPage = {
+                id: pageIdStr,
+                title: existingDoc.title,
+                content: '加载失败，请稍后重试',
+                pageType: 'DOCUMENT',
+                updatedAt: existingDoc.updated
+              }
             }
           }
         }
