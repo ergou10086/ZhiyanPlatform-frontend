@@ -737,7 +737,19 @@ export default {
           const parsed = JSON.parse(cachedTasks)
           // 检查缓存是否过期（3分钟）
           if (parsed.timestamp && Date.now() - parsed.timestamp < 3 * 60 * 1000) {
-            this.myTasks = parsed.data || []
+            // 从缓存加载时也要过滤掉已完成的任务
+            const cachedData = parsed.data || []
+            const activeCachedTasks = cachedData.filter(task => {
+              const status = String(task.status || '').trim()
+              const statusUpper = status.toUpperCase()
+              const completedStatuses = ['DONE', '完成', '已完成', 'COMPLETED', 'done', 'Done']
+              const isCompleted = completedStatuses.includes(status) || 
+                                 completedStatuses.includes(statusUpper) ||
+                                 statusUpper.includes('DONE') || 
+                                 status.includes('完成')
+              return !isCompleted
+            })
+            this.myTasks = activeCachedTasks
             this.isLoadingTasks = false
             // 后台更新数据
             this.loadMyTasksFromAPI()
@@ -782,8 +794,23 @@ export default {
             projectId: task.projectId
           }))
           
+          // 过滤掉已完成的任务
+          const activeTasks = mappedTasks.filter(task => {
+            const status = String(task.status || '').trim()
+            const statusUpper = status.toUpperCase()
+            
+            // 排除所有可能的完成状态（支持中英文）
+            const completedStatuses = ['DONE', '完成', '已完成', 'COMPLETED', 'done', 'Done']
+            const isCompleted = completedStatuses.includes(status) || 
+                               completedStatuses.includes(statusUpper) ||
+                               statusUpper.includes('DONE') || 
+                               status.includes('完成')
+            
+            return !isCompleted
+          })
+          
           // 按优先级排序：高 > 中 > 低
-          this.myTasks = this.sortTasksByPriority(mappedTasks)
+          this.myTasks = this.sortTasksByPriority(activeTasks)
           
           // 保存到缓存
           try {

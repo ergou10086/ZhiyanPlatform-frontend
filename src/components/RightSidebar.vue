@@ -193,7 +193,20 @@ export default {
 
       return this.myTasks.filter(task => {
         // 只统计有截止日期且未完成的任务
-        if (!task.dueDate || task.status === 'DONE') {
+        if (!task.dueDate) {
+          return false
+        }
+        
+        // 检查任务状态是否为完成状态（支持中英文）
+        const status = String(task.status || '').trim()
+        const statusUpper = status.toUpperCase()
+        const completedStatuses = ['DONE', '完成', '已完成', 'COMPLETED', 'done', 'Done']
+        const isCompleted = completedStatuses.includes(status) || 
+                           completedStatuses.includes(statusUpper) ||
+                           statusUpper.includes('DONE') || 
+                           status.includes('完成')
+        
+        if (isCompleted) {
           return false
         }
 
