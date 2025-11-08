@@ -61,6 +61,11 @@ class TokenManager {
    * 解析JWT Token获取过期时间
    */
   getTokenExpirationTime(token) {
+    // 检查token是否存在
+    if (!token || typeof token !== 'string') {
+      return null
+    }
+
     try {
       const payload = JSON.parse(atob(token.split('.')[1]))
       return payload.exp ? payload.exp * 1000 : null // 转换为毫秒
@@ -74,6 +79,11 @@ class TokenManager {
    * 检查Token是否即将过期
    */
   isTokenExpiringSoon(token) {
+    // 检查token是否存在
+    if (!token || typeof token !== 'string') {
+      return false
+    }
+
     const expirationTime = this.getTokenExpirationTime(token)
     if (!expirationTime) return false
     
