@@ -126,27 +126,30 @@
 
 /* ========== 文件夹和文档列表 ========== */
 .cabinet-view .folder-section {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .cabinet-view .group-title { 
-  color: #64748b; 
-  font-size: 13px; 
-  margin: 20px 0 12px; 
+  color: #334155; 
+  font-size: 14px; 
+  margin: 8px 0 4px; 
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 14px 16px;
+  padding: 12px 14px;
   min-height: 44px;
-  border-radius: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
   position: relative;
   gap: 8px;
   line-height: 1.4;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  margin-bottom: 6px;
 }
 
 .cabinet-view .group-title svg {
@@ -154,22 +157,25 @@
 }
 
 .cabinet-view .group-title:hover {
-  color: #334155;
-  background: linear-gradient(135deg, rgba(94, 182, 228, 0.08) 0%, rgba(94, 182, 228, 0.04) 100%);
+  color: #1e293b;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.12) 0%, rgba(94, 182, 228, 0.06) 100%);
+  border-color: rgba(94, 182, 228, 0.3);
   transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(94, 182, 228, 0.15);
 }
 
 .cabinet-view .folder-icon {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform: rotate(-90deg);
   color: #64748b;
-  width: 18px !important;
-  height: 18px !important;
+  width: 16px !important;
+  height: 16px !important;
   flex-shrink: 0;
 }
 
 .cabinet-view .folder-icon.expanded {
   transform: rotate(0deg);
+  color: #5EB6E4;
 }
 
 .cabinet-view .doc-list { 
@@ -190,33 +196,35 @@
 }
 
 .cabinet-view .doc-list li { 
-  padding: 12px 14px; 
+  padding: 11px 14px; 
   border-radius: 10px; 
   cursor: pointer; 
   color: #475569; 
   font-size: 14px;
   font-weight: 500;
-  margin-bottom: 0;
+  margin-bottom: 4px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  border-bottom: 1px solid #e2e8f0;
+  border: 1px solid transparent;
+  background: rgba(248, 250, 252, 0.3);
 }
 
 .cabinet-view .doc-list li:hover { 
-  background: linear-gradient(135deg, rgba(94, 182, 228, 0.08) 0%, rgba(94, 182, 228, 0.04) 100%);
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.10) 0%, rgba(94, 182, 228, 0.05) 100%);
   color: #1e293b;
   transform: translateX(4px);
+  border-color: rgba(94, 182, 228, 0.2);
+  box-shadow: 0 2px 6px rgba(94, 182, 228, 0.1);
 }
 
 .cabinet-view .doc-list li.active { 
-  background: linear-gradient(135deg, rgba(94, 182, 228, 0.18) 0%, rgba(0, 68, 204, 0.12) 100%);
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.16) 0%, rgba(0, 68, 204, 0.10) 100%);
   color: #0044CC;
-  font-weight: 700;
+  font-weight: 600;
   box-shadow: 
-    0 4px 12px rgba(94, 182, 228, 0.25),
+    0 3px 10px rgba(94, 182, 228, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(94, 182, 228, 0.3);
-  border-bottom: 1px solid rgba(94, 182, 228, 0.4);
+  border: 1px solid rgba(94, 182, 228, 0.35);
   transform: translateX(4px);
 }
 
@@ -230,11 +238,11 @@
   left: 0;
   top: 50%;
   transform: translateY(-50%);
-  width: 4px;
-  height: 70%;
-  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
-  border-radius: 0 3px 3px 0;
-  box-shadow: 0 0 8px rgba(94, 182, 228, 0.5);
+  width: 3px;
+  height: 60%;
+  background: linear-gradient(180deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 6px rgba(94, 182, 228, 0.4);
 }
 
 /* ========== 折叠按钮 ========== */

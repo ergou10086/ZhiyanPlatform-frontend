@@ -228,7 +228,7 @@
               <h3 class="task-title">{{ task.title }}</h3>
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
-                <span class="task-date" v-if="task.date">{{ task.date }}</span>
+                <span class="task-date" v-if="task.date">截止日期：{{ task.date }}</span>
                 <span class="task-creator">创建人: {{ task.created_by_name }}</span>
                 <span v-if="task.assignee_name" class="task-assignee">
                   负责人: {{ task.assignee_name }}
@@ -266,7 +266,6 @@
         <div class="section-header">
           <h2 class="section-title">团队成员</h2>
           <div class="section-actions" v-if="isProjectManager">
-            <button class="btn secondary" @click="addTeamMember">添加成员</button>
             <button class="btn primary" @click="inviteMember">邀请成员</button>
         </div>
         </div>
@@ -520,7 +519,7 @@
                 <h4 class="task-item-title">{{ task.title }}</h4>
                 <p class="task-item-description">{{ task.description }}</p>
                 <div class="task-item-meta">
-                  <span class="task-date" v-if="task.date">{{ task.date }}</span>
+                  <span class="task-date" v-if="task.date">截止日期：{{ task.date }}</span>
                   <span class="task-creator">创建人: {{ task.created_by_name }}</span>
                   <span v-if="task.assignee_name" class="task-assignee">
                     负责人: {{ task.assignee_name }}
@@ -529,15 +528,12 @@
               </div>
               <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') || (task.assignee_name && isCurrentUserAssignee(task)) }" @click.stop>
                 <button v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" @click="assignTask(task)" class="assign-btn">接取任务</button>
-                <template v-else-if="task.assignee_name && isCurrentUserAssignee(task)">
-                  <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <button @click="openUploadResultModal(task)" class="upload-result-btn" title="上传结果">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    上传结果
-                  </button>
-                </template>
+                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openUploadResultModal(task)" class="upload-result-btn" title="上传结果">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  上传结果
+                </button>
               </div>
             </div>
           </div>
@@ -652,7 +648,7 @@
             </div>
             <div class="user-list">
               <div 
-                v-for="user in searchedUsers" 
+                v-for="user in displayedUsers" 
                 :key="user.id || user.userId" 
                 class="user-item"
                 :class="{ 'user-selected': selectedUserIds.includes(user.id || user.userId) }"
@@ -677,6 +673,12 @@
                   </svg>
                 </div>
               </div>
+            </div>
+            <!-- 更多按钮 -->
+            <div v-if="showMoreButton" class="load-more-container">
+              <button class="btn load-more-btn" @click="loadMoreUsers">
+                更多
+              </button>
             </div>
           </div>
           
@@ -830,7 +832,7 @@
               </div>
               <div class="task-info-content">
                 <div class="task-info-label">截止日期</div>
-                <div class="task-info-value">{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
+                <div class="task-info-value">截止日期：{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
               </div>
             </div>
             
@@ -1082,6 +1084,7 @@ export default {
       isInviting: false, // 邀请中状态
       hasSearched: false, // 是否已经搜索过
       searchDebounceTimer: null, // 搜索防抖定时器
+      displayedUserCount: 4, // 当前显示的用户数量
       // 图片裁切相关
       showCropModal: false, // 是否显示裁切模态框
       originalImage: null, // 原始图片对象
@@ -1134,10 +1137,17 @@ export default {
       if (Array.isArray(this.teamMembers) && this.teamMembers.length > 0) {
         return this.teamMembers.length
       }
-      if (this.project && typeof this.project.teamSize === 'number') {
-        return this.project.teamSize
+    },
+    // 显示的用户列表（分页）
+    displayedUsers() {
+      if (!Array.isArray(this.searchedUsers)) {
+        return []
       }
-      return 0
+      return this.searchedUsers.slice(0, this.displayedUserCount)
+    },
+    // 是否显示"更多"按钮
+    showMoreButton() {
+      return Array.isArray(this.searchedUsers) && this.searchedUsers.length > this.displayedUserCount
     },
     isProjectManager() {
       // 判断当前用户是否是项目负责人
@@ -1604,6 +1614,7 @@ export default {
       this.hasSearched = false
       this.isSearching = false
       this.isInviting = false
+      this.displayedUserCount = 4 // 重置显示数量
       if (this.searchDebounceTimer) {
         clearTimeout(this.searchDebounceTimer)
         this.searchDebounceTimer = null
@@ -1632,6 +1643,7 @@ export default {
       
       this.isSearching = true
       this.hasSearched = false
+      this.displayedUserCount = 4 // 重置显示数量
       
       try {
         const { projectAPI } = await import('@/api/project')
@@ -1679,6 +1691,10 @@ export default {
         this.selectedUserIds.push(userId)
         console.log('选中用户:', user.name, '当前已选:', this.selectedUserIds.length)
       }
+    },
+    loadMoreUsers() {
+      // 每次点击"更多"按钮，增加4个用户
+      this.displayedUserCount += 4
     },
     async confirmInvite() {
       if (this.selectedUserIds.length === 0) {

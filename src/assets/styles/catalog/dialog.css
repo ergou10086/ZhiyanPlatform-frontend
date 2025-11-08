@@ -531,3 +531,120 @@
   border-color: #60a5fa;
 }
 
+/* 公开性选项样式 */
+.visibility-options {
+  display: flex;
+  gap: 12px;
+}
+
+.visibility-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #ffffff;
+}
+
+.visibility-option:hover {
+  border-color: #5EB6E4;
+  background: rgba(94, 182, 228, 0.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.15);
+}
+
+.visibility-option.active {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.12) 0%, rgba(0, 68, 204, 0.08) 100%);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.2);
+}
+
+.visibility-option .option-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.visibility-option.active .option-icon {
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.4);
+}
+
+.visibility-option .option-content {
+  flex: 1;
+}
+
+.visibility-option .option-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 4px;
+}
+
+.visibility-option.active .option-title {
+  color: #0044CC;
+}
+
+.visibility-option .option-desc {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.visibility-option.active .option-desc {
+  color: #5EB6E4;
+}
+
+/* 暗黑模式 */
+.dark-mode .visibility-option {
+  border-color: #475569;
+  background: #1e293b;
+}
+
+.dark-mode .visibility-option:hover {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.dark-mode .visibility-option.active {
+  border-color: #60a5fa;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.15) 0%, rgba(59, 130, 246, 0.1) 100%);
+}
+
+.dark-mode .visibility-option .option-icon {
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  color: #94a3b8;
+}
+
+.dark-mode .visibility-option.active .option-icon {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  color: white;
+}
+
+.dark-mode .visibility-option .option-title {
+  color: #cbd5e1;
+}
+
+.dark-mode .visibility-option.active .option-title {
+  color: #60a5fa;
+}
+
+.dark-mode .visibility-option .option-desc {
+  color: #94a3b8;
+}
+
+.dark-mode .visibility-option.active .option-desc {
+  color: #93c5fd;
+}
+
