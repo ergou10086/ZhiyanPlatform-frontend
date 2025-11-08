@@ -851,7 +851,7 @@ export default {
     formatDate(dateStr) {
       if (!dateStr) return '无截止日期'
       const date = new Date(dateStr)
-      return `截止:${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      return `截止日期：${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     },
     sortTasksByPriority(tasks) {
       // 定义优先级权重：高优先级 = 3, 中优先级 = 2, 低优先级 = 1

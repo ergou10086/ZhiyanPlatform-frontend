@@ -228,7 +228,7 @@
               <h3 class="task-title">{{ task.title }}</h3>
               <p class="task-description">{{ task.description }}</p>
               <div class="task-meta">
-                <span class="task-date" v-if="task.date">{{ task.date }}</span>
+                <span class="task-date" v-if="task.date">截止日期：{{ task.date }}</span>
                 <span class="task-creator">创建人: {{ task.created_by_name }}</span>
                 <span v-if="task.assignee_name" class="task-assignee">
                   负责人: {{ task.assignee_name }}
@@ -520,7 +520,7 @@
                 <h4 class="task-item-title">{{ task.title }}</h4>
                 <p class="task-item-description">{{ task.description }}</p>
                 <div class="task-item-meta">
-                  <span class="task-date" v-if="task.date">{{ task.date }}</span>
+                  <span class="task-date" v-if="task.date">截止日期：{{ task.date }}</span>
                   <span class="task-creator">创建人: {{ task.created_by_name }}</span>
                   <span v-if="task.assignee_name" class="task-assignee">
                     负责人: {{ task.assignee_name }}
@@ -529,15 +529,12 @@
               </div>
               <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') || (task.assignee_name && isCurrentUserAssignee(task)) }" @click.stop>
                 <button v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" @click="assignTask(task)" class="assign-btn">接取任务</button>
-                <template v-else-if="task.assignee_name && isCurrentUserAssignee(task)">
-                  <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <button @click="openUploadResultModal(task)" class="upload-result-btn" title="上传结果">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    上传结果
-                  </button>
-                </template>
+                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openUploadResultModal(task)" class="upload-result-btn" title="上传结果">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  上传结果
+                </button>
               </div>
             </div>
           </div>
@@ -830,7 +827,7 @@
               </div>
               <div class="task-info-content">
                 <div class="task-info-label">截止日期</div>
-                <div class="task-info-value">{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
+                <div class="task-info-value">截止日期：{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
               </div>
             </div>
             
