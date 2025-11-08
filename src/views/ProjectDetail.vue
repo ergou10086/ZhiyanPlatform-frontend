@@ -240,11 +240,12 @@
             </div>
             <div v-else-if="task.assignee_name && isCurrentUserAssignee(task)" class="task-assign-section" @click.stop>
               <span class="assign-status-badge assigned-by-me">已接取</span>
-              <button @click="openUploadResultModal(task)" class="upload-result-btn" title="上传结果">
+              <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" title="提交任务">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                上传结果
+                提交任务
               </button>
             </div>
           </div>
@@ -528,11 +529,12 @@
               </div>
               <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') || (task.assignee_name && isCurrentUserAssignee(task)) }" @click.stop>
                 <button v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" @click="assignTask(task)" class="assign-btn">接取任务</button>
-                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openUploadResultModal(task)" class="upload-result-btn" title="上传结果">
+                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openTaskSubmissionModal(task)" class="upload-result-btn" title="提交任务">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                  上传结果
+                  提交任务
                 </button>
               </div>
             </div>
@@ -920,77 +922,21 @@
       </div>
     </div>
 
-    <!-- 上传任务结果模态框 -->
-    <div v-if="uploadResultModalOpen && taskToUploadResult" class="modal-overlay" @click="closeUploadResultModal">
-      <div class="modal-content upload-result-modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="modal-title">上传任务结果</h3>
-          <button class="modal-close" @click="closeUploadResultModal">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="upload-result-info">
-            <h4 class="upload-result-task-title">{{ taskToUploadResult.title }}</h4>
-            <p class="upload-result-task-description">{{ taskToUploadResult.description || '暂无描述' }}</p>
-          </div>
-          
-          <div class="form-field">
-            <label class="form-label">结果描述 <span class="optional-text">(可选)</span></label>
-            <textarea 
-              v-model="resultText" 
-              class="form-textarea result-textarea" 
-              placeholder="请输入任务完成的结果描述..."
-              rows="6"
-            ></textarea>
-          </div>
-          
-          <div class="form-field">
-            <label class="form-label">上传图片 <span class="optional-text">(可选，最多5张)</span></label>
-            <div class="image-upload-area">
-              <input 
-                ref="imageInput" 
-                type="file" 
-                accept="image/*" 
-                multiple 
-                @change="handleImageSelect" 
-                style="display: none"
-              />
-              <button @click="$refs.imageInput.click()" class="upload-image-btn" :disabled="resultImages.length >= 5">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M17 8L12 3M12 3L7 8M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                选择图片
-              </button>
-              <span v-if="resultImages.length > 0" class="image-count">{{ resultImages.length }}/5</span>
-            </div>
-            
-            <!-- 图片预览列表 -->
-            <div v-if="resultImages.length > 0" class="image-preview-list">
-              <div v-for="(image, index) in resultImages" :key="index" class="image-preview-item">
-                <img :src="getImagePreview(image)" :alt="`预览图${index + 1}`" />
-                <button @click="removeImage(index)" class="remove-image-btn" title="删除">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="modal-footer">
-          <button @click="closeUploadResultModal" class="btn secondary">取消</button>
-          <button @click="confirmUploadResult" class="btn primary" :disabled="isUploadingResult">
-            <span v-if="isUploadingResult">上传中...</span>
-            <span v-else>确认上传</span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- 任务提交弹窗 (新) -->
+    <TaskSubmissionModal
+      :visible.sync="taskSubmissionModalVisible"
+      :task="taskToSubmit || {}"
+      @close="closeTaskSubmissionModal"
+      @success="handleTaskSubmitSuccess"
+    />
+
+    <!-- 任务审核弹窗 (新) -->
+    <TaskSubmissionReviewModal
+      :visible.sync="taskReviewModalVisible"
+      :submission="submissionToReview || {}"
+      @close="closeTaskReviewModal"
+      @success="handleReviewSuccess"
+    />
 
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
@@ -1030,9 +976,16 @@
 <script>
 import '@/assets/styles/ProjectDetail.css'
 import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage } from '@/utils/imageUtils'
+import TaskSubmissionModal from '@/components/TaskSubmissionModal.vue'
+import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
+import { getTaskSubmissions, getLatestSubmission } from '@/api/taskSubmission'
 
 export default {
   name: 'ProjectDetail',
+  components: {
+    TaskSubmissionModal,
+    TaskSubmissionReviewModal
+  },
   data() {
     return {
       taskTypeOpen: false,
@@ -1099,12 +1052,13 @@ export default {
       assignTaskModalOpen: false, // 分配任务模态框
       taskToAssign: null, // 待分配的任务
       selectedAssigneeId: null, // 选中的负责人ID
-      // 上传结果相关
-      uploadResultModalOpen: false, // 上传结果模态框
-      taskToUploadResult: null, // 待上传结果的任务
-      resultText: '', // 结果文字描述
-      resultImages: [], // 结果图片文件列表
-      isUploadingResult: false // 是否正在上传结果
+      // 任务提交相关 (新)
+      taskSubmissionModalVisible: false,
+      taskToSubmit: null,
+      taskSubmissions: [],
+      // 任务审核相关 (新)
+      taskReviewModalVisible: false,
+      submissionToReview: null
     }
   },
   computed: {
@@ -2630,148 +2584,223 @@ export default {
         alert('分配任务失败，请稍后重试')
       }
     },
-    // 打开上传结果模态框
-    openUploadResultModal(task) {
-      this.taskToUploadResult = task
-      this.resultText = ''
-      this.resultImages = []
-      this.uploadResultModalOpen = true
+    
+    // ==================== 任务提交相关方法 (新) ====================
+    
+    /**
+     * 打开任务提交弹窗
+     */
+    openTaskSubmissionModal(task) {
+      // 检查是否为任务执行者
+      const currentUserId = this.getCurrentUserId()
+      const isAssignee = this.isTaskAssignee(task, currentUserId)
       
-      // 尝试加载已有的结果
-      this.loadTaskResult(task.id)
-    },
-    // 关闭上传结果模态框
-    closeUploadResultModal() {
-      // 释放所有图片预览URL
-      this.resultImages.forEach(file => {
-        if (file instanceof File && file._previewUrl) {
-          URL.revokeObjectURL(file._previewUrl)
-          delete file._previewUrl
-        }
+      // 调试日志
+      console.log('[openTaskSubmissionModal] 检查任务执行者:', {
+        taskId: task.id,
+        taskTitle: task.title,
+        currentUserId: currentUserId,
+        assignee_id: task.assignee_id,
+        assignee_ids: task.assignee_ids,
+        assigneeIds: task.assigneeIds,
+        isAssignee: isAssignee
       })
       
-      this.uploadResultModalOpen = false
-      this.taskToUploadResult = null
-      this.resultText = ''
-      this.resultImages = []
-      this.isUploadingResult = false
-    },
-    // 加载任务结果
-    async loadTaskResult(taskId) {
-      try {
-        const { taskAPI } = await import('@/api/task')
-        const response = await taskAPI.getTaskResult(taskId)
-        
-        if (response && response.code === 200 && response.data) {
-          this.resultText = response.data.resultText || ''
-          // 如果有图片URL，可以在这里处理
-          // 注意：图片URL需要转换为File对象才能预览，这里暂时只处理文字
-        }
-      } catch (error) {
-        console.log('[loadTaskResult] 获取任务结果失败（可能是首次上传）:', error)
-        // 首次上传时没有结果，这是正常的，不需要处理
-      }
-    },
-    // 处理图片选择
-    handleImageSelect(event) {
-      const files = Array.from(event.target.files || [])
-      
-      // 检查总数量限制
-      const remainingSlots = 5 - this.resultImages.length
-      if (files.length > remainingSlots) {
-        alert(`最多只能上传5张图片，当前已有${this.resultImages.length}张，只能再添加${remainingSlots}张`)
-        files.splice(remainingSlots)
-      }
-      
-      // 验证文件类型和大小
-      const validFiles = []
-      for (const file of files) {
-        if (!file.type.startsWith('image/')) {
-          alert(`文件 ${file.name} 不是图片格式，已跳过`)
-          continue
-        }
-        
-        // 限制单张图片大小（5MB）
-        if (file.size > 5 * 1024 * 1024) {
-          alert(`图片 ${file.name} 大小超过5MB，已跳过`)
-          continue
-        }
-        
-        validFiles.push(file)
-      }
-      
-      // 添加到图片列表
-      this.resultImages.push(...validFiles)
-      
-      // 清空input，允许重复选择同一文件
-      event.target.value = ''
-    },
-    // 获取图片预览URL（使用缓存避免重复创建）
-    getImagePreview(file) {
-      if (file instanceof File) {
-        // 如果文件对象已经有预览URL属性，直接使用
-        if (file._previewUrl) {
-          return file._previewUrl
-        }
-        // 创建新的预览URL并缓存
-        file._previewUrl = URL.createObjectURL(file)
-        return file._previewUrl
-      }
-      return file
-    },
-    // 删除图片
-    removeImage(index) {
-      const file = this.resultImages[index]
-      // 释放预览URL
-      if (file instanceof File && file._previewUrl) {
-        URL.revokeObjectURL(file._previewUrl)
-        delete file._previewUrl
-      }
-      this.resultImages.splice(index, 1)
-    },
-    // 确认上传结果
-    async confirmUploadResult() {
-      if (!this.taskToUploadResult) return
-      
-      // 验证至少要有文字或图片
-      if (!this.resultText.trim() && this.resultImages.length === 0) {
-        alert('请至少填写结果描述或上传一张图片')
+      if (!isAssignee) {
+        console.warn('[openTaskSubmissionModal] 权限检查失败：当前用户不是任务执行者')
+        this.showErrorToast('只有任务执行者才能提交任务')
         return
       }
       
-      this.isUploadingResult = true
+      // 检查任务状态
+      if (task.status === 'DONE' || task.status === '已完成') {
+        this.showErrorToast('任务已完成，无需重复提交')
+        return
+      }
       
+      console.log('[openTaskSubmissionModal] 权限检查通过，打开提交弹窗')
+      this.taskToSubmit = task
+      this.taskSubmissionModalVisible = true
+      
+      // 加载任务提交历史
+      this.loadTaskSubmissions(task.id)
+    },
+    
+    /**
+     * 关闭任务提交弹窗
+     */
+    closeTaskSubmissionModal() {
+      this.taskSubmissionModalVisible = false
+      this.taskToSubmit = null
+    },
+    
+    /**
+     * 任务提交成功回调
+     */
+    handleTaskSubmitSuccess(submission) {
+      console.log('任务提交成功:', submission)
+      this.showSuccessToast('任务提交成功，等待审核')
+      
+      // 刷新任务列表
+      this.loadProjectTasks()
+      
+      // 关闭弹窗
+      this.closeTaskSubmissionModal()
+    },
+    
+    /**
+     * 加载任务提交历史
+     */
+    async loadTaskSubmissions(taskId) {
       try {
-        console.log('[confirmUploadResult] 开始上传任务结果, 任务ID:', this.taskToUploadResult.id)
-        
-        const { taskAPI } = await import('@/api/task')
-        const response = await taskAPI.uploadTaskResult(
-          this.taskToUploadResult.id,
-          this.resultText.trim(),
-          this.resultImages
-        )
-        
-        console.log('[confirmUploadResult] 后端返回:', response)
-        
-        if (response && response.code === 200) {
-          console.log('[confirmUploadResult] ✅ 任务结果上传成功')
-          
-          this.showSuccessToast(`成功上传任务结果: ${this.taskToUploadResult.title}`)
-          
-          // 关闭弹窗
-          this.closeUploadResultModal()
-          
-          // 可选：刷新任务列表
-          await this.loadProjectTasks()
-        } else {
-          alert('上传结果失败：' + (response.msg || '未知错误'))
+        const response = await getTaskSubmissions(taskId)
+        if (response.code === 200) {
+          this.taskSubmissions = response.data || []
+          console.log('任务提交历史:', this.taskSubmissions)
         }
       } catch (error) {
-        console.error('[confirmUploadResult] 上传结果失败:', error)
-        alert('上传结果失败，请稍后重试')
-      } finally {
-        this.isUploadingResult = false
+        console.error('加载任务提交历史失败', error)
       }
+    },
+    
+    /**
+     * 检查当前用户是否为任务执行者
+     */
+    isTaskAssignee(task, userId) {
+      if (!task || !userId) return false
+      
+      const userIdStr = String(userId)
+      
+      // 检查 assignee_id 数组（实际使用的字段）
+      if (task.assignee_id && Array.isArray(task.assignee_id)) {
+        return task.assignee_id.some(id => String(id) === userIdStr)
+      }
+      
+      // 检查 assignee_ids 数组（备用字段名）
+      if (task.assignee_ids && Array.isArray(task.assignee_ids)) {
+        return task.assignee_ids.includes(userId) || 
+               task.assignee_ids.includes(userIdStr)
+      }
+      
+      // 检查 assigneeIds 数组（备用字段名）
+      if (task.assigneeIds && Array.isArray(task.assigneeIds)) {
+        return task.assigneeIds.includes(userId) || 
+               task.assigneeIds.includes(userIdStr)
+      }
+      
+      return false
+    },
+    
+    /**
+     * 从任务详情弹窗触发提交
+     */
+    handleSubmitTask(task) {
+      // 关闭任务详情弹窗
+      this.closeTaskDetailModal()
+      
+      // 打开任务提交弹窗
+      this.openTaskSubmissionModal(task)
+    },
+    
+    // ==================== 任务审核相关方法 (新) ====================
+    
+    /**
+     * 打开任务审核弹窗（项目负责人/任务创建者可用）
+     */
+    async openTaskReviewModal(task) {
+      // 检查是否有审核权限
+      const currentUserId = this.getCurrentUserId()
+      if (!this.isProjectManager && task.created_by !== currentUserId) {
+        this.showErrorToast('只有项目负责人或任务创建者才能审核提交')
+        return
+      }
+      
+      try {
+        // 获取任务的最新提交
+        const response = await getLatestSubmission(task.id)
+        if (response.code === 200 && response.data) {
+          const submission = response.data
+          
+          // 检查提交状态
+          if (submission.reviewStatus !== 'PENDING') {
+            this.showErrorToast('该提交已审核')
+            return
+          }
+          
+          this.submissionToReview = submission
+          this.taskReviewModalVisible = true
+        } else {
+          this.showErrorToast('该任务暂无待审核的提交')
+        }
+      } catch (error) {
+        console.error('获取待审核提交失败', error)
+        this.showErrorToast('获取待审核提交失败')
+      }
+    },
+    
+    /**
+     * 关闭审核弹窗
+     */
+    closeTaskReviewModal() {
+      this.taskReviewModalVisible = false
+      this.submissionToReview = null
+    },
+    
+    /**
+     * 审核成功回调
+     */
+    handleReviewSuccess(submission) {
+      console.log('审核完成:', submission)
+      this.showSuccessToast('审核完成')
+      
+      // 刷新任务列表
+      this.loadProjectTasks()
+      
+      // 关闭弹窗
+      this.closeTaskReviewModal()
+    },
+    
+    /**
+     * 查看任务提交历史
+     */
+    async viewTaskSubmissions(task) {
+      try {
+        const response = await getTaskSubmissions(task.id)
+        if (response.code === 200) {
+          const submissions = response.data || []
+          
+          if (submissions.length === 0) {
+            this.showErrorToast('该任务暂无提交记录')
+            return
+          }
+          
+          // 显示提交历史
+          console.log('提交历史:', submissions)
+          this.showSuccessToast(`该任务共有 ${submissions.length} 条提交记录`)
+          
+          // TODO: 可以创建一个提交历史查看弹窗
+        }
+      } catch (error) {
+        console.error('获取提交历史失败', error)
+        this.showErrorToast('获取提交历史失败')
+      }
+    },
+    
+    // ==================== 辅助方法 ====================
+    
+    /**
+     * 获取当前用户ID
+     */
+    getCurrentUserId() {
+      const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+      return userInfo.id || userInfo.userId || null
+    },
+    
+    /**
+     * 显示错误提示
+     */
+    showErrorToast(message) {
+      alert(message) // 简单实现，可以替换为更好的Toast组件
     },
     statusClass(status) {
       // 处理项目状态类名
