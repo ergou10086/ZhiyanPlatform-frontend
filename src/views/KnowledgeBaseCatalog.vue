@@ -359,6 +359,38 @@
             </div>
           </div>
           
+          <!-- 成果公开性设置 -->
+          <div v-if="!isAddingToExisting" class="form-group">
+            <label>公开性设置：</label>
+            <div class="visibility-options">
+              <div class="visibility-option" @click="achievementForm.isPublic = false" :class="{ active: !achievementForm.isPublic }">
+                <div class="option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M19.4 15C18.2 17.2 15.4 19 12 19C8.6 19 5.8 17.2 4.6 15C5.8 12.8 8.6 11 12 11C15.4 11 18.2 12.8 19.4 15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="option-content">
+                  <div class="option-title">项目私有</div>
+                  <div class="option-desc">仅项目成员可见</div>
+                </div>
+              </div>
+              <div class="visibility-option" @click="achievementForm.isPublic = true" :class="{ active: achievementForm.isPublic }">
+                <div class="option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div class="option-content">
+                  <div class="option-title">公开</div>
+                  <div class="option-desc">所有人可见</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- 文件上传区域 -->
           <div class="form-group">
             <label>上传文件：</label>
@@ -907,6 +939,25 @@
                   <span class="detail-value">{{ fileContent.uploader }}</span>
                 </div>
                 <div class="detail-item">
+                  <span class="detail-label">公开性：</span>
+                  <span class="detail-value visibility-badge" :class="{ 'public': viewingFile.isPublic }">
+                    <svg v-if="!viewingFile.isPublic" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 15C13.6569 15 15 13.6569 15 12C15 10.3431 13.6569 9 12 9C10.3431 9 9 10.3431 9 12C9 13.6569 10.3431 15 12 15Z" stroke="currentColor" stroke-width="2"/>
+                      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    {{ viewingFile.isPublic ? '公开' : '项目私有' }}
+                  </span>
+                  <button class="change-visibility-btn" @click="toggleVisibility(viewingFile)" title="修改公开性">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 20H21M16 5L19 8M3 17V20H6L17 9L14 6L3 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="detail-item">
                   <span class="detail-label">上传时间：</span>
                   <span class="detail-value">{{ fileContent.time }}</span>
                 </div>
@@ -1258,6 +1309,7 @@ export default {
       // 新增：成果上传表单数据
       achievementForm: {
         name: '',
+        isPublic: false, // 公开性，默认为私有
         descriptions: [
           { content: '' }
         ],
@@ -1582,6 +1634,7 @@ export default {
     resetAchievementForm() {
       this.achievementForm = {
         name: '',
+        isPublic: false, // 公开性，默认为私有
         // 论文字段
         paperAuthors: '',
         paperTitle: '',
@@ -2093,6 +2146,36 @@ export default {
         reportType: '',
         reportName: '',
         reportDate: ''
+      }
+    },
+    
+    // 切换成果公开性
+    async toggleVisibility(achievement) {
+      try {
+        const newVisibility = !achievement.isPublic
+        const confirmMsg = newVisibility 
+          ? '确定要将此成果设置为公开吗？所有人都可以查看。' 
+          : '确定要将此成果设置为项目私有吗？只有项目成员可以查看。'
+        
+        if (!confirm(confirmMsg)) {
+          return
+        }
+        
+        // 调用API更新公开性
+        await knowledgeAPI.updateAchievementVisibility(achievement.id, newVisibility)
+        
+        // 更新本地数据
+        achievement.isPublic = newVisibility
+        
+        // 如果当前正在查看这个成果，也更新查看对话框中的数据
+        if (this.viewingFile && this.viewingFile.id === achievement.id) {
+          this.viewingFile.isPublic = newVisibility
+        }
+        
+        alert(`公开性已更新为：${newVisibility ? '公开' : '项目私有'}`)
+      } catch (error) {
+        console.error('更新公开性失败:', error)
+        alert('更新公开性失败: ' + (error.message || '请重试'))
       }
     },
     

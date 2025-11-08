@@ -191,6 +191,18 @@ export const knowledgeAPI = {
   },
 
   /**
+   * 更新成果公开性
+   * @param {Number} achievementId - 成果ID
+   * @param {Boolean} isPublic - 是否公开 (true: 公开, false: 私有)
+   */
+  updateAchievementVisibility(achievementId, isPublic) {
+    console.log('[knowledgeAPI.updateAchievementVisibility] 更新成果公开性, ID:', achievementId, '公开性:', isPublic)
+    return api.patch(`/zhiyan/achievement/${achievementId}/visibility`, null, {
+      params: { isPublic }
+    })
+  },
+
+  /**
    * 获取成果详情
    * @param {Number} achievementId - 成果ID
    */
