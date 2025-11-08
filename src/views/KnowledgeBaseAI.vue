@@ -65,18 +65,33 @@
             </div>
           </div>
 
-          <!-- ⭐ 参考Dify：打字时显示闪烁光标 -->
-          <span v-if="message.content">{{ message.content }}</span>
-          <span v-if="message.type === 'left' && index === currentTypingMessageIndex && isTyping" class="cursor-blink">|</span>
-
-          <!-- 复制按钮（文字消息且用户有发送文字时显示） -->
-          <div v-if="message.type === 'right' && !message.isFileOnly && message.content && message.content.trim()" class="message-copy-btn" @click="copyUserText(message.content)">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>复制文字</span>
+          <!-- ⭐ AI消息：支持Markdown渲染 -->
+          <div v-if="message.type === 'left'" class="ai-message-content">
+            <!-- 打字时显示纯文本 -->
+            <span v-if="index === currentTypingMessageIndex && isTyping" style="white-space: pre-wrap;">{{ message.content }}</span>
+            <!-- 打字完成后渲染Markdown -->
+            <span v-else v-html="formatMarkdown(message.content)"></span>
+            <!-- 打字光标 -->
+            <span v-if="index === currentTypingMessageIndex && isTyping" class="cursor-blink">|</span>
           </div>
+          <!-- 用户消息：普通文本 -->
+          <span v-else-if="message.content">{{ message.content }}</span>
+
+          <!-- ⭐ 复制按钮（所有有内容的消息都显示，小巧不影响观感） -->
+          <button 
+            v-if="message.content && message.content.trim()" 
+            class="copy-msg-btn-kb" 
+            @click="copyMessageContent(message.content, index)"
+            :title="copiedMsgIndex === index ? '已复制!' : '复制内容'"
+          >
+            <svg v-if="copiedMsgIndex !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
       <div class="composer">
@@ -360,6 +375,32 @@ import '@/assets/styles/KnowledgeBaseAI.css'
 import { knowledgeAPI } from '@/api/knowledge'
 import { cozeAPI } from '@/api/coze'
 
+// ⭐ Markdown渲染和代码高亮
+import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css' // 代码高亮主题
+
+// 配置 marked 选项
+marked.setOptions({
+  highlight: function(code, lang) {
+    // 代码高亮
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang }).value
+      } catch (err) {
+        console.error('代码高亮失败:', err)
+      }
+    }
+    return hljs.highlightAuto(code).value
+  },
+  breaks: true, // 支持GitHub风格的换行
+  gfm: true, // 启用GitHub风格的Markdown
+  tables: true, // 支持表格
+  sanitize: false, // 不进行HTML清理（我们信任AI的输出）
+  smartLists: true, // 智能列表
+  smartypants: true // 智能标点符号
+})
+
 export default {
   name: 'KnowledgeBaseAI',
   props: {
@@ -392,7 +433,9 @@ export default {
       // 聊天历史记录相关
       showChatHistoryModal: false, // 是否显示历史记录弹窗
       chatSessions: [], // 所有对话会话列表
-      currentChatSessionId: null // 当前对话会话ID
+      currentChatSessionId: null, // 当前对话会话ID
+      // ⭐ 复制功能状态
+      copiedMsgIndex: null // 当前已复制的消息索引
     }
   },
   mounted() {
@@ -1631,6 +1674,55 @@ export default {
     /**
      * 复制用户发送的文字
      */
+    // ⭐ 格式化 Markdown 内容（使用 marked 库）
+    formatMarkdown(content) {
+      if (!content) return ''
+
+      try {
+        // 使用 marked 解析 Markdown
+        const html = marked.parse(content)
+        return html
+      } catch (error) {
+        console.error('Markdown 解析错误:', error)
+        // 如果解析失败，返回纯文本并转换换行符
+        return content.replace(/\n/g, '<br>')
+      }
+    },
+
+    // ⭐ 复制消息内容（新增统一复制方法）
+    copyMessageContent(content, index) {
+      if (!content) return
+      
+      // 创建临时文本区域元素
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      
+      try {
+        // 选中并复制
+        textarea.select()
+        document.execCommand('copy')
+        
+        // 显示复制成功状态
+        this.copiedMsgIndex = index
+        
+        // 2秒后恢复按钮状态
+        setTimeout(() => {
+          this.copiedMsgIndex = null
+        }, 2000)
+        
+        console.log('消息已复制到剪贴板')
+      } catch (err) {
+        console.error('复制失败:', err)
+        alert('复制失败，请手动复制')
+      } finally {
+        // 清理临时元素
+        document.body.removeChild(textarea)
+      }
+    },
+
     async copyUserText(text) {
       if (!text) return
 

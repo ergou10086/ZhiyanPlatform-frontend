@@ -51,18 +51,34 @@
             :key="message.id"
             :class="message.type === 'ai' ? 'ai-message' : 'user-message'"
           >
-            <div :class="message.type === 'ai' ? 'message-bubble ai-bubble' : 'user-bubble'">
-              <!-- AI消息：支持Markdown渲染和光标闪烁 -->
-              <div v-if="message.type === 'ai'" class="ai-content">
-                <!-- ⭐ 修复：打字时显示纯文本，避免不完整内容被错误格式化 -->
-                <span v-if="isTyping && currentTypingMessageIndex === index" style="white-space: pre-wrap;">{{ message.content }}</span>
-                <!-- 打字完成后才进行Markdown格式化 -->
-                <span v-else v-html="formatMarkdown(message.content)"></span>
-                <!-- 打字光标（仅在打字时显示） -->
-                <span v-if="isTyping && currentTypingMessageIndex === index" class="typing-cursor">|</span>
+            <div class="message-wrapper">
+              <div :class="message.type === 'ai' ? 'message-bubble ai-bubble' : 'user-bubble'">
+                <!-- AI消息：支持Markdown渲染和光标闪烁 -->
+                <div v-if="message.type === 'ai'" class="ai-content">
+                  <!-- ⭐ 修复：打字时显示纯文本，避免不完整内容被错误格式化 -->
+                  <span v-if="isTyping && currentTypingMessageIndex === index" style="white-space: pre-wrap;">{{ message.content }}</span>
+                  <!-- 打字完成后才进行Markdown格式化 -->
+                  <span v-else v-html="formatMarkdown(message.content)"></span>
+                  <!-- 打字光标（仅在打字时显示） -->
+                  <span v-if="isTyping && currentTypingMessageIndex === index" class="typing-cursor">|</span>
+                </div>
+                <!-- 用户消息：普通文本 -->
+                <template v-else>{{ message.content }}</template>
               </div>
-              <!-- 用户消息：普通文本 -->
-              <template v-else>{{ message.content }}</template>
+              <!-- ⭐ 复制按钮 -->
+              <button 
+                class="copy-message-btn" 
+                @click="copyMessage(message.content, index)"
+                :title="copiedMessageIndex === index ? '已复制!' : '复制内容'"
+              >
+                <svg v-if="copiedMessageIndex !== index" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M5 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V4C2 3.46957 2.21071 2.96086 2.58579 2.58579C2.96086 2.21071 3.46957 2 4 2H13C13.5304 2 14.0391 2.21071 14.4142 2.58579C14.7893 2.96086 15 3.46957 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -369,6 +385,33 @@ import { knowledgeAPI } from '@/api/knowledge'
 import difyAPI from '@/api/dify'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
+
+// ⭐ Markdown渲染和代码高亮
+import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css' // 代码高亮主题
+
+// 配置 marked 选项
+marked.setOptions({
+  highlight: function(code, lang) {
+    // 代码高亮
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(code, { language: lang }).value
+      } catch (err) {
+        console.error('代码高亮失败:', err)
+      }
+    }
+    return hljs.highlightAuto(code).value
+  },
+  breaks: true, // 支持GitHub风格的换行
+  gfm: true, // 启用GitHub风格的Markdown
+  tables: true, // 支持表格
+  sanitize: false, // 不进行HTML清理（我们信任AI的输出）
+  smartLists: true, // 智能列表
+  smartypants: true // 智能标点符号
+})
+
 export default {
   name: 'AIAssistant',
   components: {
@@ -409,7 +452,9 @@ export default {
       currentTypingMessageIndex: -1, // 当前正在打字的消息索引
       // 流式请求控制
       currentStreamController: null, // 当前流式请求的控制器
-      currentAbortController: null // 用于中断请求的AbortController
+      currentAbortController: null, // 用于中断请求的AbortController
+      // ⭐ 复制功能状态
+      copiedMessageIndex: null // 当前已复制的消息索引
     }
   },
   computed: {
@@ -1238,38 +1283,53 @@ export default {
       }, 100)
     },
 
-    // 格式化 Markdown 内容（简单版本）
+    // ⭐ 格式化 Markdown 内容（使用 marked 库）
     formatMarkdown(content) {
       if (!content) return ''
 
-      // 转义 HTML 标签
-      let formatted = content
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
+      try {
+        // 使用 marked 解析 Markdown
+        const html = marked.parse(content)
+        return html
+      } catch (error) {
+        console.error('Markdown 解析错误:', error)
+        // 如果解析失败，返回纯文本并转换换行符
+        return content.replace(/\n/g, '<br>')
+      }
+    },
 
-      // 代码块
-      formatted = formatted.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-        return `<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`
-      })
-
-      // 行内代码
-      formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-      // 粗体
-      formatted = formatted.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>')
-      formatted = formatted.replace(/__([^_]+)__/g, '<strong>$1</strong>')
-
-      // 斜体
-      formatted = formatted.replace(/\*([^\*]+)\*/g, '<em>$1</em>')
-      formatted = formatted.replace(/_([^_]+)_/g, '<em>$1</em>')
-
-      // 链接
-      formatted = formatted.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
-
-      // 换行
-      formatted = formatted.replace(/\n/g, '<br>')
-
-      return formatted
+    // ⭐ 复制消息内容
+    copyMessage(content, index) {
+      if (!content) return
+      
+      // 创建临时文本区域元素
+      const textarea = document.createElement('textarea')
+      textarea.value = content
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      
+      try {
+        // 选中并复制
+        textarea.select()
+        document.execCommand('copy')
+        
+        // 显示复制成功状态
+        this.copiedMessageIndex = index
+        
+        // 2秒后恢复按钮状态
+        setTimeout(() => {
+          this.copiedMessageIndex = null
+        }, 2000)
+        
+        console.log('消息已复制到剪贴板')
+      } catch (err) {
+        console.error('复制失败:', err)
+        alert('复制失败，请手动复制')
+      } finally {
+        // 清理临时元素
+        document.body.removeChild(textarea)
+      }
     },
 
     handleClickOutside(event) {

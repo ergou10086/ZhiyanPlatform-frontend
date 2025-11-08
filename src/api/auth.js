@@ -6,11 +6,18 @@ import config from '@/config'
  */
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
+  // 处理空字符串或null
+  if (!data || data.trim() === '') {
+    console.warn('收到空响应数据')
+    return null
+  }
   try {
     return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
   } catch (e) {
     console.error('JSON解析错误:', e)
-    return data
+    
+    console.error('原始数据:', data)
+    return null
   }
 }
 
