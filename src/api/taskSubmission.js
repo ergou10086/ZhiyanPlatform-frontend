@@ -1,4 +1,110 @@
-import request from '@/utils/request';
+import axios from 'axios'
+import config from '@/config'
+
+/**
+ * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ */
+function parseJSONWithBigInt(data) {
+  if (typeof data !== 'string') return data
+  try {
+    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+  } catch (e) {
+    console.error('JSON解析错误:', e)
+    return data
+  }
+}
+
+/**
+ * 任务提交服务API客户端
+ * 
+ * 注意：所有任务提交相关的API请求都通过Vue开发服务器的代理转发到8095端口（项目服务）
+ * 代理配置在 vue.config.js 中：
+ * - /zhiyan/api/projects → http://localhost:8095
+ * 
+ * 使用相对路径（baseURL为空），让代理服务器处理路由
+ */
+const api = axios.create({
+  baseURL: '', // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
+  timeout: config.api.timeout,
+  withCredentials: true,
+  // 自定义响应转换，将大整数转换为字符串
+  transformResponse: [function (data) {
+    return parseJSONWithBigInt(data)
+  }]
+  // ✅ 不设置默认 Content-Type，让 Axios 根据数据类型自动处理
+  // ✅ 对于 FormData，Axios 会自动设置为 multipart/form-data
+})
+
+// 请求拦截器
+api.interceptors.request.use(
+  config => {
+    // 从localStorage获取token
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // ✅ 对于 FormData 数据，不要手动设置 Content-Type
+    // ✅ 让浏览器自动处理，这样 boundary 才能正确设置
+    if (config.data instanceof FormData) {
+      // 删除手动设置的 Content-Type，让浏览器自动设置（包括 boundary）
+      delete config.headers['Content-Type']
+    } else if (!config.headers['Content-Type']) {
+      // 对于非 FormData 数据，设置默认的 Content-Type
+      config.headers['Content-Type'] = 'application/json'
+    }
+    
+    console.log('[任务提交API] 请求:', config.method?.toUpperCase(), config.url)
+    
+    return config
+  },
+  error => {
+    console.error('[任务提交API] 请求拦截器错误:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+api.interceptors.response.use(
+  response => {
+    // 后端返回的response.data就是R对象，包含code、msg、data字段
+    // 直接返回response.data，这样前端就能访问到R对象的完整结构
+    return response.data
+  },
+  error => {
+    console.error('[任务提交API] 错误:', error)
+    
+    if (error.response) {
+      const { status, data } = error.response
+      console.error('[任务提交API] 服务器错误:', status, data)
+      
+      if (status === 401) {
+        // token过期，跳转到登录页
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_info')
+        window.location.href = '/login'
+      }
+      
+      if (status === 403) {
+        console.error('[任务提交API] ❌ 403 Forbidden - 认证失败')
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_info')
+        window.location.href = '/login'
+      }
+      
+      // 返回后端返回的错误数据（R对象），如果没有则返回error对象
+      return Promise.reject(data || error)
+    } else if (error.request) {
+      console.error('[任务提交API] 网络错误:', error.request)
+      return Promise.reject(new Error('网络连接失败，请检查后端服务'))
+    } else {
+      console.error('[任务提交API] 其他错误:', error.message)
+      return Promise.reject(error)
+    }
+  }
+)
 
 /**
  * 任务提交相关API
@@ -11,7 +117,7 @@ import request from '@/utils/request';
  * @returns {Promise}
  */
 export function submitTask(taskId, data) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/${taskId}/submit`,
     method: 'post',
     data
@@ -25,7 +131,7 @@ export function submitTask(taskId, data) {
  * @returns {Promise}
  */
 export function reviewSubmission(submissionId, data) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/${submissionId}/review`,
     method: 'put',
     data
@@ -38,7 +144,7 @@ export function reviewSubmission(submissionId, data) {
  * @returns {Promise}
  */
 export function revokeSubmission(submissionId) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/${submissionId}/revoke`,
     method: 'put'
   });
@@ -50,7 +156,7 @@ export function revokeSubmission(submissionId) {
  * @returns {Promise}
  */
 export function getSubmissionDetail(submissionId) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/${submissionId}`,
     method: 'get'
   });
@@ -62,7 +168,7 @@ export function getSubmissionDetail(submissionId) {
  * @returns {Promise}
  */
 export function getTaskSubmissions(taskId) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/task/${taskId}`,
     method: 'get'
   });
@@ -74,7 +180,7 @@ export function getTaskSubmissions(taskId) {
  * @returns {Promise}
  */
 export function getLatestSubmission(taskId) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/task/${taskId}/latest`,
     method: 'get'
   });
@@ -86,7 +192,7 @@ export function getLatestSubmission(taskId) {
  * @returns {Promise}
  */
 export function getPendingSubmissions(params) {
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/pending',
     method: 'get',
     params
@@ -100,7 +206,7 @@ export function getPendingSubmissions(params) {
  * @returns {Promise}
  */
 export function getProjectPendingSubmissions(projectId, params) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/project/${projectId}/pending`,
     method: 'get',
     params
@@ -113,7 +219,7 @@ export function getProjectPendingSubmissions(projectId, params) {
  * @returns {Promise}
  */
 export function getMySubmissions(params) {
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/my-submissions',
     method: 'get',
     params
@@ -125,7 +231,7 @@ export function getMySubmissions(params) {
  * @returns {Promise}
  */
 export function countPendingSubmissions() {
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/count/pending',
     method: 'get'
   });
@@ -137,7 +243,7 @@ export function countPendingSubmissions() {
  * @returns {Promise}
  */
 export function countProjectPendingSubmissions(projectId) {
-  return request({
+  return api({
     url: `/zhiyan/api/projects/tasks/submissions/count/project/${projectId}/pending`,
     method: 'get'
   });
@@ -152,13 +258,11 @@ export function uploadSubmissionFile(file) {
   const formData = new FormData();
   formData.append('file', file);
 
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/files/upload',
     method: 'post',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    data: formData
+    // ✅ 不需要手动设置 Content-Type，拦截器会自动处理
   });
 }
 
@@ -174,13 +278,11 @@ export function uploadSubmissionFiles(files) {
     formData.append('files', files[i]);
   }
 
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/files/upload-batch',
     method: 'post',
-    data: formData,
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
+    data: formData
+    // ✅ 不需要手动设置 Content-Type，拦截器会自动处理
   });
 }
 
@@ -190,7 +292,7 @@ export function uploadSubmissionFiles(files) {
  * @returns {Promise}
  */
 export function deleteSubmissionFile(fileUrl) {
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/files',
     method: 'delete',
     params: { fileUrl }
@@ -203,7 +305,7 @@ export function deleteSubmissionFile(fileUrl) {
  * @returns {Promise}
  */
 export function deleteSubmissionFiles(fileUrls) {
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/files/batch',
     method: 'delete',
     data: fileUrls
@@ -216,10 +318,9 @@ export function deleteSubmissionFiles(fileUrls) {
  * @returns {Promise}
  */
 export function getPresignedUrl(fileUrl) {
-  return request({
+  return api({
     url: '/zhiyan/api/projects/tasks/submissions/files/presigned-url',
     method: 'get',
     params: { fileUrl }
   });
 }
-

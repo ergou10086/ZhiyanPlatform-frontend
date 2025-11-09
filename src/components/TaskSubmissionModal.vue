@@ -39,6 +39,34 @@
           <div class="char-count">{{ formData.submissionContent.length }} / 5000</div>
         </div>
 
+        <!-- 提交类型 -->
+        <div class="form-group">
+          <label class="form-label">提交类型</label>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" v-model="formData.submissionType" value="COMPLETE" />
+              <span class="radio-label">
+                <span class="radio-title">完成提交</span>
+                <span class="radio-desc">任务已完全完成</span>
+              </span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" v-model="formData.submissionType" value="PARTIAL" />
+              <span class="radio-label">
+                <span class="radio-title">阶段性提交</span>
+                <span class="radio-desc">中间进度汇报</span>
+              </span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" v-model="formData.submissionType" value="MILESTONE" />
+              <span class="radio-label">
+                <span class="radio-title">里程碑提交</span>
+                <span class="radio-desc">重要节点提交</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
         <!-- 附件上传 -->
         <div class="form-group">
           <label class="form-label">附件 <span class="label-tip">(选填，支持文档、图片、压缩包等)</span></label>
@@ -84,6 +112,30 @@
           </div>
         </div>
 
+        <!-- 实际工时 -->
+        <div class="form-group">
+          <label class="form-label">实际工时 <span class="label-tip">(选填)</span></label>
+          <div class="input-group">
+            <input
+              type="number"
+              v-model.number="formData.actualWorktime"
+              class="form-input"
+              placeholder="请输入实际工时"
+              min="0"
+              step="0.5"
+            />
+            <span class="input-suffix">小时</span>
+          </div>
+        </div>
+
+        <!-- 是否为最终提交 -->
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" v-model="formData.isFinal" />
+            <span>这是最终提交（任务完成）</span>
+          </label>
+          <p class="form-hint">勾选后，审核通过将自动标记任务为完成状态</p>
+        </div>
       </div>
 
       <div class="modal-footer">
@@ -116,7 +168,9 @@ export default {
     return {
       formData: {
         submissionContent: '',
+        submissionType: 'COMPLETE',
         attachmentUrls: [],
+        actualWorktime: null,
         isFinal: true
       },
       uploadedFiles: [],
@@ -139,7 +193,9 @@ export default {
     resetForm() {
       this.formData = {
         submissionContent: '',
+        submissionType: 'COMPLETE',
         attachmentUrls: [],
+        actualWorktime: null,
         isFinal: true
       }
       this.uploadedFiles = []
@@ -158,7 +214,7 @@ export default {
       for (const file of files) {
         // 检查文件大小（100MB限制）
         if (file.size > 100 * 1024 * 1024) {
-          this.$message.warning(`文件 ${file.name} 超过100MB限制，已跳过`)
+          alert(`文件 ${file.name} 超过100MB限制，已跳过`)
           continue
         }
 
@@ -174,51 +230,57 @@ export default {
               size: file.size
             })
             this.formData.attachmentUrls.push(response.data.url)
-            this.$message.success(`文件 ${file.name} 上传成功`)
+            alert(`文件 ${file.name} 上传成功`)
           } else {
             const errorMsg = (response && response.msg) || '上传失败'
             console.error('上传失败，响应:', response)
-            this.$message.error(`文件 ${file.name} 上传失败：${errorMsg}`)
+            alert(`文件 ${file.name} 上传失败：${errorMsg}`)
           }
         } catch (error) {
           console.error('文件上传异常 - 完整错误对象:', error)
+          console.error('错误对象类型:', typeof error)
+          console.error('错误对象键:', error ? Object.keys(error) : 'error is null/undefined')
           
           // 更安全的错误提取
+          // API响应拦截器已经处理过，error 可能是：
+          // 1. 后端的R对象 {code, msg, data} - 最常见
+          // 2. Error对象 {message}
+          // 3. 字符串
+          // 4. 原始的axios error {response: {data}} - 较少见
           let errorMsg = '网络错误或服务器异常'
           
           try {
             if (error) {
-              // request.js 的响应拦截器会直接返回 data，而不是完整的 axios error
-              // 所以 error 可能是：
-              // 1. 字符串
-              // 2. 后端的响应对象 {code, msg, data}
-              // 3. Error 对象 {message}
-              // 4. 原始的 axios error {response: {data}}
-              
-              if (typeof error === 'string') {
-                // 情况1: 字符串
-                errorMsg = error
-              } else if (error.msg) {
-                // 情况2: 后端的 R 对象（最常见）
+              // 优先级1: 后端的R对象（最常见的情况）
+              if (error.msg && typeof error.msg === 'string') {
                 errorMsg = error.msg
-              } else if (error.message && typeof error.message === 'string') {
-                // 情况3: Error 对象
+              }
+              // 优先级2: Error对象的message
+              else if (error.message && typeof error.message === 'string') {
                 errorMsg = error.message
-              } else if (error.response && error.response.data) {
-                // 情况4: 原始 axios error（较少见）
+              }
+              // 优先级3: 字符串
+              else if (typeof error === 'string') {
+                errorMsg = error
+              }
+              // 优先级4: 原始的axios error（较少见，但保留兼容性）
+              else if (error.response && error.response.data) {
                 const data = error.response.data
                 errorMsg = data.msg || data.message || data.error || errorMsg
                 console.error('服务器返回的错误:', data)
-              } else if (typeof error === 'object') {
-                // 其他对象类型，尝试提取有用信息
-                errorMsg = error.error || error.data || JSON.stringify(error)
+              }
+              // 优先级5: 其他对象类型，尝试提取有用信息
+              else if (typeof error === 'object') {
+                errorMsg = error.error || JSON.stringify(error)
               }
             }
           } catch (parseError) {
             console.error('解析错误信息失败:', parseError)
+            errorMsg = '文件上传失败，请稍后重试'
           }
           
-          this.$message.error(`文件 ${file.name} 上传失败：${errorMsg}`)
+          console.error('最终错误消息:', errorMsg)
+          alert(`文件 ${file.name} 上传失败：${errorMsg}`)
         }
       }
 
@@ -242,12 +304,12 @@ export default {
     async handleSubmit() {
       // 验证表单
       if (!this.formData.submissionContent || this.formData.submissionContent.trim().length < 10) {
-        this.$message.warning('提交说明至少需要10个字符')
+        alert('提交说明至少需要10个字符')
         return
       }
 
       if (this.formData.submissionContent.length > 5000) {
-        this.$message.warning('提交说明不能超过5000个字符')
+        alert('提交说明不能超过5000个字符')
         return
       }
 
@@ -257,12 +319,12 @@ export default {
         const response = await submitTask(this.task.id, this.formData)
 
         if (response && response.code === 200) {
-          this.$message.success('任务提交成功，等待审核')
+          alert('任务提交成功，等待审核')
           this.$emit('success', response.data)
           this.handleClose()
         } else {
           const errorMsg = (response && response.msg) || '提交失败'
-          this.$message.error(errorMsg)
+          alert(errorMsg)
         }
       } catch (error) {
         console.error('提交任务失败', error)
@@ -279,7 +341,7 @@ export default {
           }
         }
         
-        this.$message.error(errorMsg)
+        alert(errorMsg)
       } finally {
         this.isSubmitting = false
       }
@@ -365,14 +427,11 @@ export default {
   background-color: #f5f5f5;
   border-radius: 8px;
   padding: 16px;
-  display: flex;
-  flex-direction: column;
 }
 
 .info-item {
   display: flex;
-  flex-direction: row;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .info-item:last-child {
@@ -435,6 +494,54 @@ export default {
   font-size: 12px;
   color: #999;
   margin-top: 4px;
+}
+
+.radio-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.radio-item {
+  flex: 1;
+  min-width: 180px;
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.radio-item:hover {
+  border-color: #2196F3;
+  background-color: #f5f9ff;
+}
+
+.radio-item input[type="radio"] {
+  margin-right: 12px;
+  margin-top: 2px;
+}
+
+.radio-item input[type="radio"]:checked ~ .radio-label {
+  color: #2196F3;
+}
+
+.radio-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.radio-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.radio-desc {
+  font-size: 12px;
+  color: #999;
 }
 
 .upload-area {
