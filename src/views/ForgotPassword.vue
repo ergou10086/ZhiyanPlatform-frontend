@@ -26,7 +26,7 @@
         
         <form @submit.prevent="handleResetPassword" class="forgot-password-form">
           <div class="form-group">
-            <label for="email">电子邮箱</label>
+            <label for="email">电子邮箱<span class="required-asterisk">*</span></label>
             <input
               type="email"
               id="email"
@@ -37,7 +37,7 @@
           </div>
           
           <div class="form-group">
-            <label for="code">验证码</label>
+            <label for="code">验证码<span class="required-asterisk">*</span></label>
             <div class="code-input-group">
               <input
                 type="text"
@@ -62,7 +62,7 @@
           </div>
           
           <div class="form-group">
-            <label for="newPassword">新密码</label>
+            <label for="newPassword">新密码<span class="required-asterisk">*</span></label>
             <input
               type="password"
               id="newPassword"
@@ -74,7 +74,7 @@
           </div>
           
           <div class="form-group">
-            <label for="confirmPassword">确认密码</label>
+            <label for="confirmPassword">确认密码<span class="required-asterisk">*</span></label>
             <input
               type="password"
               id="confirmPassword"

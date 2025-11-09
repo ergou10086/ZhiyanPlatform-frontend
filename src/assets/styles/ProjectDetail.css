@@ -1643,6 +1643,12 @@
   margin-bottom: 8px;
 }
 
+.form-label .required-asterisk {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
 .form-input,
 .form-textarea,
 .form-select {

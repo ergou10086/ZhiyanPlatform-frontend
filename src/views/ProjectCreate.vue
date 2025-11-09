@@ -42,7 +42,7 @@
           <h3 class="section-title">项目基本信息</h3>
           
           <div class="form-field">
-            <label class="form-label">项目名称</label>
+            <label class="form-label">项目名称<span class="required-asterisk">*</span></label>
             <input
               type="text"
               v-model="formData.projectName"
@@ -133,7 +133,7 @@
           </div>
 
           <div class="form-field">
-            <label class="form-label">项目周期</label>
+            <label class="form-label">项目周期<span class="required-asterisk">*</span></label>
             <div class="date-range">
               <input
                 type="date"
