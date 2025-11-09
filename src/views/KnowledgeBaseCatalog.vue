@@ -930,7 +930,7 @@
                     </svg>
                     {{ viewingFile.isPublic ? '公开' : '项目私有' }}
                   </span>
-                  <button class="change-visibility-btn" @click="toggleVisibility(viewingFile)" title="修改公开性">
+                  <button v-if="canEditAchievement(viewingFile)" class="change-visibility-btn" @click="toggleVisibility(viewingFile)" title="修改公开性">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 20H21M16 5L19 8M3 17V20H6L17 9L14 6L3 17Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -947,8 +947,8 @@
                 <div v-if="viewingFile" class="achievement-description">
                   <div class="description-header">
                   <div class="detail-label">成果详细描述：</div>
-                    <button class="edit-btn" @click="toggleEditMode" v-if="!isEditingDescription">编辑</button>
-                    <div v-else class="edit-actions">
+                    <button v-if="canEditAchievement(viewingFile) && !isEditingDescription" class="edit-btn" @click="toggleEditMode">编辑</button>
+                    <div v-if="isEditingDescription" class="edit-actions">
                       <button class="save-btn" @click="saveDescriptionChanges">保存</button>
                       <button class="cancel-btn" @click="cancelEditMode">取消</button>
                     </div>
@@ -1201,6 +1201,7 @@ import { downloadFile as downloadFileUtil, downloadSingleFile, downloadAllFiles 
 import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 import { projectAPI } from '@/api/project'
+import { getCurrentUserId } from '@/utils/auth'
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1303,6 +1304,11 @@ export default {
     }
   },
   computed: {
+    // 获取当前用户ID
+    currentUserId() {
+      return getCurrentUserId()
+    },
+    
     // 只显示从后端加载的数据（不再合并模拟数据）
     allFiles() {
       // 如果有后端数据，只显示后端数据
@@ -1383,6 +1389,18 @@ export default {
     }
   },
   methods: {
+    /**
+     * 判断当前用户是否可以编辑指定成果
+     */
+    canEditAchievement(achievement) {
+      if (!achievement || !this.currentUserId) {
+        return false
+      }
+      // 简单判断：只有创建者才能编辑（后端会做更完整的权限检查）
+      // 这里为了更好的用户体验，只在前端隐藏按钮
+      return String(achievement.creatorId) === String(this.currentUserId)
+    },
+    
     /**
      * 从后端加载成果列表
      */

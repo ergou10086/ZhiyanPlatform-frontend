@@ -39,34 +39,6 @@
           <div class="char-count">{{ formData.submissionContent.length }} / 5000</div>
         </div>
 
-        <!-- 提交类型 -->
-        <div class="form-group">
-          <label class="form-label">提交类型</label>
-          <div class="radio-group">
-            <label class="radio-item">
-              <input type="radio" v-model="formData.submissionType" value="COMPLETE" />
-              <span class="radio-label">
-                <span class="radio-title">完成提交</span>
-                <span class="radio-desc">任务已完全完成</span>
-              </span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" v-model="formData.submissionType" value="PARTIAL" />
-              <span class="radio-label">
-                <span class="radio-title">阶段性提交</span>
-                <span class="radio-desc">中间进度汇报</span>
-              </span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" v-model="formData.submissionType" value="MILESTONE" />
-              <span class="radio-label">
-                <span class="radio-title">里程碑提交</span>
-                <span class="radio-desc">重要节点提交</span>
-              </span>
-            </label>
-          </div>
-        </div>
-
         <!-- 附件上传 -->
         <div class="form-group">
           <label class="form-label">附件 <span class="label-tip">(选填，支持文档、图片、压缩包等)</span></label>
@@ -112,30 +84,6 @@
           </div>
         </div>
 
-        <!-- 实际工时 -->
-        <div class="form-group">
-          <label class="form-label">实际工时 <span class="label-tip">(选填)</span></label>
-          <div class="input-group">
-            <input
-              type="number"
-              v-model.number="formData.actualWorktime"
-              class="form-input"
-              placeholder="请输入实际工时"
-              min="0"
-              step="0.5"
-            />
-            <span class="input-suffix">小时</span>
-          </div>
-        </div>
-
-        <!-- 是否为最终提交 -->
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" v-model="formData.isFinal" />
-            <span>这是最终提交（任务完成）</span>
-          </label>
-          <p class="form-hint">勾选后，审核通过将自动标记任务为完成状态</p>
-        </div>
       </div>
 
       <div class="modal-footer">
@@ -168,9 +116,7 @@ export default {
     return {
       formData: {
         submissionContent: '',
-        submissionType: 'COMPLETE',
         attachmentUrls: [],
-        actualWorktime: null,
         isFinal: true
       },
       uploadedFiles: [],
@@ -193,9 +139,7 @@ export default {
     resetForm() {
       this.formData = {
         submissionContent: '',
-        submissionType: 'COMPLETE',
         attachmentUrls: [],
-        actualWorktime: null,
         isFinal: true
       }
       this.uploadedFiles = []
@@ -421,11 +365,14 @@ export default {
   background-color: #f5f5f5;
   border-radius: 8px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .info-item {
   display: flex;
-  margin-bottom: 8px;
+  flex-direction: row;
+  margin-bottom: 12px;
 }
 
 .info-item:last-child {
@@ -488,54 +435,6 @@ export default {
   font-size: 12px;
   color: #999;
   margin-top: 4px;
-}
-
-.radio-group {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.radio-item {
-  flex: 1;
-  min-width: 180px;
-  display: flex;
-  align-items: flex-start;
-  padding: 12px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.radio-item:hover {
-  border-color: #2196F3;
-  background-color: #f5f9ff;
-}
-
-.radio-item input[type="radio"] {
-  margin-right: 12px;
-  margin-top: 2px;
-}
-
-.radio-item input[type="radio"]:checked ~ .radio-label {
-  color: #2196F3;
-}
-
-.radio-label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.radio-title {
-  font-weight: 600;
-  color: #333;
-}
-
-.radio-desc {
-  font-size: 12px;
-  color: #999;
 }
 
 .upload-area {

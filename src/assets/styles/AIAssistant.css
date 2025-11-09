@@ -1060,7 +1060,8 @@
   color: inherit;
 }
 
-.ai-assistant-container .user-input-area input {
+.ai-assistant-container .user-input-area input,
+.ai-assistant-container .user-input-area textarea {
   flex: 1;
   padding: 16px 20px;
   min-height: 48px;
@@ -1070,12 +1071,53 @@
   transition: all 0.3s ease;
   background: white;
   box-shadow: 0 2px 8px rgba(0, 68, 204, 0.05);
+  font-family: inherit;
+  resize: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 200px;
 }
 
-.ai-assistant-container .user-input-area input:focus {
+.ai-assistant-container .user-input-area input:focus,
+.ai-assistant-container .user-input-area textarea:focus {
   outline: none;
   border-color: #5EB6E4;
   box-shadow: 0 4px 12px rgba(0, 68, 204, 0.15), 0 0 0 3px rgba(94, 182, 228, 0.1);
+}
+
+.ai-assistant-container .user-input-area textarea {
+  line-height: 1.5;
+}
+
+/* 自定义 textarea 滚动条样式 */
+.ai-assistant-container .user-input-area textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-assistant-container .user-input-area textarea::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.ai-assistant-container .user-input-area textarea::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.ai-assistant-container .user-input-area textarea::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #0044CC 0%, #003399 100%);
+}
+
+/* 只有在内容超出时才显示滚动条 */
+.ai-assistant-container .user-input-area textarea {
+  scrollbar-width: thin;
+  scrollbar-color: #5EB6E4 transparent;
+}
+
+.ai-assistant-container .user-input-area input::placeholder,
+.ai-assistant-container .user-input-area textarea::placeholder {
+  color: #9ca3af;
 }
 
 .ai-assistant-container .send-btn {
@@ -1811,19 +1853,39 @@
   color: #5EB6E4;
 }
 
-.dark-mode .ai-assistant-container .user-input-area input {
+.dark-mode .ai-assistant-container .user-input-area input,
+.dark-mode .ai-assistant-container .user-input-area textarea {
   background: #1e293b;
   border-color: #475569;
   color: #f1f5f9;
 }
 
-.dark-mode .ai-assistant-container .user-input-area input::placeholder {
+.dark-mode .ai-assistant-container .user-input-area input::placeholder,
+.dark-mode .ai-assistant-container .user-input-area textarea::placeholder {
   color: #64748b;
 }
 
-.dark-mode .ai-assistant-container .user-input-area input:focus {
+.dark-mode .ai-assistant-container .user-input-area input:focus,
+.dark-mode .ai-assistant-container .user-input-area textarea:focus {
   border-color: #5EB6E4;
   box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3), 0 0 0 3px rgba(94, 182, 228, 0.2);
+}
+
+/* 暗黑模式下的滚动条样式 */
+.dark-mode .ai-assistant-container .user-input-area textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark-mode .ai-assistant-container .user-input-area textarea::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #60a5fa 0%, #3b82f6 100%);
+}
+
+.dark-mode .ai-assistant-container .user-input-area textarea::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.dark-mode .ai-assistant-container .user-input-area textarea {
+  scrollbar-color: #60a5fa transparent;
 }
 
 .dark-mode .ai-assistant-container .ai-suggestions {
