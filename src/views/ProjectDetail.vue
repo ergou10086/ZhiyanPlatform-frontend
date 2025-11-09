@@ -2755,8 +2755,8 @@ export default {
       
       // 刷新任务列表
       this.loadProjectTasks()
-      
-      // 关闭弹窗
+          
+          // 关闭弹窗
       this.closeTaskReviewModal()
     },
     

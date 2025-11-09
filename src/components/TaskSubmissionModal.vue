@@ -219,7 +219,9 @@ export default {
         }
 
         try {
+          console.log('开始上传文件:', file.name)
           const response = await uploadSubmissionFile(file)
+          console.log('上传响应:', response)
           
           if (response && response.code === 200 && response.data) {
             this.uploadedFiles.push({
@@ -231,11 +233,47 @@ export default {
             this.$message.success(`文件 ${file.name} 上传成功`)
           } else {
             const errorMsg = (response && response.msg) || '上传失败'
+            console.error('上传失败，响应:', response)
             this.$message.error(`文件 ${file.name} 上传失败：${errorMsg}`)
           }
         } catch (error) {
-          console.error('文件上传失败', error)
-          const errorMsg = (error && error.message) || (error && error.msg) || '网络错误'
+          console.error('文件上传异常 - 完整错误对象:', error)
+          
+          // 更安全的错误提取
+          let errorMsg = '网络错误或服务器异常'
+          
+          try {
+            if (error) {
+              // request.js 的响应拦截器会直接返回 data，而不是完整的 axios error
+              // 所以 error 可能是：
+              // 1. 字符串
+              // 2. 后端的响应对象 {code, msg, data}
+              // 3. Error 对象 {message}
+              // 4. 原始的 axios error {response: {data}}
+              
+              if (typeof error === 'string') {
+                // 情况1: 字符串
+                errorMsg = error
+              } else if (error.msg) {
+                // 情况2: 后端的 R 对象（最常见）
+                errorMsg = error.msg
+              } else if (error.message && typeof error.message === 'string') {
+                // 情况3: Error 对象
+                errorMsg = error.message
+              } else if (error.response && error.response.data) {
+                // 情况4: 原始 axios error（较少见）
+                const data = error.response.data
+                errorMsg = data.msg || data.message || data.error || errorMsg
+                console.error('服务器返回的错误:', data)
+              } else if (typeof error === 'object') {
+                // 其他对象类型，尝试提取有用信息
+                errorMsg = error.error || error.data || JSON.stringify(error)
+              }
+            }
+          } catch (parseError) {
+            console.error('解析错误信息失败:', parseError)
+          }
+          
           this.$message.error(`文件 ${file.name} 上传失败：${errorMsg}`)
         }
       }
