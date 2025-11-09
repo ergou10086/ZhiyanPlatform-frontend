@@ -23,7 +23,7 @@
         </button>
       </div>
     </div>
-
+  
     <div class="section-card add-achievement-section">
       <div class="section-title small">添加新成果</div>
       <div class="add-grid">

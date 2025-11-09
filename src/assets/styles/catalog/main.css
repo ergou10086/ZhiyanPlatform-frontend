@@ -28,7 +28,7 @@
 
 /* 页面头部 */
 .page-header {
-  margin-bottom: 32px;
+  margin-bottom: 60px;
   animation: fadeInDown 0.6s ease-out;
 }
 
@@ -134,10 +134,8 @@
 }
 
 .add-achievement-section {
-  min-height: calc(100vh - 200px);
-  display: flex;
-  flex-direction: column;
-  padding: 16px 48px 32px;
+  padding: 32px 48px 32px;
+  margin-top: 20px;
 }
 
 .section-title { 
@@ -162,8 +160,6 @@
   grid-template-columns: repeat(3, 1fr); 
   gap: 20px 28px; 
   padding: 0 40px 20px;
-  flex: 1;
-  align-content: center;
 }
 
 .add-card { 
