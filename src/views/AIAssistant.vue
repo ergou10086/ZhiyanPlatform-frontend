@@ -984,9 +984,24 @@ export default {
       if (textarea) {
         // 重置高度以获取正确的scrollHeight
         textarea.style.height = 'auto'
+        
+        // 获取单行高度（包括padding）
+        const lineHeight = parseFloat(getComputedStyle(textarea).lineHeight) || 21
+        const paddingTop = parseFloat(getComputedStyle(textarea).paddingTop) || 16
+        const paddingBottom = parseFloat(getComputedStyle(textarea).paddingBottom) || 16
+        const singleLineHeight = lineHeight + paddingTop + paddingBottom
+        
         // 设置新高度，但不超过最大高度
         const newHeight = Math.min(textarea.scrollHeight, 200)
         textarea.style.height = newHeight + 'px'
+        
+        // 单行时不显示滚动条，多行时显示
+        // 如果内容高度小于等于单行高度，则隐藏滚动条
+        if (textarea.scrollHeight <= singleLineHeight) {
+          textarea.style.overflowY = 'hidden'
+        } else {
+          textarea.style.overflowY = 'auto'
+        }
       }
     },
     async sendMessage() {
