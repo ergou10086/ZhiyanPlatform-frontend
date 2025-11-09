@@ -23,7 +23,7 @@
         </button>
       </div>
     </div>
-
+  
     <div class="section-card add-achievement-section">
       <div class="section-title small">添加新成果</div>
       <div class="add-grid">
@@ -101,7 +101,7 @@
         <div class="dialog-content">
           <!-- 成果名称 -->
           <div v-if="!isAddingToExisting" class="form-group">
-            <label>成果名称：</label>
+            <label>成果名称：<span class="required-asterisk">*</span></label>
             <input 
               v-model="achievementForm.name" 
               type="text" 
@@ -461,7 +461,7 @@
 
           <!-- 成果名称 -->
           <div class="form-group">
-            <label>成果名称：</label>
+            <label>成果名称：<span class="required-asterisk">*</span></label>
             <input 
               v-model="customUploadForm.name" 
               type="text" 

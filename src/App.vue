@@ -136,7 +136,8 @@ export default {
 @import './assets/styles/variables.css';
 
 #app {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
 }

@@ -332,7 +332,7 @@
         
         <div class="modal-body">
           <div class="form-field">
-            <label class="form-label">任务标题</label>
+            <label class="form-label">任务标题<span class="required-asterisk">*</span></label>
             <input 
               v-model="newTask.title" 
               type="text" 

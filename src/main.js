@@ -67,26 +67,28 @@ function formatError(error, errorInfo = {}) {
 }
 
 /**
- * 显示错误弹窗
+ * 显示错误弹窗（已禁用弹窗，仅输出到控制台）
  */
 function showErrorDialog(error, errorInfo = {}) {
   const formatted = formatError(error, errorInfo)
   
-  console.log('[showErrorDialog] 准备显示错误弹窗:', formatted)
+  // 禁用错误弹窗显示，只输出到控制台
+  // 格式化错误信息并输出到控制台
+  console.error('🔴 [全局错误捕获]', {
+    message: formatted.message,
+    stack: formatted.stack,
+    details: formatted.details,
+    errorInfo: errorInfo,
+    originalError: error
+  })
   
-  // 通过 EventBus 触发错误弹窗显示
-  if (eventBus && eventBus.emit) {
-    console.log('[showErrorDialog] 通过 EventBus 发送错误事件')
-    eventBus.emit('global-error', formatted)
-  } else {
-    // 降级方案：直接 alert
-    console.error('[showErrorDialog] EventBus 不可用，使用 alert')
-    console.error('全局错误:', formatted)
-    alert(`错误: ${formatted.message}\n\n详情请查看控制台`)
-  }
-  
-  // 仍然在控制台输出，方便开发者调试
-  console.error('🔴 [全局错误捕获]', error, errorInfo)
+  // 不再显示弹窗，只保留控制台输出
+  // 注释掉弹窗相关代码
+  // if (eventBus && eventBus.emit) {
+  //   eventBus.emit('global-error', formatted)
+  // } else {
+  //   alert(`错误: ${formatted.message}\n\n详情请查看控制台`)
+  // }
 }
 
 // Vue 全局错误处理

@@ -111,6 +111,12 @@
   color: #333;
 }
 
+.form-group label .required-asterisk {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
 .form-input {
   width: 100%;
   padding: 10px 12px;
