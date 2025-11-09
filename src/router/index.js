@@ -152,7 +152,8 @@ router.beforeEach((to, from, next) => {
     '/knowledge-base',
     '/project-detail',
     '/project-knowledge',
-    '/project'
+    '/project',
+    '/task-review'
   ]
   
   const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))
