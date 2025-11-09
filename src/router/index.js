@@ -14,6 +14,7 @@ import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
+import TaskSubmissionReview from '../views/TaskSubmissionReview.vue'
 
 Vue.use(VueRouter)
 
@@ -82,6 +83,11 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile
+  },
+  {
+    path: '/task-review',
+    name: 'TaskSubmissionReview',
+    component: TaskSubmissionReview
   },
 ]
 

@@ -855,6 +855,13 @@
         </div>
         
         <div class="modal-footer">
+          <button v-if="isProjectManager" @click="openTaskReviewModal(selectedTask)" class="btn btn-secondary" style="margin-right: 12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            审核提交
+          </button>
           <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
       </div>
@@ -2705,36 +2712,33 @@ export default {
     // ==================== 任务审核相关方法 (新) ====================
     
     /**
-     * 打开任务审核弹窗（项目负责人/任务创建者可用）
+     * 打开任务审核弹窗（仅项目负责人可用）
      */
     async openTaskReviewModal(task) {
-      // 检查是否有审核权限
-      const currentUserId = this.getCurrentUserId()
-      if (!this.isProjectManager && task.created_by !== currentUserId) {
-        this.showErrorToast('只有项目负责人或任务创建者才能审核提交')
+      // 检查是否有审核权限（仅项目负责人）
+      if (!this.isProjectManager) {
+        this.showErrorToast('只有项目负责人才能审核提交')
         return
       }
       
       try {
         // 获取任务的最新提交
         const response = await getLatestSubmission(task.id)
+        let submission = null
+        
         if (response.code === 200 && response.data) {
-          const submission = response.data
-          
-          // 检查提交状态
-          if (submission.reviewStatus !== 'PENDING') {
-            this.showErrorToast('该提交已审核')
-            return
-          }
-          
-          this.submissionToReview = submission
-          this.taskReviewModalVisible = true
-        } else {
-          this.showErrorToast('该任务暂无待审核的提交')
+          submission = response.data
         }
+        
+        // 无论是否有提交，都打开审核弹窗
+        // 如果没有提交，submission 为 null，弹窗会显示"暂无提交"
+        this.submissionToReview = submission
+        this.taskReviewModalVisible = true
       } catch (error) {
         console.error('获取待审核提交失败', error)
-        this.showErrorToast('获取待审核提交失败')
+        // 即使获取失败，也打开弹窗，显示"暂无提交"
+        this.submissionToReview = null
+        this.taskReviewModalVisible = true
       }
     },
     
