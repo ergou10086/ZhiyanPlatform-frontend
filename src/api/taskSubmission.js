@@ -227,12 +227,60 @@ export function getMySubmissions(params) {
 }
 
 /**
- * 统计待审核的提交数量
+ * 统计待审核的提交数量（已废弃）
  * @returns {Promise}
  */
 export function countPendingSubmissions() {
   return api({
     url: '/zhiyan/api/projects/tasks/submissions/count/pending',
+    method: 'get'
+  });
+}
+
+/**
+ * 获取我提交的待审核任务（我提交的，等待别人审核）
+ * @param {object} params - 查询参数 {page, size}
+ * @returns {Promise}
+ */
+export function getMyPendingSubmissions(params) {
+  return api({
+    url: '/zhiyan/api/projects/tasks/submissions/my-pending',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 获取待我审核的提交（别人提交的，需要我审核的，因为我是任务创建者）
+ * @param {object} params - 查询参数 {page, size}
+ * @returns {Promise}
+ */
+export function getPendingSubmissionsForReview(params) {
+  return api({
+    url: '/zhiyan/api/projects/tasks/submissions/pending-for-review',
+    method: 'get',
+    params
+  });
+}
+
+/**
+ * 统计我提交的待审核任务数量
+ * @returns {Promise}
+ */
+export function countMyPendingSubmissions() {
+  return api({
+    url: '/zhiyan/api/projects/tasks/submissions/count/my-pending',
+    method: 'get'
+  });
+}
+
+/**
+ * 统计待我审核的提交数量（任务创建者是我）
+ * @returns {Promise}
+ */
+export function countPendingSubmissionsForReview() {
+  return api({
+    url: '/zhiyan/api/projects/tasks/submissions/count/pending-for-review',
     method: 'get'
   });
 }

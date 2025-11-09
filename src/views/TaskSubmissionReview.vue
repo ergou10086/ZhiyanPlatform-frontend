@@ -33,8 +33,21 @@
             </svg>
           </div>
           <div class="stat-content">
-            <div class="stat-label">待审核</div>
-            <div class="stat-value">{{ pendingCount }}</div>
+            <div class="stat-label">我的提交</div>
+            <div class="stat-value">{{ myPendingCount }}</div>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon pending">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">待我审核</div>
+            <div class="stat-value">{{ pendingForReviewCount }}</div>
           </div>
         </div>
 
@@ -71,10 +84,17 @@
         <div class="filter-tabs">
           <button 
             class="filter-tab" 
-            :class="{ active: activeTab === 'pending' }"
-            @click="changeTab('pending')"
+            :class="{ active: activeTab === 'my-pending' }"
+            @click="changeTab('my-pending')"
           >
-            待审核 ({{ pendingCount }})
+            我的提交({{ myPendingCount }})
+          </button> 
+          <button 
+            class="filter-tab" 
+            :class="{ active: activeTab === 'pending-for-review' }"
+            @click="changeTab('pending-for-review')"
+          >
+            待我审核 ({{ pendingForReviewCount }})
           </button>
           <button 
             class="filter-tab" 
@@ -97,8 +117,12 @@
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <h3>暂无待审核的提交</h3>
-        <p>所有任务提交都已处理完毕</p>
+        <h3 v-if="activeTab === 'my-pending'">暂无我提交的待审核任务</h3>
+        <h3 v-else-if="activeTab === 'pending-for-review'">暂无待我审核的提交</h3>
+        <h3 v-else>暂无提交记录</h3>
+        <p v-if="activeTab === 'my-pending'">您提交的所有任务都已审核完毕</p>
+        <p v-else-if="activeTab === 'pending-for-review'">没有需要您审核的提交</p>
+        <p v-else>您还没有提交过任何任务</p>
       </div>
 
       <!-- 提交列表 -->
@@ -157,12 +181,18 @@
               <span>{{ submission.attachmentUrls.length }} 个附件</span>
             </div>
             <button 
-              v-if="isProjectManager(submission)" 
+              v-if="activeTab === 'pending-for-review' && isProjectManager(submission)" 
               class="btn-review"
               @click.stop="openReviewModal(submission)"
             >
               立即审核
             </button>
+            <span 
+              v-else-if="activeTab === 'my-pending' && submission.reviewStatus === 'PENDING'"
+              class="waiting-badge"
+            >
+              等待审核中
+            </span>
           </div>
         </div>
       </div>
@@ -199,7 +229,13 @@
 
 <script>
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
-import { getPendingSubmissions, getMySubmissions } from '@/api/taskSubmission'
+import { 
+  getMyPendingSubmissions, 
+  getPendingSubmissionsForReview, 
+  getMySubmissions,
+  countMyPendingSubmissions,
+  countPendingSubmissionsForReview
+} from '@/api/taskSubmission'
 
 export default {
   name: 'TaskSubmissionReview',
@@ -208,7 +244,7 @@ export default {
   },
   data() {
     return {
-      activeTab: 'pending',
+      activeTab: 'my-pending', // 默认显示"我提交的待审核"
       isLoading: false,
       submissions: [],
       selectedSubmission: null,
@@ -221,7 +257,8 @@ export default {
       totalPages: 0,
       
       // 统计
-      pendingCount: 0,
+      myPendingCount: 0, // 我提交的待审核数量
+      pendingForReviewCount: 0, // 待我审核的数量
       approvedCount: 0,
       rejectedCount: 0
     }
@@ -240,12 +277,20 @@ export default {
       
       try {
         let response
-        if (this.activeTab === 'pending') {
-          response = await getPendingSubmissions({
+        if (this.activeTab === 'my-pending') {
+          // 我提交的待审核任务
+          response = await getMyPendingSubmissions({
+            page: this.currentPage,
+            size: this.pageSize
+          })
+        } else if (this.activeTab === 'pending-for-review') {
+          // 待我审核的提交
+          response = await getPendingSubmissionsForReview({
             page: this.currentPage,
             size: this.pageSize
           })
         } else {
+          // 全部（我的所有提交历史）
           response = await getMySubmissions({
             page: this.currentPage,
             size: this.pageSize
@@ -272,10 +317,16 @@ export default {
     async loadStatistics() {
       // 加载统计数据
       try {
-        // 获取待审核数量
-        const pendingResponse = await getPendingSubmissions({ page: 0, size: 1 })
-        if (pendingResponse.code === 200) {
-          this.pendingCount = pendingResponse.data.totalElements || 0
+        // 获取我提交的待审核数量
+        const myPendingResponse = await countMyPendingSubmissions()
+        if (myPendingResponse.code === 200) {
+          this.myPendingCount = myPendingResponse.data || 0
+        }
+
+        // 获取待我审核的数量
+        const pendingForReviewResponse = await countPendingSubmissionsForReview()
+        if (pendingForReviewResponse.code === 200) {
+          this.pendingForReviewCount = pendingForReviewResponse.data || 0
         }
 
         // 获取所有提交来统计已批准和已拒绝的数量
@@ -406,42 +457,42 @@ export default {
     },
 
     /**
-     * 检查当前用户是否是项目负责人
+     * 检查当前用户是否可以审核该提交（只有任务创建者可以审核）
      * @param {Object} submission - 提交数据
      * @returns {Boolean}
      */
     isProjectManager(submission) {
       if (!submission) return false
       
-      // 获取当前用户名
-      const currentUserName = this.getCurrentUserName()
-      if (!currentUserName) return false
-      
-      // 检查提交数据中是否包含项目负责人信息
-      // 可能的字段名：projectManager, manager, project.manager, task.project.manager
-      const manager = submission.projectManager || 
-                     submission.manager || 
-                     (submission.project && submission.project.manager) ||
-                     (submission.task && submission.task.project && submission.task.project.manager) ||
-                     (submission.task && submission.task.projectManager)
-      
-      if (!manager) {
-        // 如果没有项目负责人信息，返回false（安全起见）
+      // 只有待审核状态的提交才能审核
+      if (submission.reviewStatus !== 'PENDING') {
         return false
       }
       
-      // 比较当前用户名和项目负责人
-      return String(manager).trim() === String(currentUserName).trim()
+      // 获取当前用户ID
+      const currentUserId = this.getCurrentUserId()
+      if (!currentUserId) return false
+      
+      // 检查任务创建者ID（任务创建者可以审核）
+      const taskCreatorId = submission.taskCreatorId
+      
+      if (!taskCreatorId) {
+        // 如果没有任务创建者信息，返回false（安全起见）
+        return false
+      }
+      
+      // 比较当前用户ID和任务创建者ID
+      return String(taskCreatorId).trim() === String(currentUserId).trim()
     },
 
     /**
-     * 获取当前用户名
+     * 获取当前用户ID
      * @returns {String}
      */
-    getCurrentUserName() {
+    getCurrentUserId() {
       try {
         const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
-        return userInfo.username || userInfo.name || userInfo.userName || null
+        return userInfo.id || userInfo.userId || userInfo.user_id || null
       } catch (error) {
         console.error('获取当前用户信息失败:', error)
         return null
@@ -524,7 +575,7 @@ export default {
 
 .stats-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -809,6 +860,16 @@ export default {
 
 .btn-review:hover {
   background-color: #1976D2;
+}
+
+.waiting-badge {
+  padding: 8px 20px;
+  background-color: #fff3e0;
+  color: #f57c00;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
 .pagination {
