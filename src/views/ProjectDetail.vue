@@ -3256,7 +3256,7 @@ export default {
         console.log('📝 或运行以下PowerShell命令测试：')
         console.log(`   Invoke-WebRequest -Uri "${imageUrl}" -Method GET -UseBasicParsing`)
         
-        // 尝试fetch测试
+        // 尝试fetch测试（使用 try-catch 包装，避免未捕获的错误）
         fetch(imageUrl, { method: 'HEAD' })
           .then(response => {
             console.log('✅ HEAD请求成功，状态码:', response.status)
@@ -3264,8 +3264,9 @@ export default {
             console.log('✅ Access-Control-Allow-Origin:', response.headers.get('Access-Control-Allow-Origin'))
           })
           .catch(error => {
-            console.error('❌ HEAD请求失败:', error)
-            console.error('❌ 这通常表示CORS或网络问题')
+            // 使用 console.warn 而不是 console.error，避免触发全局错误处理
+            console.warn('⚠️ HEAD请求失败:', error.message || error)
+            console.warn('⚠️ 这通常表示CORS或网络问题')
           })
       }
     },
