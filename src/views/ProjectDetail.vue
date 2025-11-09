@@ -3242,8 +3242,8 @@ export default {
     },
     onImageError(event) {
       const imageUrl = this.project.imageUrl || this.project.image
-      console.error('❌ 图片加载失败，URL:', imageUrl)
-      console.error('❌ 错误详情:', event)
+      // 使用 console.warn 而不是 console.error，避免触发全局错误处理
+      console.warn('⚠️ 图片加载失败，URL:', imageUrl)
       console.warn('⚠️ 可能的原因：')
       console.warn('  1. CORS 跨域问题 - MinIO 没有正确配置 CORS')
       console.warn('  2. 图片 URL 不正确')
