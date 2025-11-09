@@ -11,133 +11,146 @@
       </div>
 
       <div class="modal-body">
-        <!-- 任务信息 -->
-        <div class="task-info-section">
-          <h4 class="section-title">任务信息</h4>
-          <div class="task-info-card">
-            <div class="info-item">
-              <span class="info-label">任务标题：</span>
-              <span class="info-value">{{ submission.taskTitle }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">提交人：</span>
-              <span class="info-value">{{ submission.submitter?.username || '未知' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">提交时间：</span>
-              <span class="info-value">{{ formatDateTime(submission.submissionTime) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">提交类型：</span>
-              <span class="submission-type-badge" :class="'type-' + submission.submissionType">
-                {{ getSubmissionTypeText(submission.submissionType) }}
-              </span>
-            </div>
-            <div class="info-item" v-if="submission.actualWorktime">
-              <span class="info-label">实际工时：</span>
-              <span class="info-value">{{ submission.actualWorktime }} 小时</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">是否最终提交：</span>
-              <span class="info-value">
-                <span v-if="submission.isFinal" class="badge badge-success">是</span>
-                <span v-else class="badge badge-info">否</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 提交说明 -->
-        <div class="form-group">
-          <label class="form-label">提交说明</label>
-          <div class="submission-content-box">
-            {{ submission.submissionContent }}
-          </div>
-        </div>
-
-        <!-- 附件列表 -->
-        <div class="form-group" v-if="submission.attachmentUrls && submission.attachmentUrls.length > 0">
-          <label class="form-label">附件 ({{ submission.attachmentUrls.length }})</label>
-          <div class="attachment-list">
-            <div v-for="(url, index) in submission.attachmentUrls" :key="index" class="attachment-item">
-              <div class="attachment-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="attachment-info">
-                <div class="attachment-name">{{ getFileNameFromUrl(url) }}</div>
-              </div>
-              <button class="attachment-download" @click="downloadAttachment(url)" title="下载">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 审核意见 -->
-        <div class="form-group">
-          <label class="form-label">审核意见 <span class="label-optional">(选填)</span></label>
-          <textarea
-            v-model="reviewData.reviewComment"
-            class="form-textarea"
-            rows="4"
-            placeholder="请填写审核意见，拒绝时建议说明原因..."
-            maxlength="2000"
-          ></textarea>
-          <div class="char-count">{{ reviewData.reviewComment.length }} / 2000</div>
-        </div>
-
-        <!-- 审核结果选择 -->
-        <div class="form-group">
-          <label class="form-label required">审核结果</label>
-          <div class="review-options">
-            <label class="review-option approve" :class="{ selected: reviewData.reviewStatus === 'APPROVED' }">
-              <input type="radio" v-model="reviewData.reviewStatus" value="APPROVED" />
-              <div class="option-content">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.709 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="option-title">批准通过</span>
-                <span class="option-desc">同意此次提交</span>
-              </div>
-            </label>
-
-            <label class="review-option reject" :class="{ selected: reviewData.reviewStatus === 'REJECTED' }">
-              <input type="radio" v-model="reviewData.reviewStatus" value="REJECTED" />
-              <div class="option-content">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span class="option-title">拒绝退回</span>
-                <span class="option-desc">不通过此次提交</span>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <!-- 提示信息 -->
-        <div class="review-warning" v-if="submission.isFinal && reviewData.reviewStatus === 'APPROVED'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- 如果没有提交，显示提示 -->
+        <div v-if="!hasSubmission" class="no-submission-message">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <span>这是最终提交，批准后任务将自动标记为完成状态</span>
+          <p class="no-submission-text">暂无提交</p>
+          <p class="no-submission-desc">该任务目前还没有提交记录</p>
         </div>
+
+        <!-- 如果有提交，显示提交内容 -->
+        <template v-else>
+          <!-- 任务信息 -->
+          <div class="task-info-section">
+            <h4 class="section-title">任务信息</h4>
+            <div class="task-info-card">
+              <div class="info-item">
+                <span class="info-label">任务标题：</span>
+                <span class="info-value">{{ submission.taskTitle }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">提交人：</span>
+                <span class="info-value">{{ submission.submitter?.username || '未知' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">提交时间：</span>
+                <span class="info-value">{{ formatDateTime(submission.submissionTime) }}</span>
+              </div>
+              <div class="info-item" v-if="submission.submissionType">
+                <span class="info-label">提交类型：</span>
+                <span class="submission-type-badge" :class="'type-' + submission.submissionType">
+                  {{ getSubmissionTypeText(submission.submissionType) }}
+                </span>
+              </div>
+              <div class="info-item" v-if="submission.actualWorktime">
+                <span class="info-label">实际工时：</span>
+                <span class="info-value">{{ submission.actualWorktime }} 小时</span>
+              </div>
+              <div class="info-item" v-if="submission.isFinal !== undefined">
+                <span class="info-label">是否最终提交：</span>
+                <span class="info-value">
+                  <span v-if="submission.isFinal" class="badge badge-success">是</span>
+                  <span v-else class="badge badge-info">否</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 提交说明 -->
+          <div class="form-group">
+            <label class="form-label">提交说明</label>
+            <div class="submission-content-box">
+              {{ submission.submissionContent || '无' }}
+            </div>
+          </div>
+
+          <!-- 附件列表 -->
+          <div class="form-group" v-if="submission.attachmentUrls && submission.attachmentUrls.length > 0">
+            <label class="form-label">附件 ({{ submission.attachmentUrls.length }})</label>
+            <div class="attachment-list">
+              <div v-for="(url, index) in submission.attachmentUrls" :key="index" class="attachment-item">
+                <div class="attachment-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="attachment-info">
+                  <div class="attachment-name">{{ getFileNameFromUrl(url) }}</div>
+                </div>
+                <button class="attachment-download" @click="downloadAttachment(url)" title="下载">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 审核意见 -->
+          <div class="form-group">
+            <label class="form-label">审核意见 <span class="label-optional">(选填)</span></label>
+            <textarea
+              v-model="reviewData.reviewComment"
+              class="form-textarea"
+              rows="4"
+              placeholder="请填写审核意见，拒绝时建议说明原因..."
+              maxlength="2000"
+            ></textarea>
+            <div class="char-count">{{ reviewData.reviewComment.length }} / 2000</div>
+          </div>
+
+          <!-- 审核结果选择 -->
+          <div class="form-group">
+            <label class="form-label required">审核结果</label>
+            <div class="review-options">
+              <label class="review-option approve" :class="{ selected: reviewData.reviewStatus === 'APPROVED' }">
+                <input type="radio" v-model="reviewData.reviewStatus" value="APPROVED" />
+                <div class="option-content">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 11.08V12C21.9988 14.1564 21.3005 16.2547 20.0093 17.9818C18.7182 19.709 16.9033 20.9725 14.8354 21.5839C12.7674 22.1953 10.5573 22.1219 8.53447 21.3746C6.51168 20.6273 4.78465 19.2461 3.61096 17.4371C2.43727 15.628 1.87979 13.4881 2.02168 11.3363C2.16356 9.18455 2.99721 7.13631 4.39828 5.49706C5.79935 3.85781 7.69279 2.71537 9.79619 2.24013C11.8996 1.7649 14.1003 1.98232 16.07 2.85999" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M22 4L12 14.01L9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="option-title">批准通过</span>
+                  <span class="option-desc">同意此次提交</span>
+                </div>
+              </label>
+
+              <label class="review-option reject" :class="{ selected: reviewData.reviewStatus === 'REJECTED' }">
+                <input type="radio" v-model="reviewData.reviewStatus" value="REJECTED" />
+                <div class="option-content">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span class="option-title">拒绝退回</span>
+                  <span class="option-desc">不通过此次提交</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- 提示信息 -->
+          <div class="review-warning" v-if="submission.isFinal && reviewData.reviewStatus === 'APPROVED'">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>这是最终提交，批准后任务将自动标记为完成状态</span>
+          </div>
+        </template>
       </div>
 
       <div class="modal-footer">
-        <button @click="handleClose" class="btn btn-secondary">取消</button>
+        <button @click="handleClose" class="btn btn-secondary">关闭</button>
         <button 
+          v-if="hasSubmission"
           @click="handleSubmitReview" 
           class="btn"
           :class="reviewData.reviewStatus === 'APPROVED' ? 'btn-success' : 'btn-danger'"
@@ -173,6 +186,11 @@ export default {
         reviewComment: ''
       },
       isSubmitting: false
+    }
+  },
+  computed: {
+    hasSubmission() {
+      return this.submission && this.submission.id
     }
   },
   watch: {
@@ -631,6 +649,33 @@ export default {
   background-color: #ccc;
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.no-submission-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.no-submission-message svg {
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.no-submission-text {
+  font-size: 18px;
+  font-weight: 600;
+  color: #666;
+  margin: 0 0 8px 0;
+}
+
+.no-submission-desc {
+  font-size: 14px;
+  color: #999;
+  margin: 0;
 }
 </style>
 

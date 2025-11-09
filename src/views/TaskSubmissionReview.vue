@@ -157,7 +157,7 @@
               <span>{{ submission.attachmentUrls.length }} 个附件</span>
             </div>
             <button 
-              v-if="submission.reviewStatus === 'PENDING'" 
+              v-if="isProjectManager(submission)" 
               class="btn-review"
               @click.stop="openReviewModal(submission)"
             >
@@ -370,6 +370,49 @@ export default {
         hour: '2-digit',
         minute: '2-digit'
       })
+    },
+
+    /**
+     * 检查当前用户是否是项目负责人
+     * @param {Object} submission - 提交数据
+     * @returns {Boolean}
+     */
+    isProjectManager(submission) {
+      if (!submission) return false
+      
+      // 获取当前用户名
+      const currentUserName = this.getCurrentUserName()
+      if (!currentUserName) return false
+      
+      // 检查提交数据中是否包含项目负责人信息
+      // 可能的字段名：projectManager, manager, project.manager, task.project.manager
+      const manager = submission.projectManager || 
+                     submission.manager || 
+                     (submission.project && submission.project.manager) ||
+                     (submission.task && submission.task.project && submission.task.project.manager) ||
+                     (submission.task && submission.task.projectManager)
+      
+      if (!manager) {
+        // 如果没有项目负责人信息，返回false（安全起见）
+        return false
+      }
+      
+      // 比较当前用户名和项目负责人
+      return String(manager).trim() === String(currentUserName).trim()
+    },
+
+    /**
+     * 获取当前用户名
+     * @returns {String}
+     */
+    getCurrentUserName() {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+        return userInfo.username || userInfo.name || userInfo.userName || null
+      } catch (error) {
+        console.error('获取当前用户信息失败:', error)
+        return null
+      }
     }
   }
 }
