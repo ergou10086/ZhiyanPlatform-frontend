@@ -89,8 +89,8 @@
     />
 
     <!-- 成果上传对话框 -->
-    <div v-if="showUploadDialog" class="upload-dialog-overlay" @click="closeUploadDialog">
-      <div class="upload-dialog" @click.stop>
+    <div v-if="showUploadDialog" class="upload-dialog-overlay" @click="closeUploadDialog" @wheel.self.prevent @touchmove.self.prevent>
+      <div class="upload-dialog" @click.stop @wheel.stop @touchmove.stop>
         <div class="dialog-header">
           <div class="dialog-title-section">
             <span class="file-type-badge" :class="getTypeClass(currentFileType)">{{ currentFileType }}</span>
@@ -579,7 +579,7 @@
             </svg>
           </button>
         </div>
-        <div class="file-view-content">
+        <div class="file-view-content" @wheel="handleContentWheel" @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove">
           <!-- 多文件列表 -->
           <div v-if="viewingFile?.files && viewingFile.files.length > 1" class="multi-file-content">
             <div class="file-list">
@@ -883,25 +883,6 @@
           
           <!-- 单文件内容（显示文件卡片样式） -->
           <div v-else>
-            <!-- 文件卡片样式（类似AI赋能） -->
-            <div v-if="viewingFile && viewingFile.files && viewingFile.files.length > 0" class="single-file-card-container">
-              <div class="file-preview-card">
-                <div class="file-preview-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <div class="file-preview-info">
-                  <div class="file-preview-name">{{ viewingFile.files[0].name || viewingFile.files[0].originalFileName || viewingFile.name || '未知文件' }}</div>
-                  <div class="file-preview-meta">
-                    <span class="file-preview-type">{{ getFileTypeDisplay(viewingFile.files[0].type) || '未知类型' }}</span>
-                    <span v-if="viewingFile.files[0].size" class="file-preview-size">{{ formatFileSize(viewingFile.files[0].size) }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
             <!-- 成果信息 -->
             <div v-if="viewingFile" class="achievement-info-section">
               <div class="file-details">
@@ -1040,11 +1021,30 @@
                     </div>
                   </div>
                 </div>
+                
+            <!-- 文件卡片样式（类似AI赋能） -->
+            <div v-if="viewingFile && viewingFile.files && viewingFile.files.length > 0" class="single-file-card-container">
+              <div class="file-preview-card">
+                <div class="file-preview-icon">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="file-preview-info">
+                  <div class="file-preview-name">{{ viewingFile.files[0].name || viewingFile.files[0].originalFileName || viewingFile.name || '未知文件' }}</div>
+                  <div class="file-preview-meta">
+                    <span class="file-preview-type">{{ getFileTypeDisplay(viewingFile.files[0].type) || '未知类型' }}</span>
+                    <span v-if="viewingFile.files[0].size" class="file-preview-size">{{ formatFileSize(viewingFile.files[0].size) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="file-view-footer">
           <div class="footer-left">
-            <button class="add-file-btn" @click="showAddFileDialog">
+            <button class="add-file-btn" @click.stop="showAddFileDialog" :disabled="!viewingFile || !viewingFile.id">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -1246,6 +1246,7 @@ export default {
       fileContent: '',
       fileContentType: 'text',
       selectedFileIndex: null,
+      lastTouchY: null, // 用于触摸滚动处理
       
       // 编辑模式
       isEditingDescription: false,
@@ -1376,6 +1377,14 @@ export default {
     showArchivePanel(newVal) {
       // 当面板状态变化时，通知全局用户信息框
       eventBus.emit(EventTypes.ARCHIVE_PANEL_TOGGLE, newVal)
+    },
+    showViewDialog(newVal) {
+      // 当模态框打开/关闭时，锁定/解锁背景页面滚动
+      if (newVal) {
+        this.lockBodyScroll()
+      } else {
+        this.unlockBodyScroll()
+      }
     }
   },
   beforeDestroy() {
@@ -1386,6 +1395,11 @@ export default {
     if (this.searchDebounceTimer) {
       clearTimeout(this.searchDebounceTimer)
       this.searchDebounceTimer = null
+    }
+    
+    // 确保解锁背景滚动（无论是查看对话框还是上传对话框）
+    if (this.showViewDialog || this.showUploadDialog) {
+      this.unlockBodyScroll()
     }
   },
   methods: {
@@ -1578,6 +1592,10 @@ export default {
       // 重置表单数据
       this.resetAchievementForm()
       this.showUploadDialog = true
+      // 锁定背景滚动
+      this.$nextTick(() => {
+        this.lockBodyScroll()
+      })
     },
     
     async handleFileSelect(event) {
@@ -1586,14 +1604,24 @@ export default {
         console.log('文件选择事件:', {
           filesCount: files.length,
           isAddingToExisting: this.isAddingToExisting,
+          showUploadDialog: this.showUploadDialog,
+          showCustomDialog: this.showCustomDialog,
           showViewDialog: this.showViewDialog,
           viewingFile: this.viewingFile ? this.viewingFile.id : null
         })
         
-        // 检查是否为现有成果添加文件
-        if (this.isAddingToExisting && this.targetAchievementId) {
-          console.log('为现有成果添加文件，直接处理')
-          await this.addFilesToExistingAchievement(files)
+        // 优先检查是否在上传对话框中（无论是新建还是添加文件到现有成果）
+        if (this.showUploadDialog) {
+          // 上传对话框已打开，将文件添加到表单中
+          console.log('将文件添加到上传表单')
+          files.forEach(file => {
+            this.achievementForm.files.push({
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              file: file
+            })
+          })
         } else if (this.showCustomDialog) {
           // 自定义类型弹窗
           files.forEach(file => {
@@ -1604,16 +1632,10 @@ export default {
               file: file
             })
           })
-        } else if (this.showUploadDialog) {
-          // 普通上传弹窗
-          files.forEach(file => {
-            this.achievementForm.files.push({
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              file: file
-            })
-          })
+        } else if (this.isAddingToExisting && this.targetAchievementId) {
+          // 如果不在对话框中，但标记为添加文件到现有成果，直接处理（兼容旧逻辑）
+          console.log('为现有成果添加文件，直接处理')
+          await this.addFilesToExistingAchievement(files)
         }
         // 清空文件输入
         this.$refs.fileInput.value = ''
@@ -1680,6 +1702,29 @@ export default {
             // 调用批量上传API
             const response = await knowledgeAPI.uploadFilesBatch(files, this.targetAchievementId)
             console.log('批量上传文件成功:', response)
+            
+            // 如果当前正在查看这个成果，需要更新 viewingFile 的文件列表
+            if (this.showViewDialog && this.viewingFile && this.viewingFile.id === this.targetAchievementId) {
+              console.log('更新当前查看成果的文件列表')
+              // 重新获取文件列表
+              const filesResponse = await knowledgeAPI.getAchievementFiles(this.targetAchievementId)
+              if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
+                // 更新 viewingFile 的文件列表（追加而不是替换）
+                const newFiles = filesResponse.data.map(fileDto => ({
+                  id: fileDto.id,
+                  name: fileDto.fileName,
+                  originalFileName: fileDto.originalFileName,
+                  type: fileDto.mimeType,
+                  size: fileDto.fileSize,
+                  uploadTime: fileDto.uploadedAt,
+                  downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+                }))
+                // 更新文件列表和文件数量
+                this.viewingFile.files = newFiles
+                this.viewingFile.fileCount = newFiles.length
+                console.log('文件列表已更新，共', newFiles.length, '个文件')
+              }
+            }
             
             // 刷新成果列表（重新加载当前页数据）
             await this.loadAchievements()
@@ -1841,6 +1886,8 @@ export default {
       this.isAddingToExisting = false
       this.targetAchievementId = null
       this.$refs.fileInput.value = ''
+      // 解锁背景滚动
+      this.unlockBodyScroll()
     },
     
     createCustomType() {
@@ -2033,7 +2080,106 @@ export default {
       this.isEditingContent = false
       this.editableContent = ''
       this.hasContentChanges = false
+      this.lastTouchY = null
       this.resetEditForm()
+      this.unlockBodyScroll()
+    },
+    
+    // 锁定背景页面滚动
+    lockBodyScroll() {
+      // 保存当前滚动位置
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
+      document.body.style.overflow = 'hidden'
+    },
+    
+    // 解锁背景页面滚动
+    unlockBodyScroll() {
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      document.body.style.overflow = ''
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      }
+    },
+    
+    // 处理内容区域滚动事件，防止滚动穿透
+    handleContentWheel(e) {
+      const content = e.currentTarget
+      const { scrollTop, scrollHeight, clientHeight } = content
+      
+      // 如果内容不需要滚动（内容高度小于容器高度），直接阻止事件传播
+      if (scrollHeight <= clientHeight) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
+      const isAtTop = scrollTop <= 1 // 允许1px的误差
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1 // 允许1px的误差
+      
+      // 如果已经滚动到顶部，且继续向上滚动，阻止事件传播
+      if (isAtTop && e.deltaY < 0) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
+      // 如果已经滚动到底部，且继续向下滚动，阻止事件传播
+      if (isAtBottom && e.deltaY > 0) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
+      // 其他情况允许正常滚动，不阻止事件
+    },
+    
+    // 处理触摸开始事件
+    handleContentTouchStart(e) {
+      if (e.touches && e.touches.length > 0) {
+        this.lastTouchY = e.touches[0].clientY
+      }
+    },
+    
+    // 处理触摸滚动事件，防止滚动穿透
+    handleContentTouchMove(e) {
+      const content = e.currentTarget
+      const { scrollTop, scrollHeight, clientHeight } = content
+      const touch = e.touches[0]
+      if (!touch) return
+      
+      // 如果内容不需要滚动（内容高度小于容器高度），直接阻止事件传播
+      if (scrollHeight <= clientHeight) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
+      const currentY = touch.clientY
+      const isAtTop = scrollTop <= 1 // 允许1px的误差
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1 // 允许1px的误差
+      
+      // 如果已经滚动到顶部，且继续向上滑动，阻止事件
+      if (isAtTop && this.lastTouchY && currentY > this.lastTouchY) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
+      // 如果已经滚动到底部，且继续向下滑动，阻止事件
+      if (isAtBottom && this.lastTouchY && currentY < this.lastTouchY) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+      
+      this.lastTouchY = currentY
+      // 其他情况允许正常滚动，不阻止事件
     },
     
     // 切换编辑模式
@@ -2259,6 +2405,13 @@ export default {
     
     // 显示添加文件对话框
     showAddFileDialog() {
+      // 检查 viewingFile 是否存在
+      if (!this.viewingFile || !this.viewingFile.id) {
+        console.error('无法添加文件：viewingFile 不存在或没有 id')
+        alert('无法添加文件：成果信息不完整')
+        return
+      }
+      
       // 设置添加文件到现有成果的状态
       this.isAddingToExisting = true
       this.targetAchievementId = this.viewingFile.id
@@ -2268,8 +2421,20 @@ export default {
         isAddingToExisting: this.isAddingToExisting
       })
       
-      // 直接触发文件选择，为当前成果添加文件
-      this.$refs.fileInput.click()
+      // 打开上传对话框，让用户选择文件
+      this.showUploadDialog = true
+      // 重置表单，但保留 isAddingToExisting 和 targetAchievementId
+      this.achievementForm = {
+        name: '',
+        type: '',
+        description: '',
+        files: [],
+        isPublic: false
+      }
+      // 锁定背景滚动
+      this.$nextTick(() => {
+        this.lockBodyScroll()
+      })
     },
     
     // 为现有成果添加文件

@@ -9,7 +9,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  z-index: 1200; /* 高于查看界面(1100)，确保显示在查看界面之上 */
+  /* 阻止背景滚动 */
+  overflow: hidden;
+  /* 阻止触摸滚动传递到底层 */
+  touch-action: none;
 }
 
 .upload-dialog {
@@ -17,9 +21,14 @@
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   max-width: 600px;
-  width: 90%;
-  max-height: 85vh;
+  width: 85%; /* 减小宽度，留出更多边距 */
+  max-height: calc(100vh - 80px); /* 留出上下各40px的边距 */
   overflow-y: auto;
+  /* 允许弹窗内部滚动，但不传递到底层 */
+  overscroll-behavior: contain;
+  /* 恢复触摸滚动（仅在弹窗内） */
+  touch-action: pan-y;
+  margin: 40px auto; /* 上下40px边距，左右自动居中，确保边框可见 */
 }
 
 .dialog-header {
@@ -85,6 +94,9 @@
 
 .dialog-content {
   padding: 24px;
+  /* 确保内容区域可以正常滚动，但阻止滚动传递 */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* 表单样式 */

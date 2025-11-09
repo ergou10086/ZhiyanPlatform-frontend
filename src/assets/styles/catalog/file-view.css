@@ -423,6 +423,9 @@
   padding: 20px 24px;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  background: white;
 }
 
 .footer-left {
@@ -554,9 +557,20 @@
   transition: all 0.2s;
 }
 
-.add-file-btn:hover {
+.add-file-btn:hover:not(:disabled) {
   background: #4c5ae8;
   transform: translateY(-1px);
+}
+
+.add-file-btn:disabled {
+  background: #cbd5e1;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.add-file-btn:disabled:hover {
+  transform: none;
 }
 
 .add-file-btn svg {
@@ -815,5 +829,197 @@
 
 .dark-mode .achievement-info-section .detail-value {
   color: #9ca3af;
+}
+
+/* 单文件卡片容器样式 */
+.single-file-card-container {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+/* 文件预览卡片样式 */
+.file-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.file-preview-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.03) 0%, rgba(0, 68, 204, 0.02) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.file-preview-card:hover {
+  border-color: #5EB6E4;
+  box-shadow: 
+    0 8px 16px -4px rgba(0, 68, 204, 0.12),
+    0 0 0 1px rgba(94, 182, 228, 0.15);
+  transform: translateY(-2px);
+}
+
+.file-preview-card:hover::before {
+  opacity: 1;
+}
+
+/* 文件图标容器 */
+.file-preview-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 12px;
+  flex-shrink: 0;
+  color: white;
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.25);
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+.file-preview-card:hover .file-preview-icon {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(94, 182, 228, 0.35);
+}
+
+.file-preview-icon svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 2.5;
+}
+
+/* 文件信息容器 */
+.file-preview-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 文件名样式 */
+.file-preview-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+  transition: color 0.2s ease;
+}
+
+.file-preview-card:hover .file-preview-name {
+  color: #0044CC;
+}
+
+/* 文件元信息容器 */
+.file-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 文件类型标签 */
+.file-preview-type {
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(30, 64, 175, 0.1);
+  transition: all 0.2s ease;
+}
+
+.file-preview-card:hover .file-preview-type {
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+  border-color: rgba(30, 64, 175, 0.2);
+}
+
+/* 文件大小样式 */
+.file-preview-size {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.file-preview-card:hover .file-preview-size {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+/* 暗色模式支持 */
+.dark-mode .file-preview-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: #334155;
+}
+
+.dark-mode .file-preview-card::before {
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.08) 0%, rgba(0, 68, 204, 0.05) 100%);
+}
+
+.dark-mode .file-preview-card:hover {
+  border-color: #5EB6E4;
+  box-shadow: 
+    0 8px 16px -4px rgba(0, 68, 204, 0.2),
+    0 0 0 1px rgba(94, 182, 228, 0.25);
+}
+
+.dark-mode .file-preview-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .file-preview-card:hover .file-preview-name {
+  color: #93c5fd;
+}
+
+.dark-mode .file-preview-type {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.3) 0%, rgba(30, 64, 175, 0.2) 100%);
+  color: #93c5fd;
+  border-color: rgba(147, 197, 253, 0.2);
+}
+
+.dark-mode .file-preview-card:hover .file-preview-type {
+  background: linear-gradient(135deg, rgba(30, 64, 175, 0.4) 0%, rgba(30, 64, 175, 0.3) 100%);
+  border-color: rgba(147, 197, 253, 0.3);
+}
+
+.dark-mode .file-preview-size {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.dark-mode .file-preview-card:hover .file-preview-size {
+  background: #475569;
+  color: #cbd5e1;
 }
 
