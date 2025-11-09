@@ -272,17 +272,49 @@ export default {
     async loadStatistics() {
       // 加载统计数据
       try {
-        const response = await getPendingSubmissions({ page: 0, size: 1 })
-        if (response.code === 200) {
-          this.pendingCount = response.data.totalElements || 0
+        // 获取待审核数量
+        const pendingResponse = await getPendingSubmissions({ page: 0, size: 1 })
+        if (pendingResponse.code === 200) {
+          this.pendingCount = pendingResponse.data.totalElements || 0
+        }
+
+        // 获取所有提交来统计已批准和已拒绝的数量
+        const allResponse = await getMySubmissions({ page: 0, size: 1000 })
+        if (allResponse.code === 200) {
+          const allSubmissions = allResponse.data.content || []
+          
+          // 统计已批准和已拒绝的数量
+          this.approvedCount = allSubmissions.filter(s => s.reviewStatus === 'APPROVED').length
+          this.rejectedCount = allSubmissions.filter(s => s.reviewStatus === 'REJECTED').length
+          
+          // 如果总数超过1000，需要获取更多数据来准确统计
+          const totalElements = allResponse.data.totalElements || 0
+          if (totalElements > 1000) {
+            // 获取所有页的数据来准确统计
+            const allPages = Math.ceil(totalElements / 1000)
+            let approvedCount = this.approvedCount
+            let rejectedCount = this.rejectedCount
+            
+            for (let page = 1; page < allPages; page++) {
+              try {
+                const pageResponse = await getMySubmissions({ page, size: 1000 })
+                if (pageResponse.code === 200) {
+                  const pageSubmissions = pageResponse.data.content || []
+                  approvedCount += pageSubmissions.filter(s => s.reviewStatus === 'APPROVED').length
+                  rejectedCount += pageSubmissions.filter(s => s.reviewStatus === 'REJECTED').length
+                }
+              } catch (error) {
+                console.error(`加载第${page + 1}页统计失败`, error)
+              }
+            }
+            
+            this.approvedCount = approvedCount
+            this.rejectedCount = rejectedCount
+          }
         }
       } catch (error) {
         console.error('加载统计失败', error)
       }
-      
-      // 这里可以添加更多统计查询
-      this.approvedCount = 0
-      this.rejectedCount = 0
     },
 
     refreshList() {

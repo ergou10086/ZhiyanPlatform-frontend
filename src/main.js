@@ -1,6 +1,8 @@
 import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
+import ElementUI from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css'
 import GlobalUserProfile from './components/GlobalUserProfile.vue'
 import Button from './components/Button.vue'
 import Card from './components/Card.vue'
@@ -329,6 +331,9 @@ console.error = function(...args) {
 
 // 注册事件总线
 Vue.use(EventBus)
+
+// 注册 Element UI
+Vue.use(ElementUI)
 
 // 开发环境：启用事件调试
 if (process.env.NODE_ENV === 'development') {

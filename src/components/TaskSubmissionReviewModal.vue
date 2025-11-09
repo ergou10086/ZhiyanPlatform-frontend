@@ -48,13 +48,6 @@
                 <span class="info-label">实际工时：</span>
                 <span class="info-value">{{ submission.actualWorktime }} 小时</span>
               </div>
-              <div class="info-item" v-if="submission.isFinal !== undefined">
-                <span class="info-label">是否最终提交：</span>
-                <span class="info-value">
-                  <span v-if="submission.isFinal" class="badge badge-success">是</span>
-                  <span v-else class="badge badge-info">否</span>
-                </span>
-              </div>
             </div>
           </div>
 
@@ -135,15 +128,6 @@
             </div>
           </div>
 
-          <!-- 提示信息 -->
-          <div class="review-warning" v-if="submission.isFinal && reviewData.reviewStatus === 'APPROVED'">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <span>这是最终提交，批准后任务将自动标记为完成状态</span>
-          </div>
         </template>
       </div>
 
@@ -357,12 +341,14 @@ export default {
   background-color: #f8f9fa;
   border-radius: 8px;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .info-item:last-child {
