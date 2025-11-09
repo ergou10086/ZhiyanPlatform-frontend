@@ -101,7 +101,7 @@
         <div class="dialog-content">
           <!-- 成果名称 -->
           <div v-if="!isAddingToExisting" class="form-group">
-            <label>成果名称：</label>
+            <label>成果名称：<span class="required-asterisk">*</span></label>
             <input 
               v-model="achievementForm.name" 
               type="text" 
@@ -461,7 +461,7 @@
 
           <!-- 成果名称 -->
           <div class="form-group">
-            <label>成果名称：</label>
+            <label>成果名称：<span class="required-asterisk">*</span></label>
             <input 
               v-model="customUploadForm.name" 
               type="text" 
