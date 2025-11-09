@@ -2,6 +2,8 @@
 .catalog-view {
   position: relative;
   animation: fadeInUp 0.6s ease-out;
+  height: 100vh;
+  overflow: hidden;
 }
 
 @keyframes fadeInUp {

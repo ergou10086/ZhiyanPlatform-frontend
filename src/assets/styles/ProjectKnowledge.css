@@ -1,10 +1,9 @@
 .knowledge-base-container {
-  height: 100vh;
+  min-height: 100vh;
   background-color: #f8f9fa;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
 }
 
 .knowledge-base-container .top-header {
@@ -196,7 +195,7 @@
   padding: 40px 20px 20px 20px;
   background: #f8f9fa;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: hidden;
   position: relative;
   transform: translateZ(0);
   will-change: auto;

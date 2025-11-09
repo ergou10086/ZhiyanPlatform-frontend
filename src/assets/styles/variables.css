@@ -182,8 +182,6 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  height: 100%;
-  overflow: hidden;
 }
 
 body {
@@ -193,8 +191,6 @@ body {
   color: var(--text-primary);
   background-color: var(--bg-secondary);
   line-height: var(--leading-normal);
-  height: 100%;
-  overflow: hidden;
 }
 
 /* 通用工具类 */
