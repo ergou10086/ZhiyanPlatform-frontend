@@ -198,9 +198,10 @@
                     </svg>
                   </button>
                   <div class="task-status-menu" v-if="task.showStatusMenu">
-                    <!-- ✅ 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
+                    <!-- 移除“待接取”选项，用户不应该手动将任务改回待接取状态 -->
                     <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
                     <button @click="changeTaskStatus(task, '阻塞')" class="status-option" :class="{ active: task.status === '阻塞' }">阻塞</button>
+                    <button @click="changeTaskStatus(task, '待审核')" class="status-option" :class="{ active: task.status === '待审核' }">待审核</button>
                     <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                   </div>
                 </div>
@@ -233,19 +234,18 @@
                 <span v-if="task.assignee_name" class="task-assignee">
                   负责人: {{ task.assignee_name }}
                 </span>
-              </div>
             </div>
             <div v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" class="task-assign-section" @click.stop>
               <button @click="assignTask(task)" class="assign-btn">接取任务</button>
             </div>
             <div v-else-if="task.assignee_name && isCurrentUserAssignee(task)" class="task-assign-section" @click.stop>
               <span class="assign-status-badge assigned-by-me">已接取</span>
-              <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" title="提交任务">
+              <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="task.hasSubmission ? '修改提交' : '提交任务'">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                提交任务
+                {{ task.hasSubmission ? '修改提交' : '提交任务' }}
               </button>
             </div>
           </div>
@@ -497,9 +497,10 @@
                       </svg>
                     </button>
                     <div class="task-status-menu" v-if="task.showStatusMenu">
-                      <!-- ✅ 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
+                      <!-- 移除“待接取”选项，用户不应该手动将任务改回待接取状态 -->
                       <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
                       <button @click="changeTaskStatus(task, '阻塞')" class="status-option" :class="{ active: task.status === '阻塞' }">阻塞</button>
+                      <button @click="changeTaskStatus(task, '待审核')" class="status-option" :class="{ active: task.status === '待审核' }">待审核</button>
                       <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                     </div>
                   </div>
@@ -976,6 +977,7 @@
           <button class="btn-confirm" @click="applyCrop">完成裁切</button>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -2299,7 +2301,7 @@ export default {
       if (savedUserInfo) {
         try {
           const userInfo = JSON.parse(savedUserInfo)
-          return userInfo.id || null
+          return userInfo.id || userInfo.userId || null
         } catch (error) {
           console.error('解析用户信息失败:', error)
           return null
@@ -2374,10 +2376,11 @@ export default {
         'ONGOING': '进行中',
         'COMPLETED': '已完成',
         'ARCHIVED': '已归档',
-        // 任务状态（后端枚举：TODO, IN_PROGRESS, BLOCKED, DONE）
+        // 任务状态（后端枚举：TODO, IN_PROGRESS, BLOCKED, PENDING_REVIEW, DONE）
         'TODO': '待接取',
         'IN_PROGRESS': '进行中',
         'BLOCKED': '阻塞',
+        'PENDING_REVIEW': '待审核',
         'DONE': '完成',
         // 兼容旧数据
         'PENDING': '待接取',
@@ -2393,9 +2396,10 @@ export default {
         '进行中': 'IN_PROGRESS',
         '已完成': 'COMPLETED',
         '已归档': 'ARCHIVED',
-        // 任务状态映射（后端枚举：TODO, IN_PROGRESS, BLOCKED, DONE）
+        // 任务状态映射（后端枚举：TODO, IN_PROGRESS, BLOCKED, PENDING_REVIEW, DONE）
         '待接取': 'TODO',
         '阻塞': 'BLOCKED',
+        '待审核': 'PENDING_REVIEW',
         '完成': 'DONE',
         '已取消': 'CANCELLED'
       }
@@ -2406,7 +2410,7 @@ export default {
       }
       
       // ✅ 如果已经是大写枚举值（如 TODO, IN_PROGRESS），直接返回
-      const validEnums = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'PLANNING', 'ONGOING', 'COMPLETED', 'ARCHIVED', 'CANCELLED']
+      const validEnums = ['TODO', 'IN_PROGRESS', 'BLOCKED', 'PENDING_REVIEW', 'DONE', 'PLANNING', 'ONGOING', 'COMPLETED', 'ARCHIVED', 'CANCELLED']
       if (status && validEnums.includes(status.toUpperCase())) {
         return status.toUpperCase()
       }
@@ -2648,11 +2652,22 @@ export default {
       console.log('任务提交成功:', submission)
       this.showSuccessToast('任务提交成功，等待审核')
       
-      // 刷新任务列表
-      this.loadProjectTasks()
+      // 立即更新当前任务的hasSubmission标志
+      if (this.taskToSubmit && this.taskToSubmit.id) {
+        const taskId = this.taskToSubmit.id
+        // 更新tasks数组中的任务
+        const taskIndex = this.tasks.findIndex(t => t.id === taskId)
+        if (taskIndex !== -1) {
+          this.$set(this.tasks[taskIndex], 'hasSubmission', true)
+          this.$set(this.tasks[taskIndex], 'status', '待审核')
+        }
+      }
       
       // 关闭弹窗
       this.closeTaskSubmissionModal()
+      
+      // 刷新任务列表（后台同步）
+      this.loadProjectTasks()
     },
     
     /**
@@ -2791,14 +2806,6 @@ export default {
     },
     
     // ==================== 辅助方法 ====================
-    
-    /**
-     * 获取当前用户ID
-     */
-    getCurrentUserId() {
-      const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
-      return userInfo.id || userInfo.userId || null
-    },
     
     /**
      * 显示错误提示

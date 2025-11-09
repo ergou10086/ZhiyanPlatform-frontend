@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "axios": "^0.27.2",
+    "element-ui": "^2.15.14",
     "highlight.js": "^11.11.1",
     "json-bigint": "^1.0.0",
     "marked": "^11.2.0",

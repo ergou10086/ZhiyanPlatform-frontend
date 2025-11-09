@@ -258,11 +258,12 @@ export default {
           this.totalElements = pageData.totalElements || 0
           this.totalPages = pageData.totalPages || 0
         } else {
-          this.$message.error(response.msg || '加载失败')
+          alert(response.msg || '加载失败')
         }
       } catch (error) {
         console.error('加载提交列表失败', error)
-        this.$message.error('加载失败：' + (error.message || '未知错误'))
+        const errorMsg = error?.msg || error?.message || (typeof error === 'string' ? error : '未知错误')
+        alert('加载失败：' + errorMsg)
       } finally {
         this.isLoading = false
       }
@@ -271,23 +272,55 @@ export default {
     async loadStatistics() {
       // 加载统计数据
       try {
-        const response = await getPendingSubmissions({ page: 0, size: 1 })
-        if (response.code === 200) {
-          this.pendingCount = response.data.totalElements || 0
+        // 获取待审核数量
+        const pendingResponse = await getPendingSubmissions({ page: 0, size: 1 })
+        if (pendingResponse.code === 200) {
+          this.pendingCount = pendingResponse.data.totalElements || 0
+        }
+
+        // 获取所有提交来统计已批准和已拒绝的数量
+        const allResponse = await getMySubmissions({ page: 0, size: 1000 })
+        if (allResponse.code === 200) {
+          const allSubmissions = allResponse.data.content || []
+          
+          // 统计已批准和已拒绝的数量
+          this.approvedCount = allSubmissions.filter(s => s.reviewStatus === 'APPROVED').length
+          this.rejectedCount = allSubmissions.filter(s => s.reviewStatus === 'REJECTED').length
+          
+          // 如果总数超过1000，需要获取更多数据来准确统计
+          const totalElements = allResponse.data.totalElements || 0
+          if (totalElements > 1000) {
+            // 获取所有页的数据来准确统计
+            const allPages = Math.ceil(totalElements / 1000)
+            let approvedCount = this.approvedCount
+            let rejectedCount = this.rejectedCount
+            
+            for (let page = 1; page < allPages; page++) {
+              try {
+                const pageResponse = await getMySubmissions({ page, size: 1000 })
+                if (pageResponse.code === 200) {
+                  const pageSubmissions = pageResponse.data.content || []
+                  approvedCount += pageSubmissions.filter(s => s.reviewStatus === 'APPROVED').length
+                  rejectedCount += pageSubmissions.filter(s => s.reviewStatus === 'REJECTED').length
+                }
+              } catch (error) {
+                console.error(`加载第${page + 1}页统计失败`, error)
+              }
+            }
+            
+            this.approvedCount = approvedCount
+            this.rejectedCount = rejectedCount
+          }
         }
       } catch (error) {
         console.error('加载统计失败', error)
       }
-      
-      // 这里可以添加更多统计查询
-      this.approvedCount = 0
-      this.rejectedCount = 0
     },
 
     refreshList() {
       this.loadSubmissions()
       this.loadStatistics()
-      this.$message.success('已刷新')
+      alert('已刷新')
     },
 
     changeTab(tab) {
@@ -303,7 +336,7 @@ export default {
 
     openReviewModal(submission) {
       if (submission.reviewStatus !== 'PENDING') {
-        this.$message.info('该提交已审核')
+        alert('该提交已审核')
         return
       }
       this.selectedSubmission = submission
