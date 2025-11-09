@@ -258,11 +258,12 @@ export default {
           this.totalElements = pageData.totalElements || 0
           this.totalPages = pageData.totalPages || 0
         } else {
-          this.$message.error(response.msg || '加载失败')
+          alert(response.msg || '加载失败')
         }
       } catch (error) {
         console.error('加载提交列表失败', error)
-        this.$message.error('加载失败：' + (error.message || '未知错误'))
+        const errorMsg = error?.msg || error?.message || (typeof error === 'string' ? error : '未知错误')
+        alert('加载失败：' + errorMsg)
       } finally {
         this.isLoading = false
       }
@@ -287,7 +288,7 @@ export default {
     refreshList() {
       this.loadSubmissions()
       this.loadStatistics()
-      this.$message.success('已刷新')
+      alert('已刷新')
     },
 
     changeTab(tab) {
@@ -303,7 +304,7 @@ export default {
 
     openReviewModal(submission) {
       if (submission.reviewStatus !== 'PENDING') {
-        this.$message.info('该提交已审核')
+        alert('该提交已审核')
         return
       }
       this.selectedSubmission = submission

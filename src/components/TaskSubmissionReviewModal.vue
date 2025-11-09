@@ -246,12 +246,12 @@ export default {
 
     async handleSubmitReview() {
       if (!this.reviewData.reviewStatus) {
-        this.$message.warning('请选择审核结果')
+        alert('请选择审核结果')
         return
       }
 
       if (this.reviewData.reviewStatus === 'REJECTED' && !this.reviewData.reviewComment) {
-        this.$message.warning('拒绝时建议填写审核意见')
+        alert('拒绝时建议填写审核意见')
         // 不强制要求，只是警告
       }
 
@@ -262,15 +262,16 @@ export default {
 
         if (response.code === 200) {
           const statusText = this.reviewData.reviewStatus === 'APPROVED' ? '批准' : '拒绝'
-          this.$message.success(`审核${statusText}成功`)
+          alert(`审核${statusText}成功`)
           this.$emit('success', response.data)
           this.handleClose()
         } else {
-          this.$message.error(response.msg || '审核失败')
+          alert(response.msg || '审核失败')
         }
       } catch (error) {
         console.error('审核失败', error)
-        this.$message.error('审核失败：' + (error.msg || error.message || '未知错误'))
+        const errorMsg = error?.msg || error?.message || (typeof error === 'string' ? error : '未知错误')
+        alert('审核失败：' + errorMsg)
       } finally {
         this.isSubmitting = false
       }
