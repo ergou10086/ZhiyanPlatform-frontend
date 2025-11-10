@@ -148,7 +148,7 @@
                 <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
               </svg>
-              <span>{{ submission.submitter?.username || '未知' }}</span>
+              <span>{{ getSubmitterName(submission) }}</span>
             </div>
             <div class="meta-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -290,7 +290,51 @@ export default {
 
         if (response.code === 200) {
           const pageData = response.data
-          this.submissions = pageData.content || []
+          const rawSubmissions = pageData.content || []
+          
+          // 调试：打印原始数据
+          console.log('原始提交数据:', rawSubmissions)
+          if (rawSubmissions.length > 0) {
+            console.log('第一个提交的完整结构:', JSON.stringify(rawSubmissions[0], null, 2))
+          }
+          
+          // 处理提交数据，确保提交人信息正确映射
+          this.submissions = rawSubmissions.map(submission => {
+            // 尝试多种可能的字段名来获取提交人信息
+            let submitterName = null
+            
+            // 情况1: submitter对象（优先检查 name 字段，因为后端返回的是 name）
+            if (submission.submitter) {
+              submitterName = submission.submitter.name || 
+                             submission.submitter.username || 
+                             submission.submitter.userName ||
+                             submission.submitter.nickname
+            }
+            
+            // 情况2: 直接字段
+            if (!submitterName) {
+              submitterName = submission.submitterName || 
+                             submission.submitter_name ||
+                             submission.submitterUsername ||
+                             submission.submitter_username
+            }
+            
+            // 如果找到了提交人名称，确保submitter对象有username字段（用于兼容显示）
+            if (submitterName && submission.submitter) {
+              return {
+                ...submission,
+                submitter: {
+                  ...submission.submitter,
+                  // 确保有username字段用于显示（从name复制）
+                  username: submission.submitter.name || submitterName,
+                  userName: submission.submitter.name || submitterName
+                }
+              }
+            }
+            
+            return submission
+          })
+          
           this.totalElements = pageData.totalElements || 0
           this.totalPages = pageData.totalPages || 0
         } else {
@@ -488,6 +532,42 @@ export default {
         console.error('获取当前用户信息失败:', error)
         return null
       }
+    },
+    
+    /**
+     * 获取提交人名称（兼容多种数据结构）
+     * @param {Object} submission - 提交数据
+     * @returns {String} 提交人名称
+     */
+    getSubmitterName(submission) {
+      if (!submission) return '未知'
+      
+      // 优先检查 submitter.name（后端实际返回的字段）
+      if (submission.submitter) {
+        const name = submission.submitter.name || 
+                     submission.submitter.username || 
+                     submission.submitter.userName ||
+                     submission.submitter.nickname
+        if (name && name !== '未知用户' && String(name).trim() !== '') {
+          return name
+        }
+      }
+      
+      // 尝试直接字段
+      const directFields = [
+        submission.submitterName,
+        submission.submitter_name,
+        submission.submitterUsername,
+        submission.submitter_username
+      ]
+      
+      for (const name of directFields) {
+        if (name && name !== '未知用户' && String(name).trim() !== '') {
+          return name
+        }
+      }
+      
+      return '未知'
     }
   }
 }

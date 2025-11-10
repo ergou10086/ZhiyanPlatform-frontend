@@ -32,7 +32,7 @@
               </div>
               <div class="info-item">
                 <span class="info-label">提交人：</span>
-                <span class="info-value">{{ submission.submitter?.username || '未知' }}</span>
+                <span class="info-value">{{ getSubmitterName(submission) }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">提交时间：</span>
@@ -267,6 +267,42 @@ export default {
         console.error('获取当前用户信息失败:', error)
         return null
       }
+    },
+    
+    /**
+     * 获取提交人名称（兼容多种数据结构）
+     * @param {Object} submission - 提交数据
+     * @returns {String} 提交人名称
+     */
+    getSubmitterName(submission) {
+      if (!submission) return '未知'
+      
+      // 优先检查 submitter.name（后端实际返回的字段）
+      if (submission.submitter) {
+        const name = submission.submitter.name || 
+                     submission.submitter.username || 
+                     submission.submitter.userName ||
+                     submission.submitter.nickname
+        if (name && name !== '未知用户' && String(name).trim() !== '') {
+          return name
+        }
+      }
+      
+      // 尝试直接字段
+      const directFields = [
+        submission.submitterName,
+        submission.submitter_name,
+        submission.submitterUsername,
+        submission.submitter_username
+      ]
+      
+      for (const name of directFields) {
+        if (name && name !== '未知用户' && String(name).trim() !== '') {
+          return name
+        }
+      }
+      
+      return '未知'
     },
 
     async handleSubmitReview() {
