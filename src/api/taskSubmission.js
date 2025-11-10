@@ -372,3 +372,14 @@ export function getPresignedUrl(fileUrl) {
     params: { fileUrl }
   });
 }
+
+/**
+ * 下载文件（后端代理下载，避免CORS问题）
+ * @param {string} fileUrl - 文件URL
+ * @returns {string} 下载接口的完整URL
+ */
+export function getDownloadUrl(fileUrl) {
+  const token = localStorage.getItem('access_token')
+  const encodedUrl = encodeURIComponent(fileUrl)
+  return `/zhiyan/api/projects/tasks/submissions/files/download?fileUrl=${encodedUrl}&token=${token}`
+}
