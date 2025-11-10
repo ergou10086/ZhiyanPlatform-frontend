@@ -303,6 +303,20 @@ export const knowledgeAPI = {
   },
 
   /**
+   * 直接下载文件（流式下载）
+   * 不返回URL，直接触发浏览器下载
+   * @param {Number} fileId - 文件ID
+   * @returns {String} 直接下载的URL
+   */
+  getDirectDownloadUrl(fileId) {
+    const token = localStorage.getItem('access_token')
+    console.log('[knowledgeAPI.getDirectDownloadUrl] 直接下载文件, fileId:', fileId)
+    
+    // 返回带token的直接下载URL
+    return `/zhiyan/achievement/file/${fileId}/download?access_token=${token}`
+  },
+
+  /**
    * 批量更新成果详情字段
    * @param {Number} achievementId - 成果ID
    * @param {Object} fieldUpdates - 要更新的字段（键值对）

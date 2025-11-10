@@ -147,7 +147,7 @@
 </template>
 
 <script>
-import { reviewSubmission } from '@/api/taskSubmission'
+import { reviewSubmission, getDownloadUrl } from '@/api/taskSubmission'
 
 export default {
   name: 'TaskSubmissionReviewModal',
@@ -256,7 +256,39 @@ export default {
     },
 
     downloadAttachment(url) {
-      window.open(url, '_blank')
+      try {
+        const fileName = this.getFileNameFromUrl(url)
+        console.log('📄 [下载附件] 开始下载:', fileName)
+        console.log('📄 [下载附件] 原始URL:', url)
+        
+        // 使用后端代理下载接口（避免CORS问题）
+        const downloadUrl = getDownloadUrl(url)
+        console.log('📄 [下载附件] 下载URL:', downloadUrl)
+        
+        // 使用triggerDownload方法
+        this.triggerDownload(downloadUrl, fileName)
+        
+        console.log('✅ [下载附件] 下载成功:', fileName)
+        
+      } catch (error) {
+        console.error('❌ [下载附件] 下载失败:', error)
+        this.$message.error(error.message || '下载文件失败，请重试')
+      }
+    },
+    
+    triggerDownload(url, filename) {
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.target = '_blank'  // 在新标签页打开，避免导航
+      a.style.display = 'none'
+      document.body.appendChild(a)
+      a.click()
+      
+      // 延迟移除元素，确保下载已触发
+      setTimeout(() => {
+        document.body.removeChild(a)
+      }, 100)
     },
 
     /**
