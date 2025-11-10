@@ -1,0 +1,1090 @@
+﻿<template>
+  <div class="project-create-container">
+    <!-- 侧边栏弹窗 -->
+    <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
+    
+    <!-- 顶部导航栏 -->
+    <div class="top-header">
+      <div class="header-left">
+        <button class="menu-btn" @click="toggleSidebar" aria-label="open sidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button class="back-btn" @click="goBack" :title="fromPage === 'home' ? '返回首页' : '返回项目广场'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <span class="page-title">创建项目</span>
+      </div>
+      <div class="header-right">
+        <div class="user-profile">
+          <div class="user-avatar">
+            <img v-if="userAvatar" :src="userAvatar" alt="用户头像" />
+            <div v-else class="avatar-placeholder">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主要内容区域 - 左右分栏布局 -->
+    <div class="main-content">
+      <!-- 左侧表单区域 -->
+      <div class="form-section">
+        <!-- 项目基本信息 -->
+        <div class="form-group">
+          <h3 class="section-title">项目基本信息</h3>
+          
+          <div class="form-field">
+            <label class="form-label">项目名称<span class="required-asterisk">*</span></label>
+            <input
+              type="text"
+              v-model="formData.projectName"
+              class="form-input"
+              placeholder="请输入项目名称"
+            />
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">项目简介</label>
+            <textarea
+              v-model="formData.projectDescription"
+              class="form-textarea"
+              placeholder="请简要介绍您的项目目标和预期成果"
+              rows="4"
+            ></textarea>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">项目图片</label>
+            <div class="image-upload-container">
+              <div class="image-upload-area" @click="triggerImageUpload" :class="{ 'has-image': projectImage }">
+                <div v-if="!projectImage" class="upload-placeholder">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <p class="upload-text">点击上传项目图片</p>
+                  <p class="upload-hint">支持 JPG、PNG 格式</p>
+                </div>
+                <div v-else class="image-preview">
+                  <img :src="projectImage" alt="项目图片预览" />
+                  <button class="remove-image" @click.stop="removeImage" title="删除图片">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <input
+                ref="imageInput"
+                type="file"
+                accept="image/*"
+                @change="handleImageUpload"
+                style="display: none"
+                id="imageInput"
+              />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">项目可见性</label>
+            <div class="visibility-options">
+              <div 
+                class="visibility-option" 
+                :class="{ 'active': formData.visibility === 'PUBLIC' }"
+                @click="formData.visibility = 'PUBLIC'"
+              >
+                <div class="option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="option-content">
+                  <div class="option-title">公开</div>
+                  <div class="option-desc">项目对所有用户可见</div>
+                </div>
+              </div>
+              <div 
+                class="visibility-option" 
+                :class="{ 'active': formData.visibility === 'PRIVATE' }"
+                @click="formData.visibility = 'PRIVATE'"
+              >
+                <div class="option-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="option-content">
+                  <div class="option-title">私有</div>
+                  <div class="option-desc">项目仅对成员可见</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label">项目周期<span class="required-asterisk">*</span></label>
+            <div class="date-range">
+              <input
+                type="date"
+                v-model="formData.startDate"
+                class="form-input date-input"
+                @change="validateStartDate"
+              />
+              <span class="date-separator">-</span>
+              <input
+                type="date"
+                v-model="formData.endDate"
+                :min="today"
+                class="form-input date-input"
+                @change="validateEndDate"
+              />
+            </div>
+            <div v-if="dateError" class="error-message">{{ dateError }}</div>
+          </div>
+
+          
+          <div class="form-field">
+            <label class="form-label">自定义标签</label>
+            <div class="tag-input-container">
+              <input
+                type="text"
+                v-model="newTag"
+                @keyup.enter="addTag"
+                class="form-input tag-input"
+                placeholder="输入标签后按回车添加（可选）"
+              />
+              <button type="button" @click="addTag" class="add-tag-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="tags-display" v-if="formData.tags.length > 0">
+              <span v-for="(tag, index) in formData.tags" :key="index" class="tag">
+                {{ tag }}
+                <button @click="removeTag(index)" class="tag-remove">×</button>
+              </span>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- 右侧实时预览区域 -->
+      <div class="preview-section">
+        <h3 class="preview-title">实时预览</h3>
+        
+        <div class="preview-content">
+          <div class="preview-item">
+            <label class="preview-label">项目名称</label>
+            <div class="preview-value">{{ formData.projectName || '项目名称' }}</div>
+          </div>
+
+          <div class="preview-item">
+            <label class="preview-label">项目简介</label>
+            <div class="preview-value">{{ formData.projectDescription || '项目简介将在此显示' }}</div>
+          </div>
+
+          <div class="preview-item">
+            <label class="preview-label">项目可见性</label>
+            <div class="preview-value">
+              <span v-if="formData.visibility === 'PUBLIC'" class="visibility-badge visibility-public">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                公开
+              </span>
+              <span v-else class="visibility-badge visibility-private">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                私有
+              </span>
+            </div>
+          </div>
+
+          <div class="preview-item">
+            <label class="preview-label">自定义标签</label>
+            <div class="preview-tags">
+              <span v-if="formData.tags.length === 0" class="preview-placeholder">标签将在此显示</span>
+              <span v-else v-for="(tag, index) in formData.tags" :key="index" class="preview-tag">{{ tag }}</span>
+            </div>
+          </div>
+
+          <div class="preview-item">
+            <label class="preview-label">项目周期</label>
+            <div class="preview-value">
+              <div v-if="getProjectPeriod()">{{ getProjectPeriod() }}</div>
+              <div v-else-if="dateError" class="preview-error">{{ dateError }}</div>
+              <div v-else class="preview-placeholder">项目周期: 未设置</div>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部操作按钮 -->
+    <div class="footer-actions">
+      <button type="button" @click="saveDraft" class="btn btn-secondary">
+        保存草稿
+      </button>
+      <button type="button" @click="publishProject" class="btn btn-primary" :disabled="isSubmitting">
+        {{ isSubmitting ? '发布中...' : '发布项目' }}
+      </button>
+    </div>
+    
+    <!-- 成功提示Toast -->
+    <div v-if="showToast" class="success-toast">
+      {{ toastMessage }}
+    </div>
+    
+    <!-- 错误提示Modal -->
+    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>提示</h3>
+          <button class="modal-close" @click="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          {{ modalMessage }}
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-confirm" @click="closeModal">确定</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 图片裁切Modal -->
+    <div v-if="showCropModal" class="crop-modal-overlay">
+      <div class="crop-modal-content" @click.stop>
+        <div class="crop-modal-header">
+          <h3>裁切项目图片</h3>
+          <p class="crop-hint">请拖拽选择裁切区域，确保比例与项目广场显示一致</p>
+        </div>
+        <div class="crop-modal-body">
+          <div class="crop-container">
+            <canvas ref="cropCanvas" class="crop-canvas"></canvas>
+            <div class="crop-overlay" ref="cropOverlay">
+              <div class="crop-selection" ref="cropSelection">
+                <!-- 调整大小的控制点 -->
+                <div class="resize-handle resize-handle-nw" data-handle="nw"></div>
+                <div class="resize-handle resize-handle-ne" data-handle="ne"></div>
+                <div class="resize-handle resize-handle-sw" data-handle="sw"></div>
+                <div class="resize-handle resize-handle-se" data-handle="se"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="crop-modal-footer">
+          <button class="btn-cancel" @click="closeCropModal">重新选择图片</button>
+          <button class="btn-confirm" @click="applyCrop">完成裁切</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import Sidebar from '@/components/Sidebar.vue'
+
+export default {
+  name: 'ProjectCreate',
+  components: {
+    Sidebar
+  },
+  data() {
+    return {
+      sidebarOpen: false,
+      isSubmitting: false,
+      userAvatar: null,
+      newTag: '',
+      fromPage: '', // 记录来源页面
+      projectImage: null, // 项目图片
+      dateError: '', // 项目周期日期错误信息
+      formData: {
+        projectName: '',
+        projectDescription: '',
+        visibility: 'PRIVATE', // 默认为私有
+        startDate: '',
+        endDate: '',
+        tags: [],
+      },
+      showToast: false,
+      toastMessage: '',
+      showModal: false,
+      modalMessage: '',
+      showCropModal: false,
+      originalImage: null,
+      originalImageData: null,
+      cropData: {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      }
+    }
+  },
+  computed: {
+    // 获取今天的日期，格式为 YYYY-MM-DD
+    today() {
+      const today = new Date()
+      return today.toISOString().split('T')[0]
+    }
+  },
+  mounted() {
+    this.loadUserAvatar()
+    this.detectFromPage()
+  },
+  methods: {
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen
+    },
+    closeSidebar() {
+      this.sidebarOpen = false
+    },
+    detectFromPage() {
+      // 检测来源页面
+      const referrer = document.referrer
+      const currentPath = this.$route.path
+      
+      // 如果是从项目广场进入的
+      if (referrer.includes('/project-square') || this.$route.query.from === 'project-square') {
+        this.fromPage = 'project-square'
+      } 
+      // 如果是从首页进入的
+      else if (referrer.includes('/home') || this.$route.query.from === 'home') {
+        this.fromPage = 'home'
+      }
+      // 默认从项目广场进入
+      else {
+        this.fromPage = 'project-square'
+      }
+    },
+    goBack() {
+      if (this.fromPage === 'home') {
+        this.$router.push('/home')
+      } else {
+        this.$router.push('/project-square')
+      }
+    },
+    showSuccessToast(message) {
+      this.toastMessage = message
+      this.showToast = true
+      
+      // 1秒后自动隐藏
+      setTimeout(() => {
+        this.showToast = false
+        this.toastMessage = ''
+      }, 1000)
+    },
+    showErrorModal(message) {
+      this.modalMessage = message
+      this.showModal = true
+    },
+    closeModal() {
+      this.showModal = false
+      this.modalMessage = ''
+    },
+    triggerImageUpload() {
+      // 尝试多种方式触发文件选择
+      const input = document.getElementById('imageInput')
+      if (input) {
+        input.click()
+      } else if (this.$refs.imageInput) {
+        this.$refs.imageInput.click()
+      } else {
+        console.error('无法找到文件输入元素')
+      }
+    },
+    handleImageUpload(event) {
+      const file = event.target.files[0]
+      if (file) {
+        // 检查文件类型
+        if (!file.type.startsWith('image/')) {
+          this.showErrorModal('请选择图片文件')
+          return
+        }
+        
+        // 检查文件大小 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          this.showErrorModal('图片文件大小不能超过5MB')
+          return
+        }
+        
+        // 创建预览URL并立即进入裁切模式
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          this.originalImageData = e.target.result
+          // 立即显示裁切模态，用户必须完成裁切
+          this.showCropModal = true
+          this.$nextTick(() => {
+            this.initCropCanvas()
+          })
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    removeImage() {
+      this.projectImage = null
+      this.$refs.imageInput.value = ''
+    },
+    closeCropModal() {
+      // 如果用户取消裁切，清空文件输入
+      this.$refs.imageInput.value = ''
+      this.showCropModal = false
+      this.originalImage = null
+      this.originalImageData = null
+    },
+    initCropCanvas() {
+      const canvas = this.$refs.cropCanvas
+      const ctx = canvas.getContext('2d')
+      const img = new Image()
+      
+      img.onload = () => {
+        // 设置画布尺寸，保持图片比例
+        const maxWidth = 600
+        const maxHeight = 400
+        let { width, height } = img
+        
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height)
+          width *= ratio
+          height *= ratio
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        canvas.style.width = width + 'px'
+        canvas.style.height = height + 'px'
+        
+        // 绘制图片
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // 保存原始图片数据
+        this.originalImage = img
+        
+        // 初始化裁切区域（项目广场比例：约16:9）
+        const cropRatio = 16 / 9
+        const cropWidth = Math.min(width * 0.8, height * cropRatio * 0.8)
+        const cropHeight = cropWidth / cropRatio
+        
+        this.cropData = {
+          x: (width - cropWidth) / 2,
+          y: (height - cropHeight) / 2,
+          width: cropWidth,
+          height: cropHeight
+        }
+        
+        this.updateCropSelection()
+        this.setupCropInteraction()
+      }
+      
+      img.src = this.originalImageData
+    },
+    updateCropSelection() {
+      const selection = this.$refs.cropSelection
+      if (selection) {
+        selection.style.left = this.cropData.x + 'px'
+        selection.style.top = this.cropData.y + 'px'
+        selection.style.width = this.cropData.width + 'px'
+        selection.style.height = this.cropData.height + 'px'
+      }
+    },
+    setupCropInteraction() {
+      const selection = this.$refs.cropSelection
+      const overlay = this.$refs.cropOverlay
+      const canvas = this.$refs.cropCanvas
+      
+      if (!selection || !overlay || !canvas) return
+      
+      let isDragging = false
+      let isResizing = false
+      let resizeHandle = null
+      let startX = 0
+      let startY = 0
+      let startCropX = 0
+      let startCropY = 0
+      let startCropWidth = 0
+      let startCropHeight = 0
+      
+      const cropRatio = 16 / 9
+      
+      const startDrag = (e) => {
+        if (e.target.classList.contains('resize-handle')) {
+          isResizing = true
+          resizeHandle = e.target.dataset.handle
+        } else {
+          isDragging = true
+        }
+        
+        const rect = canvas.getBoundingClientRect()
+        startX = e.clientX - rect.left
+        startY = e.clientY - rect.top
+        startCropX = this.cropData.x
+        startCropY = this.cropData.y
+        startCropWidth = this.cropData.width
+        startCropHeight = this.cropData.height
+      }
+      
+      const drag = (e) => {
+        if (!isDragging && !isResizing) return
+        
+        const rect = canvas.getBoundingClientRect()
+        const currentX = e.clientX - rect.left
+        const currentY = e.clientY - rect.top
+        
+        const deltaX = currentX - startX
+        const deltaY = currentY - startY
+        
+        if (isDragging) {
+          // 移动裁切框
+          const newX = Math.max(0, Math.min(canvas.width - this.cropData.width, startCropX + deltaX))
+          const newY = Math.max(0, Math.min(canvas.height - this.cropData.height, startCropY + deltaY))
+          
+          this.cropData.x = newX
+          this.cropData.y = newY
+        } else if (isResizing) {
+          // 调整裁切框大小
+          let newWidth = startCropWidth
+          let newHeight = startCropHeight
+          let newX = startCropX
+          let newY = startCropY
+          
+          if (resizeHandle === 'se') {
+            // 右下角调整
+            newWidth = Math.max(50, Math.min(canvas.width - startCropX, startCropWidth + deltaX))
+            newHeight = newWidth / cropRatio
+            if (startCropY + newHeight > canvas.height) {
+              newHeight = canvas.height - startCropY
+              newWidth = newHeight * cropRatio
+            }
+          } else if (resizeHandle === 'sw') {
+            // 左下角调整
+            newWidth = Math.max(50, Math.min(startCropX + startCropWidth, startCropWidth - deltaX))
+            newHeight = newWidth / cropRatio
+            newX = startCropX + startCropWidth - newWidth
+            if (newX < 0) {
+              newX = 0
+              newWidth = startCropX + startCropWidth
+              newHeight = newWidth / cropRatio
+            }
+          } else if (resizeHandle === 'ne') {
+            // 右上角调整
+            newWidth = Math.max(50, Math.min(canvas.width - startCropX, startCropWidth + deltaX))
+            newHeight = newWidth / cropRatio
+            newY = startCropY + startCropHeight - newHeight
+            if (newY < 0) {
+              newY = 0
+              newHeight = startCropY + startCropHeight
+              newWidth = newHeight * cropRatio
+            }
+          } else if (resizeHandle === 'nw') {
+            // 左上角调整
+            newWidth = Math.max(50, Math.min(startCropX + startCropWidth, startCropWidth - deltaX))
+            newHeight = newWidth / cropRatio
+            newX = startCropX + startCropWidth - newWidth
+            newY = startCropY + startCropHeight - newHeight
+            if (newX < 0) {
+              newX = 0
+              newWidth = startCropX + startCropWidth
+              newHeight = newWidth / cropRatio
+              newY = startCropY + startCropHeight - newHeight
+            }
+            if (newY < 0) {
+              newY = 0
+              newHeight = startCropY + startCropHeight
+              newWidth = newHeight * cropRatio
+              newX = startCropX + startCropWidth - newWidth
+            }
+          }
+          
+          this.cropData.x = newX
+          this.cropData.y = newY
+          this.cropData.width = newWidth
+          this.cropData.height = newHeight
+        }
+        
+        this.updateCropSelection()
+      }
+      
+      const endDrag = () => {
+        isDragging = false
+        isResizing = false
+        resizeHandle = null
+      }
+      
+      selection.addEventListener('mousedown', startDrag)
+      document.addEventListener('mousemove', drag)
+      document.addEventListener('mouseup', endDrag)
+      
+      // 清理事件监听器
+      this.$once('hook:beforeDestroy', () => {
+        selection.removeEventListener('mousedown', startDrag)
+        document.removeEventListener('mousemove', drag)
+        document.removeEventListener('mouseup', endDrag)
+      })
+    },
+    applyCrop() {
+      if (!this.originalImage) return
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      // 设置裁切后的画布尺寸（项目广场比例）
+      const targetRatio = 16 / 9
+      const targetWidth = 400
+      const targetHeight = targetWidth / targetRatio
+      
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+      
+      // 计算裁切区域在原图中的位置和尺寸
+      const sourceX = (this.cropData.x / this.$refs.cropCanvas.width) * this.originalImage.width
+      const sourceY = (this.cropData.y / this.$refs.cropCanvas.height) * this.originalImage.height
+      const sourceWidth = (this.cropData.width / this.$refs.cropCanvas.width) * this.originalImage.width
+      const sourceHeight = (this.cropData.height / this.$refs.cropCanvas.height) * this.originalImage.height
+      
+      // 绘制裁切后的图片
+      ctx.drawImage(
+        this.originalImage,
+        sourceX, sourceY, sourceWidth, sourceHeight,
+        0, 0, targetWidth, targetHeight
+      )
+      
+      // 转换为DataURL并更新项目图片
+      this.projectImage = canvas.toDataURL('image/jpeg', 0.9)
+      this.closeCropModal()
+    },
+    loadUserAvatar() {
+      const savedAvatar = localStorage.getItem('userAvatar')
+      if (savedAvatar) this.userAvatar = savedAvatar
+    },
+    getCurrentUserId() {
+      // 从localStorage获取当前用户ID
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userInfo = JSON.parse(savedUserInfo)
+          return userInfo.id || null
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          return null
+        }
+      }
+      return null
+    },
+    getCurrentUserName() {
+      // 从localStorage获取当前用户姓名
+      const savedUserInfo = localStorage.getItem('user_info')
+      if (savedUserInfo) {
+        try {
+          const userInfo = JSON.parse(savedUserInfo)
+          return userInfo.name || userInfo.nickname || '用户'
+        } catch (error) {
+          console.error('解析用户信息失败:', error)
+          return '用户'
+        }
+      }
+      return '用户'
+    },
+    getStatusDisplay(status) {
+      // 将数据库的英文状态转换为中文显示
+      const statusMap = {
+        'PLANNING': '规划中',
+        'ONGOING': '进行中',
+        'COMPLETED': '已完成',
+        'ARCHIVED': '已归档',
+        // 兼容旧数据
+        'IN_PROGRESS': '进行中',
+        'PAUSED': '已暂停',
+        'CANCELLED': '已取消'
+      }
+      return statusMap[status] || status || '进行中'
+    },
+    getPriorityValue(priority) {
+      // 将中文优先级转换为数据库的英文值
+      const valueMap = {
+        '高': 'HIGH',
+        '中': 'MEDIUM',
+        '低': 'LOW'
+      }
+      return valueMap[priority] || 'MEDIUM'
+    },
+    getPriorityDisplay(priority) {
+      // 将数据库的英文优先级转换为中文显示
+      const displayMap = {
+        'HIGH': '高',
+        'MEDIUM': '中',
+        'LOW': '低'
+      }
+      return displayMap[priority] || '中'
+    },
+    addTag() {
+      if (this.newTag.trim() && !this.formData.tags.includes(this.newTag.trim())) {
+        this.formData.tags.push(this.newTag.trim())
+        this.newTag = ''
+      }
+    },
+    removeTag(index) {
+      this.formData.tags.splice(index, 1)
+    },
+    addPosition() {
+      this.formData.positions.push({
+        id: Date.now(),
+        name: '',
+        description: '',
+        requirements: '', // 修改为与数据库字段一致
+        count: 1,
+        skills: '', // 保留前端字段
+        status: 'OPEN', // 添加状态字段
+        created_at: new Date().toISOString() // 添加创建时间
+      })
+    },
+    removePosition(index) {
+      this.formData.positions.splice(index, 1)
+    },
+    getProjectPeriod() {
+      if (this.formData.startDate && this.formData.endDate) {
+        return `${this.formData.startDate} - ${this.formData.endDate}`
+      }
+      return null
+    },
+    // 验证项目开始日期
+    validateStartDate() {
+      this.dateError = ''
+      if (this.formData.startDate && this.formData.endDate) {
+        if (new Date(this.formData.startDate) > new Date(this.formData.endDate)) {
+          this.dateError = '项目开始日期不能晚于结束日期'
+          return false
+        }
+      }
+      // 开始日期可以随便选择，不进行限制
+      return true
+    },
+    // 验证项目结束日期
+    validateEndDate() {
+      this.dateError = ''
+      if (this.formData.startDate && this.formData.endDate) {
+        if (new Date(this.formData.startDate) > new Date(this.formData.endDate)) {
+          this.dateError = '项目结束日期不能早于开始日期'
+          return false
+        }
+      }
+      if (this.formData.endDate && new Date(this.formData.endDate) < new Date(this.today)) {
+        this.dateError = '项目结束日期不能早于今天'
+        return false
+      }
+      return true
+    },
+    // 验证任务截止日期
+    async saveDraft() {
+      try {
+        // 模拟保存草稿
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        alert('草稿保存成功！')
+      } catch (error) {
+        console.error('保存草稿失败:', error)
+        alert('保存草稿失败，请重试')
+      }
+    },
+    async createProjectAPI(projectData) {
+      try {
+        const token = localStorage.getItem('access_token')
+        if (!token) {
+          throw new Error('用户未登录，请先登录')
+        }
+        
+        console.log('调用创建项目API，token:', token ? '已获取' : '未获取')
+        console.log('Token内容:', token.substring(0, 50) + '...')
+        
+        // 检查Token格式
+        if (!token.startsWith('eyJ')) {
+          throw new Error('Token格式不正确，请重新登录')
+        }
+        
+        // 检查Token是否过期（简单检查）
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]))
+          const now = Math.floor(Date.now() / 1000)
+          if (payload.exp && payload.exp < now) {
+            throw new Error('Token已过期，请重新登录')
+          }
+          console.log('Token用户信息:', payload)
+        } catch (e) {
+          console.warn('Token解析失败:', e.message)
+        }
+        
+        // 先测试Token是否有效 - 使用一个简单的认证检查接口
+        console.log('测试Token有效性...')
+        
+        // 使用项目API模块进行调用
+        const { projectAPI } = await import('@/api/project')
+        
+        console.log('使用项目API模块创建项目...')
+        const response = await projectAPI.createProject(projectData)
+        
+        console.log('projectAPI.createProject返回结果:', response)
+        console.log('返回结果类型:', typeof response)
+        console.log('返回结果是否为null:', response === null)
+        console.log('返回结果是否为undefined:', response === undefined)
+        
+        if (response) {
+          console.log('返回结果code:', response.code)
+          console.log('返回结果msg:', response.msg)
+          console.log('返回结果data:', response.data)
+        }
+        
+        // 检查API返回结果
+        if (!response) {
+          throw new Error('API返回空结果')
+        }
+        
+        if (response.code !== 200) {
+          throw new Error(response.msg || '项目创建失败')
+        }
+        
+        return response
+      } catch (error) {
+        console.error('创建项目API调用失败:', error)
+        throw error
+      }
+    },
+    async publishProject() {
+      if (this.isSubmitting) return
+      
+      this.isSubmitting = true
+      
+      try {
+        // 验证表单数据
+        if (!this.formData.projectName || this.formData.projectName.trim() === '') {
+          alert('请输入项目名称')
+          this.isSubmitting = false
+          return
+        }
+        
+        if (!this.formData.startDate) {
+          alert('请选择项目开始日期')
+          this.isSubmitting = false
+          return
+        }
+        
+        if (!this.formData.endDate) {
+          alert('请选择项目结束日期')
+          this.isSubmitting = false
+          return
+        }
+        
+        // 验证日期逻辑
+        if (new Date(this.formData.startDate) >= new Date(this.formData.endDate)) {
+          alert('项目结束日期必须晚于开始日期')
+          this.isSubmitting = false
+          return
+        }
+        
+        // 验证项目结束日期不能早于今天
+        if (new Date(this.formData.endDate) < new Date(this.today)) {
+          alert('项目结束日期不能早于今天')
+          this.isSubmitting = false
+          return
+        }
+        
+        
+        
+        console.log('表单数据:', this.formData)
+        
+        // ✅ 如果有图片，先上传到MinIO
+        // 使用本地默认图片，不依赖外部服务
+        const { getDefaultProjectImage } = await import('@/utils/imageUtils')
+        let imageUrl = getDefaultProjectImage('Project Image') // 默认图片
+
+        if (this.projectImage && this.projectImage.startsWith('data:image')) {
+          console.log('检测到base64图片，先上传到MinIO...')
+          try {
+            // 将base64转为Blob
+            const blob = await this.dataURLtoBlob(this.projectImage)
+            const file = new File([blob], 'project-image.jpg', { type: 'image/jpeg' })
+
+            // 上传到MinIO
+            const { projectAPI } = await import('@/api/project')
+            const uploadResponse = await projectAPI.uploadProjectImage(file, null)
+
+            console.log('图片上传响应:', uploadResponse)
+
+            if (uploadResponse && uploadResponse.code === 200 && uploadResponse.data && uploadResponse.data.imageUrl) {
+              imageUrl = uploadResponse.data.imageUrl
+              console.log('✅ 图片上传成功，URL:', imageUrl)
+            } else {
+              console.warn('⚠️ 图片上传失败，使用默认图片')
+            }
+          } catch (error) {
+            console.error('❌ 上传图片到MinIO失败:', error)
+            // 继续使用默认图片
+          }
+        }
+
+        // 调用后端API创建项目
+        const createProjectData = {
+          name: this.formData.projectName,
+          description: this.formData.projectDescription,
+          visibility: this.formData.visibility, // 使用用户选择的可见性
+          imageUrl: imageUrl, // 使用上传后的MinIO URL
+          startDate: this.formData.startDate,
+          endDate: this.formData.endDate
+        }
+        
+        console.log('发送到后端的项目数据:', createProjectData)
+        
+        const response = await this.createProjectAPI(createProjectData)
+        
+        console.log('createProjectAPI返回的完整响应:', response)
+        console.log('响应类型:', typeof response)
+        console.log('响应code:', response?.code)
+        console.log('响应msg:', response?.msg)
+        console.log('响应data:', response?.data)
+        
+        if (!response) {
+          throw new Error('API返回空响应')
+        }
+        
+        if (response.code !== 200) {
+          throw new Error(response.msg || '项目创建失败')
+        }
+        
+        if (!response.data) {
+          throw new Error('API返回数据为空')
+        }
+        
+        console.log('后端返回的项目数据:', response.data)
+        console.log('后端返回的项目ID:', response.data.id, '类型:', typeof response.data.id)
+        
+        
+        // 使用后端返回的项目数据，并添加前端特有的字段
+        const newProject = {
+          ...response.data, // 使用后端返回的项目数据（包括id）
+          id: response.data.id, // 确保项目ID被正确保存
+          // 添加前端显示需要的字段
+          title: response.data.name, // 保留title字段用于前端显示
+          status: this.getStatusDisplay(response.data.status), // 转换为中文状态显示
+          teamSize: 1, // 初始团队大小为1（创建者）
+          dataAssets: this.formData.projectDescription || '暂无描述',
+          direction: this.formData.projectDescription || '暂无描述',
+          aiCore: '待定',
+          category: '其他', // 默认分类
+          // 添加前端特有的字段
+          tags: this.formData.tags,
+          image: this.projectImage, // 添加项目图片
+          // 使用后端返回的任务数据（如果有的话）
+          tasks: [],
+          // 添加默认团队成员信息
+          teamMembers: [
+            { 
+              id: 1, 
+              user_id: 1, // 添加数据库字段名
+              name: this.getCurrentUserName(), 
+              project_role: 'LEADER', // 修改为与数据库枚举一致
+              role: '项目负责人', // 保留前端显示字段
+              avatar: null,
+              joined_at: new Date().toISOString() // 添加加入时间
+            }
+          ],
+          inviteSlots: [],
+        }
+        
+        console.log('新项目数据:', newProject)
+        console.log('项目周期数据:', this.formData.startDate, this.formData.endDate)
+        
+        // 从localStorage获取现有项目
+        let existingProjects = []
+        try {
+          const projectsData = localStorage.getItem('projects')
+          if (projectsData) {
+            existingProjects = JSON.parse(projectsData)
+          }
+        } catch (parseError) {
+          console.error('解析现有项目数据失败:', parseError)
+          existingProjects = []
+        }
+        
+        // 添加新项目到列表开头
+        existingProjects.unshift(newProject)
+        
+        // 保存到localStorage
+        try {
+          localStorage.setItem('projects', JSON.stringify(existingProjects))
+          console.log('项目数据已保存到localStorage')
+        } catch (storageError) {
+          console.error('保存到localStorage失败:', storageError)
+          throw new Error('数据保存失败，请检查浏览器存储空间')
+        }
+        
+        // 显示成功消息
+        this.showSuccessToast('项目发布成功！')
+        
+        // 延迟跳转到项目广场，让用户看到Toast提示
+        setTimeout(() => {
+          this.$router.push('/project-square')
+        }, 1000)
+      } catch (error) {
+        console.error('发布项目失败:', error)
+        console.error('错误对象:', error)
+        console.error('错误详情:', error.message)
+        console.error('错误代码:', error.code)
+        console.error('错误数据:', error.data)
+        console.error('表单数据:', this.formData)
+        console.error('项目图片:', this.projectImage)
+        
+        // 构建详细的错误信息
+        let errorMsg = '发布项目失败，请重试。'
+        if (error.message) {
+          errorMsg += `\n错误信息: ${error.message}`
+        }
+        if (error.code) {
+          errorMsg += `\n错误代码: ${error.code}`
+        }
+        
+        this.showErrorModal(errorMsg)
+      } finally {
+        this.isSubmitting = false
+      }
+    },
+    // 将base64 DataURL转换为Blob
+    async dataURLtoBlob(dataURL) {
+      return new Promise((resolve, reject) => {
+        try {
+          const arr = dataURL.split(',')
+          const mime = arr[0].match(/:(.*?);/)[1]
+          const bstr = atob(arr[1])
+          let n = bstr.length
+          const u8arr = new Uint8Array(n)
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n)
+          }
+          resolve(new Blob([u8arr], { type: mime }))
+        } catch (error) {
+          reject(error)
+        }
+      })
+    }
+  }
+}
+</script>
+
+<style scoped>
+@import '@/assets/styles/ProjectCreate.css';
+</style>
