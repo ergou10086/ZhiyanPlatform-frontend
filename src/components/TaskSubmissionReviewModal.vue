@@ -38,12 +38,6 @@
                 <span class="info-label">提交时间：</span>
                 <span class="info-value">{{ formatDateTime(submission.submissionTime) }}</span>
               </div>
-              <div class="info-item" v-if="submission.submissionType">
-                <span class="info-label">提交类型：</span>
-                <span class="submission-type-badge" :class="'type-' + submission.submissionType">
-                  {{ getSubmissionTypeText(submission.submissionType) }}
-                </span>
-              </div>
               <div class="info-item" v-if="submission.actualWorktime">
                 <span class="info-label">实际工时：</span>
                 <span class="info-value">{{ submission.actualWorktime }} 小时</span>
@@ -84,8 +78,8 @@
             </div>
           </div>
 
-          <!-- 审核意见 -->
-          <div class="form-group">
+          <!-- 审核意见（仅在待我审核时显示） -->
+          <div class="form-group" v-if="!shouldHideReview">
             <label class="form-label">审核意见 <span class="label-optional">(选填)</span></label>
             <textarea
               v-model="reviewData.reviewComment"
@@ -97,8 +91,8 @@
             <div class="char-count">{{ reviewData.reviewComment.length }} / 2000</div>
           </div>
 
-          <!-- 审核结果选择 -->
-          <div class="form-group">
+          <!-- 审核结果选择（仅在待我审核时显示） -->
+          <div class="form-group" v-if="!shouldHideReview">
             <label class="form-label required">审核结果</label>
             <div class="review-options">
               <label class="review-option approve" :class="{ selected: reviewData.reviewStatus === 'APPROVED' }">
@@ -134,7 +128,7 @@
       <div class="modal-footer">
         <button @click="handleClose" class="btn btn-secondary">关闭</button>
         <button 
-          v-if="hasSubmission"
+          v-if="hasSubmission && !shouldHideReview"
           @click="handleSubmitReview" 
           class="btn"
           :class="reviewData.reviewStatus === 'APPROVED' ? 'btn-success' : 'btn-danger'"
@@ -161,6 +155,10 @@ export default {
     submission: {
       type: Object,
       required: true
+    },
+    activeTab: {
+      type: String,
+      default: ''
     }
   },
   data() {
@@ -175,6 +173,35 @@ export default {
   computed: {
     hasSubmission() {
       return this.submission && this.submission.id
+    },
+    // 判断是否应该隐藏审核功能
+    // 只有在"我的提交"标签页且是当前用户自己的提交时，才隐藏审核功能
+    shouldHideReview() {
+      // 如果是在"待我审核"标签页，始终显示审核功能
+      if (this.activeTab === 'pending-for-review') {
+        return false
+      }
+      // 如果是在"我的提交"标签页，且是当前用户自己的提交，则隐藏审核功能
+      if (this.activeTab === 'my-pending') {
+        if (!this.submission || !this.submission.submitterId) {
+          return false
+        }
+        const currentUserId = this.getCurrentUserId()
+        if (!currentUserId) {
+          return false
+        }
+        // 比较提交人ID和当前用户ID
+        return String(this.submission.submitterId).trim() === String(currentUserId).trim()
+      }
+      // 其他情况（如"全部"标签页），如果是自己的提交也隐藏审核功能
+      if (!this.submission || !this.submission.submitterId) {
+        return false
+      }
+      const currentUserId = this.getCurrentUserId()
+      if (!currentUserId) {
+        return false
+      }
+      return String(this.submission.submitterId).trim() === String(currentUserId).trim()
     }
   },
   watch: {
@@ -226,6 +253,20 @@ export default {
 
     downloadAttachment(url) {
       window.open(url, '_blank')
+    },
+
+    /**
+     * 获取当前用户ID
+     * @returns {String}
+     */
+    getCurrentUserId() {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+        return userInfo.id || userInfo.userId || userInfo.user_id || null
+      } catch (error) {
+        console.error('获取当前用户信息失败:', error)
+        return null
+      }
     },
 
     async handleSubmitReview() {
