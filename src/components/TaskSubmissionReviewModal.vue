@@ -315,11 +315,6 @@ export default {
         return
       }
 
-      if (this.reviewData.reviewStatus === 'REJECTED' && !this.reviewData.reviewComment) {
-        alert('拒绝时建议填写审核意见')
-        // 不强制要求，只是警告
-      }
-
       this.isSubmitting = true
 
       try {

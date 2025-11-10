@@ -438,9 +438,70 @@ export default {
       this.selectedSubmission = null
     },
 
-    handleReviewSuccess() {
+    async handleReviewSuccess(submission) {
+      console.log('[TaskSubmissionReview.handleReviewSuccess] 审核完成，接收到的提交数据:', submission)
+      
+      // 刷新提交列表和统计
       this.loadSubmissions()
       this.loadStatistics()
+      
+      // 如果审核打回，需要更新任务状态为"进行中"
+      if (submission && submission.reviewStatus === 'REJECTED' && submission.taskId) {
+        console.log('[TaskSubmissionReview.handleReviewSuccess] 审核打回，开始更新任务状态为进行中，任务ID:', submission.taskId)
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.updateTaskStatus(submission.taskId, 'IN_PROGRESS')
+          console.log('[TaskSubmissionReview.handleReviewSuccess] 状态更新API返回:', response)
+          if (response && response.code === 200) {
+            console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 任务状态已更新为进行中')
+            // 等待状态更新完成
+            await new Promise(resolve => setTimeout(resolve, 300))
+            // 发送事件通知其他页面任务状态已更新
+            if (this.$eventBus && this.$EventTypes) {
+              this.$eventBus.emit(this.$EventTypes.TASK_UPDATED, {
+                taskId: submission.taskId,
+                status: 'IN_PROGRESS',
+                statusDisplay: '进行中'
+              })
+              console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 已发送任务更新事件')
+            }
+          } else {
+            console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
+            console.error('[TaskSubmissionReview.handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
+          }
+        } catch (error) {
+          console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态异常:', error)
+          console.error('[TaskSubmissionReview.handleReviewSuccess] 错误详情:', error.message, error.stack)
+        }
+      } else if (submission && submission.reviewStatus === 'APPROVED' && submission.taskId) {
+        // 如果审核通过，更新任务状态为"完成"
+        console.log('[TaskSubmissionReview.handleReviewSuccess] 审核通过，开始更新任务状态为完成，任务ID:', submission.taskId)
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.updateTaskStatus(submission.taskId, 'DONE')
+          console.log('[TaskSubmissionReview.handleReviewSuccess] 状态更新API返回:', response)
+          if (response && response.code === 200) {
+            console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 任务状态已更新为完成')
+            // 等待状态更新完成
+            await new Promise(resolve => setTimeout(resolve, 300))
+            // 发送事件通知其他页面任务状态已更新
+            if (this.$eventBus && this.$EventTypes) {
+              this.$eventBus.emit(this.$EventTypes.TASK_UPDATED, {
+                taskId: submission.taskId,
+                status: 'DONE',
+                statusDisplay: '完成'
+              })
+              console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 已发送任务更新事件')
+            }
+          } else {
+            console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
+            console.error('[TaskSubmissionReview.handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
+          }
+        } catch (error) {
+          console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态异常:', error)
+          console.error('[TaskSubmissionReview.handleReviewSuccess] 错误详情:', error.message, error.stack)
+        }
+      }
     },
 
     getSubmissionTypeText(type) {

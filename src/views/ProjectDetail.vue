@@ -238,14 +238,17 @@
             <div v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" class="task-assign-section" @click.stop>
               <button @click="assignTask(task)" class="assign-btn">接取任务</button>
             </div>
+            <div v-else-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="task-assign-section" @click.stop>
+              <span class="assign-status-badge completed">已完成</span>
+            </div>
             <div v-else-if="task.assignee_name && isCurrentUserAssignee(task)" class="task-assign-section" @click.stop>
               <span class="assign-status-badge assigned-by-me">已接取</span>
-              <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="task.hasSubmission ? '修改提交' : '提交任务'">
+              <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                {{ task.hasSubmission ? '修改提交' : '提交任务' }}
+                {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
               </button>
             </div>
           </div>
@@ -528,14 +531,15 @@
                   </span>
                 </div>
               </div>
-              <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') || (task.assignee_name && isCurrentUserAssignee(task)) }" @click.stop>
+              <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') || (task.assignee_name && isCurrentUserAssignee(task) && task.status !== '完成' && task.status !== 'DONE' && task.status_value !== 'DONE') }" @click.stop>
                 <button v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" @click="assignTask(task)" class="assign-btn">接取任务</button>
-                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openTaskSubmissionModal(task)" class="upload-result-btn" title="提交任务">
+                <span v-else-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="assign-status-badge completed">已完成</span>
+                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                  提交任务
+                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
                 </button>
               </div>
             </div>
@@ -934,6 +938,7 @@
     <TaskSubmissionModal
       :visible.sync="taskSubmissionModalVisible"
       :task="taskToSubmit || {}"
+      :latest-submission="latestSubmissionForEdit || null"
       @close="closeTaskSubmissionModal"
       @success="handleTaskSubmitSuccess"
     />
@@ -1067,7 +1072,9 @@ export default {
       taskSubmissions: [],
       // 任务审核相关 (新)
       taskReviewModalVisible: false,
-      submissionToReview: null
+      submissionToReview: null,
+      // 用于编辑提交的最新提交数据
+      latestSubmissionForEdit: null
     }
   },
   computed: {
@@ -1132,6 +1139,13 @@ export default {
       this.$EventTypes.USER_AVATAR_UPDATED, 
       this.handleAvatarUpdated,
       { debounce: 300 } // 300ms防抖，避免频繁更新
+    )
+    
+    // 🎯 监听任务状态更新事件（从其他页面触发，如任务审核页面）
+    this.$eventBus.on(
+      this.$EventTypes.TASK_UPDATED,
+      this.handleTaskStatusUpdated,
+      { debounce: 500 } // 500ms防抖，避免频繁刷新
     )
   },
   beforeDestroy() {
@@ -1223,7 +1237,9 @@ export default {
               created_by: task.createdBy || currentUserId,
               // 如果后端返回的创建人是"未知用户"（auth服务不可用），使用本地用户信息
               created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
-              showStatusMenu: false // 初始化状态菜单为关闭
+              showStatusMenu: false, // 初始化状态菜单为关闭
+              // 如果任务状态是"待审核"，说明已经有提交了
+              hasSubmission: task.status === 'PENDING_REVIEW' || this.getStatusDisplay(task.status || 'TODO') === '待审核' || task.hasSubmission || false
             }
           })
           
@@ -2601,7 +2617,7 @@ export default {
     /**
      * 打开任务提交弹窗
      */
-    openTaskSubmissionModal(task) {
+    async openTaskSubmissionModal(task) {
       // 检查是否为任务执行者
       const currentUserId = this.getCurrentUserId()
       const isAssignee = this.isTaskAssignee(task, currentUserId)
@@ -2631,6 +2647,28 @@ export default {
       
       console.log('[openTaskSubmissionModal] 权限检查通过，打开提交弹窗')
       this.taskToSubmit = task
+      
+      // 获取最新提交（用于编辑模式）
+      try {
+        const response = await getLatestSubmission(task.id)
+        if (response.code === 200 && response.data) {
+          // 检查是否是当前用户的提交
+          const currentUserId = this.getCurrentUserId()
+          const submitterId = response.data.submitterId || response.data.submitter?.id
+          if (String(submitterId) === String(currentUserId)) {
+            this.latestSubmissionForEdit = response.data
+            console.log('[openTaskSubmissionModal] 找到之前的提交，进入编辑模式:', this.latestSubmissionForEdit)
+          } else {
+            this.latestSubmissionForEdit = null
+          }
+        } else {
+          this.latestSubmissionForEdit = null
+        }
+      } catch (error) {
+        console.error('[openTaskSubmissionModal] 获取最新提交失败:', error)
+        this.latestSubmissionForEdit = null
+      }
+      
       this.taskSubmissionModalVisible = true
       
       // 加载任务提交历史
@@ -2643,6 +2681,7 @@ export default {
     closeTaskSubmissionModal() {
       this.taskSubmissionModalVisible = false
       this.taskToSubmit = null
+      this.latestSubmissionForEdit = null
     },
     
     /**
@@ -2768,14 +2807,91 @@ export default {
     /**
      * 审核成功回调
      */
-    handleReviewSuccess(submission) {
-      console.log('审核完成:', submission)
-      this.showSuccessToast('审核完成')
+    async handleReviewSuccess(submission) {
+      console.log('[handleReviewSuccess] 审核完成，接收到的提交数据:', submission)
       
-      // 刷新任务列表
-      this.loadProjectTasks()
-          
-          // 关闭弹窗
+      if (!submission) {
+        console.warn('[handleReviewSuccess] ⚠️ 提交数据为空')
+        this.showSuccessToast('审核完成')
+        await this.loadProjectTasks()
+        this.closeTaskReviewModal()
+        return
+      }
+      
+      const reviewStatus = submission.reviewStatus
+      const taskId = submission.taskId
+      
+      console.log('[handleReviewSuccess] 审核状态:', reviewStatus, '任务ID:', taskId)
+      
+      if (!taskId) {
+        console.error('[handleReviewSuccess] ❌ 任务ID为空，无法更新任务状态')
+        this.showSuccessToast('审核完成，但无法更新任务状态（缺少任务ID）')
+        await this.loadProjectTasks()
+        this.closeTaskReviewModal()
+        return
+      }
+      
+      // 根据审核结果更新任务状态
+      if (reviewStatus === 'APPROVED') {
+        // 审核通过：更新任务状态为"完成"
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.updateTaskStatus(taskId, 'DONE')
+          if (response.code === 200) {
+            this.showSuccessToast('审核通过，任务已完成')
+            console.log('[handleReviewSuccess] ✅ 任务状态已更新为完成')
+            // 等待状态更新完成后再刷新任务列表
+            await new Promise(resolve => setTimeout(resolve, 300))
+            // 刷新任务列表
+            await this.loadProjectTasks()
+          } else {
+            console.warn('[handleReviewSuccess] 更新任务状态失败:', response.msg)
+            this.showSuccessToast('审核通过')
+            // 即使更新失败也刷新任务列表
+            await this.loadProjectTasks()
+          }
+        } catch (error) {
+          console.error('[handleReviewSuccess] 更新任务状态失败:', error)
+          this.showSuccessToast('审核通过')
+          // 即使更新失败也刷新任务列表
+          await this.loadProjectTasks()
+        }
+      } else if (reviewStatus === 'REJECTED') {
+        // 审核拒绝：更新任务状态为"进行中"
+        console.log('[handleReviewSuccess] 开始更新任务状态为进行中，任务ID:', taskId)
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.updateTaskStatus(taskId, 'IN_PROGRESS')
+          console.log('[handleReviewSuccess] 状态更新API返回:', response)
+          if (response && response.code === 200) {
+            this.showSuccessToast('审核拒绝，任务状态已更新为进行中')
+            console.log('[handleReviewSuccess] ✅ 任务状态已更新为进行中')
+            // 等待状态更新完成后再刷新任务列表
+            await new Promise(resolve => setTimeout(resolve, 500))
+            // 刷新任务列表
+            await this.loadProjectTasks()
+            console.log('[handleReviewSuccess] ✅ 任务列表已刷新')
+          } else {
+            console.error('[handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
+            console.error('[handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
+            this.showSuccessToast('审核拒绝，但状态更新失败: ' + (response?.msg || '未知错误'))
+            // 即使更新失败也刷新任务列表
+            await this.loadProjectTasks()
+          }
+        } catch (error) {
+          console.error('[handleReviewSuccess] ❌ 更新任务状态异常:', error)
+          console.error('[handleReviewSuccess] 错误详情:', error.message, error.stack)
+          this.showSuccessToast('审核拒绝，但状态更新异常: ' + (error.message || '未知错误'))
+          // 即使更新失败也刷新任务列表
+          await this.loadProjectTasks()
+        }
+      } else {
+        this.showSuccessToast('审核完成')
+        // 刷新任务列表
+        await this.loadProjectTasks()
+      }
+      
+      // 关闭弹窗
       this.closeTaskReviewModal()
     },
     

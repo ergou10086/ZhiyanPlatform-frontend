@@ -2,7 +2,7 @@
   <div v-if="visible" class="modal-overlay" @click="handleClose">
     <div class="modal-content task-submission-modal" @click.stop>
       <div class="modal-header">
-        <h3 class="modal-title">提交任务</h3>
+        <h3 class="modal-title">{{ latestSubmission ? '更改提交' : '提交任务' }}</h3>
         <button class="modal-close" @click="handleClose">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -91,7 +91,7 @@
       <div class="modal-footer">
         <button @click="handleClose" class="btn btn-secondary">取消</button>
         <button @click="handleSubmit" class="btn btn-primary" :disabled="isSubmitting">
-          <span v-if="!isSubmitting">提交任务</span>
+          <span v-if="!isSubmitting">{{ latestSubmission ? '保存更改' : '提交任务' }}</span>
           <span v-else>提交中...</span>
         </button>
       </div>
@@ -117,6 +117,10 @@ export default {
     task: {
       type: Object,
       required: true
+    },
+    latestSubmission: {
+      type: Object,
+      default: null
     }
   },
   data() {
@@ -134,8 +138,22 @@ export default {
   watch: {
     visible(val) {
       if (val) {
-        this.resetForm()
+        if (this.latestSubmission) {
+          // 编辑模式：加载之前的提交内容
+          this.loadPreviousSubmission()
+        } else {
+          // 新建模式：重置表单
+          this.resetForm()
+        }
       }
+    },
+    latestSubmission: {
+      handler(newVal) {
+        if (newVal && this.visible) {
+          this.loadPreviousSubmission()
+        }
+      },
+      immediate: false
     }
   },
   methods: {
@@ -150,6 +168,56 @@ export default {
         attachmentUrls: []
       }
       this.uploadedFiles = []
+    },
+    
+    /**
+     * 加载之前的提交内容（编辑模式）
+     */
+    loadPreviousSubmission() {
+      if (!this.latestSubmission) {
+        this.resetForm()
+        return
+      }
+      
+      console.log('[TaskSubmissionModal] 加载之前的提交内容:', this.latestSubmission)
+      
+      // 加载提交说明
+      this.formData.submissionContent = this.latestSubmission.submissionContent || ''
+      
+      // 加载附件
+      if (this.latestSubmission.attachmentUrls && this.latestSubmission.attachmentUrls.length > 0) {
+        this.formData.attachmentUrls = [...this.latestSubmission.attachmentUrls]
+        
+        // 将附件URL转换为文件对象显示
+        this.uploadedFiles = this.latestSubmission.attachmentUrls.map((url, index) => {
+          // 从URL中提取文件名
+          const fileName = this.getFileNameFromUrl(url)
+          return {
+            filename: fileName,
+            url: url,
+            size: 0 // 无法从URL获取文件大小，设为0
+          }
+        })
+      } else {
+        this.formData.attachmentUrls = []
+        this.uploadedFiles = []
+      }
+    },
+    
+    /**
+     * 从URL中提取文件名
+     */
+    getFileNameFromUrl(url) {
+      if (!url) return '未知文件'
+      try {
+        const parts = url.split('/')
+        const fileName = parts[parts.length - 1]
+        // 解码URL编码的文件名
+        return decodeURIComponent(fileName)
+      } catch (error) {
+        console.error('解析文件名失败:', error)
+        return '未知文件'
+      }
     },
 
     triggerFileUpload() {
