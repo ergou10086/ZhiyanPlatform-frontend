@@ -136,6 +136,10 @@
           <div class="submission-header">
             <div class="submission-title">
               <h4>{{ submission.taskTitle }}</h4>
+              <div class="project-name" v-if="submission.projectName">
+                <span class="project-label">所属项目：</span>
+                <span class="project-value">{{ submission.projectName }}</span>
+              </div>
             </div>
             <span class="review-status" :class="'status-' + submission.reviewStatus">
               {{ getReviewStatusText(submission.reviewStatus) }}
@@ -805,8 +809,8 @@ export default {
 
 .submission-title {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
 }
 
@@ -815,6 +819,25 @@ export default {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.project-name {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-label {
+  color: #999;
+  font-weight: 500;
+}
+
+.project-value {
+  color: #2196F3;
+  font-weight: 500;
 }
 
 .submission-type {

@@ -30,6 +30,10 @@
                 <span class="info-label">任务标题：</span>
                 <span class="info-value">{{ submission.taskTitle }}</span>
               </div>
+              <div class="info-item" v-if="submission.projectName">
+                <span class="info-label">所属项目：</span>
+                <span class="info-value">{{ submission.projectName }}</span>
+              </div>
               <div class="info-item">
                 <span class="info-label">提交人：</span>
                 <span class="info-value">{{ getSubmitterName(submission) }}</span>
