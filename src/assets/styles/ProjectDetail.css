@@ -1,0 +1,3174 @@
+/* ProjectDetail.vue 样式文件 */
+
+.project-detail-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-bottom: 1px solid #e9ecef;
+  height: 64px;
+  padding: 0 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: #666;
+  transition: background-color 0.3s ease;
+}
+
+.back-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  line-height: 1;
+  margin: 0;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  transform: translateY(-1px);
+}
+
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 14px;
+  color: #333;
+}
+
+.menu-item:hover {
+  background-color: #f8f9fa;
+}
+
+.main-content {
+  flex: 1;
+  padding: 70px 24px 28px; /* 包含固定页眉�?4px空间，让项目卡片往下移，显示更多上边框 */
+  display: flex;
+  flex-direction: column;
+  gap: 32px; /* 增大项目介绍和任务列表之间的距离 */
+}
+
+.project-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 16px;
+  margin-bottom: 20px !important; /* 直接设置底部间距，确保与任务列表之间有足够距�?*/
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.3s ease;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* 顶部：标题和按钮 */
+.project-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* 主体内容：项目信息和图片并排 */
+.project-body {
+  display: grid;
+  grid-template-columns: 2fr 280px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .project-body {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .project-image-container {
+    height: 240px;
+    max-width: 100%;
+  }
+  
+  .project-header-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .project-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+.project-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-image-section {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.project-image-container {
+  position: relative;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.project-image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.project-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.project-image-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d9d9d9;
+}
+
+.project-image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.project-image-container:hover .project-image-overlay {
+  opacity: 1;
+}
+
+.project-image-overlay svg {
+  color: white;
+}
+
+.project-image-overlay span {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.project-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 第一行项目信�?*/
+.project-meta-top {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 16px; /* 更紧�?*/
+  align-items: start;
+  margin-bottom: 4px; /* 再缩�?*/
+}
+
+/* 第二行项目信息（往上放一些） */
+.project-meta-bottom {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 16px; /* 更紧�?*/
+  align-items: start;
+  margin-top: 4px; /* 再贴�?*/
+}
+
+@media (max-width: 1200px) {
+  .project-meta-top,
+  .project-meta-bottom {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .project-meta-bottom {
+    margin-top: 24px;
+  }
+}
+
+.meta-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 6px;
+  border-bottom: none; /* 去掉分隔线更紧凑 */
+  transition: background-color 0.2s ease;
+  border-radius: 6px;
+  margin: 0;
+}
+
+.meta-item:hover {
+  background-color: #fafafa;
+}
+
+.meta-item:last-child {
+  border-bottom: none;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid #bbdefb;
+}
+
+.meta-label {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.meta-value {
+  color: #1e293b;
+  font-size: 14px;
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* 信息区操作按�?*/
+.info-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+/* 确保 router-link 作为按钮时的样式 */
+.info-actions .btn,
+.info-actions a.btn {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  border: 1px solid transparent;
+}
+
+.status-badge.planning {
+  background: #f8f9fa;
+  color: #6c757d;
+  border-color: #dee2e6;
+}
+
+.status-badge.ongoing {
+  background: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.status-badge.paused {
+  background: #fff3cd;
+  color: #856404;
+  border-color: #ffeaa7;
+}
+
+.status-badge.completed {
+  background: #d1ecf1;
+  color: #0c5460;
+  border-color: #bee5eb;
+}
+
+.status-badge.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border-color: #f5c6cb;
+}
+
+.project-actions {
+  display: flex;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.section-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.section-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: #f8f9fa;
+}
+
+.btn.primary {
+  background: #5b6bff;
+  border-color: #5b6bff;
+  color: #fff;
+}
+
+.btn.primary:hover {
+  background: #4c5ce6;
+}
+
+.btn.secondary {
+  background: #f8f9ff;
+  border-color: #e0e0e0;
+}
+
+.btn.secondary:hover {
+  background: #eef1ff;
+}
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 120px;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  z-index: 10;
+}
+
+.dropdown-item {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: #f8f9fa;
+}
+
+.dropdown-item.active {
+  color: #5b6bff;
+  background: #eef1ff;
+}
+
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  justify-content: stretch;
+}
+
+/* 空状态样�?*/
+.task-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: #f8f9fa;
+  border: 2px dashed #e9ecef;
+  border-radius: 12px;
+  padding: 40px 20px;
+}
+
+.empty-state-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.empty-state-icon {
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #495057;
+  margin: 0 0 8px 0;
+}
+
+.empty-state-message {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.highlight-text {
+  color: #5b6bff;
+  font-weight: 600;
+}
+
+/* 响应式设�?*/
+@media (max-width: 1400px) {
+  .task-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 1100px) {
+  .task-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .task-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .task-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .task-empty-state {
+    min-height: 150px;
+    padding: 30px 15px;
+  }
+  
+  .empty-state-title {
+    font-size: 16px;
+  }
+  
+  .empty-state-message {
+    font-size: 13px;
+  }
+}
+
+/* 更多按钮样式 */
+.more-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.more-button {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #5b6bff;
+}
+
+.more-button:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.15);
+}
+
+.more-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #5b6bff;
+}
+
+.more-button svg {
+  color: #5b6bff;
+}
+
+
+/* 任务列表弹窗样式 */
+.task-list-modal {
+  max-width: 99vw !important;
+  max-height: 80vh;
+  width: 1800px !important;
+}
+
+.task-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.task-list-item {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.2s ease;
+  min-height: 60px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.task-list-item:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(91, 107, 255, 0.1);
+}
+
+.task-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  min-width: 300px;
+  max-width: 300px;
+  white-space: nowrap;
+}
+
+.task-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.task-item-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  min-width: 200px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.task-item-description {
+  font-size: 13px;
+  color: #6c757d;
+  margin: 0;
+  min-width: 150px;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.task-item-meta {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  font-size: 12px;
+  color: #6c757d;
+  min-width: 400px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.task-item-meta span {
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.task-item-meta .task-date {
+  width: 180px;
+  text-align: right;
+}
+
+.task-item-meta .task-creator {
+  width: 120px;
+  text-align: right;
+}
+
+.task-item-meta .task-assignee {
+  width: 120px;
+  text-align: right;
+}
+
+.task-item-assign {
+  flex-shrink: 0;
+  width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.task-item-assign.has-button {
+  justify-content: flex-end;
+}
+
+.task-item-assign .assign-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-item-assign .assign-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.task-item-assign .upload-result-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.task-item-assign .upload-result-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* 任务详情弹窗样式 */
+.task-detail-modal {
+  max-width: 800px !important;
+  width: 90% !important;
+}
+
+.task-detail-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.task-detail-section {
+  margin-bottom: 20px;
+}
+
+.task-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 10px;
+}
+
+.task-detail-label svg {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.task-detail-value {
+  font-size: 15px;
+  color: #333;
+  line-height: 1.6;
+}
+
+.task-description-scroll {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.task-priority-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.task-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+/* 改进的任务详情弹窗样式 */
+.task-detail-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 12px;
+}
+
+.task-detail-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.task-assignee-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #e0f2fe;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.task-assignee-badge svg {
+  flex-shrink: 0;
+  color: #0369a1;
+}
+
+.task-title-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.task-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.task-title-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+}
+
+.deadline-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.deadline-warning.overdue {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.deadline-warning.near {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.task-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.task-info-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.task-info-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.task-info-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+.task-info-icon.priority {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.task-info-icon.status {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.task-info-icon.deadline {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.task-info-icon.creator {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.task-info-icon.assignee {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.task-info-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-info-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.task-info-value {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.task-status-badge.待接取,
+.task-status-badge.TODO,
+.task-status-badge.pending {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.task-status-badge.进行中,
+.task-status-badge.IN_PROGRESS,
+.task-status-badge.inprogress {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.task-status-badge.阻塞,
+.task-status-badge.BLOCKED {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.task-status-badge.完成,
+.task-status-badge.DONE,
+.task-status-badge.completed {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.task-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 12px;
+  position: relative;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.task-card:hover {
+  background: #e9ecef;
+  border-color: #5b6bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 107, 255, 0.15);
+}
+
+.task-priority {
+  background: #e9ecef;
+  color: #6c757d;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* 使用属性选择器确保优先级样式在正常模式下生效 */
+.task-priority[class*="高"] {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.task-priority[class*="中"] {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.task-priority[class*="低"] {
+  background: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+.task-content {
+  padding: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.task-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 6px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 16em;
+}
+
+.task-description {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 16em;
+}
+
+.task-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: auto;
+  font-size: 11px;
+  color: #6c757d;
+  flex-shrink: 0;
+}
+
+.task-creator {
+  color: #007bff;
+  font-weight: 500;
+}
+
+.task-assignee {
+  display: block;
+  margin-top: 4px;
+}
+
+.task-assign-section {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+}
+
+.assign-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
+}
+
+.assign-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* 已接取状态标识样式 */
+.assign-status-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #6ee7b7;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+}
+
+.assign-status-badge.assigned-by-me {
+  background: #d1fae5;
+  color: #059669;
+  border-color: #6ee7b7;
+}
+
+.assign-status-badge.completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #81c784;
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+}
+
+/* 上传结果按钮样式 */
+.upload-result-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.upload-result-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.upload-result-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.task-assign-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 上传结果模态框样式 */
+.modal-content.upload-result-modal {
+  max-width: 800px !important;
+  width: 90% !important;
+}
+
+.upload-result-info {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.upload-result-task-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.upload-result-task-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.result-textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.optional-text {
+  color: #9ca3af;
+  font-weight: normal;
+  font-size: 12px;
+}
+
+.image-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.upload-image-btn {
+  background: #f3f4f6;
+  border: 2px dashed #d1d5db;
+  color: #6b7280;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-image-btn:hover:not(:disabled) {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+.upload-image-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.image-count {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.image-preview-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.image-preview-item {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.image-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.remove-image-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.remove-image-btn:hover {
+  background: rgba(220, 38, 38, 0.8);
+  transform: scale(1.1);
+}
+
+.task-item-assign {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+
+.task-status {
+  background: #e9ecef;
+  color: #6c757d;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.task-status.暂停 {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.task-status.完成 {
+  background: #d1ecf1;
+  color: #0c5460;
+}
+
+.task-status-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.task-status-btn {
+  background: #e9ecef;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.task-status-btn:hover {
+  background: #dee2e6;
+}
+
+.task-status-btn.暂停 {
+  background: #ffc107 !important;
+  color: #333 !important;
+  border-color: #ffc107 !important;
+  font-weight: 600;
+}
+
+.task-status-btn.完成 {
+  background: #059669 !important;
+  color: #ffffff !important;
+  border-color: #28a745 !important;
+  font-weight: 600;
+}
+
+.task-status-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 10;
+  min-width: 80px;
+}
+
+.status-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: white;
+  color: #333;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.status-option:hover {
+  background: #f8f9fa;
+}
+
+.status-option.active {
+  background: #007bff;
+  color: white;
+}
+
+.status-option:first-child {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+
+.status-option:last-child {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* 分配任务按钮样式 */
+.task-assign-manager-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #28a745;
+}
+
+.task-assign-manager-btn:hover {
+  background: #d4edda;
+  color: #155724;
+}
+
+.task-edit-btn, .task-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-edit-btn {
+  color: #007bff;
+}
+
+.task-edit-btn:hover {
+  background: #e3f2fd;
+  color: #0056b3;
+}
+
+.task-delete-btn {
+  color: #dc3545;
+}
+
+.task-delete-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.task-date {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+/* 下拉菜单样式 */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item.active {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 模态框样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.modal-close:hover {
+  background: #f8f9fa;
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 20px 24px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+}
+
+.form-field {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.form-label .required-asterisk {
+  color: #ef4444;
+  margin-left: 2px;
+  font-weight: 700;
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.btn-primary:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #545b62;
+}
+
+/* 加载状态样�?*/
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #007bff;
+  border: 1px solid #007bff;
+}
+
+.btn-outline:hover {
+  background: #007bff;
+  color: white;
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #218838;
+}
+
+.btn-warning {
+  background: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background: #e0a800;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.btn-delete-icon {
+  background: transparent;
+  color: #dc3545;
+  border: none;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-icon:hover {
+  background: #f8f9fa;
+  color: #dc3545;
+}
+
+.position-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.member-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+.member-card.invite-card {
+  border-style: dashed;
+  border-color: #adb5bd;
+}
+
+.member-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 4px 0;
+}
+
+.member-role {
+  font-size: 12px;
+  color: #6c757d;
+  margin: 0;
+}
+
+.remove-member-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #dc3545;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.member-card:hover .remove-member-btn {
+  opacity: 1;
+}
+
+.remove-member-btn:hover {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #5b6bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #6c757d;
+  font-size: 16px;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .project-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .project-actions {
+    justify-content: flex-start;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .section-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* 成功提示Toast样式 */
+.success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 9999;
+  animation: fadeInOut 1s ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+/* 错误消息样式 */
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+/* 邀请成员弹窗样�?*/
+.invite-member-modal {
+  max-width: 600px;
+  max-height: 85vh;
+}
+
+.search-section {
+  margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+}
+
+.search-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  height: 42px;
+}
+
+.search-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.search-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.loading-spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffffff;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+.search-results {
+  margin-top: 20px;
+  min-height: 300px; /* 固定最小高度，防止抖动 */
+}
+
+.search-results-header {
+  padding: 8px 0;
+  border-bottom: 2px solid #e9ecef;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.results-count {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.selected-count {
+  font-size: 14px;
+  color: #007bff;
+  font-weight: 600;
+  padding: 4px 12px;
+  background: #e3f2fd;
+  border-radius: 12px;
+}
+
+.user-list {
+  max-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px; /* 为成员项上移留出空间 */
+  /* 使用 transform 代替其他可能导致重排的属�?*/
+  will-change: transform;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  /* 只对需要过渡的属性进行过渡，避免 all */
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  background: white;
+  /* 固定高度，防止内容变化时抖动 */
+  min-height: 64px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.user-item:hover {
+  background: #f8f9fa;
+  border-color: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.user-item.user-selected {
+  background: #e3f2fd;
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-right: 12px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.user-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-email {
+  font-size: 13px;
+  color: #6c757d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-select-indicator {
+  flex-shrink: 0;
+  margin-left: 12px;
+  animation: checkmark-appear 0.3s ease;
+}
+
+@keyframes checkmark-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-state svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.load-more-container {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+  margin-top: 8px;
+}
+
+.load-more-btn {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.load-more-btn:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.empty-state p {
+  color: #6c757d;
+  font-size: 14px;
+  margin: 0;
+}
+
+.search-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+}
+
+.search-hint svg {
+  margin-bottom: 16px;
+  opacity: 0.4;
+}
+
+.search-hint p {
+  color: #6c757d;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 自定义滚动条 */
+.user-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.user-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.user-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.user-list::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+/* 图片裁切Modal样式 */
+.crop-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  /* 不允许点击背景关�?*/
+  pointer-events: all;
+}
+
+.crop-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.crop-modal-header {
+  padding: 20px 24px 16px;
+  text-align: center;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.crop-modal-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.crop-hint {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.crop-modal-body {
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.crop-container {
+  position: relative;
+  display: inline-block;
+}
+
+.crop-canvas {
+  display: block;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.crop-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crop-selection {
+  position: absolute;
+  border: 2px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  cursor: move;
+  pointer-events: all;
+  border-radius: 4px;
+}
+
+.crop-selection::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 1px dashed rgba(59, 130, 246, 0.5);
+  border-radius: 4px;
+}
+
+/* 调整大小的控制点 */
+.resize-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.resize-handle-nw {
+  top: -4px;
+  left: -4px;
+  cursor: nw-resize;
+}
+
+.resize-handle-ne {
+  top: -4px;
+  right: -4px;
+  cursor: ne-resize;
+}
+
+.resize-handle-sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: sw-resize;
+}
+
+.resize-handle-se {
+  bottom: -4px;
+  right: -4px;
+  cursor: se-resize;
+}
+
+.crop-modal-footer {
+  padding: 16px 24px 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-cancel,
+.btn-confirm {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.btn-cancel:hover {
+  background: #e8e8e8;
+}
+
+.btn-confirm {
+  background: #007bff;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #0056b3;
+}
+
+/* 分配任务按钮样式 */
+.task-assign-manager-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #17a2b8;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-assign-manager-btn:hover {
+  background-color: rgba(23, 162, 184, 0.1);
+  transform: scale(1.1);
+}
+
+.task-assign-manager-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 分配任务模态框样式 */
+.assign-task-modal {
+  max-width: 500px;
+}
+
+.assign-task-info {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.assign-task-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.assign-task-description {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.member-select-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.member-select-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.member-select-item:last-child {
+  border-bottom: none;
+}
+
+.member-select-item:hover {
+  background-color: #f8f9fa;
+}
+
+.member-select-item.selected {
+  background-color: #e7f5ff;
+  border-left: 3px solid #007bff;
+}
+
+.member-select-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.member-select-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-select-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+}
+
+.member-select-info {
+  flex: 1;
+}
+
+.member-select-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.member-select-role {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.member-select-indicator {
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.empty-members-hint {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+}
+
+.empty-members-hint p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* ========== 黑暗模式样式 ========== */
+.dark-mode .project-detail-container {
+  background-color: #0a0f1a; /* 第一层 - 最深的背景色 */
+}
+
+.dark-mode .project-detail-container .top-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+.dark-mode .project-detail-container .page-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .back-btn {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .back-btn:hover {
+  background-color: #334155;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .main-content {
+  background-color: #0a0f1a; /* 第一层 - 与容器背景相同 */
+}
+
+.dark-mode .project-detail-container .project-card {
+  background: #1e293b; /* 第二层 - 项目概览卡片 */
+  border-color: #475569;
+  color: #f1f5f9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .project-detail-container .project-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .project-detail-container .project-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .meta-label {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .meta-value {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .btn {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .btn:hover {
+  background: #475569;
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+}
+
+.dark-mode .project-detail-container .btn.secondary {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .project-detail-container .modal-content {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .form-input,
+.dark-mode .project-detail-container .form-textarea,
+.dark-mode .project-detail-container .form-select {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .form-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .task-card {
+  background: #334155; /* 第三层 - 任务卡片稍微亮一点 */
+  border-color: #475569;
+  color: #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .project-detail-container .team-member-card {
+  background: #334155; /* 第三层 - 团队成员卡片 */
+  border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .project-detail-container .member-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .member-role {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .section-card {
+  background: #1e293b; /* 第二层 - 主卡片 */
+  border-color: #475569;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .project-detail-container .section-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .status-badge.planning {
+  background: #334155;
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .status-badge.ongoing {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+.dark-mode .project-detail-container .status-badge.paused {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: #f59e0b;
+}
+
+.dark-mode .project-detail-container .status-badge.completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: #10b981;
+}
+
+.dark-mode .project-detail-container .status-badge.cancelled {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: #ef4444;
+}
+
+.dark-mode .project-detail-container .dropdown-menu {
+  background: #1e293b;
+  border-color: #475569;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .project-detail-container .dropdown-item {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .dropdown-item:hover {
+  background: #334155;
+}
+
+.dark-mode .project-detail-container .dropdown-item.active {
+  background: #1e3a8a;
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .task-empty-state {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .empty-state-title {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .empty-state-message {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .highlight-text {
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .more-button {
+  background: #334155;
+  border-color: #475569;
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .more-button:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .more-text,
+.dark-mode .project-detail-container .more-button svg {
+  color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .task-list-item {
+  background: #334155; /* 第三层 */
+  border-color: #475569;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .project-detail-container .task-list-item:hover {
+  background: #475569; /* 悬停时更亮 */
+  border-color: #60a5fa;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
+}
+
+.dark-mode .project-detail-container .task-item-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .task-item-description {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .task-item-meta {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .task-detail-label {
+  color: #cbd5e1;
+}
+
+.dark-mode .project-detail-container .task-detail-value {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .task-description-scroll {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .task-card:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+/* 任务卡片内部文字样式 */
+.dark-mode .project-detail-container .task-title {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .task-description {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-meta {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-meta span {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-creator {
+  color: #60a5fa !important;
+}
+
+.dark-mode .project-detail-container .task-assignee {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .task-date {
+  color: #94a3b8 !important;
+}
+
+/* 确保任务卡片内所有文字都是浅色 */
+.dark-mode .project-detail-container .task-card {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .task-card * {
+  color: inherit;
+}
+
+.dark-mode .project-detail-container .task-card .task-creator {
+  color: #60a5fa !important;
+}
+
+.dark-mode .project-detail-container .task-card .task-date {
+  color: #94a3b8 !important;
+}
+
+/* 任务优先级标识黑夜模式样式 */
+.dark-mode .project-detail-container .task-priority {
+  background: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+/* 高优先级 - 红色背景，白色文字 */
+.dark-mode .project-detail-container .task-priority.高 {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* 中优先级 - 深黄色背景，白色文字（黑夜模式下） */
+.dark-mode .project-detail-container .task-priority.中 {
+  background: #d97706 !important;
+  color: #ffffff !important;
+}
+
+/* 低优先级 - 深绿色背景，白色文字 */
+.dark-mode .project-detail-container .task-priority.低 {
+  background: #059669 !important;
+  color: #ffffff !important;
+}
+
+/* 任务状态按钮黑夜模式样式 */
+.dark-mode .project-detail-container .task-status-btn {
+  background: #475569 !important;
+  color: #f1f5f9 !important;
+  border-color: #64748b !important;
+}
+
+.dark-mode .project-detail-container .task-status-btn:hover {
+  background: #64748b !important;
+}
+
+/* 待接取状态 */
+.dark-mode .project-detail-container .task-status-btn.待接取 {
+  background: #64748b !important;
+  color: #ffffff !important;
+  border-color: #64748b !important;
+}
+
+/* 进行中状态 */
+.dark-mode .project-detail-container .task-status-btn.进行中 {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+/* 暂停/阻塞状态 - 深黄色背景，白色文字 */
+.dark-mode .project-detail-container .task-status-btn.暂停,
+.dark-mode .project-detail-container .task-status-btn.阻塞 {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  border-color: #d97706 !important;
+}
+
+/* 完成状态 */
+.dark-mode .project-detail-container .task-status-btn.完成 {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #10b981 !important;
+}
+
+.dark-mode .project-detail-container .team-member-list {
+  background: #1e293b;
+}
+
+.dark-mode .project-detail-container .member-select-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .project-detail-container .member-select-item:hover {
+  background: #475569;
+  border-color: #60a5fa;
+}
+
+.dark-mode .project-detail-container .member-select-name {
+  color: #f1f5f9;
+}
+
+.dark-mode .project-detail-container .member-select-role {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .member-select-avatar .avatar-placeholder {
+  background: #475569;
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .empty-members-hint {
+  color: #94a3b8;
+}
+
+.dark-mode .project-detail-container .member-card {
+  background: #334155; /* 第三层 - 团队成员卡片稍微亮一点 */
+  border-color: #475569;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.dark-mode .project-detail-container .member-card:hover {
+  background: #475569; /* 悬停时更亮 */
+  border-color: #60a5fa;
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.15);
+}
+
+.dark-mode .project-detail-container .member-card.invite-card {
+  border-color: #64748b;
+  background: #334155;
+}
+
+.dark-mode .project-detail-container .member-card:hover .remove-member-btn {
+  opacity: 1;
+}
+
+.dark-mode .project-detail-container .remove-member-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.dark-mode .project-detail-container .member-avatar {
+  background-color: #334155;
+}
+
+.dark-mode .project-detail-container .member-avatar .avatar-placeholder {
+  color: #94a3b8;
+}
+
+/* 暗色模式下的改进任务详情弹窗样式 */
+.dark-mode .task-title-value {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .task-title-section {
+  border-bottom-color: #334155 !important;
+}
+
+.dark-mode .deadline-warning.overdue {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+.dark-mode .deadline-warning.near {
+  background: #78350f !important;
+  color: #fcd34d !important;
+}
+
+.dark-mode .task-detail-label svg {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .task-info-card {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+.dark-mode .task-info-card:hover {
+  background: #334155 !important;
+  border-color: #475569 !important;
+}
+
+.dark-mode .task-assignee-badge {
+  background: #1e3a5f;
+  color: #93c5fd;
+  border-color: #3b82f6;
+}
+
+.dark-mode .task-assignee-badge svg {
+  color: #93c5fd;
+}
+
+.dark-mode .task-info-label {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .task-info-value {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .task-status-badge.待接取,
+.dark-mode .task-status-badge.TODO,
+.dark-mode .task-status-badge.pending {
+  background: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .task-status-badge.进行中,
+.dark-mode .task-status-badge.IN_PROGRESS,
+.dark-mode .task-status-badge.inprogress {
+  background: #1e3a5f !important;
+  color: #93c5fd !important;
+}
+
+.dark-mode .task-status-badge.阻塞,
+.dark-mode .task-status-badge.BLOCKED {
+  background: #7f1d1d !important;
+  color: #fca5a5 !important;
+}
+
+.dark-mode .task-status-badge.完成,
+.dark-mode .task-status-badge.DONE,
+.dark-mode .task-status-badge.completed {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+}
+
+/* 暗黑模式下的已接取状态标识 */
+.dark-mode .project-detail-container .assign-status-badge {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2) !important;
+}
+
+.dark-mode .project-detail-container .assign-status-badge.assigned-by-me {
+  background: #064e3b !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+}
+
+/* 暗黑模式下的上传结果按钮 */
+.dark-mode .project-detail-container .upload-result-btn {
+  background: #059669 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+}
+
+.dark-mode .project-detail-container .upload-result-btn:hover {
+  background: #047857 !important;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
+}
+
+.dark-mode .project-detail-container .upload-result-info {
+  background: #334155 !important;
+  border: 1px solid #475569 !important;
+}
+
+.dark-mode .project-detail-container .upload-result-task-title {
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .upload-result-task-description {
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .optional-text {
+  color: #64748b !important;
+}
+
+.dark-mode .project-detail-container .upload-image-btn {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #cbd5e1 !important;
+}
+
+.dark-mode .project-detail-container .upload-image-btn:hover:not(:disabled) {
+  background: #475569 !important;
+  border-color: #64748b !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .image-count {
+  color: #94a3b8 !important;
+}
+
+.dark-mode .project-detail-container .image-preview-item {
+  border-color: #475569 !important;
+  background: #1e293b !important;
+}
+
+.dark-mode .project-detail-container .result-textarea {
+  background: #334155 !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+.dark-mode .project-detail-container .result-textarea::placeholder {
+  color: #64748b !important;
+}
+
+
