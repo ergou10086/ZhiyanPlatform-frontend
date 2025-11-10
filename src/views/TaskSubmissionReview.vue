@@ -136,9 +136,10 @@
           <div class="submission-header">
             <div class="submission-title">
               <h4>{{ submission.taskTitle }}</h4>
-              <span class="submission-type" :class="'type-' + submission.submissionType">
-                {{ getSubmissionTypeText(submission.submissionType) }}
-              </span>
+              <div class="project-name" v-if="submission.projectName">
+                <span class="project-label">所属项目：</span>
+                <span class="project-value">{{ submission.projectName }}</span>
+              </div>
             </div>
             <span class="review-status" :class="'status-' + submission.reviewStatus">
               {{ getReviewStatusText(submission.reviewStatus) }}
@@ -151,7 +152,7 @@
                 <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
               </svg>
-              <span>{{ submission.submitter?.username || '未知' }}</span>
+              <span>{{ getSubmitterName(submission) }}</span>
             </div>
             <div class="meta-item">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -159,13 +160,6 @@
                 <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               <span>{{ formatDateTime(submission.submissionTime) }}</span>
-            </div>
-            <div class="meta-item" v-if="submission.isFinal">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span class="final-badge">最终提交</span>
             </div>
           </div>
 
@@ -221,6 +215,7 @@
     <TaskSubmissionReviewModal
       :visible.sync="reviewModalVisible"
       :submission="selectedSubmission || {}"
+      :active-tab="activeTab"
       @close="closeReviewModal"
       @success="handleReviewSuccess"
     />
@@ -299,7 +294,51 @@ export default {
 
         if (response.code === 200) {
           const pageData = response.data
-          this.submissions = pageData.content || []
+          const rawSubmissions = pageData.content || []
+          
+          // 调试：打印原始数据
+          console.log('原始提交数据:', rawSubmissions)
+          if (rawSubmissions.length > 0) {
+            console.log('第一个提交的完整结构:', JSON.stringify(rawSubmissions[0], null, 2))
+          }
+          
+          // 处理提交数据，确保提交人信息正确映射
+          this.submissions = rawSubmissions.map(submission => {
+            // 尝试多种可能的字段名来获取提交人信息
+            let submitterName = null
+            
+            // 情况1: submitter对象（优先检查 name 字段，因为后端返回的是 name）
+            if (submission.submitter) {
+              submitterName = submission.submitter.name || 
+                             submission.submitter.username || 
+                             submission.submitter.userName ||
+                             submission.submitter.nickname
+            }
+            
+            // 情况2: 直接字段
+            if (!submitterName) {
+              submitterName = submission.submitterName || 
+                             submission.submitter_name ||
+                             submission.submitterUsername ||
+                             submission.submitter_username
+            }
+            
+            // 如果找到了提交人名称，确保submitter对象有username字段（用于兼容显示）
+            if (submitterName && submission.submitter) {
+              return {
+                ...submission,
+                submitter: {
+                  ...submission.submitter,
+                  // 确保有username字段用于显示（从name复制）
+                  username: submission.submitter.name || submitterName,
+                  userName: submission.submitter.name || submitterName
+                }
+              }
+            }
+            
+            return submission
+          })
+          
           this.totalElements = pageData.totalElements || 0
           this.totalPages = pageData.totalPages || 0
         } else {
@@ -399,9 +438,70 @@ export default {
       this.selectedSubmission = null
     },
 
-    handleReviewSuccess() {
+    async handleReviewSuccess(submission) {
+      console.log('[TaskSubmissionReview.handleReviewSuccess] 审核完成，接收到的提交数据:', submission)
+      
+      // 刷新提交列表和统计
       this.loadSubmissions()
       this.loadStatistics()
+      
+      // 如果审核打回，需要更新任务状态为"进行中"
+      if (submission && submission.reviewStatus === 'REJECTED' && submission.taskId) {
+        console.log('[TaskSubmissionReview.handleReviewSuccess] 审核打回，开始更新任务状态为进行中，任务ID:', submission.taskId)
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.updateTaskStatus(submission.taskId, 'IN_PROGRESS')
+          console.log('[TaskSubmissionReview.handleReviewSuccess] 状态更新API返回:', response)
+          if (response && response.code === 200) {
+            console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 任务状态已更新为进行中')
+            // 等待状态更新完成
+            await new Promise(resolve => setTimeout(resolve, 300))
+            // 发送事件通知其他页面任务状态已更新
+            if (this.$eventBus && this.$EventTypes) {
+              this.$eventBus.emit(this.$EventTypes.TASK_UPDATED, {
+                taskId: submission.taskId,
+                status: 'IN_PROGRESS',
+                statusDisplay: '进行中'
+              })
+              console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 已发送任务更新事件')
+            }
+          } else {
+            console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
+            console.error('[TaskSubmissionReview.handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
+          }
+        } catch (error) {
+          console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态异常:', error)
+          console.error('[TaskSubmissionReview.handleReviewSuccess] 错误详情:', error.message, error.stack)
+        }
+      } else if (submission && submission.reviewStatus === 'APPROVED' && submission.taskId) {
+        // 如果审核通过，更新任务状态为"完成"
+        console.log('[TaskSubmissionReview.handleReviewSuccess] 审核通过，开始更新任务状态为完成，任务ID:', submission.taskId)
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.updateTaskStatus(submission.taskId, 'DONE')
+          console.log('[TaskSubmissionReview.handleReviewSuccess] 状态更新API返回:', response)
+          if (response && response.code === 200) {
+            console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 任务状态已更新为完成')
+            // 等待状态更新完成
+            await new Promise(resolve => setTimeout(resolve, 300))
+            // 发送事件通知其他页面任务状态已更新
+            if (this.$eventBus && this.$EventTypes) {
+              this.$eventBus.emit(this.$EventTypes.TASK_UPDATED, {
+                taskId: submission.taskId,
+                status: 'DONE',
+                statusDisplay: '完成'
+              })
+              console.log('[TaskSubmissionReview.handleReviewSuccess] ✅ 已发送任务更新事件')
+            }
+          } else {
+            console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
+            console.error('[TaskSubmissionReview.handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
+          }
+        } catch (error) {
+          console.error('[TaskSubmissionReview.handleReviewSuccess] ❌ 更新任务状态异常:', error)
+          console.error('[TaskSubmissionReview.handleReviewSuccess] 错误详情:', error.message, error.stack)
+        }
+      }
     },
 
     getSubmissionTypeText(type) {
@@ -497,6 +597,42 @@ export default {
         console.error('获取当前用户信息失败:', error)
         return null
       }
+    },
+    
+    /**
+     * 获取提交人名称（兼容多种数据结构）
+     * @param {Object} submission - 提交数据
+     * @returns {String} 提交人名称
+     */
+    getSubmitterName(submission) {
+      if (!submission) return '未知'
+      
+      // 优先检查 submitter.name（后端实际返回的字段）
+      if (submission.submitter) {
+        const name = submission.submitter.name || 
+                     submission.submitter.username || 
+                     submission.submitter.userName ||
+                     submission.submitter.nickname
+        if (name && name !== '未知用户' && String(name).trim() !== '') {
+          return name
+        }
+      }
+      
+      // 尝试直接字段
+      const directFields = [
+        submission.submitterName,
+        submission.submitter_name,
+        submission.submitterUsername,
+        submission.submitter_username
+      ]
+      
+      for (const name of directFields) {
+        if (name && name !== '未知用户' && String(name).trim() !== '') {
+          return name
+        }
+      }
+      
+      return '未知'
     }
   }
 }
@@ -734,8 +870,8 @@ export default {
 
 .submission-title {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 6px;
   flex: 1;
 }
 
@@ -744,6 +880,25 @@ export default {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+.project-name {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.project-label {
+  color: #999;
+  font-weight: 500;
+}
+
+.project-value {
+  color: #2196F3;
+  font-weight: 500;
 }
 
 .submission-type {

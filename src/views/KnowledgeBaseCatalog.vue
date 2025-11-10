@@ -2415,9 +2415,22 @@ export default {
       // 设置添加文件到现有成果的状态
       this.isAddingToExisting = true
       this.targetAchievementId = this.viewingFile.id
+      
+      // 自动设置文件类型为成果的类型（如果成果有类型）
+      if (this.viewingFile.type) {
+        this.currentFileType = this.viewingFile.type
+        this.fileAccept = getFileAccept(this.viewingFile.type)
+        console.log('自动设置文件类型为成果类型:', {
+          achievementType: this.viewingFile.type,
+          currentFileType: this.currentFileType
+        })
+      }
+      
       console.log('准备为现有成果添加文件:', {
         achievementId: this.viewingFile.id,
         achievementName: this.viewingFile.name,
+        achievementType: this.viewingFile.type,
+        currentFileType: this.currentFileType,
         isAddingToExisting: this.isAddingToExisting
       })
       

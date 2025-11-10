@@ -1151,6 +1151,13 @@
   border-color: #6ee7b7;
 }
 
+.assign-status-badge.completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-color: #81c784;
+  box-shadow: 0 2px 4px rgba(46, 125, 50, 0.2);
+}
+
 /* 上传结果按钮样式 */
 .upload-result-btn {
   background: #10b981;
