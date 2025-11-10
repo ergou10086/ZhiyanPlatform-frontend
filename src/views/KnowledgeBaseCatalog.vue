@@ -2011,6 +2011,12 @@ export default {
           const detailData = convertFromDTO(response.data)
           console.log('转换后的成果详情:', detailData)
           
+          // 如果详情数据中的上传者是"未知用户"，使用列表中已获取的上传者信息
+          if (detailData.uploader === '未知用户' && file.uploader && file.uploader !== '未知用户') {
+            detailData.uploader = file.uploader
+            console.log('使用列表中的上传者信息:', file.uploader)
+          }
+          
           // 获取文件列表
           const filesResponse = await knowledgeAPI.getAchievementFiles(file.id)
           console.log('文件列表响应:', filesResponse)
@@ -2676,7 +2682,7 @@ export default {
       }
     },
     
-    // 下载文件（包装工具函数，支持从后端获取文件）
+    // 下载文件（改为直接下载方式）
     async downloadFile(achievement) {
       try {
         console.log('📥 [下载] 开始下载成果文件')
@@ -2693,11 +2699,11 @@ export default {
         
         // 2. 解析文件列表
         let fileList = []
-          if (Array.isArray(filesResponse.data)) {
-            fileList = filesResponse.data
-          } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
-            fileList = filesResponse.data.content
-          }
+        if (Array.isArray(filesResponse.data)) {
+          fileList = filesResponse.data
+        } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
+          fileList = filesResponse.data.content
+        }
         
         if (fileList.length === 0) {
           alert('该成果暂无可下载的文件')
@@ -2705,84 +2711,35 @@ export default {
         }
         
         console.log('📥 [下载] 文件列表:', fileList.length, '个文件')
-        console.log('📥 [下载] 文件列表详情:', fileList)
         
-        // 3. 为每个文件获取下载URL并立即下载
-        let successCount = 0
-        let failCount = 0
-        
+        // 3. 使用直接下载接口下载每个文件
         for (let i = 0; i < fileList.length; i++) {
           const fileDto = fileList[i]
+          const fileId = String(fileDto.id)
           
-          try {
-            console.log(`📥 [下载] 处理文件 ${i + 1}/${fileList.length}:`, fileDto.fileName)
-            console.log(`📥 [下载] 文件对象详情:`, fileDto)
-            
-            // 获取下载URL - 关键修复：确保fileId是字符串格式
-            const fileId = String(fileDto.id)
-            console.log(`📥 [下载] 准备获取下载URL`)
-            console.log(`📥 [下载] - fileId:`, fileId, '(类型:', typeof fileId, ')')
-            console.log(`📥 [下载] - fileName:`, fileDto.fileName)
-            
-            const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileId)
-            console.log(`📥 [下载] API响应:`, urlResponse)
-            console.log(`📥 [下载] 响应码:`, urlResponse?.code)
-            console.log(`📥 [下载] 响应数据:`, urlResponse?.data)
-            console.log(`📥 [下载] 响应消息:`, urlResponse?.msg)
-            
-            if (!urlResponse) {
-              throw new Error('API响应为空')
-            }
-            
-            if (urlResponse.code !== 200) {
-              throw new Error(`API返回错误: ${urlResponse.msg || urlResponse.code}`)
-            }
-            
-            if (!urlResponse.data) {
-              throw new Error('响应数据为空')
-            }
-            
-            // 提取下载URL
-            let downloadUrl = urlResponse.data
-            if (typeof downloadUrl === 'object') {
-              downloadUrl = downloadUrl.url || downloadUrl.downloadUrl || downloadUrl.accessUrl
-            }
-            
-            if (!downloadUrl || typeof downloadUrl !== 'string') {
-              console.error('❌ [下载] 无效的下载URL:', downloadUrl)
-              throw new Error('下载URL无效')
-            }
-            
-            console.log(`📥 [下载] 下载URL:`, downloadUrl)
-            
-            // 立即触发下载
-            const fileName = fileDto.fileName || fileDto.originalFileName || `文件${i + 1}`
-            this.triggerDownload(downloadUrl, fileName)
-            
-            successCount++
-            console.log(`✅ [下载] 文件下载触发成功: ${fileName}`)
-            
-            // 延迟避免浏览器阻止多文件下载
-            if (i < fileList.length - 1) {
-              await new Promise(resolve => setTimeout(resolve, 500))
-            }
-            
-          } catch (error) {
-            failCount++
-            console.error(`❌ [下载] 文件下载失败:`, fileDto.fileName)
-            console.error(`❌ [下载] 错误详情:`, error)
-            console.error(`❌ [下载] 错误消息:`, error.message)
-            console.error(`❌ [下载] 错误堆栈:`, error.stack)
-            
-            // 显示第一个文件的错误详情
-            if (i === 0) {
-              alert(`下载失败: ${error.message}\n文件: ${fileDto.fileName}\n\n请查看控制台获取详细信息`)
-            }
-            // 继续下载其他文件
+          console.log(`📥 [下载] 处理文件 ${i + 1}/${fileList.length}:`, fileDto.fileName)
+          
+          // 使用直接下载接口
+          const downloadUrl = knowledgeAPI.getDirectDownloadUrl(fileId)
+          
+          // 触发下载
+          const iframe = document.createElement('iframe')
+          iframe.style.display = 'none'
+          iframe.src = downloadUrl
+          document.body.appendChild(iframe)
+          
+          // 延迟移除iframe
+          setTimeout(() => {
+            document.body.removeChild(iframe)
+          }, 1000)
+          
+          // 延迟避免浏览器阻止多文件下载
+          if (i < fileList.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 800))
           }
         }
         
-        console.log(`📥 [下载] 下载完成统计: 成功 ${successCount} 个, 失败 ${failCount} 个`)
+        console.log(`✅ [下载] 已触发下载 ${fileList.length} 个文件`)
         
         if (fileList.length > 1) {
           alert(`已触发下载 ${fileList.length} 个文件，请在浏览器下载栏查看`)
@@ -2790,17 +2747,7 @@ export default {
         
       } catch (error) {
         console.error('❌ [下载] 下载失败:', error)
-        
-        // 检查是否是认证错误
-        if (error.response && error.response.status === 401) {
-          alert('登录已过期，请重新登录')
-          this.$router.push('/login')
-        } else if (error.code === 401 || error.msg?.includes('登录')) {
-          alert('登录已过期，请重新登录')
-          this.$router.push('/login')
-        } else {
-          alert('下载失败: ' + (error.message || error.msg || '请重试'))
-        }
+        alert('下载失败: ' + (error.message || error.msg || '请重试'))
       }
     },
     
@@ -2820,7 +2767,7 @@ export default {
       }, 100)
     },
     
-    // 下载单个文件
+    // 下载单个文件（改为直接下载）
     async downloadSingleFile(file) {
       try {
         console.log('📥 [单文件下载] ============ 开始 ============')
@@ -2828,83 +2775,21 @@ export default {
         console.log('📥 [单文件下载] 文件名:', file.name || file.fileName)
         console.log('📥 [单文件下载] 文件ID:', file.id, '类型:', typeof file.id)
         
-        // 如果文件对象已有downloadUrl，直接使用
-        if (file.downloadUrl) {
-          console.log('📥 [单文件下载] 使用已有的downloadUrl:', file.downloadUrl)
-          this.triggerDownload(file.downloadUrl, file.name || file.fileName || '下载文件')
-          return
-        }
-        
-        // 否则，获取下载URL
         const fileId = String(file.id)
-        console.log('📥 [单文件下载] 准备调用API')
-        console.log('📥 [单文件下载] - 转换后fileId:', fileId, '类型:', typeof fileId)
-        console.log('📥 [单文件下载] - API路径:', `/zhiyan/achievement/file/${fileId}/download-url`)
         
-        try {
-          const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileId)
-          console.log('📥 [单文件下载] ✅ API调用成功')
-          console.log('📥 [单文件下载] 完整响应:', JSON.stringify(urlResponse, null, 2))
-          console.log('📥 [单文件下载] 响应码:', urlResponse?.code)
-          console.log('📥 [单文件下载] 响应消息:', urlResponse?.msg)
-          console.log('📥 [单文件下载] 响应数据:', urlResponse?.data)
-          console.log('📥 [单文件下载] 响应数据类型:', typeof urlResponse?.data)
-          
-          if (!urlResponse) {
-            throw new Error('API返回undefined或null')
-          }
-          
-          if (urlResponse.code !== 200) {
-            throw new Error(`API错误: ${urlResponse.msg || urlResponse.code}`)
-          }
-          
-          if (!urlResponse.data) {
-            throw new Error('响应data字段为空')
-          }
-          
-          // 提取下载URL
-          let downloadUrl = urlResponse.data
-          if (typeof downloadUrl === 'object') {
-            console.log('📥 [单文件下载] data是对象，尝试提取URL')
-            downloadUrl = downloadUrl.url || downloadUrl.downloadUrl || downloadUrl.accessUrl
-            console.log('📥 [单文件下载] 提取后的URL:', downloadUrl)
-          }
-          
-          if (!downloadUrl || typeof downloadUrl !== 'string') {
-            console.error('❌ [单文件下载] 无效的URL:', downloadUrl, '类型:', typeof downloadUrl)
-            throw new Error('下载URL无效或不是字符串')
-          }
-          
-          console.log('📥 [单文件下载] 最终下载URL:', downloadUrl)
-          
-          const fileName = file.name || file.fileName || file.originalFileName || '下载文件'
-          this.triggerDownload(downloadUrl, fileName)
-          
-          console.log('✅ [单文件下载] ============ 成功 ============')
-          
-        } catch (apiError) {
-          console.error('❌ [单文件下载] API调用异常')
-          console.error('❌ [单文件下载] 错误对象:', apiError)
-          console.error('❌ [单文件下载] 错误消息:', apiError.message)
-          console.error('❌ [单文件下载] 错误响应:', apiError.response)
-          console.error('❌ [单文件下载] 错误堆栈:', apiError.stack)
-          throw apiError
-        }
+        // 使用直接下载接口，不使用预签名URL
+        const downloadUrl = knowledgeAPI.getDirectDownloadUrl(fileId)
+        console.log('📥 [单文件下载] 直接下载URL:', downloadUrl)
+        
+        // 直接触发浏览器下载
+        window.location.href = downloadUrl
+        
+        console.log('✅ [单文件下载] ============ 成功 ============')
         
       } catch (error) {
         console.error('❌ [单文件下载] ============ 失败 ============')
         console.error('❌ [单文件下载] 最终错误:', error)
-        
-        // 检查是否是认证错误
-        if (error.response && error.response.status === 401) {
-          alert('登录已过期，请重新登录')
-          this.$router.push('/login')
-        } else if (error.code === 401 || error.msg?.includes('登录')) {
-          alert('登录已过期，请重新登录')
-          this.$router.push('/login')
-        } else {
-          alert(`下载失败: ${error.message || error.msg || '未知错误'}\n\n请按F12查看控制台获取详细信息`)
-        }
+        alert(`下载失败: ${error.message || '未知错误'}`)
       }
     },
     
