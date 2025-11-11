@@ -604,6 +604,12 @@
                   </div>
                 </div>
                 <div class="file-actions">
+                  <button class="action-btn preview-btn" @click.stop="previewFile(file)" title="预览">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </button>
                   <button class="action-btn download-btn" @click.stop="downloadSingleFile(file)" title="下载">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2"/>
@@ -1024,7 +1030,7 @@
                 
             <!-- 文件卡片样式（类似AI赋能） -->
             <div v-if="viewingFile && viewingFile.files && viewingFile.files.length > 0" class="single-file-card-container">
-              <div class="file-preview-card">
+              <div class="file-preview-card" @click="previewFile(viewingFile.files[0])" style="cursor: pointer;">
                 <div class="file-preview-icon">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1038,6 +1044,7 @@
                     <span v-if="viewingFile.files[0].size" class="file-preview-size">{{ formatFileSize(viewingFile.files[0].size) }}</span>
                   </div>
                 </div>
+                <div class="file-preview-hint">点击查看</div>
               </div>
             </div>
           </div>
@@ -1068,6 +1075,143 @@
           <button class="btn secondary" @click="closeViewDialog">关闭</button>
           <button v-if="viewingFile?.files && viewingFile.files.length > 1" class="btn primary" @click="downloadAllFiles(viewingFile)">下载全部</button>
           <button v-else class="btn primary" @click="downloadFile(viewingFile)">下载</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 文件预览对话框 -->
+    <div v-if="showFilePreviewDialog" class="file-preview-overlay" @click="closeFilePreview">
+      <div class="file-preview-dialog" @click.stop>
+        <div class="file-preview-header">
+          <div class="file-preview-title">
+            <span class="file-preview-icon-small">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="file-preview-name-text">{{ previewingFile?.name || previewingFile?.originalFileName || '文件预览' }}</span>
+            <span v-if="previewingFile?.size" class="file-preview-size-text">({{ formatFileSize(previewingFile.size) }})</span>
+          </div>
+          <div class="file-preview-actions">
+            <button class="file-preview-download-btn" @click="downloadPreviewFile" title="下载文件">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="file-preview-close-btn" @click="closeFilePreview" title="关闭">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="file-preview-content">
+          <!-- 加载状态 -->
+          <div v-if="previewLoading" class="file-preview-loading">
+            <div class="loading-spinner"></div>
+            <p>正在加载文件...</p>
+          </div>
+          <!-- 错误状态 -->
+          <div v-else-if="previewError" class="file-preview-error">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p>{{ previewError }}</p>
+            <button class="btn primary" @click="retryPreview">重试</button>
+          </div>
+          <!-- 图片预览 -->
+          <div v-else-if="previewFileType === 'image'" class="file-preview-image-container">
+            <img :src="previewFileUrl" :alt="previewingFile?.name" class="file-preview-image" @error="handlePreviewError" />
+          </div>
+          <!-- PDF预览 -->
+          <div v-else-if="previewFileType === 'pdf'" class="file-preview-pdf-container">
+            <iframe :src="previewFileUrl" class="file-preview-pdf" frameborder="0"></iframe>
+          </div>
+          <!-- 文本预览 -->
+          <div v-else-if="previewFileType === 'text'" class="file-preview-text-container">
+            <pre class="file-preview-text"><code>{{ previewFileContent }}</code></pre>
+          </div>
+          <!-- 文本/Markdown 预览（Google Docs Viewer，与 docx 体验一致） -->
+          <div v-else-if="previewFileType === 'text_iframe'" class="file-preview-pdf-container">
+            <iframe :src="previewFileUrl" class="file-preview-pdf" frameborder="0"></iframe>
+            <div style="position:absolute;right:12px;top:12px;">
+              <button class="btn primary" @click.stop="switchToPlainText">切换为纯文本模式</button>
+            </div>
+          </div>
+          <!-- Markdown 预览（前端渲染） -->
+          <div v-else-if="previewFileType === 'markdown'" class="file-preview-text-container">
+            <div class="file-preview-text markdown-body" v-html="previewMarkdownHtml"></div>
+          </div>
+          <!-- 视频预览 -->
+          <div v-else-if="previewFileType === 'video'" class="file-preview-video-container">
+            <video :src="previewFileUrl" controls class="file-preview-video" @error="handlePreviewError">
+              您的浏览器不支持视频播放
+            </video>
+          </div>
+          <!-- 音频预览 -->
+          <div v-else-if="previewFileType === 'audio'" class="file-preview-audio-container">
+            <div class="file-preview-audio-wrapper">
+              <audio :src="previewFileUrl" controls class="file-preview-audio" @error="handlePreviewError">
+                您的浏览器不支持音频播放
+              </audio>
+            </div>
+          </div>
+          <!-- Office文档预览（优先直接加载，失败则使用在线查看器） -->
+          <div v-else-if="previewFileType === 'office'" class="file-preview-office-container">
+            <div class="office-viewer-wrapper">
+              <!-- 方案1: 直接使用iframe加载文件（类似PDF，浏览器原生支持） -->
+              <iframe 
+                v-if="!useOnlineViewer"
+                :src="previewFileUrl" 
+                class="file-preview-office" 
+                frameborder="0"
+                @load="handleOfficeIframeLoad"
+                @error="handleOfficeIframeError"
+                title="Office文档预览"
+              ></iframe>
+              <!-- 方案2: 在线查看器（Google Docs Viewer或Microsoft Office Online Viewer） -->
+              <iframe 
+                v-else
+                :src="useMicrosoftViewer ? getMicrosoftViewerUrl(previewFileUrl) : getGoogleDocsViewerUrl(previewFileUrl)" 
+                class="file-preview-office" 
+                frameborder="0"
+                @error="handleOfficeViewerError"
+                title="Office文档预览"
+              ></iframe>
+              <!-- 如果所有方案都失败，显示备选方案 -->
+              <div v-if="officeViewerError && useOnlineViewer" class="office-viewer-fallback">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <p>在线预览失败</p>
+                <p class="office-viewer-hint">可能是文件需要认证或网络问题</p>
+                <div class="office-viewer-options">
+                  <button v-if="!useMicrosoftViewer" class="btn primary" @click="tryMicrosoftViewer">尝试Microsoft查看器</button>
+                  <button class="btn secondary" @click="tryDirectLoad">尝试直接加载</button>
+                  <button class="btn secondary" @click="downloadPreviewFile">下载文件</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 代码文件预览 -->
+          <div v-else-if="previewFileType === 'code'" class="file-preview-code-container">
+            <pre class="file-preview-code"><code>{{ previewFileContent }}</code></pre>
+          </div>
+          <!-- 不支持预览的文件类型 -->
+          <div v-else class="file-preview-unsupported">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>此文件类型暂不支持在线预览</p>
+            <p class="file-preview-unsupported-hint">请下载后使用相应软件打开</p>
+            <button class="btn primary" @click="downloadPreviewFile">下载文件</button>
           </div>
         </div>
       </div>
@@ -1202,6 +1346,7 @@ import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 import { projectAPI } from '@/api/project'
 import { getCurrentUserId } from '@/utils/auth'
+ import { marked } from 'marked'
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1209,6 +1354,18 @@ export default {
     archiveRows: {
       type: Array,
       default: () => []
+    },
+    
+    // 从 iframe 文本预览切换为纯文本模式
+    switchToPlainText() {
+      if (this.previewFileUrl) {
+        this.previewLoading = true
+        this.previewError = null
+        this.previewFileType = 'text'
+        this.loadTextContentForPreview(this.previewFileUrl).finally(() => {
+          this.previewLoading = false
+        })
+      }
     },
     projectId: {
       type: [String, Number],
@@ -1247,6 +1404,20 @@ export default {
       fileContentType: 'text',
       selectedFileIndex: null,
       lastTouchY: null, // 用于触摸滚动处理
+      // 文件预览相关
+      showFilePreviewDialog: false,
+      previewingFile: null,
+      previewFileUrl: null,
+      previewFileContent: '', // 文本和代码文件的内容
+      previewFileType: 'unknown', // image, pdf, text, video, audio, office, code, unknown
+      previewLoading: false,
+      previewError: null,
+       previewMarkdownHtml: '', // 渲染后的Markdown HTML
+      // Office查看器相关
+      officeViewerError: false,
+      useMicrosoftViewer: false,
+      useOnlineViewer: false, // 是否使用在线查看器（false=直接加载，true=使用在线查看器）
+      officeIframeLoaded: false, // iframe是否成功加载
       
       // 编辑模式
       isEditingDescription: false,
@@ -2011,12 +2182,6 @@ export default {
           const detailData = convertFromDTO(response.data)
           console.log('转换后的成果详情:', detailData)
           
-          // 如果详情数据中的上传者是"未知用户"，使用列表中已获取的上传者信息
-          if (detailData.uploader === '未知用户' && file.uploader && file.uploader !== '未知用户') {
-            detailData.uploader = file.uploader
-            console.log('使用列表中的上传者信息:', file.uploader)
-          }
-          
           // 获取文件列表
           const filesResponse = await knowledgeAPI.getAchievementFiles(file.id)
           console.log('文件列表响应:', filesResponse)
@@ -2599,18 +2764,377 @@ export default {
     },
     
     viewSingleFile(file) {
+      // 已改为使用previewFile方法
+      this.previewFile(file)
+    },
+    
+    // 文件预览功能
+    async previewFile(file) {
       try {
-        console.log('查看文件详情:', file)
+        console.log('📄 [预览] 开始预览文件:', file)
+        this.previewingFile = file
+        this.showFilePreviewDialog = true
+        this.previewLoading = true
+        this.previewError = null
+        this.previewFileUrl = null
+        this.previewFileContent = ''
         
-        // 文件预览功能已移除，直接提示下载
-        console.log('文件预览功能已移除，请直接下载查看')
+        // 确定文件类型
+        const fileExtension = getFileExtension(file.name || file.originalFileName || '').toLowerCase()
+        const mimeType = file.type || getMimeType(fileExtension)
+        
+        console.log('📄 [预览] 文件信息:', {
+          name: file.name || file.originalFileName,
+          extension: fileExtension,
+          mimeType: mimeType,
+          size: file.size
+        })
+        
+        // 判断文件类型
+        if (this.isImageFile(fileExtension, mimeType)) {
+          this.previewFileType = 'image'
+        } else if (this.isPdfFile(fileExtension, mimeType)) {
+          this.previewFileType = 'pdf'
+        } else if (this.isMarkdownFile(fileExtension, mimeType)) {
+          // Markdown：前端拉取并渲染为HTML
+          this.previewFileType = 'markdown'
+        } else if (this.isTextFile(fileExtension, mimeType)) {
+          // 纯文本：前端拉取渲染，失败再回退iframe
+          this.previewFileType = 'text'
+        } else if (this.isVideoFile(fileExtension, mimeType)) {
+          this.previewFileType = 'video'
+        } else if (this.isAudioFile(fileExtension, mimeType)) {
+          this.previewFileType = 'audio'
+        } else if (this.isOfficeFile(fileExtension, mimeType)) {
+          this.previewFileType = 'office'
+        } else if (this.isCodeFile(fileExtension, mimeType)) {
+          this.previewFileType = 'code'
+        } else {
+          this.previewFileType = 'unknown'
+        }
+        
+        // 获取文件访问URL
+        let fileUrl = file.downloadUrl || file.accessUrl
+        
+        if (!fileUrl && file.id) {
+          // 如果没有URL，从后端获取
+          console.log('📄 [预览] 获取文件下载URL, fileId:', file.id)
+          try {
+            const urlResponse = await knowledgeAPI.getFileDownloadUrl(String(file.id))
+            console.log('📄 [预览] URL响应:', urlResponse)
+            
+            if (urlResponse && urlResponse.code === 200 && urlResponse.data) {
+              fileUrl = urlResponse.data
+              if (typeof fileUrl === 'object') {
+                fileUrl = fileUrl.url || fileUrl.downloadUrl || fileUrl.accessUrl
+              }
+            }
+          } catch (urlError) {
+            console.error('📄 [预览] 获取URL失败:', urlError)
+            throw new Error('无法获取文件访问地址')
+          }
+        }
+        
+        if (!fileUrl) {
+          throw new Error('文件访问地址不可用')
+        }
+        
+        console.log('📄 [预览] 文件URL:', fileUrl)
+        this.previewFileUrl = fileUrl
+        
+        // 加载文本/代码/Markdown内容
+        if (this.previewFileType === 'markdown') {
+          await this.loadMarkdownForPreview(fileUrl)
+        } else if (this.previewFileType === 'text' || this.previewFileType === 'code') {
+          await this.loadTextContentForPreview(fileUrl)
+        }
+        
+        this.previewLoading = false
+        this.lockBodyScroll()
       } catch (error) {
-        console.error('查看文件时出错:', error)
-        alert('无法预览此文件，请下载后查看')
+        console.error('📄 [预览] 预览失败:', error)
+        this.previewLoading = false
+        this.previewError = error.message || '预览文件失败，请重试'
       }
     },
     
-    // 预览功能已完全移除
+    // 判断是否为图片文件
+    isImageFile(extension, mimeType) {
+      const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif']
+      const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/x-icon', 'image/tiff']
+      return imageExtensions.includes(extension) || imageMimeTypes.some(mt => mimeType && mimeType.includes(mt))
+    },
+    
+    // 判断是否为PDF文件
+    isPdfFile(extension, mimeType) {
+      return extension === 'pdf' || (mimeType && mimeType.includes('pdf'))
+    },
+    
+    // 判断是否为文本文件
+    isTextFile(extension, mimeType) {
+      const textExtensions = ['txt', 'log', 'csv']
+      const textMimeTypes = ['text/plain', 'text/csv']
+      return textExtensions.includes(extension) || textMimeTypes.some(mt => mimeType && mimeType.includes(mt))
+    },
+    
+    // 判断是否为Markdown文件
+    isMarkdownFile(extension, mimeType) {
+      return extension === 'md' || (mimeType && mimeType.includes('text/markdown'))
+    },
+    
+    // 判断是否为视频文件
+    isVideoFile(extension, mimeType) {
+      const videoExtensions = ['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm', 'mkv', 'm4v', '3gp']
+      const videoMimeTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-ms-wmv', 'video/x-flv', 'video/webm']
+      return videoExtensions.includes(extension) || (mimeType && mimeType.startsWith('video/'))
+    },
+    
+    // 判断是否为音频文件
+    isAudioFile(extension, mimeType) {
+      const audioExtensions = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac', 'wma']
+      const audioMimeTypes = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/flac', 'audio/aac']
+      return audioExtensions.includes(extension) || (mimeType && mimeType.startsWith('audio/'))
+    },
+    
+    // 判断是否为Office文件
+    isOfficeFile(extension, mimeType) {
+      const officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp']
+      const officeMimeTypes = [
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      ]
+      return officeExtensions.includes(extension) || officeMimeTypes.some(mt => mimeType && mimeType.includes(mt))
+    },
+    
+    // 判断是否为代码文件
+    isCodeFile(extension, mimeType) {
+      const codeExtensions = [
+        'js', 'jsx', 'ts', 'tsx', 'vue', 'html', 'css', 'scss', 'less', 'json', 'xml',
+        'java', 'py', 'cpp', 'c', 'h', 'cs', 'php', 'rb', 'go', 'rs', 'swift', 'kt',
+        'sql', 'sh', 'bash', 'yaml', 'yml', 'toml', 'ini', 'conf', 'properties'
+      ]
+      return codeExtensions.includes(extension)
+    },
+    
+    // 加载文本内容用于预览
+    async loadTextContentForPreview(url) {
+      try {
+        console.log('📄 [预览] 加载文本内容:', url)
+        const token = localStorage.getItem('access_token')
+        const headers = { 'Accept': 'text/plain, text/html, text/css, text/javascript, application/json, */*' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        const res = await fetch(url, { method: 'GET', headers, credentials: 'include' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+
+        // 优先使用二进制 + 多编码解码，避免中文出现乱码（涵盖 UTF-8/UTF-16/GBK/GB18030/Big5）
+        const buf = await res.arrayBuffer()
+        const contentType = (res.headers.get('content-type') || '').toLowerCase()
+
+        const tryDecode = (enc) => {
+          try {
+            // 某些浏览器不支持部分编码，捕获异常
+            const dec = new TextDecoder(enc)
+            return dec.decode(buf)
+          } catch (_) {
+            return null
+          }
+        }
+
+        let candidates = []
+        // 根据响应头的charset优先解码
+        const charsetMatch = contentType.match(/charset=([^;]+)/)
+        if (charsetMatch) {
+          const byHeader = tryDecode(charsetMatch[1].trim())
+          if (byHeader) candidates.push(byHeader)
+        }
+
+        // BOM 检测
+        const bytes = new Uint8Array(buf)
+        const hasUtf8Bom = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF
+        const hasUtf16LEBom = bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE
+        const hasUtf16BEBom = bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF
+        if (hasUtf8Bom) { const s = tryDecode('utf-8'); if (s) candidates.push(s) }
+        if (hasUtf16LEBom) { const s = tryDecode('utf-16le'); if (s) candidates.push(s) }
+        if (hasUtf16BEBom) { const s = tryDecode('utf-16be'); if (s) candidates.push(s) }
+
+        // 常见中文编码依次尝试（以及 UTF-16）
+        const utf8 = tryDecode('utf-8'); if (utf8 && !hasUtf8Bom) candidates.push(utf8)
+        const utf16le = tryDecode('utf-16le'); if (utf16le && !hasUtf16LEBom) candidates.push(utf16le)
+        const utf16be = tryDecode('utf-16be'); if (utf16be && !hasUtf16BEBom) candidates.push(utf16be)
+        const gb18030 = tryDecode('gb18030'); if (gb18030) candidates.push(gb18030)
+        const gbk = tryDecode('gbk'); if (gbk) candidates.push(gbk)
+        const big5 = tryDecode('big5'); if (big5) candidates.push(big5)
+
+        // 选出“�”最少的结果
+        let best = candidates[0] || ''
+        let bestScore = (best.match(/�/g) || []).length
+        for (let i = 1; i < candidates.length; i++) {
+          const s = candidates[i]
+          const score = (s.match(/�/g) || []).length
+          if (score < bestScore) {
+            best = s; bestScore = score
+          }
+        }
+
+        // 如果还是大量乱码，回退到 iframe 直开
+        if (!best || bestScore > (best.length / 50)) {
+          console.warn('📄 [预览] 文本乱码较多，回退为 iframe 打开')
+          this.previewFileType = 'text_iframe'
+          this.previewError = null
+          this.previewFileContent = ''
+          return
+        }
+
+        this.previewFileContent = best
+        console.log('📄 [预览] 文本内容加载成功，长度:', best.length, '乱码数:', bestScore)
+      } catch (error) {
+        console.error('📄 [预览] 加载文本内容失败:', error)
+        // 文本失败时回退 iframe 直接打开
+        this.previewFileType = 'text_iframe'
+        this.previewError = null
+      }
+    },
+    
+    // 加载Markdown并渲染为HTML
+    async loadMarkdownForPreview(url) {
+      try {
+        console.log('📄 [预览] 加载Markdown:', url)
+        const token = localStorage.getItem('access_token')
+        const headers = { 'Accept': 'text/markdown, text/plain, */*' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        const res = await fetch(url, { method: 'GET', headers, credentials: 'include' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const md = await res.text()
+        this.previewMarkdownHtml = marked.parse(md || '')
+        console.log('📄 [预览] Markdown渲染完成，长度:', md.length)
+      } catch (e) {
+        console.error('📄 [预览] Markdown加载失败，回退为纯文本:', e)
+        // 回退为纯文本模式
+        this.previewFileType = 'text'
+        await this.loadTextContentForPreview(url)
+      }
+    },
+    
+    // 获取Google Docs Viewer URL
+    getGoogleDocsViewerUrl(fileUrl) {
+      // 检查URL是否是跨域的（MinIO或其他对象存储）
+      const isExternalUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
+      const isLocalhost = fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')
+      const isSameOrigin = !isExternalUrl || isLocalhost || fileUrl.startsWith(window.location.origin)
+      
+      // 如果是跨域URL，需要通过后端代理
+      if (isExternalUrl && !isSameOrigin && this.previewingFile && this.previewingFile.id) {
+        // 通过后端API获取可访问的URL
+        // 使用文件ID通过后端代理访问
+        const fileId = String(this.previewingFile.id)
+        // 构建通过Vue代理的URL
+        const proxyUrl = `${window.location.origin}/zhiyan/achievement/file/${fileId}/download-url`
+        return `https://docs.google.com/viewer?url=${encodeURIComponent(proxyUrl)}&embedded=true`
+      }
+      
+      // 对于同源URL或公开URL，直接使用
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
+    },
+    
+    // 获取Microsoft Office Online Viewer URL
+    getMicrosoftViewerUrl(fileUrl) {
+      // 检查URL是否是跨域的
+      const isExternalUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
+      const isLocalhost = fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')
+      const isSameOrigin = !isExternalUrl || isLocalhost || fileUrl.startsWith(window.location.origin)
+      
+      // 如果是跨域URL，需要通过后端代理
+      if (isExternalUrl && !isSameOrigin && this.previewingFile && this.previewingFile.id) {
+        const fileId = String(this.previewingFile.id)
+        const proxyUrl = `${window.location.origin}/zhiyan/achievement/file/${fileId}/download-url`
+        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(proxyUrl)}`
+      }
+      
+      return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
+    },
+    
+    // 处理Office iframe加载成功
+    handleOfficeIframeLoad() {
+      console.log('📄 [预览] Office文件iframe加载成功')
+      this.officeIframeLoaded = true
+      this.officeViewerError = false
+    },
+    
+    // 处理Office iframe加载错误
+    handleOfficeIframeError() {
+      console.warn('📄 [预览] Office文件直接加载失败，尝试在线查看器')
+      // 如果直接加载失败，尝试使用在线查看器
+      this.useOnlineViewer = true
+      this.officeViewerError = false
+      // 延迟一下再显示，给在线查看器一些时间加载
+      setTimeout(() => {
+        if (!this.officeIframeLoaded) {
+          this.officeViewerError = true
+        }
+      }, 5000)
+    },
+    
+    // 处理Office查看器错误
+    handleOfficeViewerError() {
+      console.warn('📄 [预览] 在线查看器加载失败')
+      this.officeViewerError = true
+    },
+    
+    // 尝试使用Microsoft查看器
+    tryMicrosoftViewer() {
+      this.useMicrosoftViewer = true
+      this.officeViewerError = false
+    },
+    
+    // 尝试直接加载文件
+    tryDirectLoad() {
+      this.useOnlineViewer = false
+      this.useMicrosoftViewer = false
+      this.officeViewerError = false
+      this.officeIframeLoaded = false
+    },
+    
+    // 关闭文件预览
+    closeFilePreview() {
+      this.showFilePreviewDialog = false
+      this.previewingFile = null
+      this.previewFileUrl = null
+      this.previewFileContent = ''
+      this.previewFileType = 'unknown'
+      this.previewLoading = false
+      this.previewError = null
+      this.officeViewerError = false
+      this.useMicrosoftViewer = false
+      this.useOnlineViewer = false
+      this.officeIframeLoaded = false
+      this.unlockBodyScroll()
+    },
+    
+    // 下载预览中的文件
+    async downloadPreviewFile() {
+      if (this.previewingFile) {
+        await this.downloadSingleFile(this.previewingFile)
+      }
+    },
+    
+    // 重试预览
+    retryPreview() {
+      if (this.previewingFile) {
+        this.previewFile(this.previewingFile)
+      }
+    },
+    
+    // 处理预览错误
+    handlePreviewError(event) {
+      console.error('📄 [预览] 预览错误:', event)
+      this.previewError = '文件加载失败，请检查文件是否可访问'
+      this.previewLoading = false
+    },
     
     // 检查是否有成果详细描述
     getAchievementDescription(file) {
@@ -2682,7 +3206,7 @@ export default {
       }
     },
     
-    // 下载文件（改为直接下载方式）
+    // 下载文件（包装工具函数，支持从后端获取文件）
     async downloadFile(achievement) {
       try {
         console.log('📥 [下载] 开始下载成果文件')
@@ -2699,11 +3223,11 @@ export default {
         
         // 2. 解析文件列表
         let fileList = []
-        if (Array.isArray(filesResponse.data)) {
-          fileList = filesResponse.data
-        } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
-          fileList = filesResponse.data.content
-        }
+          if (Array.isArray(filesResponse.data)) {
+            fileList = filesResponse.data
+          } else if (filesResponse.data && Array.isArray(filesResponse.data.content)) {
+            fileList = filesResponse.data.content
+          }
         
         if (fileList.length === 0) {
           alert('该成果暂无可下载的文件')
@@ -2711,35 +3235,84 @@ export default {
         }
         
         console.log('📥 [下载] 文件列表:', fileList.length, '个文件')
+        console.log('📥 [下载] 文件列表详情:', fileList)
         
-        // 3. 使用直接下载接口下载每个文件
+        // 3. 为每个文件获取下载URL并立即下载
+        let successCount = 0
+        let failCount = 0
+        
         for (let i = 0; i < fileList.length; i++) {
           const fileDto = fileList[i]
-          const fileId = String(fileDto.id)
           
-          console.log(`📥 [下载] 处理文件 ${i + 1}/${fileList.length}:`, fileDto.fileName)
-          
-          // 使用直接下载接口
-          const downloadUrl = knowledgeAPI.getDirectDownloadUrl(fileId)
-          
-          // 触发下载
-          const iframe = document.createElement('iframe')
-          iframe.style.display = 'none'
-          iframe.src = downloadUrl
-          document.body.appendChild(iframe)
-          
-          // 延迟移除iframe
-          setTimeout(() => {
-            document.body.removeChild(iframe)
-          }, 1000)
-          
-          // 延迟避免浏览器阻止多文件下载
-          if (i < fileList.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 800))
+          try {
+            console.log(`📥 [下载] 处理文件 ${i + 1}/${fileList.length}:`, fileDto.fileName)
+            console.log(`📥 [下载] 文件对象详情:`, fileDto)
+            
+            // 获取下载URL - 关键修复：确保fileId是字符串格式
+            const fileId = String(fileDto.id)
+            console.log(`📥 [下载] 准备获取下载URL`)
+            console.log(`📥 [下载] - fileId:`, fileId, '(类型:', typeof fileId, ')')
+            console.log(`📥 [下载] - fileName:`, fileDto.fileName)
+            
+            const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileId)
+            console.log(`📥 [下载] API响应:`, urlResponse)
+            console.log(`📥 [下载] 响应码:`, urlResponse?.code)
+            console.log(`📥 [下载] 响应数据:`, urlResponse?.data)
+            console.log(`📥 [下载] 响应消息:`, urlResponse?.msg)
+            
+            if (!urlResponse) {
+              throw new Error('API响应为空')
+            }
+            
+            if (urlResponse.code !== 200) {
+              throw new Error(`API返回错误: ${urlResponse.msg || urlResponse.code}`)
+            }
+            
+            if (!urlResponse.data) {
+              throw new Error('响应数据为空')
+            }
+            
+            // 提取下载URL
+            let downloadUrl = urlResponse.data
+            if (typeof downloadUrl === 'object') {
+              downloadUrl = downloadUrl.url || downloadUrl.downloadUrl || downloadUrl.accessUrl
+            }
+            
+            if (!downloadUrl || typeof downloadUrl !== 'string') {
+              console.error('❌ [下载] 无效的下载URL:', downloadUrl)
+              throw new Error('下载URL无效')
+            }
+            
+            console.log(`📥 [下载] 下载URL:`, downloadUrl)
+            
+            // 立即触发下载
+            const fileName = fileDto.fileName || fileDto.originalFileName || `文件${i + 1}`
+            this.triggerDownload(downloadUrl, fileName)
+            
+            successCount++
+            console.log(`✅ [下载] 文件下载触发成功: ${fileName}`)
+            
+            // 延迟避免浏览器阻止多文件下载
+            if (i < fileList.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+            
+          } catch (error) {
+            failCount++
+            console.error(`❌ [下载] 文件下载失败:`, fileDto.fileName)
+            console.error(`❌ [下载] 错误详情:`, error)
+            console.error(`❌ [下载] 错误消息:`, error.message)
+            console.error(`❌ [下载] 错误堆栈:`, error.stack)
+            
+            // 显示第一个文件的错误详情
+            if (i === 0) {
+              alert(`下载失败: ${error.message}\n文件: ${fileDto.fileName}\n\n请查看控制台获取详细信息`)
+            }
+            // 继续下载其他文件
           }
         }
         
-        console.log(`✅ [下载] 已触发下载 ${fileList.length} 个文件`)
+        console.log(`📥 [下载] 下载完成统计: 成功 ${successCount} 个, 失败 ${failCount} 个`)
         
         if (fileList.length > 1) {
           alert(`已触发下载 ${fileList.length} 个文件，请在浏览器下载栏查看`)
@@ -2747,7 +3320,17 @@ export default {
         
       } catch (error) {
         console.error('❌ [下载] 下载失败:', error)
-        alert('下载失败: ' + (error.message || error.msg || '请重试'))
+        
+        // 检查是否是认证错误
+        if (error.response && error.response.status === 401) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else if (error.code === 401 || error.msg?.includes('登录')) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else {
+          alert('下载失败: ' + (error.message || error.msg || '请重试'))
+        }
       }
     },
     
@@ -2767,7 +3350,7 @@ export default {
       }, 100)
     },
     
-    // 下载单个文件（改为直接下载）
+    // 下载单个文件
     async downloadSingleFile(file) {
       try {
         console.log('📥 [单文件下载] ============ 开始 ============')
@@ -2775,21 +3358,83 @@ export default {
         console.log('📥 [单文件下载] 文件名:', file.name || file.fileName)
         console.log('📥 [单文件下载] 文件ID:', file.id, '类型:', typeof file.id)
         
+        // 如果文件对象已有downloadUrl，直接使用
+        if (file.downloadUrl) {
+          console.log('📥 [单文件下载] 使用已有的downloadUrl:', file.downloadUrl)
+          this.triggerDownload(file.downloadUrl, file.name || file.fileName || '下载文件')
+          return
+        }
+        
+        // 否则，获取下载URL
         const fileId = String(file.id)
+        console.log('📥 [单文件下载] 准备调用API')
+        console.log('📥 [单文件下载] - 转换后fileId:', fileId, '类型:', typeof fileId)
+        console.log('📥 [单文件下载] - API路径:', `/zhiyan/achievement/file/${fileId}/download-url`)
         
-        // 使用直接下载接口，不使用预签名URL
-        const downloadUrl = knowledgeAPI.getDirectDownloadUrl(fileId)
-        console.log('📥 [单文件下载] 直接下载URL:', downloadUrl)
-        
-        // 直接触发浏览器下载
-        window.location.href = downloadUrl
-        
-        console.log('✅ [单文件下载] ============ 成功 ============')
+        try {
+          const urlResponse = await knowledgeAPI.getFileDownloadUrl(fileId)
+          console.log('📥 [单文件下载] ✅ API调用成功')
+          console.log('📥 [单文件下载] 完整响应:', JSON.stringify(urlResponse, null, 2))
+          console.log('📥 [单文件下载] 响应码:', urlResponse?.code)
+          console.log('📥 [单文件下载] 响应消息:', urlResponse?.msg)
+          console.log('📥 [单文件下载] 响应数据:', urlResponse?.data)
+          console.log('📥 [单文件下载] 响应数据类型:', typeof urlResponse?.data)
+          
+          if (!urlResponse) {
+            throw new Error('API返回undefined或null')
+          }
+          
+          if (urlResponse.code !== 200) {
+            throw new Error(`API错误: ${urlResponse.msg || urlResponse.code}`)
+          }
+          
+          if (!urlResponse.data) {
+            throw new Error('响应data字段为空')
+          }
+          
+          // 提取下载URL
+          let downloadUrl = urlResponse.data
+          if (typeof downloadUrl === 'object') {
+            console.log('📥 [单文件下载] data是对象，尝试提取URL')
+            downloadUrl = downloadUrl.url || downloadUrl.downloadUrl || downloadUrl.accessUrl
+            console.log('📥 [单文件下载] 提取后的URL:', downloadUrl)
+          }
+          
+          if (!downloadUrl || typeof downloadUrl !== 'string') {
+            console.error('❌ [单文件下载] 无效的URL:', downloadUrl, '类型:', typeof downloadUrl)
+            throw new Error('下载URL无效或不是字符串')
+          }
+          
+          console.log('📥 [单文件下载] 最终下载URL:', downloadUrl)
+          
+          const fileName = file.name || file.fileName || file.originalFileName || '下载文件'
+          this.triggerDownload(downloadUrl, fileName)
+          
+          console.log('✅ [单文件下载] ============ 成功 ============')
+          
+        } catch (apiError) {
+          console.error('❌ [单文件下载] API调用异常')
+          console.error('❌ [单文件下载] 错误对象:', apiError)
+          console.error('❌ [单文件下载] 错误消息:', apiError.message)
+          console.error('❌ [单文件下载] 错误响应:', apiError.response)
+          console.error('❌ [单文件下载] 错误堆栈:', apiError.stack)
+          throw apiError
+        }
         
       } catch (error) {
         console.error('❌ [单文件下载] ============ 失败 ============')
         console.error('❌ [单文件下载] 最终错误:', error)
-        alert(`下载失败: ${error.message || '未知错误'}`)
+        
+        // 检查是否是认证错误
+        if (error.response && error.response.status === 401) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else if (error.code === 401 || error.msg?.includes('登录')) {
+          alert('登录已过期，请重新登录')
+          this.$router.push('/login')
+        } else {
+          alert(`下载失败: ${error.message || error.msg || '未知错误'}\n\n请按F12查看控制台获取详细信息`)
+        }
       }
     },
     
@@ -3002,5 +3647,383 @@ export default {
   background: #f3f4f6;
   color: #4b5563;
   border: 1px solid #9ca3af;
+}
+
+/* 文件预览对话框样式 */
+.file-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.file-preview-dialog {
+  width: 95%;
+  max-width: 1400px;
+  height: 90vh;
+  max-height: 900px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+.file-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+
+.file-preview-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-preview-icon-small {
+  display: flex;
+  align-items: center;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.file-preview-name-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-preview-size-text {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: normal;
+}
+
+.file-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-preview-download-btn,
+.file-preview-close-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.file-preview-download-btn:hover,
+.file-preview-close-btn:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.file-preview-content {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: #ffffff;
+}
+
+/* 加载状态 */
+.file-preview-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 错误状态 */
+.file-preview-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #dc2626;
+  padding: 40px;
+  text-align: center;
+}
+
+.file-preview-error svg {
+  color: #dc2626;
+}
+
+/* 图片预览 */
+.file-preview-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #f9fafb;
+  overflow: auto;
+}
+
+.file-preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* PDF预览 */
+.file-preview-pdf-container {
+  width: 100%;
+  height: 100%;
+  background: #f9fafb;
+}
+
+.file-preview-pdf {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* 文本预览 */
+.file-preview-text-container {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+  background: #ffffff;
+}
+
+.file-preview-text {
+  margin: 0;
+  padding: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #111827;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.file-preview-text code {
+  font-family: inherit;
+  background: transparent;
+  padding: 0;
+}
+
+/* 视频预览 */
+.file-preview-video-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: #000000;
+}
+
+.file-preview-video {
+  max-width: 100%;
+  max-height: 100%;
+  outline: none;
+}
+
+/* 音频预览 */
+.file-preview-audio-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: #f9fafb;
+}
+
+.file-preview-audio-wrapper {
+  width: 100%;
+  max-width: 600px;
+}
+
+.file-preview-audio {
+  width: 100%;
+  outline: none;
+}
+
+/* Office文档预览 */
+.file-preview-office-container {
+  width: 100%;
+  height: 100%;
+  background: #f9fafb;
+}
+
+.office-viewer-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.file-preview-office {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.office-viewer-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #6b7280;
+  padding: 40px;
+  text-align: center;
+}
+
+.office-viewer-fallback svg {
+  color: #9ca3af;
+}
+
+.office-viewer-hint {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-top: -8px;
+}
+
+.office-viewer-options {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* 代码预览 */
+.file-preview-code-container {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+  background: #1e1e1e;
+}
+
+.file-preview-code {
+  margin: 0;
+  padding: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #d4d4d4;
+  white-space: pre;
+  word-wrap: break-word;
+}
+
+.file-preview-code code {
+  font-family: inherit;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+/* 不支持预览 */
+.file-preview-unsupported {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: #6b7280;
+  padding: 40px;
+  text-align: center;
+}
+
+.file-preview-unsupported svg {
+  color: #9ca3af;
+}
+
+.file-preview-unsupported-hint {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-top: -8px;
+}
+
+/* 文件卡片点击提示 */
+.file-preview-hint {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 4px 8px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.file-preview-card:hover .file-preview-hint {
+  opacity: 1;
+}
+
+.file-preview-card {
+  position: relative;
+}
+
+/* 动画 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>
