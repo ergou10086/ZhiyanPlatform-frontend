@@ -12,71 +12,44 @@
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">项目总任务数</div>
         <div class="kpi-value">{{ display.totalTasks }}</div>
-        <div class="kpi-trend up">↑ 5%</div>
       </div>
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">已完成数（完成率）</div>
         <div class="kpi-value">{{ display.completed }} <span class="sub">({{ display.completeRate }}%)</span></div>
-        <div class="kpi-trend up">↑ 12%</div>
       </div>
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">延期任务数</div>
         <div class="kpi-value danger">{{ display.delayed }}</div>
-        <div class="kpi-trend down">↑ 12</div>
       </div>
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">本周新增任务数</div>
         <div class="kpi-value">{{ display.addedThisWeek }}</div>
-        <div class="kpi-trend up">↑ 3</div>
       </div>
     </div>
 
     <div class="grid charts">
       <div class="card glass gradient-border">
         <div class="card-title">任务状态分布</div>
-        <svg class="donut" viewBox="0 0 120 120">
-          <defs>
-            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#2563eb"/>
-            </linearGradient>
-            <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/>
-            </linearGradient>
-            <linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#ef4444"/><stop offset="100%" stop-color="#b91c1c"/>
-            </linearGradient>
-            <linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/>
-            </linearGradient>
-          </defs>
-          <circle class="ring" cx="60" cy="60" r="44" />
-          <circle class="seg seg1" cx="60" cy="60" r="44" :stroke-dasharray="dash.todo" stroke="url(#g1)"
-                  :title="`待办 ${dist.todo}%`"
-                  @mouseenter="showTooltip($event,'待办', dist.todo, '%')"
-                  @mousemove="showTooltip($event,'待办', dist.todo, '%')"
-                  @mouseleave="hideTooltip"/>
-          <circle class="seg seg2" cx="60" cy="60" r="44" :stroke-dasharray="dash.doing" stroke="url(#g2)"
-                  :title="`进行中 ${dist.doing}%`"
-                  @mouseenter="showTooltip($event,'进行中', dist.doing, '%')"
-                  @mousemove="showTooltip($event,'进行中', dist.doing, '%')"
-                  @mouseleave="hideTooltip"/>
-          <circle class="seg seg3" cx="60" cy="60" r="44" :stroke-dasharray="dash.blocked" stroke="url(#g3)"
-                  :title="`阻塞 ${dist.blocked}%`"
-                  @mouseenter="showTooltip($event,'阻塞', dist.blocked, '%')"
-                  @mousemove="showTooltip($event,'阻塞', dist.blocked, '%')"
-                  @mouseleave="hideTooltip"/>
-          <circle class="seg seg4" cx="60" cy="60" r="44" :stroke-dasharray="dash.done" stroke="url(#g4)"
-                  :title="`已完成 ${dist.done}%`"
-                  @mouseenter="showTooltip($event,'已完成', dist.done, '%')"
-                  @mousemove="showTooltip($event,'已完成', dist.done, '%')"
-                  @mouseleave="hideTooltip"/>
-          <text x="60" y="64" text-anchor="middle" class="donut-center">分布</text>
-        </svg>
+        <div class="pie-chart" v-if="pieSegments.length">
+          <svg viewBox="0 0 200 200">
+            <g>
+              <path
+                v-for="segment in pieSegments"
+                :key="segment.key"
+                :d="getPiePath(segment.startAngle, segment.endAngle)"
+                :fill="segment.color"
+                @mousemove="showTooltip($event, segment.label, segment.value, `个（${segment.percent}%）`)"
+                @mouseleave="hideTooltip"
+              />
+            </g>
+          </svg>
+        </div>
+        <div class="pie-empty" v-else>暂无任务数据</div>
         <div class="legend">
-          <span class="legend-item todo">待办 {{ dist.todo }}%</span>
-          <span class="legend-item doing">进行中 {{ dist.doing }}%</span>
-          <span class="legend-item blocked">阻塞 {{ dist.blocked }}%</span>
-          <span class="legend-item done">已完成 {{ dist.done }}%</span>
+          <span class="legend-item todo">待办 {{ statusCounts.todo }} 个 ({{ dist.todo }}%)</span>
+          <span class="legend-item doing">进行中 {{ statusCounts.doing }} 个 ({{ dist.doing }}%)</span>
+          <span class="legend-item blocked">阻塞 {{ statusCounts.blocked }} 个 ({{ dist.blocked }}%)</span>
+          <span class="legend-item done">已完成 {{ statusCounts.done }} 个 ({{ dist.done }}%)</span>
         </div>
       </div>
       <div class="card glass gradient-border">
@@ -154,11 +127,11 @@ export default {
     return {
       // 目标值
       kpis: {
-        totalTasks: 128,
-        completed: 92,
-        completeRate: 72,
-        delayed: 5,
-        addedThisWeek: 18
+        totalTasks: 0,
+        completed: 0,
+        completeRate: 0,
+        delayed: 0,
+        addedThisWeek: 0
       },
       // 动画展示用数字
       display: {
@@ -168,9 +141,8 @@ export default {
         delayed: 0,
         addedThisWeek: 0
       },
-      // 环形图分布（百分比）
-      dist: { todo: 35, doing: 30, blocked: 10, done: 25 },
-      dash: { todo: '0 276', doing: '0 276', blocked: '0 276', done: '0 276' },
+      // 环形图 / 饼图分布（百分比）
+      dist: { todo: 0, doing: 0, blocked: 0, done: 0 },
       // 控件
       filters: {
         range: '30',
@@ -182,28 +154,25 @@ export default {
       // 动态
       barHeights: [60, 75, 70, 55, 40],
       lineKey: Date.now(),
-      tickId: null,
-      tooltip: { show: false, x: 0, y: 0, title: '', value: '', suffix: '' }
+      tooltip: { show: false, x: 0, y: 0, title: '', value: '', suffix: '' },
+      statusCounts: { todo: 0, doing: 0, blocked: 0, done: 0 }
     }
   },
   created() {
     // 可按需通过项目ID拉取统计数据：this.$route.params.id
   },
-  mounted() {
-    // 数字滚动动画
-    Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
-    // 环形图入场
-    this.animateDonut()
+  async mounted() {
     // 启动粒子背景
     this.initParticles()
     window.addEventListener('resize', this.resizeCanvas)
-    // 进入页面仅刷新一次
-    this.tickUpdate()
+    // 加载任务统计数据
+    await this.loadTaskStatistics()
+    // 数字滚动动画
+    Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
   },
   beforeDestroy() {
     cancelAnimationFrame(this.rafId)
     window.removeEventListener('resize', this.resizeCanvas)
-    if (this.tickId) clearInterval(this.tickId)
   },
   computed: {
     // 用于线图文本标注（与折线坐标相匹配）
@@ -214,73 +183,267 @@ export default {
         { x: 60, y: 14, v: 9 }, { x: 70, y: 8, v: 11 }, { x: 80, y: 12, v: 10 },
         { x: 90, y: 6, v: 12 }, { x: 100, y: 12, v: 9 }
       ]
+    },
+    pieSegments() {
+      const total = Object.values(this.statusCounts).reduce((sum, v) => sum + v, 0)
+      if (!total) return []
+
+      const segments = []
+      const colors = [
+        { key: 'todo', color: '#4c6ac5', label: '待办' },
+        { key: 'doing', color: '#2c7fb4', label: '进行中' },
+        { key: 'blocked', color: '#c66532', label: '阻塞' },
+        { key: 'done', color: '#2f805d', label: '已完成' }
+      ]
+
+      let startAngle = 0
+      colors.forEach(({ key, color, label }) => {
+        const value = this.statusCounts[key] || 0
+        if (!value) return
+          const percent = value / total
+          const angle = percent * 360
+        segments.push({
+          key,
+          value,
+          percent: Math.round(percent * 100),
+          color,
+          label,
+          startAngle,
+          endAngle: startAngle + angle
+        })
+        startAngle += angle
+      })
+      return segments
     }
   },
   methods: {
-    refreshDash() {
-      // 模拟刷新动画
-      Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 600))
-      this.animateDonut()
+    /**
+     * 加载任务统计数据
+     */
+    async loadTaskStatistics() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        console.warn('[ProjectDashboard] 项目ID不存在')
+        return
+      }
+
+      try {
+        // 导入任务API
+        const { taskAPI } = await import('@/api/task')
+        
+        // 获取所有任务（使用较大的size值获取所有任务，或分页获取）
+        // 先获取第一页，如果总数超过size，再获取剩余页
+        let allTasks = []
+        let page = 0
+        const size = 100
+        let hasMore = true
+
+        while (hasMore) {
+          const response = await taskAPI.getProjectTasks(projectId, page, size)
+          
+          if (response && response.code === 200 && response.data) {
+            const tasksData = response.data
+            let taskList = []
+            
+            if (tasksData.content && Array.isArray(tasksData.content)) {
+              taskList = tasksData.content
+              // 检查是否还有更多页
+              const totalElements = tasksData.totalElements || 0
+              const totalPages = tasksData.totalPages || 0
+              hasMore = (page + 1) < totalPages
+            } else if (Array.isArray(tasksData)) {
+              taskList = tasksData
+              hasMore = taskList.length === size // 如果返回的数量等于size，可能还有更多
+            } else {
+              hasMore = false
+            }
+            
+            allTasks = allTasks.concat(taskList)
+            page++
+            
+            // 如果返回的任务数少于size，说明没有更多了
+            if (taskList.length < size) {
+              hasMore = false
+            }
+          } else {
+            hasMore = false
+          }
+        }
+
+        console.log('[ProjectDashboard] 获取到的任务列表:', allTasks)
+
+        // 计算统计数据
+        this.calculateStatistics(allTasks)
+
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载任务统计数据失败:', error)
+        // 如果加载失败，使用默认值
+      }
     },
-    tickUpdate() {
-      // KPI 轻微波动
-      const jitter = (v, p=0.03) => Math.max(0, Math.round(v * (1 + (Math.random()*2-1)*p)))
-      const next = {
-        totalTasks: jitter(this.kpis.totalTasks, 0.01),
-        completed: jitter(this.kpis.completed, 0.02),
-        completeRate: Math.min(100, Math.max(0, this.kpis.completeRate + Math.round((Math.random()*2-1)*2))),
-        delayed: Math.max(0, this.kpis.delayed + Math.round((Math.random()*2-1))),
-        addedThisWeek: jitter(this.kpis.addedThisWeek, 0.15)
-      }
-      this.kpis = next
-      Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 700))
 
-      // 环形比例微调并归一化
-      let { todo, doing, blocked, done } = this.dist
-      todo = Math.max(5, todo + Math.round((Math.random()*2-1)*3))
-      doing = Math.max(5, doing + Math.round((Math.random()*2-1)*3))
-      blocked = Math.max(5, blocked + Math.round((Math.random()*2-1)*2))
-      done = Math.max(5, done + Math.round((Math.random()*2-1)*3))
-      const sum = todo + doing + blocked + done
-      this.dist = {
-        todo: Math.round(todo/sum*100),
-        doing: Math.round(doing/sum*100),
-        blocked: Math.round(blocked/sum*100),
-        done: Math.max(0, 100 - (Math.round(todo/sum*100)+Math.round(doing/sum*100)+Math.round(blocked/sum*100)))
+    /**
+     * 计算统计数据
+     */
+    calculateStatistics(tasks) {
+      if (!tasks || tasks.length === 0) {
+        // 如果没有任务，重置为0
+        this.kpis = {
+          totalTasks: 0,
+          completed: 0,
+          completeRate: 0,
+          delayed: 0,
+          addedThisWeek: 0
+        }
+        this.dist = { todo: 0, doing: 0, blocked: 0, done: 0 }
+        this.statusCounts = { todo: 0, doing: 0, blocked: 0, done: 0 }
+        return
       }
-      this.animateDonut()
 
-      // 柱状高度轻微变化
-      this.barHeights = this.barHeights.map(h => {
-        const nh = Math.max(20, Math.min(90, h + (Math.random()*2-1)*10))
-        return Math.round(nh)
+      const now = new Date()
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      
+      // 计算本周的开始时间（周一）
+      const dayOfWeek = now.getDay()
+      const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      const weekStart = new Date(today)
+      weekStart.setDate(today.getDate() - daysToMonday)
+      weekStart.setHours(0, 0, 0, 0)
+
+      // 项目总任务数
+      const totalTasks = tasks.length
+
+      // 已完成数（状态为DONE）
+      const completed = tasks.filter(task => {
+        const status = task.status || task.status_value
+        return status === 'DONE' || status === '已完成'
+      }).length
+
+      // 完成率
+      const completeRate = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0
+
+      // 延期任务数（超过dueDate且状态不是DONE）
+      const delayed = tasks.filter(task => {
+        const status = task.status || task.status_value
+        if (status === 'DONE' || status === '已完成') {
+          return false // 已完成的任务不算延期
+        }
+        
+        const dueDate = task.dueDate || task.due_date || task.date
+        if (!dueDate) {
+          return false // 没有截止日期的任务不算延期
+        }
+        
+        const due = new Date(dueDate)
+        due.setHours(0, 0, 0, 0)
+        return due < today
+      }).length
+
+      // 本周新增任务数（createdAt在本周）
+      const addedThisWeek = tasks.filter(task => {
+        const createdAt = task.createdAt || task.created_at
+        if (!createdAt) {
+          return false
+        }
+        const created = new Date(createdAt)
+        return created >= weekStart
+      }).length
+
+      // 更新KPI数据
+      this.kpis = {
+        totalTasks,
+        completed,
+        completeRate,
+        delayed,
+        addedThisWeek
+      }
+
+      // 计算任务状态分布
+      const statusCounts = {
+        todo: 0,
+        doing: 0,
+        blocked: 0,
+        done: 0
+      }
+
+      tasks.forEach(task => {
+        const status = task.status || task.status_value || 'TODO'
+        if (status === 'DONE' || status === '已完成') {
+          statusCounts.done++
+        } else if (status === 'IN_PROGRESS' || status === '进行中') {
+          statusCounts.doing++
+        } else if (status === 'BLOCKED' || status === '阻塞') {
+          statusCounts.blocked++
+        } else {
+          statusCounts.todo++
+        }
       })
 
-      // 折线重绘动画（通过更换 key 触发 stroke 动画）
-      this.lineKey = Date.now()
+      this.statusCounts = statusCounts
+
+      // 计算百分比
+      if (totalTasks > 0) {
+        this.dist = {
+          todo: Math.round((statusCounts.todo / totalTasks) * 100),
+          doing: Math.round((statusCounts.doing / totalTasks) * 100),
+          blocked: Math.round((statusCounts.blocked / totalTasks) * 100),
+          done: Math.round((statusCounts.done / totalTasks) * 100)
+        }
+      } else {
+        this.dist = { todo: 0, doing: 0, blocked: 0, done: 0 }
+        this.statusCounts = { todo: 0, doing: 0, blocked: 0, done: 0 }
+      }
+
+      console.log('[ProjectDashboard] 统计数据:', {
+        kpis: this.kpis,
+        dist: this.dist
+      })
+    },
+
+    polarToCartesian(cx, cy, radius, angleInDegrees) {
+      const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0
+      return {
+        x: cx + radius * Math.cos(angleInRadians),
+        y: cy + radius * Math.sin(angleInRadians)
+      }
+    },
+    getPiePath(startAngle, endAngle) {
+      const radius = 90
+      const cx = 100
+      const cy = 100
+      let sweep = endAngle - startAngle
+      if (sweep <= 0) return ''
+      if (sweep >= 360) {
+        return `M ${cx} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx - 0.01} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx} ${cy - radius} Z`
+      }
+      const start = this.polarToCartesian(cx, cy, radius, endAngle)
+      const end = this.polarToCartesian(cx, cy, radius, startAngle)
+      const largeArcFlag = sweep > 180 ? 1 : 0
+      return [
+        'M', cx, cy,
+        'L', start.x, start.y,
+        'A', radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+        'Z'
+      ].join(' ')
+    },
+
+    refreshDash() {
+      // 刷新数据
+      this.loadTaskStatistics().then(() => {
+        // 刷新动画
+        Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 600))
+      })
     },
     animateCount(key, target, duration = 800) {
       const start = performance.now()
-      const from = 0
+      const from = this.display[key] || 0 // 从当前显示值开始
       const step = (now) => {
         const p = Math.min(1, (now - start) / duration)
         const eased = 1 - Math.pow(1 - p, 3)
         this.display[key] = Math.round(from + (target - from) * eased)
         if (p < 1) requestAnimationFrame(step)
+        else this.display[key] = target // 确保最终值准确
       }
       requestAnimationFrame(step)
-    },
-    animateDonut() {
-      const C = Math.PI * 2 * 44 // 周长
-      const toDash = (p) => `${(p / 100) * C} ${C}`
-      setTimeout(() => {
-        this.dash = {
-          todo: toDash(this.dist.todo),
-          doing: toDash(this.dist.doing),
-          blocked: toDash(this.dist.blocked),
-          done: toDash(this.dist.done)
-        }
-      }, 50)
     },
     showTooltip(evt, title, value, suffix = '') {
       const margin = 14
@@ -371,8 +534,6 @@ export default {
 .kpi-label{font-size:12px;color:#64748b;margin-bottom:8px}
 .kpi-value{font-size:28px;font-weight:700;color:#0f172a;text-shadow:0 2px 18px rgba(59,130,246,.15)}
 .kpi-value .sub{font-size:14px;color:#6b7280;margin-left:6px}
-.kpi-trend{margin-top:6px;font-size:12px;color:#6b7280}
-.kpi-trend.up{color:#16a34a}.kpi-trend.down{color:#ef4444}
 .kpi-value.danger{color:#ef4444}
 .charts{grid-template-columns:1fr 1fr 1fr;margin-top:8px;gap:28px} /* 放大卡片间距 */
 .card{
@@ -404,18 +565,17 @@ export default {
   box-shadow: 0 0 0 1px rgba(226,232,240,.9) inset;
   pointer-events:none;
 }
-.donut{width:100%;height:220px}
-.ring{fill:none;stroke:#f1f5f9;stroke-width:16}
-.seg{fill:none;stroke-width:16;stroke-linecap:round;transform:rotate(-90deg);transform-origin:60px 60px;stroke-dasharray:0 276;transition:stroke-dasharray 1.2s cubic-bezier(.22,1,.36,1)}
-.seg{pointer-events: stroke;} /* 确保可在描边区域捕获鼠标事件 */
-.donut{pointer-events: all;}
-.donut-center{font-size:12px;fill:#64748b}
+.pie-chart{position:relative;width:100%;height:220px;display:flex;align-items:center;justify-content:center}
+.pie-chart svg{width:100%;max-width:240px;height:220px;filter:drop-shadow(0 12px 20px rgba(15,23,42,.12))}
+.pie-chart path{transition:transform .25s ease, filter .25s ease;transform-origin:100px 100px;cursor:pointer}
+.pie-chart path:hover{transform:scale(1.02);filter:brightness(1.05)}
+.pie-empty{height:220px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94a3b8;background:linear-gradient(180deg,#f8fafc,#fff);border-radius:12px}
 .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-.legend-item{font-size:12px;color:#64748b;padding:2px 8px;border-radius:999px;border:1px solid #e6eaf2}
-.legend-item.todo{background:#f1f5f9}
-.legend-item.doing{background:#eef2ff}
-.legend-item.blocked{background:#fff7ed}
-.legend-item.done{background:#ecfeff}
+.legend-item{font-size:12px;color:#0f172a;padding:4px 12px;border-radius:999px;border:1px solid transparent;background:#f8fafc;box-shadow:inset 0 1px 2px rgba(255,255,255,.65)}
+.legend-item.todo{background:#e1e7f4;border-color:#c5cee4;color:#324e9b}
+.legend-item.doing{background:#e1eef4;border-color:#bedae7;color:#166086}
+.legend-item.blocked{background:#f8e5da;border-color:#f1c7ae;color:#b75016}
+.legend-item.done{background:#ddece5;border-color:#c0ded2;color:#1f6f55}
 .bar-chart{display:flex;align-items:flex-end;height:180px;gap:10px;padding:0 8px}
 .bar-wrap{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:center}
 .bar{flex:1;background:linear-gradient(180deg,#93c5fd,#3b82f6);border-radius:6px;height:var(--h);transition:height 600ms cubic-bezier(.2,.8,.2,1);box-shadow:0 6px 18px rgba(59,130,246,.2)}
