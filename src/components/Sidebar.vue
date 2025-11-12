@@ -65,7 +65,7 @@
               <path d="M9 7H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <span class="nav-text">任务审核</span>
+          <span class="nav-text">我的活动</span>
         </div>
       </nav>
     </div>
