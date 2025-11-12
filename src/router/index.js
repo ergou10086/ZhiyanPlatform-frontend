@@ -14,6 +14,7 @@ import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
+import ProjectDashboard from '../views/ProjectDashboard.vue'
 import TaskSubmissionReview from '../views/TaskSubmissionReview.vue'
 
 Vue.use(VueRouter)
@@ -62,6 +63,11 @@ const routes = [
     path: '/project-knowledge/:id',
     name: 'ProjectKnowledge',
     component: ProjectKnowledge
+  },
+  {
+    path: '/project-dashboard/:id',
+    name: 'ProjectDashboard',
+    component: ProjectDashboard
   },
   {
     path: '/knowledge-base',
@@ -152,6 +158,7 @@ router.beforeEach((to, from, next) => {
     '/knowledge-base',
     '/project-detail',
     '/project-knowledge',
+    '/project-dashboard',
     '/project',
     '/task-review'
   ]
