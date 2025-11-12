@@ -69,7 +69,10 @@
 
         <div class="project-header-top">
 
-          <h1 class="project-title">{{ project.title }}</h1>
+          <h1 class="project-title">
+            {{ project.title }}
+            <button class="dashboard-btn" @click="goToProjectDashboard">仪表盘</button>
+          </h1>
 
           <div class="project-actions" v-if="isProjectManager">
 
@@ -3391,6 +3394,13 @@ export default {
 
       this.$router.go(-1)
 
+    },
+
+    goToProjectDashboard() {
+      const projectId = this.$route.params.id
+      if (projectId) {
+        this.$router.push(`/project-dashboard/${projectId}`)
+      }
     },
 
     goToProjectKnowledge() {
