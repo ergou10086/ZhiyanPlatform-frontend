@@ -332,6 +332,35 @@ export const projectAPI = {
     return api.get(`/zhiyan/api/users/search`, {
       params: { keyword, page, size }
     })
+  },
+
+  /**
+   * 检查用户是否为项目管理员（包括OWNER和ADMIN）
+   * @param {Number} projectId - 项目ID
+   */
+  checkAdmin(projectId) {
+    console.log('[projectAPI.checkAdmin] 检查管理员身份, 项目ID:', projectId)
+    return api.get(`/zhiyan/api/projects/${projectId}/check-admin`)
+  },
+
+  /**
+   * 检查用户是否为项目拥有者
+   * @param {Number} projectId - 项目ID
+   */
+  checkOwner(projectId) {
+    console.log('[projectAPI.checkOwner] 检查拥有者身份, 项目ID:', projectId)
+    return api.get(`/zhiyan/api/projects/${projectId}/check-owner`)
+  },
+
+  /**
+   * 更新成员角色
+   * @param {Number} projectId - 项目ID
+   * @param {Number} userId - 用户ID
+   * @param {String} role - 新角色 (OWNER, ADMIN, MEMBER)
+   */
+  updateMemberRole(projectId, userId, role) {
+    console.log('[projectAPI.updateMemberRole] 更新成员角色, 项目ID:', projectId, '用户ID:', userId, '角色:', role)
+    return api.put(`/zhiyan/api/projects/${projectId}/members/${userId}/role`, { newRole: role })
   }
 }
 
