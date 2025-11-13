@@ -397,7 +397,7 @@
 
                   <div class="task-status-menu" v-if="task.showStatusMenu">
 
-                    <!-- 移除“待接取”选项，用户不应该手动将任务改回待接取状态 -->
+                    <!-- 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
 
                     <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
 
@@ -1100,7 +1100,7 @@
 
                     <div class="task-status-menu" v-if="task.showStatusMenu">
 
-                      <!-- 移除“待接取”选项，用户不应该手动将任务改回待接取状态 -->
+                      <!-- 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
 
                       <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
 
@@ -7364,11 +7364,13 @@ export default {
 
       
 
-      // 如果已经是普通URL字符串，直接返回
+      const normalize = url => normalizeImageUrl(url, 'user-avatars')
+
+      // 如果已经是普通URL字符串，直接返回规范化后的地址
 
       if (typeof avatar === 'string' && (avatar.startsWith('http://') || avatar.startsWith('https://'))) {
 
-        return avatar
+        return normalize(avatar)
 
       }
 
@@ -7386,7 +7388,19 @@ export default {
 
           if (avatarObj.sizes) {
 
-            return avatarObj.sizes.original || avatarObj.sizes['256'] || avatarObj.sizes['512'] || null
+            return normalize(avatarObj.sizes.original || avatarObj.sizes['256'] || avatarObj.sizes['128'] || avatarObj.sizes['64'] || '')
+
+          }
+
+          if (avatarObj.minio_url || avatarObj.minioUrl || avatarObj.cdn_url || avatarObj.cdnUrl) {
+
+            return normalize(avatarObj.minio_url || avatarObj.minioUrl || avatarObj.cdn_url || avatarObj.cdnUrl)
+
+          }
+
+          if (avatarObj.url || avatarObj.path) {
+
+            return normalize(avatarObj.url || avatarObj.path)
 
           }
 
@@ -7396,7 +7410,7 @@ export default {
 
           console.warn('解析头像URL失败:', e, '原始数据:', avatar)
 
-          return null
+          return normalize(avatar)
 
         }
 
@@ -7406,15 +7420,31 @@ export default {
 
       // 如果是对象，直接提取URL
 
-      if (typeof avatar === 'object' && avatar.sizes) {
+      if (typeof avatar === 'object' && avatar !== null) {
 
-        return avatar.sizes.original || avatar.sizes['256'] || avatar.sizes['512'] || null
+        if (avatar.sizes) {
+
+          return normalize(avatar.sizes.original || avatar.sizes['256'] || avatar.sizes['128'] || avatar.sizes['64'] || '')
+
+        }
+
+        if (avatar.minio_url || avatar.minioUrl || avatar.cdn_url || avatar.cdnUrl) {
+
+          return normalize(avatar.minio_url || avatar.minioUrl || avatar.cdn_url || avatar.cdnUrl)
+
+        }
+
+        if (avatar.url || avatar.path) {
+
+          return normalize(avatar.url || avatar.path)
+
+        }
 
       }
 
       
 
-      return null
+      return normalize(String(avatar))
 
     },
     /**
