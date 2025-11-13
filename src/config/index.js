@@ -29,8 +29,8 @@ const config = {
   minio: {
     // MinIO服务基础URL
     baseURL: process.env.NODE_ENV === 'production'
-      ? 'http://10.7.10.98:9000'  // 生产环境MinIO地址
-      : 'http://10.7.10.98:9000',  // 开发环境MinIO地址
+      ? 'http://152.136.245.180:9000'  // 生产环境MinIO地址
+      : 'http://152.136.245.180:9000',  // 开发环境MinIO地址
     bucket: 'zhiyan'
   },
   

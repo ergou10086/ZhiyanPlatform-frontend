@@ -93,7 +93,7 @@ export const avatarAPI = {
     const formData = new FormData()
     formData.append('file', file)
     
-    return apiInstance.post('/zhiyan/users/avatar/upload', formData, {
+    return apiInstance.post('/zhiyan/auth/user-avatar/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
@@ -106,7 +106,7 @@ export const avatarAPI = {
    */
   getMyAvatarInfo() {
     console.log('[avatarAPI.getMyAvatarInfo] 获取当前用户头像信息')
-    return apiInstance.get('/zhiyan/users/avatar/me_avatar')
+    return apiInstance.get('/zhiyan/auth/user-avatar/me_avatar')
   },
 
   /**
@@ -116,7 +116,7 @@ export const avatarAPI = {
    */
   getAvatarInfoById(userId) {
     console.log('[avatarAPI.getAvatarInfoById] 获取用户头像信息, 用户ID:', userId)
-    return apiInstance.get(`/zhiyan/users/avatar/${userId}`)
+    return apiInstance.get(`/zhiyan/auth/user-avatar/${userId}`)
   }
 }
 

@@ -170,7 +170,7 @@ export const wikiPageAPI = {
    */
   createPage(pageData) {
     console.log('[wikiPageAPI.createPage] 创建Wiki页面, 数据:', pageData)
-    return api.post('/api/wiki/pages', pageData)
+    return api.post('/zhiyan/wiki/pages', pageData)
   },
 
   /**
@@ -183,7 +183,7 @@ export const wikiPageAPI = {
    */
   updatePage(pageId, updateData) {
     console.log('[wikiPageAPI.updatePage] 更新Wiki页面, ID:', pageId, '数据:', updateData)
-    return api.put(`/api/wiki/pages/${pageId}`, updateData)
+    return api.put(`/zhiyan/wiki/pages/${pageId}`, updateData)
   },
 
   /**
@@ -192,7 +192,7 @@ export const wikiPageAPI = {
    */
   deletePage(pageId) {
     console.log('[wikiPageAPI.deletePage] 删除Wiki页面, ID:', pageId)
-    return api.delete(`/api/wiki/pages/${pageId}`)
+    return api.delete(`/zhiyan/wiki/pages/${pageId}`)
   },
 
   /**
@@ -201,7 +201,7 @@ export const wikiPageAPI = {
    */
   deletePageRecursively(pageId) {
     console.log('[wikiPageAPI.deletePageRecursively] 递归删除Wiki页面, ID:', pageId)
-    return api.delete(`/api/wiki/pages/${pageId}/recursive`)
+    return api.delete(`/zhiyan/wiki/pages/${pageId}/recursive`)
   },
 
   /**
@@ -210,7 +210,7 @@ export const wikiPageAPI = {
    */
   getPageDetail(pageId) {
     console.log('[wikiPageAPI.getPageDetail] 获取Wiki页面详情, ID:', pageId)
-    return api.get(`/api/wiki/pages/${pageId}`)
+    return api.get(`/zhiyan/wiki/pages/${pageId}`)
   },
 
   /**
@@ -219,7 +219,7 @@ export const wikiPageAPI = {
    */
   getProjectWikiTree(projectId) {
     console.log('[wikiPageAPI.getProjectWikiTree] 获取项目Wiki树, 项目ID:', projectId)
-    return api.get(`/api/wiki/projects/${projectId}/tree`)
+    return api.get(`/zhiyan/wiki/projects/${projectId}/tree`)
   },
 
   /**
@@ -229,7 +229,7 @@ export const wikiPageAPI = {
    */
   movePage(pageId, newParentId) {
     console.log('[wikiPageAPI.movePage] 移动Wiki页面, ID:', pageId, '新父页面:', newParentId)
-    return api.patch(`/api/wiki/pages/${pageId}/move`, { newParentId })
+    return api.patch(`/zhiyan/wiki/pages/${pageId}/move`, { newParentId })
   },
 
   /**
@@ -243,7 +243,7 @@ export const wikiPageAPI = {
     const params = {}
     if (targetParentId !== null) params.targetParentId = targetParentId
     if (newTitle !== null) params.newTitle = newTitle
-    return api.post(`/api/wiki/pages/${pageId}/copy`, null, { params })
+    return api.post(`/zhiyan/wiki/pages/${pageId}/copy`, null, { params })
   },
 
   /**
@@ -252,7 +252,7 @@ export const wikiPageAPI = {
    */
   getProjectStatistics(projectId) {
     console.log('[wikiPageAPI.getProjectStatistics] 获取Wiki统计, 项目ID:', projectId)
-    return api.get(`/api/wiki/projects/${projectId}/statistics`)
+    return api.get(`/zhiyan/wiki/projects/${projectId}/statistics`)
   },
 
   /**
@@ -262,7 +262,7 @@ export const wikiPageAPI = {
    */
   getRecentlyUpdated(projectId, limit = 10) {
     console.log('[wikiPageAPI.getRecentlyUpdated] 获取最近更新, 项目ID:', projectId)
-    return api.get(`/api/wiki/projects/${projectId}/recent`, {
+    return api.get(`/zhiyan/wiki/projects/${projectId}/recent`, {
       params: { limit }
     })
   }
@@ -280,7 +280,7 @@ export const wikiVersionAPI = {
    */
   getVersionHistory(pageId) {
     console.log('[wikiVersionAPI.getVersionHistory] 获取版本历史, 页面ID:', pageId)
-    return api.get(`/api/wiki/content/pages/${pageId}/versions`)
+    return api.get(`/zhiyan/wiki/content/pages/${pageId}/versions`)
   },
 
   /**
@@ -290,7 +290,7 @@ export const wikiVersionAPI = {
    */
   getVersionContent(pageId, version) {
     console.log('[wikiVersionAPI.getVersionContent] 获取版本内容, 页面ID:', pageId, '版本:', version)
-    return api.get(`/api/wiki/content/pages/${pageId}/versions/${version}`)
+    return api.get(`/zhiyan/wiki/content/pages/${pageId}/versions/${version}`)
   },
 
   /**
@@ -301,7 +301,7 @@ export const wikiVersionAPI = {
    */
   compareVersions(pageId, version1, version2) {
     console.log('[wikiVersionAPI.compareVersions] 比较版本差异, 页面ID:', pageId, 'v1:', version1, 'v2:', version2)
-    return api.get(`/api/wiki/content/pages/${pageId}/compare`, {
+    return api.get(`/zhiyan/wiki/content/pages/${pageId}/compare`, {
       params: { version1, version2 }
     })
   },
@@ -312,7 +312,7 @@ export const wikiVersionAPI = {
    */
   getCurrentContent(pageId) {
     console.log('[wikiVersionAPI.getCurrentContent] 获取当前内容, 页面ID:', pageId)
-    return api.get(`/api/wiki/content/pages/${pageId}/current`)
+    return api.get(`/zhiyan/wiki/content/pages/${pageId}/current`)
   },
 
   /**
@@ -321,7 +321,7 @@ export const wikiVersionAPI = {
    */
   getRecentVersions(pageId) {
     console.log('[wikiVersionAPI.getRecentVersions] 获取最近版本, 页面ID:', pageId)
-    return api.get(`/api/wiki/content/pages/${pageId}/versions/recent`)
+    return api.get(`/zhiyan/wiki/content/pages/${pageId}/versions/recent`)
   },
 
   /**
@@ -330,7 +330,7 @@ export const wikiVersionAPI = {
    */
   getAllVersionHistory(pageId) {
     console.log('[wikiVersionAPI.getAllVersionHistory] 获取所有版本历史, 页面ID:', pageId)
-    return api.get(`/api/wiki/content/pages/${pageId}/versions/all`)
+    return api.get(`/zhiyan/wiki/content/pages/${pageId}/versions/all`)
   }
 }
 
@@ -349,7 +349,7 @@ export const wikiSearchAPI = {
    */
   searchByTitle(projectId, keyword, page = 0, size = 10) {
     console.log('[wikiSearchAPI.searchByTitle] 搜索Wiki标题, 项目ID:', projectId, '关键词:', keyword)
-    return api.get(`/api/wiki/projects/${projectId}/search`, {
+    return api.get(`/zhiyan/wiki/projects/${projectId}/search`, {
       params: { keyword, page, size }
     })
   },
@@ -361,7 +361,7 @@ export const wikiSearchAPI = {
    */
   searchByContent(projectId, keyword) {
     console.log('[wikiSearchAPI.searchByContent] 全文搜索Wiki, 项目ID:', projectId, '关键词:', keyword)
-    return api.get(`/api/wiki/projects/${projectId}/search/content`, {
+    return api.get(`/zhiyan/wiki/projects/${projectId}/search/content`, {
       params: { keyword }
     })
   },
@@ -375,7 +375,7 @@ export const wikiSearchAPI = {
    */
   fullTextSearch(projectId, keyword, page = 0, size = 10) {
     console.log('[wikiSearchAPI.fullTextSearch] 全文搜索（分页）, 项目ID:', projectId, '关键词:', keyword)
-    return api.get(`/api/wiki/search/projects/${projectId}/fulltext`, {
+    return api.get(`/zhiyan/wiki/search/projects/${projectId}/fulltext`, {
       params: { keyword, page, size }
     })
   },
@@ -388,7 +388,7 @@ export const wikiSearchAPI = {
    */
   simpleSearch(projectId, keyword, limit = 20) {
     console.log('[wikiSearchAPI.simpleSearch] 简单搜索, 项目ID:', projectId, '关键词:', keyword)
-    return api.get(`/api/wiki/search/projects/${projectId}/simple`, {
+    return api.get(`/zhiyan/wiki/search/projects/${projectId}/simple`, {
       params: { keyword, limit }
     })
   },
@@ -405,7 +405,7 @@ export const wikiSearchAPI = {
    */
   advancedSearch(projectId, searchOptions, page = 0, size = 10) {
     console.log('[wikiSearchAPI.advancedSearch] 高级搜索, 项目ID:', projectId, '选项:', searchOptions)
-    return api.get(`/api/wiki/search/projects/${projectId}/advanced`, {
+    return api.get(`/zhiyan/wiki/search/projects/${projectId}/advanced`, {
       params: {
         includeWords: searchOptions.includeWords,
         excludeWords: searchOptions.excludeWords,
@@ -433,7 +433,7 @@ export const wikiImportExportAPI = {
    */
   exportPage(pageId, format = 'MARKDOWN', includeChildren = false, includeAttachments = false) {
     console.log('[wikiImportExportAPI.exportPage] 导出Wiki页面, ID:', pageId, '格式:', format)
-    return api.get(`/api/wiki/pages/${pageId}/export`, {
+    return api.get(`/zhiyan/wiki/pages/${pageId}/export`, {
       params: { format, includeChildren, includeAttachments },
       responseType: 'blob' // 重要：接收二进制文件
     })
@@ -448,7 +448,7 @@ export const wikiImportExportAPI = {
    */
   exportPages(projectId, pageIds, format = 'MARKDOWN') {
     console.log('[wikiImportExportAPI.exportPages] 批量导出, 项目ID:', projectId, '页面数:', pageIds.length)
-    return api.post(`/api/wiki/projects/${projectId}/export/batch`, pageIds, {
+    return api.post(`/zhiyan/wiki/projects/${projectId}/export/batch`, pageIds, {
       params: { format },
       responseType: 'blob'
     })
@@ -462,7 +462,7 @@ export const wikiImportExportAPI = {
    */
   exportDirectory(pageId, format = 'MARKDOWN') {
     console.log('[wikiImportExportAPI.exportDirectory] 导出目录树, 根页面ID:', pageId)
-    return api.get(`/api/wiki/pages/${pageId}/export/directory`, {
+    return api.get(`/zhiyan/wiki/pages/${pageId}/export/directory`, {
       params: { format },
       responseType: 'blob'
     })
@@ -484,7 +484,7 @@ export const wikiImportExportAPI = {
     formData.append('overwrite', overwrite)
     formData.append('isPublic', isPublic)
     
-    return api.post(`/api/wiki/projects/${projectId}/import`, formData)
+    return api.post(`/zhiyan/wiki/projects/${projectId}/import`, formData)
   },
 
   /**
@@ -505,7 +505,7 @@ export const wikiImportExportAPI = {
     formData.append('overwrite', overwrite)
     formData.append('isPublic', isPublic)
     
-    return api.post(`/api/wiki/projects/${projectId}/import/batch`, formData)
+    return api.post(`/zhiyan/wiki/projects/${projectId}/import/batch`, formData)
   }
 }
 

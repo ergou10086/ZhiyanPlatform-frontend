@@ -15,7 +15,7 @@ import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
-import TaskSubmissionReview from '../views/TaskSubmissionReview.vue'
+import MyActivity from '../views/MyActivity.vue'
 
 Vue.use(VueRouter)
 
@@ -91,9 +91,13 @@ const routes = [
     component: Profile
   },
   {
+    path: '/my-activity',
+    name: 'MyActivity',
+    component: MyActivity
+  },
+  {
     path: '/task-review',
-    name: 'TaskSubmissionReview',
-    component: TaskSubmissionReview
+    redirect: '/my-activity'
   },
 ]
 
@@ -160,7 +164,7 @@ router.beforeEach((to, from, next) => {
     '/project-knowledge',
     '/project-dashboard',
     '/project',
-    '/task-review'
+    '/my-activity'
   ]
   
   const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))
