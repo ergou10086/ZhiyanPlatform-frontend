@@ -176,14 +176,14 @@ export const authAPI = {
 
   // 根据姓名搜索用户
   searchUserByName(name) {
-    return api.get(`/zhiyan/users/name`, {
+    return api.get(`/zhiyan/auth/users/name`, {
       params: { name }
     })
   },
 
   // 根据用户ID获取用户信息
   getUserById(userId) {
-    return api.get(`/zhiyan/users/${userId}`)
+    return api.get(`/zhiyan/auth/users/${userId}`)
   },
 
   /**
@@ -194,7 +194,7 @@ export const authAPI = {
    */
   searchUsers(keyword, page = 0, size = 10) {
     console.log('[authAPI.searchUsers] 搜索用户, 关键词:', keyword, '页码:', page, '每页:', size)
-    return api.get(`/zhiyan/users/search`, {
+    return api.get(`/zhiyan/auth/users/search`, {
       params: { keyword, page, size }
     })
   },
@@ -236,7 +236,7 @@ export const authAPI = {
     }
 
     console.log('[authAPI.updateUserInfo] 转换后的请求体:', requestBody)
-    return api.put('/zhiyan/users/me', requestBody)
+    return api.put('/zhiyan/auth/users/me', requestBody)
   },
 
   /**
@@ -244,7 +244,7 @@ export const authAPI = {
    */
   getCurrentUserInfo() {
     console.log('[authAPI.getCurrentUserInfo] 获取当前用户信息')
-    return api.get('/zhiyan/users/me')
+    return api.get('/zhiyan/auth/users/me')
   }
 }
 

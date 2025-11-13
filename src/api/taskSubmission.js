@@ -118,7 +118,7 @@ api.interceptors.response.use(
  */
 export function submitTask(taskId, data) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/${taskId}/submit`,
+    url: `/zhiyan/projects/tasks/submissions/${taskId}/submit`,
     method: 'post',
     data
   });
@@ -132,7 +132,7 @@ export function submitTask(taskId, data) {
  */
 export function reviewSubmission(submissionId, data) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/${submissionId}/review`,
+    url: `/zhiyan/projects/tasks/submissions/${submissionId}/review`,
     method: 'put',
     data
   });
@@ -145,7 +145,7 @@ export function reviewSubmission(submissionId, data) {
  */
 export function revokeSubmission(submissionId) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/${submissionId}/revoke`,
+    url: `/zhiyan/projects/tasks/submissions/${submissionId}/revoke`,
     method: 'put'
   });
 }
@@ -157,7 +157,7 @@ export function revokeSubmission(submissionId) {
  */
 export function getSubmissionDetail(submissionId) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/${submissionId}`,
+    url: `/zhiyan/projects/tasks/submissions/${submissionId}`,
     method: 'get'
   });
 }
@@ -169,7 +169,7 @@ export function getSubmissionDetail(submissionId) {
  */
 export function getTaskSubmissions(taskId) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/task/${taskId}`,
+    url: `/zhiyan/projects/tasks/submissions/task/${taskId}`,
     method: 'get'
   });
 }
@@ -181,7 +181,7 @@ export function getTaskSubmissions(taskId) {
  */
 export function getLatestSubmission(taskId) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/task/${taskId}/latest`,
+    url: `/zhiyan/projects/tasks/submissions/task/${taskId}/latest`,
     method: 'get'
   });
 }
@@ -193,7 +193,7 @@ export function getLatestSubmission(taskId) {
  */
 export function getPendingSubmissions(params) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/pending',
+    url: '/zhiyan/projects/tasks/submissions/pending',
     method: 'get',
     params
   });
@@ -207,7 +207,7 @@ export function getPendingSubmissions(params) {
  */
 export function getProjectPendingSubmissions(projectId, params) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/project/${projectId}/pending`,
+    url: `/zhiyan/projects/tasks/submissions/project/${projectId}/pending`,
     method: 'get',
     params
   });
@@ -220,7 +220,7 @@ export function getProjectPendingSubmissions(projectId, params) {
  */
 export function getMySubmissions(params) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/my-submissions',
+    url: '/zhiyan/projects/tasks/submissions/my-submissions',
     method: 'get',
     params
   });
@@ -232,7 +232,7 @@ export function getMySubmissions(params) {
  */
 export function countPendingSubmissions() {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/count/pending',
+    url: '/zhiyan/projects/tasks/submissions/count/pending',
     method: 'get'
   });
 }
@@ -244,7 +244,7 @@ export function countPendingSubmissions() {
  */
 export function getMyPendingSubmissions(params) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/my-pending',
+    url: '/zhiyan/projects/tasks/submissions/my-pending',
     method: 'get',
     params
   });
@@ -257,7 +257,7 @@ export function getMyPendingSubmissions(params) {
  */
 export function getPendingSubmissionsForReview(params) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/pending-for-review',
+    url: '/zhiyan/projects/tasks/submissions/pending-for-review',
     method: 'get',
     params
   });
@@ -269,7 +269,7 @@ export function getPendingSubmissionsForReview(params) {
  */
 export function countMyPendingSubmissions() {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/count/my-pending',
+    url: '/zhiyan/projects/tasks/submissions/count/my-pending',
     method: 'get'
   });
 }
@@ -280,7 +280,7 @@ export function countMyPendingSubmissions() {
  */
 export function countPendingSubmissionsForReview() {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/count/pending-for-review',
+    url: '/zhiyan/projects/tasks/submissions/count/pending-for-review',
     method: 'get'
   });
 }
@@ -292,7 +292,7 @@ export function countPendingSubmissionsForReview() {
  */
 export function countProjectPendingSubmissions(projectId) {
   return api({
-    url: `/zhiyan/api/projects/tasks/submissions/count/project/${projectId}/pending`,
+    url: `/zhiyan/projects/tasks/submissions/count/project/${projectId}/pending`,
     method: 'get'
   });
 }
@@ -307,7 +307,7 @@ export function uploadSubmissionFile(file) {
   formData.append('file', file);
 
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/files/upload',
+    url: '/zhiyan/projects/tasks/submissions/files/upload',
     method: 'post',
     data: formData
     // ✅ 不需要手动设置 Content-Type，拦截器会自动处理
@@ -327,7 +327,7 @@ export function uploadSubmissionFiles(files) {
   }
 
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/files/upload-batch',
+    url: '/zhiyan/projects/tasks/submissions/files/upload-batch',
     method: 'post',
     data: formData
     // ✅ 不需要手动设置 Content-Type，拦截器会自动处理
@@ -341,7 +341,7 @@ export function uploadSubmissionFiles(files) {
  */
 export function deleteSubmissionFile(fileUrl) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/files',
+    url: '/zhiyan/projects/tasks/submissions/files',
     method: 'delete',
     params: { fileUrl }
   });
@@ -354,7 +354,7 @@ export function deleteSubmissionFile(fileUrl) {
  */
 export function deleteSubmissionFiles(fileUrls) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/files/batch',
+    url: '/zhiyan/projects/tasks/submissions/files/batch',
     method: 'delete',
     data: fileUrls
   });
@@ -367,7 +367,7 @@ export function deleteSubmissionFiles(fileUrls) {
  */
 export function getPresignedUrl(fileUrl) {
   return api({
-    url: '/zhiyan/api/projects/tasks/submissions/files/presigned-url',
+    url: '/zhiyan/projects/tasks/submissions/files/presigned-url',
     method: 'get',
     params: { fileUrl }
   });
@@ -381,5 +381,5 @@ export function getPresignedUrl(fileUrl) {
 export function getDownloadUrl(fileUrl) {
   const token = localStorage.getItem('access_token')
   const encodedUrl = encodeURIComponent(fileUrl)
-  return `/zhiyan/api/projects/tasks/submissions/files/download?fileUrl=${encodedUrl}&token=${token}`
+  return `/zhiyan/projects/tasks/submissions/files/download?fileUrl=${encodedUrl}&token=${token}`
 }

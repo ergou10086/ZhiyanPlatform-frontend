@@ -58,14 +58,14 @@
           <span class="nav-text">AI 实验分析助手</span>
         </div>
 
-        <div class="nav-item" :class="{ active: currentRoute === '/task-review' }" @click="navigateTo('/task-review')">
+        <div class="nav-item" :class="{ active: currentRoute === '/my-activity' }" @click="navigateTo('/my-activity')">
           <div class="nav-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M9 7H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
-          <span class="nav-text">任务审核</span>
+          <span class="nav-text">我的活动</span>
         </div>
       </nav>
     </div>
@@ -125,7 +125,7 @@ export default {
       }
       
       // 检查需要认证的页面
-      const authRequiredPages = ['/knowledge-base', '/ai-assistant', '/project-create']
+      const authRequiredPages = ['/knowledge-base', '/ai-assistant', '/project-create', '/my-activity']
       if (authRequiredPages.includes(route)) {
         const token = localStorage.getItem('access_token')
         const userInfo = localStorage.getItem('user_info')
