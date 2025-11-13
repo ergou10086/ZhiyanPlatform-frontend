@@ -40,7 +40,6 @@
                 <div class="card-header-row">
                   <h4 class="chart-title">总览</h4>
                   <div class="kpi-group">
-                    <span class="kpi-badge kpi-pending">待处理 {{ taskStats.pending || 0 }}</span>
                     <span class="kpi-badge kpi-progress">进行中 {{ taskStats.inProgress || 0 }}</span>
                     <span class="kpi-badge kpi-done">已完成 {{ taskStats.completed || 0 }}</span>
                   </div>
@@ -62,21 +61,17 @@
                     </div>
                   </div>
                   <div class="overview-right">
-                    <div class="mini-gauge">
-                      <div class="mini-title">待处理</div>
-                      <div ref="gaugePending" class="chart-box tiny"></div>
-                    </div>
-                    <div class="mini-gauge">
+                    <div class="mini-gauge" @click="openTaskListModal('inProgress')">
                       <div class="mini-title">进行中</div>
-                      <div ref="gaugeInProgress" class="chart-box tiny"></div>
+                      <div ref="gaugeInProgress" class="chart-box tiny clickable-chart"></div>
                     </div>
-                    <div class="mini-gauge">
+                    <div class="mini-gauge" @click="openTaskListModal('completed')">
                       <div class="mini-title">已完成</div>
-                      <div ref="gaugeCompleted" class="chart-box tiny"></div>
+                      <div ref="gaugeCompleted" class="chart-box tiny clickable-chart"></div>
                     </div>
                     <div class="mini-bar">
                       <div class="mini-title">优先级分布</div>
-                      <div ref="barPriority" class="chart-box small"></div>
+                      <div ref="barPriority" class="chart-box small clickable-chart"></div>
                     </div>
                   </div>
                 </div>
@@ -84,9 +79,9 @@
 
               <div class="card-trend">
                 <h4 class="chart-title">过去七天完成趋势</h4>
-                <div ref="lineTrend" class="chart-box large"></div>
+                <div ref="lineTrend" class="chart-box large clickable-chart"></div>
                 <h4 class="chart-title">过去七天逾期任务</h4>
-                <div ref="barOverdue" class="chart-box small"></div>
+                <div ref="barOverdue" class="chart-box small clickable-chart"></div>
               </div>
             </div>
 
@@ -331,6 +326,62 @@
       @close="closeReviewModal"
       @success="handleReviewSuccess"
     />
+
+    <!-- 任务列表弹窗 -->
+    <div v-if="taskListModalVisible" class="task-list-modal-overlay" @click="closeTaskListModal">
+      <div class="task-list-modal" @click.stop>
+        <div class="task-list-modal-header">
+          <h3 class="task-list-modal-title">{{ taskListModalTitle }}</h3>
+          <button class="task-list-modal-close" @click="closeTaskListModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="task-list-modal-content" @wheel="handleModalScroll" @touchmove="handleModalScroll">
+          <div v-if="taskListModalTasks.length === 0" class="task-list-empty">
+            <p>暂无任务</p>
+          </div>
+          <div v-else class="task-list-items">
+            <div 
+              v-for="(task, index) in taskListModalTasks" 
+              :key="task.id || index"
+              :class="['task-list-item', 'work-item', `${task.priority || 'medium'}-priority`]"
+              @click="goToTaskProject(task)"
+              style="cursor: pointer;"
+            >
+              <div class="priority-bar"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <h3 class="item-title">{{ task.title }}</h3>
+                  <!-- 临近截止警示图标 -->
+                  <div v-if="isOverdue(task.dueDate)" class="deadline-alert overdue" title="任务已逾期">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="alert-text">已逾期</span>
+                  </div>
+                  <div v-else-if="isNearDeadline(task.dueDate)" class="deadline-alert near" title="即将到期">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span class="alert-text">即将到期</span>
+                  </div>
+                </div>
+                <p class="item-description">{{ task.description || '暂无描述' }}</p>
+                <div class="item-meta">
+                  <span class="priority">{{ getPriorityText(task.priority) }}</span>
+                  <span class="deadline">{{ formatTaskDate(task.dueDate) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -381,10 +432,25 @@ export default {
       taskStats: {
         pending: 0,
         inProgress: 0,
-        completed: 0
+        completed: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        trendData: [], // 过去7天每天完成的任务数
+        overdueData: [] // 过去7天每天逾期的任务数
       },
       isLoadingStats: false,
       upcomingMilestones: [],
+      // 用于tooltip显示的任务列表
+      inProgressTasks: [], // 进行中的任务列表
+      completedTasks: [], // 已完成的任务列表
+      highPriorityTasks: [], // 高优先级任务列表
+      mediumPriorityTasks: [], // 中优先级任务列表
+      lowPriorityTasks: [], // 低优先级任务列表
+      trendCompletedTasks: [], // 过去7天完成的任务列表（所有日期合并）
+      trendOverdueTasks: [], // 过去7天逾期的任务列表（所有日期合并）
+      trendCompletedTasksByDay: [], // 过去7天每天完成的任务列表（按日期索引分组，7个数组）
+      trendOverdueTasksByDay: [], // 过去7天每天逾期的任务列表（按日期索引分组，7个数组）
       
       // 操作日志
       activityLogs: [],
@@ -398,13 +464,18 @@ export default {
       
       // 审核弹窗
       reviewModalVisible: false,
-      selectedSubmission: null
+      selectedSubmission: null,
+      
+      // 任务列表弹窗
+      taskListModalVisible: false,
+      taskListModalType: '', // 'inProgress' 或 'completed'
+      taskListModalTitle: '',
+      taskListModalTasks: []
     }
   },
   computed: {
     maxTaskCount() {
       return Math.max(
-        this.taskStats.pending || 0,
         this.taskStats.inProgress || 0,
         this.taskStats.completed || 0,
         1
@@ -412,14 +483,12 @@ export default {
     },
     statusBreakdown() {
       const total =
-        (this.taskStats.pending || 0) +
         (this.taskStats.inProgress || 0) +
         (this.taskStats.completed || 0)
-      const palette = ['#8AB4F8', '#7DD3A8', '#FBBF83']
+      const palette = ['#7DD3A8', '#FBBF83']
       const items = [
-        { key: 'pending', label: '待处理', value: this.taskStats.pending || 0, color: palette[0] },
-        { key: 'inProgress', label: '进行中', value: this.taskStats.inProgress || 0, color: palette[1] },
-        { key: 'completed', label: '已完成', value: this.taskStats.completed || 0, color: palette[2] }
+        { key: 'inProgress', label: '进行中', value: this.taskStats.inProgress || 0, color: palette[0] },
+        { key: 'completed', label: '已完成', value: this.taskStats.completed || 0, color: palette[1] }
       ]
       return items.map((item) => ({
         ...item,
@@ -428,10 +497,29 @@ export default {
     }
   },
   mounted() {
-    this.applySampleTaskStats()
+    // 不再预先设置示例数据，直接加载真实数据
     this.initPage()
+    
+    // 动态添加样式，确保ECharts tooltip显示在最上层
+    this.ensureTooltipZIndex()
   },
   methods: {
+    ensureTooltipZIndex() {
+      // 创建一个style标签，确保ECharts tooltip的z-index足够高
+      if (!document.getElementById('echarts-tooltip-zindex-style')) {
+        const style = document.createElement('style')
+        style.id = 'echarts-tooltip-zindex-style'
+        style.textContent = `
+          /* 确保ECharts tooltip显示在最上层 */
+          div[class*="echarts-tooltip"],
+          div[id*="echarts"][style*="pointer-events: none"] {
+            z-index: 10000 !important;
+          }
+        `
+        document.head.appendChild(style)
+      }
+    },
+
     async applySampleTaskStats() {
       const sample = this.getSampleStats()
       this.taskStats.pending = sample.pending
@@ -793,24 +881,97 @@ export default {
       const echartsPromise = this.loadECharts().catch(() => null)
       
       try {
-        // 并行加载数据，不等待ECharts
+        // 并行加载数据，获取更多任务以便计算趋势（获取100个任务）
         const [statsResponse, myTasksResponse] = await Promise.all([
           taskAPI.getUserTaskStatistics().catch(() => ({ code: 0 })),
-          taskAPI.getMyAssignedTasks(0, 50).catch(() => ({ code: 0 }))
+          taskAPI.getMyAssignedTasks(0, 100).catch(() => ({ code: 0 }))
         ])
         
         if (statsResponse.code === 200) {
           const stats = statsResponse.data || {}
-          this.taskStats = {
-            pending: stats.pendingCount || 0,
-            inProgress: stats.inProgressCount || 0,
-            completed: stats.completedCount || 0
-          }
+          console.log('[MyActivity] API返回的统计数据:', stats)
+          
+          // 尝试多种可能的字段名
+          this.taskStats.pending = stats.pendingCount || stats.pending || stats.todoCount || stats.todo || 0
+          this.taskStats.inProgress = stats.inProgressCount || stats.inProgress || stats.progressCount || stats.progress || 0
+          this.taskStats.completed = stats.completedCount || stats.completed || stats.doneCount || stats.done || 0
+          
+          console.log('[MyActivity] 解析后的统计数据:', {
+            pending: this.taskStats.pending,
+            inProgress: this.taskStats.inProgress,
+            completed: this.taskStats.completed
+          })
+        } else {
+          console.warn('[MyActivity] 统计数据API返回非200状态:', statsResponse.code, statsResponse)
         }
+        
+        let allTasks = []
+        // 初始化任务列表
+        this.inProgressTasks = []
+        this.completedTasks = []
         
         if (myTasksResponse.code === 200) {
           const pageData = myTasksResponse.data
-          const allTasks = (pageData && (pageData.content || pageData.list || pageData.records)) || []
+          console.log('[MyActivity] 任务列表API返回的数据结构:', pageData)
+          allTasks = (pageData && (pageData.content || pageData.list || pageData.records)) || []
+          console.log('[MyActivity] 解析后的任务列表数量:', allTasks.length)
+
+          // 如果API返回的统计数据为空，从任务列表中计算
+          if ((this.taskStats.pending === 0 && this.taskStats.inProgress === 0 && this.taskStats.completed === 0) && allTasks.length > 0) {
+            console.log('[MyActivity] API统计数据为空，从任务列表计算统计数据')
+            const statusCounts = { pending: 0, inProgress: 0, completed: 0 }
+            allTasks.forEach(task => {
+              const status = String(task.status || '').toUpperCase()
+              if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+                statusCounts.completed++
+              } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
+                statusCounts.inProgress++
+              } else {
+                statusCounts.pending++
+              }
+            })
+            this.taskStats.pending = statusCounts.pending
+            this.taskStats.inProgress = statusCounts.inProgress
+            this.taskStats.completed = statusCounts.completed
+            console.log('[MyActivity] 从任务列表计算的统计数据:', statusCounts)
+          }
+
+          // 分类任务到不同状态列表（保存完整任务对象）
+          this.inProgressTasks = []
+          this.completedTasks = []
+          this.highPriorityTasks = []
+          this.mediumPriorityTasks = []
+          this.lowPriorityTasks = []
+          
+          allTasks.forEach(task => {
+            const status = String(task.status || '').toUpperCase()
+            const taskObj = {
+              id: task.id || task.taskId,
+              title: task.title || task.taskTitle || '未命名任务',
+              description: task.description || task.taskDescription || '',
+              priority: this.mapTaskPriority(task.priority),
+              dueDate: task.dueDate || task.due_date || task.taskDueDate,
+              status: task.status || 'TODO',
+              projectId: task.projectId || task.project_id
+            }
+            
+            // 按状态分类
+            if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+              this.completedTasks.push(taskObj)
+            } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
+              this.inProgressTasks.push(taskObj)
+            }
+            
+            // 按优先级分类
+            const priority = taskObj.priority
+            if (priority === 'high') {
+              this.highPriorityTasks.push(taskObj)
+            } else if (priority === 'medium') {
+              this.mediumPriorityTasks.push(taskObj)
+            } else if (priority === 'low') {
+              this.lowPriorityTasks.push(taskObj)
+            }
+          })
 
           // 计算优先级分布（与首页一致的映射）
           const toPriority = (p) => {
@@ -834,18 +995,29 @@ export default {
             .slice(0, 5)
         }
 
-        // 如果统计数据依旧为空，填充示例统计与里程碑
-        const totals = (this.taskStats.pending || 0) + (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
-        if (totals === 0) {
-          const sample = this.getSampleStats()
-          this.taskStats.pending = sample.pending
-          this.taskStats.inProgress = sample.inProgress
-          this.taskStats.completed = sample.completed
-          this.taskStats.high = sample.high
-          this.taskStats.medium = sample.medium
-          this.taskStats.low = sample.low
-          this.upcomingMilestones = sample.milestones
+        // 计算过去7天的完成趋势和逾期任务（使用真实数据）
+        this.calculateTrendData(allTasks)
+
+        // 确保 trendData 和 overdueData 已初始化（如果没有数据则为空数组）
+        if (!this.taskStats.trendData || this.taskStats.trendData.length === 0) {
+          this.taskStats.trendData = Array(7).fill(0)
         }
+        if (!this.taskStats.overdueData || this.taskStats.overdueData.length === 0) {
+          this.taskStats.overdueData = Array(7).fill(0)
+        }
+
+        // 调试日志：输出加载的数据
+        console.log('[MyActivity] 任务统计数据:', {
+          pending: this.taskStats.pending,
+          inProgress: this.taskStats.inProgress,
+          completed: this.taskStats.completed,
+          high: this.taskStats.high,
+          medium: this.taskStats.medium,
+          low: this.taskStats.low,
+          trendData: this.taskStats.trendData,
+          overdueData: this.taskStats.overdueData,
+          upcomingMilestones: this.upcomingMilestones.length
+        })
 
         // 等待ECharts加载完成后初始化图表
         const echarts = await echartsPromise
@@ -859,15 +1031,13 @@ export default {
         }
       } catch (error) {
         console.error('加载任务统计失败:', error)
-        // 异常时填充示例统计
-        const sample = this.getSampleStats()
-        this.taskStats.pending = sample.pending
-        this.taskStats.inProgress = sample.inProgress
-        this.taskStats.completed = sample.completed
-        this.taskStats.high = sample.high
-        this.taskStats.medium = sample.medium
-        this.taskStats.low = sample.low
-        this.upcomingMilestones = sample.milestones
+        // 异常时确保数据字段已初始化（显示0而不是示例数据）
+        if (!this.taskStats.trendData || this.taskStats.trendData.length === 0) {
+          this.taskStats.trendData = Array(7).fill(0)
+        }
+        if (!this.taskStats.overdueData || this.taskStats.overdueData.length === 0) {
+          this.taskStats.overdueData = Array(7).fill(0)
+        }
         
         const echarts = await echartsPromise
         if (echarts) {
@@ -894,9 +1064,125 @@ export default {
       ]
     },
 
+    calculateTrendData(allTasks) {
+      console.log('[MyActivity] 计算趋势数据，任务数量:', allTasks.length)
+      
+      // 计算过去7天每天完成的任务数
+      const now = new Date()
+      now.setHours(0, 0, 0, 0)
+      
+      // 初始化过去7天的数据数组
+      const trendData = Array(7).fill(0)
+      const overdueData = Array(7).fill(0)
+      
+      // 初始化按日期分组的任务列表
+      const trendCompletedTasksByDay = Array(7).fill(null).map(() => [])
+      const trendOverdueTasksByDay = Array(7).fill(null).map(() => [])
+      
+      // 生成过去7天的日期数组（从6天前到今天）
+      const days = Array.from({ length: 7 }).map((_, i) => {
+        const d = new Date(now.getTime() - (6 - i) * 24 * 60 * 60 * 1000)
+        d.setHours(0, 0, 0, 0)
+        return d
+      })
+      
+      console.log('[MyActivity] 过去7天日期范围:', days.map(d => d.toLocaleDateString('zh-CN')))
+      
+      let completedCount = 0
+      let overdueCount = 0
+      
+      allTasks.forEach(task => {
+        const status = String(task.status || '').toUpperCase()
+        const isCompleted = status === 'DONE' || status.includes('DONE') || status.includes('完成')
+        
+        const taskObj = {
+          id: task.id || task.taskId,
+          title: task.title || task.taskTitle || '未命名任务',
+          description: task.description || task.taskDescription || '',
+          priority: this.mapTaskPriority(task.priority),
+          dueDate: task.dueDate || task.due_date || task.taskDueDate,
+          status: task.status || 'TODO',
+          projectId: task.projectId || task.project_id
+        }
+        
+        // 计算完成趋势：如果任务已完成，检查updatedAt是否在过去7天内
+        if (isCompleted) {
+          completedCount++
+          const updatedAt = task.updatedAt || task.updated_at
+          if (updatedAt) {
+            const updateDate = new Date(updatedAt)
+            updateDate.setHours(0, 0, 0, 0)
+            
+            // 找到这个日期在days数组中的索引
+            const dayIndex = days.findIndex(d => {
+              return d.getTime() === updateDate.getTime()
+            })
+            
+            if (dayIndex >= 0) {
+              trendData[dayIndex]++
+              trendCompletedTasksByDay[dayIndex].push(taskObj)
+            }
+          } else {
+            console.log('[MyActivity] 已完成任务但无更新时间:', task.id, task.title)
+          }
+        }
+        
+        // 计算逾期任务：如果任务未完成且有截止日期，检查是否在过去7天内逾期
+        if (!isCompleted && (task.dueDate || task.due_date)) {
+          const dueDate = new Date(task.dueDate || task.due_date)
+          dueDate.setHours(0, 0, 0, 0)
+          
+          // 检查是否逾期（截止日期在今天之前）
+          if (dueDate < now) {
+            overdueCount++
+            // 找到这个日期在days数组中的索引（逾期日期）
+            const dayIndex = days.findIndex(d => {
+              return d.getTime() === dueDate.getTime()
+            })
+            
+            // 如果逾期日期在过去7天内，记录在对应的日期
+            if (dayIndex >= 0) {
+              overdueData[dayIndex]++
+              trendOverdueTasksByDay[dayIndex].push(taskObj)
+            } else if (dueDate < days[0]) {
+              // 如果逾期日期在7天之前，记录在最早的那一天
+              overdueData[0]++
+              trendOverdueTasksByDay[0].push(taskObj)
+            }
+          }
+        }
+      })
+      
+      // 将所有日期的任务合并到一个数组中（用于显示所有任务）
+      this.trendCompletedTasks = trendCompletedTasksByDay.flat()
+      this.trendOverdueTasks = trendOverdueTasksByDay.flat()
+      
+      // 保存按日期分组的任务列表（用于按日期显示）
+      this.trendCompletedTasksByDay = trendCompletedTasksByDay
+      this.trendOverdueTasksByDay = trendOverdueTasksByDay
+      
+      console.log('[MyActivity] 趋势数据计算结果:', {
+        completedTasks: completedCount,
+        overdueTasks: overdueCount,
+        trendData,
+        overdueData,
+        trendCompletedTasksCount: this.trendCompletedTasks.length,
+        trendOverdueTasksCount: this.trendOverdueTasks.length,
+        trendCompletedTasksByDayCount: this.trendCompletedTasksByDay.map(day => day.length),
+        trendOverdueTasksByDayCount: this.trendOverdueTasksByDay.map(day => day.length)
+      })
+      
+      this.taskStats.trendData = trendData
+      this.taskStats.overdueData = overdueData
+    },
+
     getSampleStats() {
       const today = new Date()
       const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`
+      // 生成示例趋势数据
+      const trendData = Array.from({ length: 7 }).map(() => Math.max(0, Math.floor(Math.random() * 5)))
+      const overdueData = Array.from({ length: 7 }).map(() => Math.max(0, Math.round(Math.random() * 3)))
+      
       return {
         pending: 6,
         inProgress: 11,
@@ -904,6 +1190,8 @@ export default {
         high: 5,
         medium: 12,
         low: 9,
+        trendData,
+        overdueData,
         milestones: [
           { id: 'm1', title: '提交项目周报', dueDate: new Date(today.getTime() + 1 * 86400000) },
           { id: 'm2', title: '评审数据标注方案', dueDate: new Date(today.getTime() + 2 * 86400000) },
@@ -923,9 +1211,9 @@ export default {
         return chart
       }
 
-      const total = (this.taskStats.pending || 0) + (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
+      const total = (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
       // 更柔和的配色（总览不刺眼）
-      const palette = ['#8AB4F8', '#7DD3A8', '#FBBF83', '#C7B9FF', '#F59FB0', '#5FD4E6']
+      const palette = ['#7DD3A8', '#FBBF83', '#C7B9FF', '#F59FB0', '#5FD4E6']
 
       // 仪表盘
       const gaugeBase = {
@@ -954,39 +1242,35 @@ export default {
         animationEasing: 'cubicOut'
       }
       const gaugeMax = Math.max(1, total)
-      this._charts.gaugePending = create('gaugePending', {
+      
+      this._charts.gaugeInProgress = create('gaugeInProgress', {
+        tooltip: {
+          show: false // 禁用tooltip
+        },
         series: [{ 
           ...gaugeBase, 
           max: gaugeMax,
           progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[0] } },
-          data: [{ value: this.taskStats.pending || 0 }] 
-        }]
-      })
-      this._charts.gaugeInProgress = create('gaugeInProgress', {
-        series: [{ 
-          ...gaugeBase, 
-          max: gaugeMax,
-          progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[1] } },
           data: [{ value: this.taskStats.inProgress || 0 }] 
         }]
       })
       this._charts.gaugeCompleted = create('gaugeCompleted', {
+        tooltip: {
+          show: false // 禁用tooltip
+        },
         series: [{ 
           ...gaugeBase, 
           max: gaugeMax,
-          progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[2] } },
+          progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[1] } },
           data: [{ value: this.taskStats.completed || 0 }] 
         }]
       })
 
       // 环形图 - 计算百分比并显示
-      const totalForPie = (this.taskStats.pending || 0) + (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
-      const pendingPercent = totalForPie > 0 ? Math.round((this.taskStats.pending || 0) / totalForPie * 100) : 0
-      const inProgressPercent = totalForPie > 0 ? Math.round((this.taskStats.inProgress || 0) / totalForPie * 100) : 0
-      const completedPercent = totalForPie > 0 ? Math.round((this.taskStats.completed || 0) / totalForPie * 100) : 0
+      const totalForPie = (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
       
       this._charts.pieStatus = create('pieStatus', {
-        color: [palette[0], palette[1], palette[2]],
+        color: [palette[0], palette[1]],
         tooltip: { 
           trigger: 'item',
           formatter: '{b}: {c} ({d}%)'
@@ -1026,23 +1310,35 @@ export default {
           animationEasing: 'elasticOut',
           animationDelay: (idx) => idx * 50,
           data: [
-            { value: this.taskStats.pending || 0, name: '待处理' },
             { value: this.taskStats.inProgress || 0, name: '进行中' },
             { value: this.taskStats.completed || 0, name: '已完成' }
           ]
         }]
       })
 
-      // 优先级分布（示例：无真实 API 时占位）
+      // 优先级分布
       const priorityData = [
         { name: '高', value: this.taskStats.high || 0 },
         { name: '中', value: this.taskStats.medium || 0 },
         { name: '低', value: this.taskStats.low || 0 },
       ]
-      this._charts.barPriority = create('barPriority', {
+      // 计算优先级数据的最大值，用于设置Y轴最大值
+      const maxPriorityValue = Math.max(...priorityData.map(d => d.value), 1)
+      // 向上取整到最近的整数，如果最大值小于5则设为5，使图表更美观
+      const priorityYAxisMax = Math.max(Math.ceil(maxPriorityValue), 5)
+      
+      const barPriorityChart = create('barPriority', {
+        tooltip: {
+          show: false // 禁用tooltip，使用点击弹窗
+        },
         grid: { left: 40, right: 10, top: 10, bottom: 30 },
         xAxis: { type: 'category', data: priorityData.map(d => d.name) },
-        yAxis: { type: 'value' },
+        yAxis: { 
+          type: 'value',
+          min: 0,
+          max: priorityYAxisMax,
+          minInterval: 1
+        },
         series: [{ 
           type: 'bar', 
           data: priorityData.map(d => d.value), 
@@ -1057,24 +1353,43 @@ export default {
           animationEasing: 'cubicOut'
         }]
       })
+      
+      // 为优先级分布柱状图添加点击事件
+      if (barPriorityChart) {
+        barPriorityChart.on('click', (params) => {
+          // params.dataIndex 对应柱子的索引：0=高, 1=中, 2=低
+          // 只有当点击的是柱子本身时才触发（不是坐标轴或其他区域）
+          if (params.componentType === 'series') {
+            const priorityMap = ['priority-high', 'priority-medium', 'priority-low']
+            if (params.dataIndex >= 0 && params.dataIndex < priorityMap.length) {
+              this.openTaskListModal(priorityMap[params.dataIndex])
+            }
+          }
+        })
+      }
+      
+      this._charts.barPriority = barPriorityChart
 
-      // 近7天趋势（示例：根据 completed 推算）
+      // 近7天趋势（使用真实数据）
       const days = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000)
         return `${d.getMonth() + 1}/${d.getDate()}`
       })
-      const trendData = Array.from({ length: 7 }).map(() => Math.max(0, Math.floor((this.taskStats.completed || 1) / 3 + Math.random() * 3)))
-      // 近7天逾期任务（示例：根据完成趋势衍生小值，确保为整数）
-      const overdueData = trendData.map(v => Math.max(0, Math.round(Math.max(0, v / 2 - 1 + Math.random() * 2))))
+      // 使用真实数据，如果没有则使用0
+      const trendData = this.taskStats.trendData || Array(7).fill(0)
+      const overdueData = this.taskStats.overdueData || Array(7).fill(0)
       
       // 计算两个数据集的最大值，用于统一Y轴
       const maxTrendValue = Math.max(...trendData, 1)
       const maxOverdueValue = Math.max(...overdueData, 1)
       const maxYAxisValue = Math.max(maxTrendValue, maxOverdueValue, 1)
       // 向上取整到最近的5的倍数，使图表更美观
-      const yAxisMax = Math.ceil(maxYAxisValue / 5) * 5
+      const yAxisMax = Math.ceil(maxYAxisValue / 5) * 5 || 5
       
-      this._charts.lineTrend = create('lineTrend', {
+      const lineTrendChart = create('lineTrend', {
+        tooltip: {
+          show: false // 禁用tooltip，使用点击弹窗
+        },
         grid: { left: 40, right: 10, top: 10, bottom: 20 },
         xAxis: { type: 'category', data: days },
         yAxis: { 
@@ -1101,8 +1416,45 @@ export default {
           animationEasing: 'cubicOut'
         }]
       })
+      
+      // 为完成趋势图添加点击事件
+      if (lineTrendChart) {
+        lineTrendChart.on('click', (params) => {
+          console.log('[MyActivity] 完成趋势图点击事件:', params)
+          // 阻止事件冒泡
+          if (params.event && params.event.event) {
+            params.event.event.stopPropagation()
+          }
+          
+          // 如果点击的是数据点或线条，显示对应日期的任务
+          if (params.componentType === 'series') {
+            // 尝试多种方式获取 dataIndex
+            let dayIndex = params.dataIndex
+            if (dayIndex === undefined && params.name !== undefined) {
+              // 从 xAxis 的 data 中找到对应的索引
+              const xAxisData = days
+              dayIndex = xAxisData.indexOf(params.name)
+            }
+            
+            console.log('[MyActivity] 解析后的 dayIndex:', dayIndex)
+            if (dayIndex !== null && dayIndex !== undefined && dayIndex >= 0 && dayIndex < 7) {
+              console.log('[MyActivity] 显示第', dayIndex, '天的完成任务')
+              this.openTaskListModal('trend-completed', dayIndex)
+              return
+            }
+          }
+          // 点击其他区域显示所有任务
+          console.log('[MyActivity] 点击其他区域，显示所有完成任务')
+          this.openTaskListModal('trend-completed')
+        })
+      }
+      
+      this._charts.lineTrend = lineTrendChart
 
-      this._charts.barOverdue = create('barOverdue', {
+      const barOverdueChart = create('barOverdue', {
+        tooltip: {
+          show: false // 禁用tooltip，使用点击弹窗
+        },
         grid: { left: 40, right: 10, top: 10, bottom: 20 },
         xAxis: { type: 'category', data: days },
         yAxis: { 
@@ -1125,6 +1477,40 @@ export default {
           animationEasing: 'cubicOut'
         }]
       })
+      
+      // 为逾期任务图添加点击事件
+      if (barOverdueChart) {
+        barOverdueChart.on('click', (params) => {
+          console.log('[MyActivity] 逾期任务图点击事件:', params)
+          // 阻止事件冒泡
+          if (params.event && params.event.event) {
+            params.event.event.stopPropagation()
+          }
+          
+          // 如果点击的是柱子，显示对应日期的任务
+          if (params.componentType === 'series') {
+            // 尝试多种方式获取 dataIndex
+            let dayIndex = params.dataIndex
+            if (dayIndex === undefined && params.name !== undefined) {
+              // 从 xAxis 的 data 中找到对应的索引
+              const xAxisData = days
+              dayIndex = xAxisData.indexOf(params.name)
+            }
+            
+            console.log('[MyActivity] 解析后的 dayIndex:', dayIndex)
+            if (dayIndex !== null && dayIndex !== undefined && dayIndex >= 0 && dayIndex < 7) {
+              console.log('[MyActivity] 显示第', dayIndex, '天的逾期任务')
+              this.openTaskListModal('trend-overdue', dayIndex)
+              return
+            }
+          }
+          // 点击其他区域显示所有任务
+          console.log('[MyActivity] 点击其他区域，显示所有逾期任务')
+          this.openTaskListModal('trend-overdue')
+        })
+      }
+      
+      this._charts.barOverdue = barOverdueChart
 
       window.addEventListener('resize', this.resizeCharts)
       // 再次触发一次resize，解决首屏偶现空白
@@ -1133,39 +1519,65 @@ export default {
 
     updateCharts(echarts) {
       if (!this._charts) return
-      const { gaugePending, gaugeInProgress, gaugeCompleted, pieStatus, barPriority, lineTrend, barOverdue } = this._charts
-      if (gaugePending) gaugePending.setOption({ series: [{ data: [{ value: this.taskStats.pending || 0 }] }] })
-      if (gaugeInProgress) gaugeInProgress.setOption({ series: [{ data: [{ value: this.taskStats.inProgress || 0 }] }] })
-      if (gaugeCompleted) gaugeCompleted.setOption({ series: [{ data: [{ value: this.taskStats.completed || 0 }] }] })
+      const { gaugeInProgress, gaugeCompleted, pieStatus, barPriority, lineTrend, barOverdue } = this._charts
+      const total = (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
+      const gaugeMax = Math.max(1, total)
+      
+      if (gaugeInProgress) gaugeInProgress.setOption({ 
+        tooltip: { show: false },
+        series: [{ 
+          max: gaugeMax,
+          data: [{ value: this.taskStats.inProgress || 0 }] 
+        }] 
+      })
+      if (gaugeCompleted) gaugeCompleted.setOption({ 
+        tooltip: { show: false },
+        series: [{ 
+          max: gaugeMax,
+          data: [{ value: this.taskStats.completed || 0 }] 
+        }] 
+      })
       if (pieStatus) pieStatus.setOption({
         series: [{ 
           label: {
-            show: (this.taskStats.pending || 0) + (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0) > 0
+            show: total > 0
           },
           data: [
-            { value: this.taskStats.pending || 0, name: '待处理' },
             { value: this.taskStats.inProgress || 0, name: '进行中' },
             { value: this.taskStats.completed || 0, name: '已完成' }
           ]
         }]
       })
-      if (barPriority) barPriority.setOption({
-        series: [{ data: [this.taskStats.high || 0, this.taskStats.medium || 0, this.taskStats.low || 0] }]
-      })
-      // 同步刷新近7天趋势和逾期（示例推演）
+      if (barPriority) {
+        // 计算优先级数据的最大值，用于更新Y轴最大值
+        const priorityValues = [this.taskStats.high || 0, this.taskStats.medium || 0, this.taskStats.low || 0]
+        const maxPriorityValue = Math.max(...priorityValues, 1)
+        const priorityYAxisMax = Math.max(Math.ceil(maxPriorityValue), 5)
+        
+        barPriority.setOption({
+          yAxis: {
+            min: 0,
+            max: priorityYAxisMax,
+            minInterval: 1
+          },
+          series: [{ data: priorityValues }]
+        })
+      }
+      // 同步刷新近7天趋势和逾期（使用真实数据）
       const days = Array.from({ length: 7 }).map((_, i) => {
         const d = new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000)
         return `${d.getMonth() + 1}/${d.getDate()}`
       })
-      const trendData = Array.from({ length: 7 }).map(() => Math.max(0, Math.floor((this.taskStats.completed || 1) / 3 + Math.random() * 3)))
-      const overdueData = trendData.map(v => Math.max(0, Math.round(Math.max(0, v / 2 - 1 + Math.random() * 2))))
+      // 使用真实数据，如果没有则使用0
+      const trendData = this.taskStats.trendData || Array(7).fill(0)
+      const overdueData = this.taskStats.overdueData || Array(7).fill(0)
       
       // 计算两个数据集的最大值，用于统一Y轴
       const maxTrendValue = Math.max(...trendData, 1)
       const maxOverdueValue = Math.max(...overdueData, 1)
       const maxYAxisValue = Math.max(maxTrendValue, maxOverdueValue, 1)
       // 向上取整到最近的5的倍数，使图表更美观
-      const yAxisMax = Math.ceil(maxYAxisValue / 5) * 5
+      const yAxisMax = Math.ceil(maxYAxisValue / 5) * 5 || 5
       
       if (lineTrend) lineTrend.setOption({ 
         xAxis: { data: days }, 
@@ -1345,6 +1757,12 @@ export default {
       })
     },
     
+    formatTaskDate(dateStr) {
+      if (!dateStr) return '无截止日期'
+      const date = new Date(dateStr)
+      return `截止日期：${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    },
+    
     getReviewStatusText(task) {
       // 获取审核状态文本
       const status = task.reviewStatus || task.status || task.submissionStatus
@@ -1355,7 +1773,152 @@ export default {
         'REVIEWING': '审核中'
       }
       return statusMap[status] || '待审核'
-    }
+    },
+    
+    getPriorityText(priority) {
+      const textMap = {
+        'high': '高优先级',
+        'medium': '中优先级',
+        'low': '低优先级'
+      }
+      return textMap[priority] || '中优先级'
+    },
+    
+    isNearDeadline(dueDate) {
+      // 判断任务是否临近截止（3天内）
+      if (!dueDate) return false
+      
+      const now = new Date()
+      const deadline = new Date(dueDate)
+      const diffTime = deadline - now
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      // 0-3天内截止或已逾期返回true
+      return diffDays >= 0 && diffDays <= 3
+    },
+    
+    isOverdue(dueDate) {
+      // 判断任务是否已逾期
+      if (!dueDate) return false
+      
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const deadline = new Date(dueDate)
+      deadline.setHours(0, 0, 0, 0)
+      
+      return deadline < today
+    },
+
+    openTaskListModal(type, dayIndex = null) {
+      this.taskListModalType = type
+      
+      // 生成日期标签用于显示
+      const getDayLabel = (index) => {
+        if (index === null || index === undefined) return ''
+        const d = new Date(Date.now() - (6 - index) * 24 * 60 * 60 * 1000)
+        return `${d.getMonth() + 1}/${d.getDate()}`
+      }
+      
+      if (type === 'inProgress') {
+        this.taskListModalTitle = `进行中任务 (${this.taskStats.inProgress || 0})`
+        this.taskListModalTasks = this.inProgressTasks || []
+      } else if (type === 'completed') {
+        this.taskListModalTitle = `已完成任务 (${this.taskStats.completed || 0})`
+        this.taskListModalTasks = this.completedTasks || []
+      } else if (type === 'priority') {
+        // 优先级分布 - 显示所有优先级的任务
+        const allPriorityTasks = [
+          ...(this.highPriorityTasks || []),
+          ...(this.mediumPriorityTasks || []),
+          ...(this.lowPriorityTasks || [])
+        ]
+        this.taskListModalTitle = `优先级分布任务 (${allPriorityTasks.length})`
+        this.taskListModalTasks = allPriorityTasks
+      } else if (type === 'priority-high') {
+        this.taskListModalTitle = `高优先级任务 (${this.taskStats.high || 0})`
+        this.taskListModalTasks = this.highPriorityTasks || []
+      } else if (type === 'priority-medium') {
+        this.taskListModalTitle = `中优先级任务 (${this.taskStats.medium || 0})`
+        this.taskListModalTasks = this.mediumPriorityTasks || []
+      } else if (type === 'priority-low') {
+        this.taskListModalTitle = `低优先级任务 (${this.taskStats.low || 0})`
+        this.taskListModalTasks = this.lowPriorityTasks || []
+      } else if (type === 'trend-completed') {
+        console.log('[MyActivity] 打开完成任务弹窗, dayIndex:', dayIndex, 'trendCompletedTasksByDay:', this.trendCompletedTasksByDay)
+        if (dayIndex !== null && dayIndex !== undefined && dayIndex >= 0 && dayIndex < 7) {
+          // 显示指定日期的任务
+          const dayLabel = getDayLabel(dayIndex)
+          const dayTasks = (this.trendCompletedTasksByDay && this.trendCompletedTasksByDay[dayIndex]) ? this.trendCompletedTasksByDay[dayIndex] : []
+          console.log('[MyActivity] 显示第', dayIndex, '天的任务，数量:', dayTasks.length)
+          this.taskListModalTitle = `${dayLabel} 完成的任务 (${dayTasks.length})`
+          this.taskListModalTasks = dayTasks
+        } else {
+          // 显示所有任务
+          console.log('[MyActivity] 显示所有完成任务，数量:', this.trendCompletedTasks.length)
+          this.taskListModalTitle = `过去七天完成的任务 (${this.trendCompletedTasks.length})`
+          this.taskListModalTasks = this.trendCompletedTasks || []
+        }
+      } else if (type === 'trend-overdue') {
+        console.log('[MyActivity] 打开逾期任务弹窗, dayIndex:', dayIndex, 'trendOverdueTasksByDay:', this.trendOverdueTasksByDay)
+        if (dayIndex !== null && dayIndex !== undefined && dayIndex >= 0 && dayIndex < 7) {
+          // 显示指定日期的任务
+          const dayLabel = getDayLabel(dayIndex)
+          const dayTasks = (this.trendOverdueTasksByDay && this.trendOverdueTasksByDay[dayIndex]) ? this.trendOverdueTasksByDay[dayIndex] : []
+          console.log('[MyActivity] 显示第', dayIndex, '天的任务，数量:', dayTasks.length)
+          this.taskListModalTitle = `${dayLabel} 逾期的任务 (${dayTasks.length})`
+          this.taskListModalTasks = dayTasks
+        } else {
+          // 显示所有任务
+          console.log('[MyActivity] 显示所有逾期任务，数量:', this.trendOverdueTasks.length)
+          this.taskListModalTitle = `过去七天逾期的任务 (${this.trendOverdueTasks.length})`
+          this.taskListModalTasks = this.trendOverdueTasks || []
+        }
+      }
+      this.taskListModalVisible = true
+      // 禁用body滚动，防止背景页面滚动
+      document.body.style.overflow = 'hidden'
+    },
+    
+    mapTaskPriority(priority) {
+      // 将后端优先级映射到前端显示
+      const priorityMap = {
+        'HIGH': 'high',
+        'MEDIUM': 'medium',
+        'LOW': 'low'
+      }
+      return priorityMap[priority] || 'medium'
+    },
+    
+    goToTaskProject(task) {
+      if (task && (task.projectId || task.project_id)) {
+        const projectId = task.projectId || task.project_id
+        this.closeTaskListModal()
+        this.$router.push(`/project-detail/${projectId}`)
+      }
+    },
+
+    closeTaskListModal() {
+      this.taskListModalVisible = false
+      this.taskListModalType = ''
+      this.taskListModalTitle = ''
+      this.taskListModalTasks = []
+      // 恢复body滚动
+      document.body.style.overflow = ''
+    },
+    
+    handleModalScroll(event) {
+      // 防止滚动穿透到外部页面
+      const target = event.currentTarget
+      const { scrollTop, scrollHeight, clientHeight } = target
+      const isAtTop = scrollTop === 0
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
+      
+      // 如果向上滚动且已在顶部，或向下滚动且已在底部，阻止默认行为
+      if ((event.deltaY < 0 && isAtTop) || (event.deltaY > 0 && isAtBottom)) {
+        event.preventDefault()
+      }
+    },
   }
 }
 </script>
@@ -1979,6 +2542,7 @@ export default {
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -2071,6 +2635,17 @@ export default {
 .chart-box.large {
   height: 140px; /* 缩短趋势图高度 */
   max-width: none;
+}
+
+.chart-box.large.clickable-chart,
+.chart-box.small.clickable-chart {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.chart-box.large.clickable-chart:hover,
+.chart-box.small.clickable-chart:hover {
+  opacity: 0.8;
 }
 
 /* ===== 新的高级仪表盘布局 ===== */
@@ -2166,6 +2741,14 @@ export default {
   height: 100%;
 }
 
+.mini-bar.clickable-chart {
+  cursor: pointer;
+}
+
+.mini-bar.clickable-chart:hover {
+  opacity: 0.8;
+}
+
 .mini-title {
   font-size: 12px;
   color: #6b7280;
@@ -2182,6 +2765,19 @@ export default {
   width: 100%;
   flex: 1;
   min-height: 0;
+}
+
+.clickable-chart {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.clickable-chart:hover {
+  opacity: 0.8;
+}
+
+.mini-gauge {
+  cursor: pointer;
 }
 .chart-box.small { 
   height: 110px; 
@@ -2597,5 +3193,238 @@ export default {
   .main-content-wrapper {
     padding: 16px;
   }
+}
+
+/* 任务列表弹窗样式 */
+.task-list-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.task-list-modal {
+  background: white;
+  border-radius: 12px;
+  width: 40% !important;
+  max-width: 600px !important;
+  min-width: 400px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.task-list-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.task-list-modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.task-list-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.task-list-modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.task-list-modal-content {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  /* 防止滚动穿透 */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.task-list-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+}
+
+.task-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.task-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  transition: all 0.2s;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid;
+}
+
+.task-list-item:hover {
+  background: #f3f4f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateX(4px);
+}
+
+.task-list-item.high-priority {
+  border-left-color: #ef4444;
+  background: linear-gradient(135deg, #ffffff, #fee2e2);
+}
+
+.task-list-item.medium-priority {
+  border-left-color: #f59e0b;
+  background: linear-gradient(135deg, #ffffff, #fef3c7);
+}
+
+.task-list-item.low-priority {
+  border-left-color: #10b981;
+  background: linear-gradient(135deg, #ffffff, #d1fae5);
+}
+
+.priority-bar {
+  width: 4px;
+  background: currentColor;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.item-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.item-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deadline-alert {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.deadline-alert.overdue {
+  color: #ef4444;
+}
+
+.deadline-alert.near {
+  color: #f59e0b;
+}
+
+.alert-text {
+  font-weight: 500;
+}
+
+.item-description {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.item-meta .priority {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.item-meta .deadline {
+  color: #6b7280;
+}
+
+.task-list-item-number {
+  color: #6b7280;
+  font-weight: 600;
+  min-width: 24px;
+  flex-shrink: 0;
+}
+
+.task-list-item-name {
+  color: #111827;
+  line-height: 1.5;
+  flex: 1;
 }
 </style>
