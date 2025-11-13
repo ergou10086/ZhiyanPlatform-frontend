@@ -14,7 +14,8 @@ import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
-import TaskSubmissionReview from '../views/TaskSubmissionReview.vue'
+import ProjectDashboard from '../views/ProjectDashboard.vue'
+import MyActivity from '../views/MyActivity.vue'
 
 Vue.use(VueRouter)
 
@@ -64,6 +65,11 @@ const routes = [
     component: ProjectKnowledge
   },
   {
+    path: '/project-dashboard/:id',
+    name: 'ProjectDashboard',
+    component: ProjectDashboard
+  },
+  {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
     component: KnowledgeBase,
@@ -85,9 +91,13 @@ const routes = [
     component: Profile
   },
   {
+    path: '/my-activity',
+    name: 'MyActivity',
+    component: MyActivity
+  },
+  {
     path: '/task-review',
-    name: 'TaskSubmissionReview',
-    component: TaskSubmissionReview
+    redirect: '/my-activity'
   },
 ]
 
@@ -152,8 +162,9 @@ router.beforeEach((to, from, next) => {
     '/knowledge-base',
     '/project-detail',
     '/project-knowledge',
+    '/project-dashboard',
     '/project',
-    '/task-review'
+    '/my-activity'
   ]
   
   const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))

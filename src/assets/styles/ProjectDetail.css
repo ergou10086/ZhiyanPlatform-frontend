@@ -335,8 +335,32 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
+/* 标题右侧的仪表盘按钮 */
+.project-title .dashboard-btn {
+  margin-left: 12px;
+  height: 28px;
+  line-height: 28px;
+  padding: 0 10px;
+  border-radius: 14px;
+  border: 1px solid #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  -webkit-text-fill-color: #1d4ed8; /* 避免继承标题的透明填充导致文字不可见 */
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.15);
+}
+.project-title .dashboard-btn:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.25);
+}
 /* 第一行项目信�?*/
 .project-meta-top {
   display: grid;
@@ -1069,6 +1093,10 @@
   background: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
+.task-info-icon.worktime {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
 .task-info-content {
   flex: 1;
   min-width: 0;
@@ -1085,6 +1113,19 @@
   font-size: 14px;
   color: #111827;
   font-weight: 600;
+}
+
+.worktime-meta {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #4b5563;
+}
+
+.task-info-extra {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .task-status-badge.待接取,
