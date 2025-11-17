@@ -101,9 +101,7 @@ module.exports = {
         secure: false,
         ws: true,
         logLevel: 'debug',
-        pathRewrite: {
-          '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/coze/*
-        },
+
         
         // ⭐ 请求前的钩子
         onProxyReq: function(proxyReq, req, res) {
@@ -165,9 +163,7 @@ module.exports = {
         secure: false,
         ws: true,
         logLevel: 'debug',
-        pathRewrite: {
-          '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/ai/*
-        },
+
         
         // ⭐ 请求前的钩子
         onProxyReq: function(proxyReq, req, res) {
@@ -240,9 +236,7 @@ module.exports = {
         secure: false,
         ws: true,
         logLevel: 'debug',
-        pathRewrite: {
-          '^/zhiyan': '/zhiyan'
-        }
+
       }
     }
   }
