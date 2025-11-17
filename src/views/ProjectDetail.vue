@@ -1075,6 +1075,7 @@
 <script>
 import '@/assets/styles/ProjectDetail.css'
 import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage } from '@/utils/imageUtils'
+import { addTimestampToUrl } from '@/utils/imageUtils'
 import TaskSubmissionModal from '@/components/TaskSubmissionModal.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
 import { getTaskSubmissions, getLatestSubmission } from '@/api/taskSubmission'
@@ -3685,7 +3686,7 @@ export default {
       }
       // 如果已经是普通URL字符串，直接返回
       if (typeof avatar === 'string' && (avatar.startsWith('http://') || avatar.startsWith('https://'))) {
-        return avatar
+        return addTimestampToUrl(avatar)
       }
       // 如果是JSON字符串，尝试解析
       if (typeof avatar === 'string') {
@@ -3693,7 +3694,8 @@ export default {
           const avatarObj = JSON.parse(avatar)
           // 优先使用original尺寸，其次使用256尺寸
           if (avatarObj.sizes) {
-            return avatarObj.sizes.original || avatarObj.sizes['256'] || avatarObj.sizes['512'] || null
+            const rawUrl = avatarObj.sizes.original || avatarObj.sizes['256'] || avatarObj.sizes['512'] || null
+            return rawUrl ? addTimestampToUrl(rawUrl) : null
           }
           return null
         } catch (e) {
@@ -3703,7 +3705,8 @@ export default {
       }
       // 如果是对象，直接提取URL
       if (typeof avatar === 'object' && avatar.sizes) {
-        return avatar.sizes.original || avatar.sizes['256'] || avatar.sizes['512'] || null
+        const rawUrl = avatar.sizes.original || avatar.sizes['256'] || avatar.sizes['512'] || null
+        return rawUrl ? addTimestampToUrl(rawUrl) : null
       }
       return null
     },
