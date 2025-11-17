@@ -187,7 +187,12 @@
             <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
               <div class="task-actions" v-if="isProjectManager">
                 <div class="task-status-dropdown">
-                  <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
+                  <button 
+                    class="task-status-btn" 
+                    :class="[statusClass(task.status), { 'disabled': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') }]"
+                    @click="toggleTaskStatusDropdown(task)" 
+                    :title="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态'"
+                    :disabled="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')">
                     {{ task.status }}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -569,7 +574,12 @@
                 <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
                 <div class="task-actions" v-if="isProjectManager">
                   <div class="task-status-dropdown">
-                    <button class="task-status-btn" @click="toggleTaskStatusDropdown(task)" :class="statusClass(task.status)" title="更改状态">
+                    <button 
+                      class="task-status-btn" 
+                      :class="[statusClass(task.status), { 'disabled': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') }]"
+                      @click="toggleTaskStatusDropdown(task)" 
+                      :title="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态'"
+                      :disabled="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')">
                       {{ task.status }}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -2260,7 +2270,7 @@ export default {
         return
       }
       // 不能移除项目拥有者
-      if (this.isOwner(member)) {
+      if (this.isOwnerMember(member)) {
         this.showSuccessToast('不能移除项目拥有者')
         return
       }
@@ -2834,6 +2844,11 @@ export default {
       return 'TODO'
     },
     toggleTaskStatusDropdown(task) {
+      // 如果任务状态为"待接取"且没有执行者，不允许修改状态
+      if (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')) {
+        this.showSuccessToast('任务未被接取，无法修改状态。请先接取任务。')
+        return
+      }
       // 关闭其他任务的状态菜单
       this.tasks.forEach(t => {
         if (t.id !== task.id) {
@@ -3981,3 +3996,21 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* 任务状态下拉框按钮禁用样式 */
+.task-status-btn.disabled,
+.task-status-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f3f4f6 !important;
+  color: #9ca3af !important;
+}
+
+.task-status-btn.disabled:hover,
+.task-status-btn:disabled:hover {
+  transform: none;
+  filter: none;
+  opacity: 0.6;
+}
+</style>

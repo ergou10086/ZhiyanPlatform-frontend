@@ -16,7 +16,7 @@ function parseJSONWithBigInt(data) {
 
 // 后端Dify服务配置（直连8096端口）
 const BACKEND_DIFY_CONFIG = {
-  baseUrl: '/zhiyan/api/ai', // 通过Vue代理转发到8096端口
+  baseUrl: '/zhiyan/ai/dify', // 通过Vue代理转发到8096端口
   timeout: 120000, // axios 超时：2分钟
   streamTimeout: 300000 // fetch 流式响应超时：5分钟（AI文档分析需要更长时间）
 }
@@ -404,7 +404,8 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
       timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`
     })
 
-    // 发送请求到后端（/api/ai/chatflow/upload-and-chat）
+    // 发送请求到后端（/
+    // zhiyan/ai/dify/chatflow/upload-and-chat）
     const url = `${BACKEND_DIFY_CONFIG.baseUrl}/chatflow/upload-and-chat`
     const response = await fetch(url, {
       method: 'POST',

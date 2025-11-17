@@ -2,7 +2,12 @@
   <div class="dashboard-container">
     <canvas ref="bgCanvas" class="bg-canvas"></canvas>
     <div class="dashboard-header">
-      <button class="back" @click="$router.back()">返回</button>
+      <button class="back-btn" @click="$router.back()">
+        <svg class="back-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="back-text">返回</span>
+      </button>
       <h1 class="title">项目仪表盘</h1>
       <div class="spacer"></div>
       
@@ -36,7 +41,7 @@
               <path
                 v-for="segment in pieSegments"
                 :key="segment.key"
-                :d="getPiePath(segment.startAngle, segment.endAngle)"
+                :d="getPiePath(segment.animatedStartAngle, segment.animatedEndAngle)"
                 :fill="segment.color"
                 @mousemove="showTooltip($event, segment.label, segment.value, `个（${segment.percent}%）`)"
                 @mouseleave="hideTooltip"
@@ -54,25 +59,83 @@
       </div>
       <div class="card glass gradient-border">
         <div class="card-title">成员任务负载</div>
-        <div class="bar-chart">
-          <div v-for="(h, i) in barHeights" :key="i" class="bar-wrap">
-            <div class="bar" :style="{'--h': h + '%'}" :title="`成员${i+1} 任务量 ${h}%`"
-                 @mousemove="showTooltip($event, `成员${i+1} 任务量`, h, '%')" @mouseleave="hideTooltip"></div>
-            <span class="bar-label">{{ h }}%</span>
+        <div class="bar-chart-container" v-if="memberWorktimes.length > 0">
+          <div class="bar-chart">
+            <div v-for="(member, i) in memberWorktimes" :key="member.userId || i" class="bar-wrap">
+              <div v-if="member.worktime > 0" 
+                   class="bar" 
+                   :style="{'--h': member.heightPercent + '%'}" 
+                   :title="`${member.name} 工时 ${member.worktime} 小时`"
+                   @mousemove="showTooltip($event, member.name, member.worktime, '小时')" 
+                   @mouseleave="hideTooltip"></div>
+              <div v-else class="bar-placeholder"></div>
+              <span v-if="member.worktime > 0" class="bar-label">{{ member.worktime }}h</span>
+            </div>
           </div>
+          <div class="bar-names">
+            <span v-for="(member, i) in memberWorktimes" :key="member.userId || i" class="bar-name">{{ member.name }}</span>
+          </div>
+        </div>
+        <div class="bar-chart-empty" v-else>
+          <div class="empty-text">暂无成员数据</div>
         </div>
       </div>
       <div class="card glass gradient-border">
         <div class="card-title">近 30 天完成趋势</div>
-        <div class="line-chart">
-          <svg viewBox="0 0 100 40" preserveAspectRatio="none">
-            <polyline :key="lineKey" class="line" fill="none" stroke="#3b82f6" stroke-width="2"
-                      points="0,30 10,20 20,26 30,12 40,16 50,10 60,14 70,8 80,12 90,6 100,12"/>
+        <div class="line-chart" v-if="linePoints.length > 0">
+          <svg viewBox="0 0 100 50" preserveAspectRatio="none">
+            <defs>
+              <!-- 填充区域渐变 -->
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.05" />
+              </linearGradient>
+              <!-- 折线渐变色 -->
+              <linearGradient id="lineStrokeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+                <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <!-- 渐变填充区域 -->
+            <path 
+              :key="'area-'+lineKey"
+              :d="lineAreaPath"
+              fill="url(#lineGradient)"
+              class="line-area"/>
+            <!-- 折线（使用渐变色） -->
+            <polyline 
+              :key="lineKey" 
+              class="line" 
+              fill="none" 
+              stroke="url(#lineStrokeGradient)" 
+              stroke-width="2.5"
+              :points="linePoints.map(p => `${p.x},${p.y}`).join(' ')"/>
+            <!-- 只显示有数据的点（已经过滤，所有点都显示） -->
             <template v-for="(p, idx) in linePoints">
-              <circle :key="'c'+idx" :cx="p.x" :cy="p.y" r="1.6" fill="#3b82f6"/>
-              <text :key="'t'+idx" :x="p.x" :y="Math.max(6, p.y - 2.5)" class="line-label">{{ p.v }}</text>
+              <circle 
+                :key="'circle-'+idx" 
+                :cx="p.x" 
+                :cy="p.y" 
+                r="2.5" 
+                fill="url(#lineStrokeGradient)"
+                class="line-point"/>
+              <text 
+                :key="'text-'+idx" 
+                :x="p.x" 
+                :y="Math.max(8, p.y - 4)" 
+                class="line-label">{{ p.v }}</text>
+              <!-- 显示日期 -->
+              <text 
+                :key="'date-'+idx" 
+                :x="p.x" 
+                :y="42" 
+                class="line-date">{{ formatDate(p.date) }}</text>
             </template>
           </svg>
+        </div>
+        <div class="line-chart-empty" v-else>
+          <div class="empty-text">暂无完成趋势数据</div>
         </div>
       </div>
     </div>
@@ -155,7 +218,13 @@ export default {
       barHeights: [60, 75, 70, 55, 40],
       lineKey: Date.now(),
       tooltip: { show: false, x: 0, y: 0, title: '', value: '', suffix: '' },
-      statusCounts: { todo: 0, doing: 0, blocked: 0, done: 0 }
+      statusCounts: { todo: 0, doing: 0, blocked: 0, done: 0 },
+      // 饼图动画进度 (0-1)
+      pieAnimationProgress: 0,
+      // 成员工时数据
+      memberWorktimes: [],
+      // 近30天完成趋势数据
+      completionTrend: [] // [{ date: '2025-11-01', count: 3 }, ...]
     }
   },
   created() {
@@ -167,22 +236,83 @@ export default {
     window.addEventListener('resize', this.resizeCanvas)
     // 加载任务统计数据
     await this.loadTaskStatistics()
+    // 加载成员工时数据
+    await this.loadMemberWorktimes()
+    // 加载近30天完成趋势数据
+    await this.loadCompletionTrend()
     // 数字滚动动画
     Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
+    // 饼图动画
+    this.animatePieChart()
   },
   beforeDestroy() {
     cancelAnimationFrame(this.rafId)
     window.removeEventListener('resize', this.resizeCanvas)
   },
   computed: {
-    // 用于线图文本标注（与折线坐标相匹配）
+    // 用于线图文本标注（基于真实数据，只显示有完成任务的日期）
     linePoints() {
-      return [
-        { x: 0, y: 30, v: 3 }, { x: 10, y: 20, v: 6 }, { x: 20, y: 26, v: 5 },
-        { x: 30, y: 12, v: 9 }, { x: 40, y: 16, v: 8 }, { x: 50, y: 10, v: 10 },
-        { x: 60, y: 14, v: 9 }, { x: 70, y: 8, v: 11 }, { x: 80, y: 12, v: 10 },
-        { x: 90, y: 6, v: 12 }, { x: 100, y: 12, v: 9 }
-      ]
+      if (!this.completionTrend || this.completionTrend.length === 0) {
+        // 如果没有数据，返回空数组
+        return []
+      }
+      
+      // 过滤掉count为0的数据，只保留有完成任务的日期
+      const validDays = this.completionTrend.filter(day => day.count > 0)
+      
+      if (validDays.length === 0) {
+        return []
+      }
+      
+      // 计算最大值用于归一化
+      const maxCount = Math.max(...validDays.map(d => d.count), 1)
+      const minY = 12 // 最小Y值（顶部）
+      const maxY = 38 // 最大Y值（底部）- 增加高度，为日期留出空间
+      const rangeY = maxY - minY
+      
+      // 生成数据点（只包含有数据的日期）
+      const points = []
+      const totalValidDays = validDays.length
+      
+      validDays.forEach((day, index) => {
+        // X坐标：0到100，均匀分布（只基于有数据的日期）
+        // 如果只有一天，x=50（中间位置）
+        const x = totalValidDays > 1 ? (index / (totalValidDays - 1)) * 100 : 50
+        // Y坐标：倒置（值越大，Y越小，因为SVG的Y轴向下）
+        const normalizedValue = maxCount > 0 ? (day.count / maxCount) : 0
+        const y = maxY - (normalizedValue * rangeY)
+        
+        points.push({
+          x: x,
+          y: Math.max(minY, Math.min(maxY, y)), // 确保Y在范围内
+          v: day.count,
+          showLabel: true, // 所有点都显示标签（因为已经过滤了）
+          date: day.date // 保存日期用于显示
+        })
+      })
+      
+      return points
+    },
+    // 用于生成渐变填充区域
+    lineAreaPath() {
+      if (!this.linePoints || this.linePoints.length === 0) {
+        return ''
+      }
+      
+      const points = this.linePoints
+      const maxY = 38 // 底部Y值 - 与linePoints保持一致
+      
+      // 构建路径：从第一个点开始，经过所有点，然后到底部，再回到起点
+      let path = `M ${points[0].x} ${maxY} L ${points[0].x} ${points[0].y}`
+      
+      for (let i = 1; i < points.length; i++) {
+        path += ` L ${points[i].x} ${points[i].y}`
+      }
+      
+      // 连接最后一个点到底部，然后闭合
+      path += ` L ${points[points.length - 1].x} ${maxY} Z`
+      
+      return path
     },
     pieSegments() {
       const total = Object.values(this.statusCounts).reduce((sum, v) => sum + v, 0)
@@ -190,10 +320,10 @@ export default {
 
       const segments = []
       const colors = [
-        { key: 'todo', color: '#4c6ac5', label: '待办' },
-        { key: 'doing', color: '#2c7fb4', label: '进行中' },
-        { key: 'blocked', color: '#c66532', label: '阻塞' },
-        { key: 'done', color: '#2f805d', label: '已完成' }
+        { key: 'todo', color: '#60a5fa', label: '待办' }, // 明亮的蓝色
+        { key: 'doing', color: '#3b82f6', label: '进行中' }, // 鲜艳的蓝色
+        { key: 'blocked', color: '#f59e0b', label: '阻塞' }, // 明亮的橙色
+        { key: 'done', color: '#10b981', label: '已完成' } // 鲜艳的绿色
       ]
 
       let startAngle = 0
@@ -202,6 +332,13 @@ export default {
         if (!value) return
           const percent = value / total
           const angle = percent * 360
+        const originalStartAngle = startAngle
+        const originalEndAngle = startAngle + angle
+        
+        // 计算动画后的角度
+        const animatedStartAngle = originalStartAngle
+        const animatedEndAngle = originalStartAngle + (angle * this.pieAnimationProgress)
+        
         segments.push({
           key,
           value,
@@ -209,7 +346,13 @@ export default {
           color,
           label,
           startAngle,
-          endAngle: startAngle + angle
+          endAngle: startAngle + angle,
+          // 用于动画的原始角度
+          originalStartAngle,
+          originalEndAngle,
+          // 动画后的角度
+          animatedStartAngle,
+          animatedEndAngle
         })
         startAngle += angle
       })
@@ -217,6 +360,29 @@ export default {
     }
   },
   methods: {
+    /**
+     * 格式化日期显示
+     * @param {String} dateStr - 日期字符串 (YYYY-MM-DD)
+     * @returns {String} 格式化后的日期 (MM-DD)
+     */
+    formatDate(dateStr) {
+      if (!dateStr) return ''
+      try {
+        const date = new Date(dateStr)
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${month}-${day}`
+      } catch (error) {
+        // 如果日期格式不对，尝试直接处理字符串
+        if (typeof dateStr === 'string' && dateStr.includes('-')) {
+          const parts = dateStr.split('-')
+          if (parts.length >= 3) {
+            return `${parts[1]}-${parts[2]}`
+          }
+        }
+        return dateStr
+      }
+    },
     /**
      * 加载任务统计数据
      */
@@ -399,6 +565,399 @@ export default {
       })
     },
 
+    /**
+     * 加载成员工时数据
+     */
+    async loadMemberWorktimes() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        console.warn('[ProjectDashboard] 项目ID不存在，无法加载成员工时')
+        return
+      }
+
+      try {
+        // 1. 获取项目成员列表
+        const { projectAPI } = await import('@/api/project')
+        const membersResponse = await projectAPI.getProjectMembers(projectId, 0, 100)
+        
+        if (!membersResponse || membersResponse.code !== 200) {
+          console.warn('[ProjectDashboard] 获取项目成员失败')
+          return
+        }
+
+        let members = []
+        if (membersResponse.data && membersResponse.data.content) {
+          members = membersResponse.data.content
+        } else if (Array.isArray(membersResponse.data)) {
+          members = membersResponse.data
+        }
+
+        if (members.length === 0) {
+          console.warn('[ProjectDashboard] 项目没有成员')
+          this.memberWorktimes = []
+          return
+        }
+
+        console.log('[ProjectDashboard] 获取到项目成员:', members.length, '人')
+
+        // 2. 获取所有任务
+        const { taskAPI } = await import('@/api/task')
+        let allTasks = []
+        let page = 0
+        const size = 100
+        let hasMore = true
+
+        while (hasMore) {
+          const response = await taskAPI.getProjectTasks(projectId, page, size)
+          if (response && response.code === 200 && response.data) {
+            const tasksData = response.data
+            let taskList = []
+            
+            if (tasksData.content && Array.isArray(tasksData.content)) {
+              taskList = tasksData.content
+              const totalPages = tasksData.totalPages || 0
+              hasMore = (page + 1) < totalPages
+            } else if (Array.isArray(tasksData)) {
+              taskList = tasksData
+              hasMore = taskList.length === size
+            } else {
+              hasMore = false
+            }
+            
+            allTasks = allTasks.concat(taskList)
+            page++
+            
+            if (taskList.length < size) {
+              hasMore = false
+            }
+          } else {
+            hasMore = false
+          }
+        }
+
+        // 3. 获取每个任务的工时数据
+        const { worktimeAPI } = await import('@/api/worktime')
+        const memberWorktimeMap = new Map() // userId -> totalWorktime
+
+        // 初始化成员工时映射
+        members.forEach(member => {
+          const userId = String(member.userId || member.id || '')
+          memberWorktimeMap.set(userId, {
+            userId,
+            name: member.username || member.name || '未知用户',
+            worktime: 0
+          })
+        })
+
+        // 遍历所有任务，获取工时
+        for (const task of allTasks) {
+          try {
+            // 获取任务的最新提交记录
+            const submissionResponse = await worktimeAPI.getLatestWorktime(task.id)
+            if (submissionResponse && submissionResponse.code === 200 && submissionResponse.data) {
+              const submission = submissionResponse.data
+              const actualWorktime = submission.actualWorktime
+              
+              if (actualWorktime && actualWorktime > 0) {
+                // 获取任务的执行者
+                const assignees = task.assignees || []
+                if (Array.isArray(assignees) && assignees.length > 0) {
+                  // 如果有多个执行者，平均分配工时
+                  const worktimePerAssignee = Number(actualWorktime) / assignees.length
+                  
+                  assignees.forEach(assignee => {
+                    const assigneeId = String(assignee.userId || assignee.id || '')
+                    if (memberWorktimeMap.has(assigneeId)) {
+                      const memberData = memberWorktimeMap.get(assigneeId)
+                      memberData.worktime += worktimePerAssignee
+                    }
+                  })
+                } else if (task.assignee_id && Array.isArray(task.assignee_id) && task.assignee_id.length > 0) {
+                  // 兼容旧的assignee_id格式
+                  const worktimePerAssignee = Number(actualWorktime) / task.assignee_id.length
+                  task.assignee_id.forEach(assigneeId => {
+                    const id = String(assigneeId)
+                    if (memberWorktimeMap.has(id)) {
+                      const memberData = memberWorktimeMap.get(id)
+                      memberData.worktime += worktimePerAssignee
+                    }
+                  })
+                }
+              }
+            }
+          } catch (error) {
+            // 如果获取某个任务的工时失败，继续处理下一个
+            console.warn(`[ProjectDashboard] 获取任务${task.id}的工时失败:`, error)
+          }
+        }
+
+        // 4. 转换为数组并计算高度百分比（显示所有成员，包括没有工时的）
+        const worktimeArray = Array.from(memberWorktimeMap.values())
+        
+        // 计算最大工时作为100%基准（只考虑有工时的成员）
+        const membersWithWorktime = worktimeArray.filter(m => m.worktime > 0)
+        const maxWorktime = membersWithWorktime.length > 0 
+          ? Math.max(...membersWithWorktime.map(m => m.worktime))
+          : 1
+
+        // 计算每个成员的柱状图高度百分比
+        this.memberWorktimes = worktimeArray.map(member => {
+          let heightPercent = 0
+          if (member.worktime > 0 && maxWorktime > 0) {
+            heightPercent = (member.worktime / maxWorktime) * 100
+            // 确保最小高度至少是25%，让柱状图更明显
+            if (heightPercent < 25) {
+              heightPercent = 25
+            }
+          }
+          return {
+            ...member,
+            worktime: Number(member.worktime.toFixed(2)), // 保留2位小数
+            heightPercent: heightPercent
+          }
+        }).sort((a, b) => {
+          // 有工时的排在前面，按工时降序；没有工时的排在后面
+          if (a.worktime > 0 && b.worktime > 0) {
+            return b.worktime - a.worktime
+          } else if (a.worktime > 0) {
+            return -1
+          } else if (b.worktime > 0) {
+            return 1
+          } else {
+            return 0
+          }
+        })
+
+        console.log('[ProjectDashboard] 成员工时数据加载完成:', {
+          total: this.memberWorktimes.length,
+          withWorktime: this.memberWorktimes.filter(m => m.worktime > 0).length,
+          withoutWorktime: this.memberWorktimes.filter(m => m.worktime === 0).length,
+          data: this.memberWorktimes.map(m => ({
+            name: m.name,
+            worktime: m.worktime,
+            heightPercent: m.heightPercent
+          }))
+        })
+
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载成员工时数据失败:', error)
+        this.memberWorktimes = []
+      }
+    },
+
+    /**
+     * 加载近30天完成趋势数据
+     */
+    async loadCompletionTrend() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        console.warn('[ProjectDashboard] 项目ID不存在，无法加载完成趋势')
+        return
+      }
+
+      try {
+        // 1. 获取项目中所有状态为DONE的任务（按项目统计，不区分用户）
+        const { taskAPI } = await import('@/api/task')
+        let allDoneTasks = []
+        let page = 0
+        const size = 100
+        let hasMore = true
+
+        // 直接按状态查询DONE任务，更高效
+        while (hasMore) {
+          try {
+            // 使用按状态查询接口，直接获取DONE状态的任务
+            const response = await taskAPI.getProjectTasks(projectId, page, size)
+            if (response && response.code === 200 && response.data) {
+              const tasksData = response.data
+              let taskList = []
+              
+              if (tasksData.content && Array.isArray(tasksData.content)) {
+                taskList = tasksData.content
+                const totalPages = tasksData.totalPages || 0
+                hasMore = (page + 1) < totalPages
+              } else if (Array.isArray(tasksData)) {
+                taskList = tasksData
+                hasMore = taskList.length === size
+              } else {
+                hasMore = false
+              }
+              
+              // 筛选出状态为DONE的任务（按项目统计，不区分用户）
+              const doneTasks = taskList.filter(task => {
+                const isDone = task.status === 'DONE' || task.status === '已完成'
+                return isDone
+              })
+              allDoneTasks = allDoneTasks.concat(doneTasks)
+              
+              console.log(`[ProjectDashboard] 第${page + 1}页: 获取${taskList.length}个任务, 其中${doneTasks.length}个是DONE状态`)
+              
+              page++
+              if (taskList.length < size) {
+                hasMore = false
+              }
+            } else {
+              hasMore = false
+            }
+          } catch (error) {
+            console.error(`[ProjectDashboard] 获取第${page + 1}页任务失败:`, error)
+            hasMore = false
+          }
+        }
+
+        console.log('[ProjectDashboard] 获取到已完成任务:', allDoneTasks.length, '个')
+        console.log('[ProjectDashboard] 已完成任务列表:', allDoneTasks.map(t => ({ id: t.id, title: t.title, status: t.status })))
+
+        // 2. 对于每个任务，获取其提交记录，找到最后一次审核通过的记录
+        // 重要：只有提交后被审核通过的任务才算完成的任务
+        const { worktimeAPI } = await import('@/api/worktime')
+        const completionDates = [] // 存储所有任务的完成日期（审核通过时间）
+        const skippedTasks = [] // 记录被跳过的任务
+
+        for (const task of allDoneTasks) {
+          try {
+            console.log(`[ProjectDashboard] 处理任务${task.id}(${task.title})...`)
+            
+            // 获取任务的所有提交记录
+            const submissionsResponse = await worktimeAPI.getTaskWorktimeHistory(task.id)
+            if (submissionsResponse && submissionsResponse.code === 200 && submissionsResponse.data) {
+              const submissions = Array.isArray(submissionsResponse.data) 
+                ? submissionsResponse.data 
+                : []
+              
+              console.log(`[ProjectDashboard] 任务${task.id}(${task.title}) 提交记录数: ${submissions.length}`)
+              
+              // 找到所有审核通过的记录（reviewStatus === 'APPROVED'）
+              const approvedSubmissions = submissions.filter(
+                sub => sub.reviewStatus === 'APPROVED' && sub.reviewTime
+              )
+              
+              console.log(`[ProjectDashboard] 任务${task.id}(${task.title}) 审核通过记录数: ${approvedSubmissions.length}`)
+              
+              if (approvedSubmissions.length > 0) {
+                // 按审核时间排序，取最新的（最后一次审核通过的时间）
+                approvedSubmissions.sort((a, b) => {
+                  const timeA = new Date(a.reviewTime).getTime()
+                  const timeB = new Date(b.reviewTime).getTime()
+                  return timeB - timeA
+                })
+                
+                const latestApproved = approvedSubmissions[0]
+                if (latestApproved.reviewTime) {
+                  // 使用审核通过时间作为完成时间
+                  // 使用本地时区处理日期，避免时区问题
+                  const reviewTimeStr = latestApproved.reviewTime
+                  const reviewDate = new Date(reviewTimeStr)
+                  
+                  // 转换为本地日期字符串（YYYY-MM-DD），使用本地时区
+                  const year = reviewDate.getFullYear()
+                  const month = String(reviewDate.getMonth() + 1).padStart(2, '0')
+                  const day = String(reviewDate.getDate()).padStart(2, '0')
+                  const localDateStr = `${year}-${month}-${day}`
+                  
+                  completionDates.push({
+                    date: localDateStr,
+                    taskId: task.id,
+                    taskTitle: task.title,
+                    reviewTime: reviewTimeStr
+                  })
+                  
+                  console.log(`[ProjectDashboard] ✅ 任务${task.id}(${task.title}) 审核通过时间: ${reviewTimeStr}, 本地日期: ${localDateStr}`)
+                  continue
+                }
+              } else {
+                // 如果没有审核通过的记录，这个任务不应该被统计
+                const reason = submissions.length === 0 ? '没有提交记录' : '没有审核通过的记录'
+                skippedTasks.push({ taskId: task.id, taskTitle: task.title, reason })
+                console.warn(`[ProjectDashboard] ⚠️ 任务${task.id}(${task.title}) 状态为DONE但${reason}，跳过统计`)
+              }
+            } else {
+              // 如果没有提交记录，这个任务不应该被统计
+              skippedTasks.push({ taskId: task.id, taskTitle: task.title, reason: '无法获取提交记录' })
+              console.warn(`[ProjectDashboard] ⚠️ 任务${task.id}(${task.title}) 状态为DONE但无法获取提交记录，跳过统计`)
+            }
+          } catch (error) {
+            skippedTasks.push({ taskId: task.id, taskTitle: task.title, reason: `获取失败: ${error.message}` })
+            console.warn(`[ProjectDashboard] ⚠️ 获取任务${task.id}的完成时间失败:`, error)
+            // 如果获取失败，不统计这个任务（因为无法确认是否审核通过）
+          }
+        }
+        
+        console.log(`[ProjectDashboard] 统计结果: 找到${completionDates.length}个有审核通过记录的任务, 跳过${skippedTasks.length}个任务`)
+        if (skippedTasks.length > 0) {
+          console.warn('[ProjectDashboard] 被跳过的任务:', skippedTasks)
+        }
+
+        // 3. 计算近30天的日期范围（使用本地时区）
+        const today = new Date()
+        const todayYear = today.getFullYear()
+        const todayMonth = today.getMonth()
+        const todayDay = today.getDate()
+        const todayLocal = new Date(todayYear, todayMonth, todayDay, 23, 59, 59, 999) // 今天的结束时间（本地时区）
+        
+        const thirtyDaysAgoLocal = new Date(todayYear, todayMonth, todayDay - 29, 0, 0, 0, 0) // 30天前（本地时区）
+
+        // 4. 按日期分组统计（按项目日期统计，不区分用户）
+        const dateCountMap = new Map()
+        
+        // 初始化30天的日期，每天计数为0（使用本地时区）
+        for (let i = 0; i < 30; i++) {
+          const date = new Date(thirtyDaysAgoLocal)
+          date.setDate(date.getDate() + i)
+          // 使用本地时区转换为日期字符串
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const dateStr = `${year}-${month}-${day}`
+          dateCountMap.set(dateStr, 0)
+        }
+
+        // 统计每天完成的任务数量（按项目日期统计）
+        console.log(`[ProjectDashboard] 开始统计，日期范围: ${thirtyDaysAgoLocal.toLocaleDateString()} 至 ${todayLocal.toLocaleDateString()}`)
+        
+        completionDates.forEach(item => {
+          const dateStr = item.date // 已经是本地日期字符串 YYYY-MM-DD
+          
+          // 检查日期是否在近30天内（使用本地时区比较）
+          const [year, month, day] = dateStr.split('-').map(Number)
+          const itemDateLocal = new Date(year, month - 1, day, 0, 0, 0, 0)
+          
+          if (itemDateLocal >= thirtyDaysAgoLocal && itemDateLocal <= todayLocal) {
+            const currentCount = dateCountMap.get(dateStr) || 0
+            dateCountMap.set(dateStr, currentCount + 1)
+            console.log(`[ProjectDashboard] ✅ 统计任务完成: 日期=${dateStr}, 任务ID=${item.taskId}, 任务标题=${item.taskTitle}, 当前该日期完成数=${currentCount + 1}`)
+          } else {
+            console.warn(`[ProjectDashboard] ⚠️ 任务${item.taskId}(${item.taskTitle}) 完成日期${dateStr}不在近30天内，跳过`)
+          }
+        })
+
+        // 5. 转换为数组格式，按日期排序
+        this.completionTrend = Array.from(dateCountMap.entries())
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => a.date.localeCompare(b.date))
+
+        // 统计有数据的日期
+        const datesWithData = this.completionTrend.filter(d => d.count > 0)
+        const totalCount = datesWithData.reduce((sum, d) => sum + d.count, 0)
+        
+        console.log('[ProjectDashboard] 近30天完成趋势数据加载完成:', {
+          totalDoneTasks: allDoneTasks.length,
+          tasksWithApprovedSubmission: completionDates.length,
+          skippedTasks: skippedTasks.length,
+          totalCompletedIn30Days: totalCount,
+          datesWithData: datesWithData.map(d => `${d.date}: ${d.count}个`),
+          allTrendData: this.completionTrend
+        })
+
+        // 更新折线图
+        this.lineKey = Date.now()
+
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载完成趋势数据失败:', error)
+        this.completionTrend = []
+      }
+    },
+
     polarToCartesian(cx, cy, radius, angleInDegrees) {
       const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0
       return {
@@ -431,6 +990,8 @@ export default {
       this.loadTaskStatistics().then(() => {
         // 刷新动画
         Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 600))
+        // 重新播放饼图动画
+        this.animatePieChart()
       })
     },
     animateCount(key, target, duration = 800) {
@@ -442,6 +1003,27 @@ export default {
         this.display[key] = Math.round(from + (target - from) * eased)
         if (p < 1) requestAnimationFrame(step)
         else this.display[key] = target // 确保最终值准确
+      }
+      requestAnimationFrame(step)
+    },
+    /**
+     * 饼图动画效果
+     */
+    animatePieChart() {
+      this.pieAnimationProgress = 0
+      const duration = 1000 // 动画时长1秒
+      const start = performance.now()
+      const step = (now) => {
+        const elapsed = now - start
+        const progress = Math.min(1, elapsed / duration)
+        // 使用缓动函数，让动画更自然
+        const eased = 1 - Math.pow(1 - progress, 3) // cubic ease-out
+        this.pieAnimationProgress = eased
+        if (progress < 1) {
+          requestAnimationFrame(step)
+        } else {
+          this.pieAnimationProgress = 1 // 确保最终值为1
+        }
       }
       requestAnimationFrame(step)
     },
@@ -506,7 +1088,58 @@ export default {
 .bg-canvas{position:fixed;inset:0;z-index:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:normal}
 .dashboard-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
 .dashboard-header .title{font-size:22px;font-weight:700;margin:0;color:#0f172a}
-.dashboard-header .back{height:32px;padding:0 12px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;color:#1f2937;cursor:pointer}
+.back-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  height:40px;
+  padding:0 16px;
+  border-radius:10px;
+  border:none;
+  background:linear-gradient(135deg,#ffffff 0%,#f8fafc 100%);
+  color:#3b82f6;
+  cursor:pointer;
+  font-size:14px;
+  font-weight:500;
+  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+  box-shadow:0 2px 8px rgba(59,130,246,0.1),0 1px 2px rgba(0,0,0,0.05);
+  position:relative;
+  overflow:hidden;
+}
+.back-btn::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%);
+  opacity:0;
+  transition:opacity 0.3s ease;
+  border-radius:10px;
+}
+.back-btn:hover::before{opacity:1}
+.back-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(59,130,246,0.25),0 4px 8px rgba(0,0,0,0.1);
+}
+.back-btn:active{
+  transform:translateY(0);
+  box-shadow:0 2px 8px rgba(59,130,246,0.15);
+}
+.back-icon{
+  position:relative;
+  z-index:1;
+  transition:transform 0.3s ease;
+}
+.back-btn:hover .back-icon{
+  transform:translateX(-2px);
+}
+.back-text{
+  position:relative;
+  z-index:1;
+  transition:color 0.3s ease;
+}
+.back-btn:hover .back-text{
+  color:#ffffff;
+}
 /* 顶部已去除控制按钮，样式保留以便以后启用时复用 */
 /* .controls{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.7);box-shadow:0 6px 20px rgba(0,0,0,.06)} */
 /* .controls .btn-refresh{position:relative;height:32px;padding:0 14px;border-radius:8px;border:1px solid #bfdbfe;background:linear-gradient(90deg,#60a5fa,#3b82f6);color:white;cursor:pointer;overflow:hidden} */
@@ -548,6 +1181,9 @@ export default {
     0 16px 32px rgba(15, 23, 42, 0.10),
     0 1px 0 rgba(255,255,255,0.95) inset,
     0 -2px 0 rgba(226,232,240,1) inset;
+  display: flex;
+  flex-direction: column;
+  min-height: 280px;
 }
 .card-title{font-size:16px;font-weight:600;color:#0f172a;margin-bottom:12px}
 .glass{backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -568,22 +1204,36 @@ export default {
 .pie-chart{position:relative;width:100%;height:220px;display:flex;align-items:center;justify-content:center}
 .pie-chart svg{width:100%;max-width:240px;height:220px;filter:drop-shadow(0 12px 20px rgba(15,23,42,.12))}
 .pie-chart path{transition:transform .25s ease, filter .25s ease;transform-origin:100px 100px;cursor:pointer}
-.pie-chart path:hover{transform:scale(1.02);filter:brightness(1.05)}
+.pie-chart path:hover{transform:scale(1.05);filter:brightness(1.1)}
 .pie-empty{height:220px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#94a3b8;background:linear-gradient(180deg,#f8fafc,#fff);border-radius:12px}
 .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
 .legend-item{font-size:12px;color:#0f172a;padding:4px 12px;border-radius:999px;border:1px solid transparent;background:#f8fafc;box-shadow:inset 0 1px 2px rgba(255,255,255,.65)}
-.legend-item.todo{background:#e1e7f4;border-color:#c5cee4;color:#324e9b}
-.legend-item.doing{background:#e1eef4;border-color:#bedae7;color:#166086}
-.legend-item.blocked{background:#f8e5da;border-color:#f1c7ae;color:#b75016}
-.legend-item.done{background:#ddece5;border-color:#c0ded2;color:#1f6f55}
-.bar-chart{display:flex;align-items:flex-end;height:180px;gap:10px;padding:0 8px}
-.bar-wrap{position:relative;flex:1;display:flex;align-items:flex-end;justify-content:center}
-.bar{flex:1;background:linear-gradient(180deg,#93c5fd,#3b82f6);border-radius:6px;height:var(--h);transition:height 600ms cubic-bezier(.2,.8,.2,1);box-shadow:0 6px 18px rgba(59,130,246,.2)}
-.bar-label{position:absolute;bottom:calc(var(--h) + 6px);transform:translateY(50%);font-size:12px;color:#334155;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:8px;border:1px solid #e6eaf2;white-space:nowrap}
-.bar::after{content:'';display:block;height:100%;background:linear-gradient(180deg,transparent 0,rgba(255,255,255,.35) 40%,transparent 100%)}
-.line-chart{height:180px;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center}
-.line{stroke-dasharray:200;stroke-dashoffset:200;animation:dash 1200ms ease forwards}
-.line-label{font-size:3px;fill:#334155}
+.legend-item.todo{background:#dbeafe;border-color:#93c5fd;color:#1e40af}
+.legend-item.doing{background:#dbeafe;border-color:#60a5fa;color:#1e3a8a}
+.legend-item.blocked{background:#fef3c7;border-color:#fbbf24;color:#92400e}
+.legend-item.done{background:#d1fae5;border-color:#34d399;color:#065f46}
+.bar-chart-container{display:flex;flex-direction:column;gap:16px;min-height:240px;justify-content:flex-end;margin-top:auto}
+.bar-chart{display:flex;align-items:flex-end;height:200px;gap:12px;padding:0 12px;min-height:200px;justify-content:center;flex:0 0 auto}
+.bar-wrap{position:relative;flex:1;max-width:80px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0;height:100%}
+.bar{width:100%;min-width:32px;max-width:60px;background:linear-gradient(180deg,#60a5fa 0%,#3b82f6 50%,#2563eb 100%);border-radius:8px 8px 0 0;height:var(--h);min-height:20px;transition:all 400ms cubic-bezier(0.4,0,0.2,1);box-shadow:0 4px 12px rgba(59,130,246,0.25),0 2px 4px rgba(59,130,246,0.15);cursor:pointer;flex-shrink:0;position:relative;overflow:hidden}
+.bar::before{content:'';position:absolute;top:0;left:0;right:0;height:30%;background:linear-gradient(180deg,rgba(255,255,255,0.4) 0%,rgba(255,255,255,0) 100%);border-radius:8px 8px 0 0}
+.bar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(255,255,255,0.3)}
+.bar:hover{background:linear-gradient(180deg,#7dd3fc 0%,#60a5fa 50%,#3b82f6 100%);box-shadow:0 8px 20px rgba(59,130,246,0.35),0 4px 8px rgba(59,130,246,0.2);transform:translateY(-4px) scale(1.05)}
+.bar-placeholder{width:100%;min-width:32px;max-width:60px;height:0;flex-shrink:0}
+.bar-label{font-size:11px;font-weight:700;color:#1e40af;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);padding:4px 8px;border-radius:6px;border:1.5px solid #dbeafe;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.04);position:absolute;bottom:calc(100% + 6px);z-index:10;backdrop-filter:blur(4px)}
+.bar-names{display:flex;gap:12px;padding:0 12px 8px;justify-content:center;align-items:center;flex:0 0 auto}
+.bar-name{font-size:12px;color:#475569;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;max-width:80px;font-weight:600;padding:4px 0;letter-spacing:0.3px}
+.bar-chart-empty{height:200px;display:flex;align-items:center;justify-content:center}
+.empty-text{font-size:14px;color:#94a3b8}
+.line-chart{height:220px;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:20px 20px 10px 20px;position:relative;overflow:visible}
+.line-chart-empty{height:220px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px}
+.line-chart svg{width:100%;height:100%;overflow:visible}
+.line-area{opacity:0.6;transition:opacity 0.3s ease}
+.line{stroke-dasharray:200;stroke-dashoffset:200;animation:dash 1200ms ease forwards;filter:drop-shadow(0 2px 4px rgba(59,130,246,0.2))}
+.line-point{filter:drop-shadow(0 2px 4px rgba(59,130,246,0.3));transition:all 0.3s ease;cursor:pointer}
+.line-point:hover{r:3.5;fill:#2563eb}
+.line-label{font-size:3.5px;fill:#1e40af;font-weight:600;text-anchor:middle;pointer-events:none}
+.line-date{font-size:3px;fill:#64748b;font-weight:500;text-anchor:middle;pointer-events:none}
 .timeline .steps{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
 .timeline .steps li{display:flex;align-items:center;gap:12px}
 .timeline .steps .name{font-weight:600;color:#0f172a}

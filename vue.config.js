@@ -3,9 +3,11 @@
  * 
  * 代理规则说明：
  * - 代理规则按照从上到下的顺序匹配，更具体的路径规则应该放在前面
- * - /zhiyan/api/projects/* → http://localhost:8095 (项目服务，端口8095)
+ * - /zhiyan/projects/* → http://localhost:8095 (项目服务，端口8095)
+ * - /zhiyan/auth/* → http://localhost:8091 (认证服务，端口8091)
+ * - /zhiyan/api/projects/* → http://localhost:8095 (项目服务，端口8095，旧路径兼容)
  * - /zhiyan/api/users/* → http://localhost:8095 (用户搜索，通过项目服务，端口8095)
- * - /zhiyan/api/auth/* → http://localhost:8091 (认证服务，端口8091)
+ * - /zhiyan/api/auth/* → http://localhost:8091 (认证服务，端口8091，旧路径兼容)
  * - /zhiyan/* → http://localhost:8091 (其他API默认使用认证服务，端口8091)
  */
 module.exports = {
@@ -19,6 +21,16 @@ module.exports = {
     proxy: {
       // ✅ 项目相关API - 转发到8095端口（项目服务）
       // 包含：创建项目、更新项目、删除项目、获取项目列表等
+      // URL示例：/zhiyan/projects/* → http://localhost:8095/zhiyan/projects/*
+      '/zhiyan/projects': {
+        target: 'http://localhost:8095',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+        // 不需要pathRewrite，直接转发 /zhiyan/projects/* 到后端
+      },
+      // ✅ 项目相关API（旧路径兼容） - 转发到8095端口（项目服务）
       // URL示例：/zhiyan/api/projects → http://localhost:8095/api/projects
       '/zhiyan/api/projects': {
         target: 'http://localhost:8095',
@@ -157,7 +169,7 @@ module.exports = {
       },
       // ✅ Dify AI相关API - 转发到8096端口（Dify AI服务）
       // URL示例：/zhiyan/api/ai/* → http://localhost:8096/api/ai/*
-      '/zhiyan/api/ai': {
+      '/zhiyan/ai/dify': {
         target: 'http://localhost:8096',
         changeOrigin: true,
         secure: false,
@@ -220,6 +232,16 @@ module.exports = {
         timeout: 0
       },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
+      // URL示例：/zhiyan/auth/* → http://localhost:8091/zhiyan/auth/*
+      '/zhiyan/auth': {
+        target: 'http://localhost:8091',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+        // 不需要pathRewrite，直接转发 /zhiyan/auth/* 到后端
+      },
+      // ✅ 认证相关API（旧路径兼容） - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/api/auth/login → http://localhost:8091/api/auth/login
       '/zhiyan/api/auth': {
         target: 'http://localhost:8091',
