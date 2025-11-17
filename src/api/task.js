@@ -152,7 +152,7 @@ export const taskAPI = {
    */
   updateTask(taskId, taskData) {
     console.log('[taskAPI.updateTask] 更新任务, ID:', taskId, '数据:', taskData)
-    return api.put(`/zhiya/projects/tasks/${taskId}`, taskData)
+    return api.put(`/zhiyan/projects/tasks/${taskId}`, taskData)
   },
 
   /**
@@ -231,7 +231,7 @@ export const taskAPI = {
    */
   getMyAssignedTasks(page = 0, size = 20) {
     console.log('[taskAPI.getMyAssignedTasks] 获取我的所有任务')
-    return api.get('/zhiya/projects/tasks/my-assigned', {
+    return api.get('/zhiyan/projects/tasks/my-assigned', {
       params: { page, size }
     })
   },
