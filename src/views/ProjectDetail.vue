@@ -2270,7 +2270,7 @@ export default {
         return
       }
       // 不能移除项目拥有者
-      if (this.isOwner(member)) {
+      if (this.isOwnerMember(member)) {
         this.showSuccessToast('不能移除项目拥有者')
         return
       }
