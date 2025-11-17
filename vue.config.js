@@ -32,16 +32,6 @@ module.exports = {
       },
       // ✅ 项目相关API（旧路径兼容） - 转发到8095端口（项目服务）
       // URL示例：/zhiyan/api/projects → http://localhost:8095/api/projects
-      '/zhiyan/api/projects': {
-        target: 'http://localhost:8095',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        logLevel: 'debug',
-        pathRewrite: {
-          '^/zhiyan': '' // 移除 /zhiyan 前缀，转发为 /api/projects
-        }
-      },
       // ✅ 用户搜索API - 转发到8095端口（通过项目服务调用认证服务）
       // URL示例：/zhiyan/api/users/search → http://localhost:8095/api/users/search
       '/zhiyan/api/users': {
@@ -57,7 +47,7 @@ module.exports = {
       // ✅ Wiki相关API - 转发到8234端口（Wiki服务）
       // URL示例：/api/wiki/* → http://localhost:8234/api/wiki/*
       // 包含：Wiki页面管理、版本控制、搜索、导入导出等
-      '/api/wiki': {
+      '/zhiyan/wiki': {
         target: 'http://localhost:8234',
         changeOrigin: true,
         secure: false,
@@ -105,7 +95,7 @@ module.exports = {
       },
       // ✅ Coze AI相关API - 转发到8094端口（Coze AI服务）
       // URL示例：/zhiyan/api/coze/* → http://localhost:8094/api/coze/*
-      '/zhiyan/api/coze': {
+      '/zhiyan/ai/coze': {
         target: 'http://localhost:8094',
         changeOrigin: true,
         secure: false,
@@ -241,18 +231,7 @@ module.exports = {
         logLevel: 'debug'
         // 不需要pathRewrite，直接转发 /zhiyan/auth/* 到后端
       },
-      // ✅ 认证相关API（旧路径兼容） - 转发到8091端口（认证服务）
-      // URL示例：/zhiyan/api/auth/login → http://localhost:8091/api/auth/login
-      '/zhiyan/api/auth': {
-        target: 'http://localhost:8091',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        logLevel: 'debug',
-        pathRewrite: {
-          '^/zhiyan': ''
-        }
-      },
+     
       // ⚠️ 默认规则 - 转发到8091端口（认证服务）
       // 注意：这个规则必须放在最后，作为其他未匹配路径的默认规则
       '/zhiyan': {
