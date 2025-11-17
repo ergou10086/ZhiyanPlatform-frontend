@@ -164,16 +164,23 @@
 
     <div class="card glass gradient-border">
       <div class="card-title">成果统计</div>
-      <table class="table">
+      <table class="table" v-if="achievements.length > 0">
         <thead>
           <tr><th>成果名称</th><th>类型</th><th>负责人</th><th>状态</th><th>更新时间</th></tr>
         </thead>
         <tbody>
-          <tr><td>用户画像分析报告</td><td>数据分析</td><td>李娜</td><td><span class="badge success">已发布</span></td><td>2023-11-01</td></tr>
-          <tr><td>移动端交互原型</td><td>设计稿</td><td>王强</td><td><span class="badge warning">待审核</span></td><td>2023-11-03</td></tr>
-          <tr><td>后端 API 文档</td><td>技术文档</td><td>赵敏</td><td><span class="badge success">已发布</span></td><td>2023-10-28</td></tr>
+          <tr v-for="achievement in achievements" :key="achievement.id">
+            <td>{{ achievement.title }}</td>
+            <td>{{ achievement.typeName || getTypeDisplay(achievement.type) }}</td>
+            <td>{{ achievement.responsibleName || '未知' }}</td>
+            <td><span :class="getStatusBadgeClass(achievement.status)">{{ getStatusDisplay(achievement.status) }}</span></td>
+            <td>{{ formatDateTime(achievement.updatedAt || achievement.createdAt) }}</td>
+          </tr>
         </tbody>
       </table>
+      <div v-else class="achievement-empty">
+        <div class="empty-text">暂无成果数据</div>
+      </div>
     </div>
 
     <div v-if="tooltip.show" class="tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
@@ -184,6 +191,8 @@
 </template>
 
 <script>
+import { getLatestSubmission, getTaskSubmissions } from '@/api/taskSubmission'
+
 export default {
   name: 'ProjectDashboard',
   data() {
@@ -224,7 +233,11 @@ export default {
       // 成员工时数据
       memberWorktimes: [],
       // 近30天完成趋势数据
-      completionTrend: [] // [{ date: '2025-11-01', count: 3 }, ...]
+      completionTrend: [], // [{ date: '2025-11-01', count: 3 }, ...]
+      // 成果统计数据
+      achievements: [], // 成果列表
+      // 项目成员（用于解析负责人姓名）
+      projectMembers: []
     }
   },
   created() {
@@ -240,6 +253,8 @@ export default {
     await this.loadMemberWorktimes()
     // 加载近30天完成趋势数据
     await this.loadCompletionTrend()
+    // 加载成果统计数据
+    await this.loadAchievements()
     // 数字滚动动画
     Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
     // 饼图动画
@@ -579,7 +594,7 @@ export default {
         // 1. 获取项目成员列表
         const { projectAPI } = await import('@/api/project')
         const membersResponse = await projectAPI.getProjectMembers(projectId, 0, 100)
-        
+
         if (!membersResponse || membersResponse.code !== 200) {
           console.warn('[ProjectDashboard] 获取项目成员失败')
           return
@@ -592,15 +607,18 @@ export default {
           members = membersResponse.data
         }
 
+        this.projectMembers = members
+
         if (members.length === 0) {
           console.warn('[ProjectDashboard] 项目没有成员')
           this.memberWorktimes = []
+          this.updateAchievementOwners()
           return
         }
 
         console.log('[ProjectDashboard] 获取到项目成员:', members.length, '人')
 
-        // 2. 获取所有任务
+        // 2. 获取项目任务列表
         const { taskAPI } = await import('@/api/task')
         let allTasks = []
         let page = 0
@@ -612,7 +630,7 @@ export default {
           if (response && response.code === 200 && response.data) {
             const tasksData = response.data
             let taskList = []
-            
+
             if (tasksData.content && Array.isArray(tasksData.content)) {
               taskList = tasksData.content
               const totalPages = tasksData.totalPages || 0
@@ -623,10 +641,10 @@ export default {
             } else {
               hasMore = false
             }
-            
+
             allTasks = allTasks.concat(taskList)
             page++
-            
+
             if (taskList.length < size) {
               hasMore = false
             }
@@ -635,11 +653,12 @@ export default {
           }
         }
 
-        // 3. 获取每个任务的工时数据
-        const { worktimeAPI } = await import('@/api/worktime')
-        const memberWorktimeMap = new Map() // userId -> totalWorktime
+        console.log('[ProjectDashboard] 用于统计成员负载的任务数量:', allTasks.length)
 
-        // 初始化成员工时映射
+        // 3. 调用工时接口，按提交人/成员汇总真实工时（使用与任务详情相同的接口）
+        const memberWorktimeMap = new Map()
+
+        // 初始化成员映射
         members.forEach(member => {
           const userId = String(member.userId || member.id || '')
           memberWorktimeMap.set(userId, {
@@ -649,45 +668,138 @@ export default {
           })
         })
 
-        // 遍历所有任务，获取工时
+        const getSubmissionSubmitterId = (submission) => {
+          if (!submission) return null
+          if (submission.submitter && typeof submission.submitter === 'object') {
+            const id = submission.submitter.userId || submission.submitter.id
+            if (id || id === 0) return String(id)
+          }
+          const candidates = [
+            submission.submitterId,
+            submission.userId,
+            submission.ownerId,
+            submission.creatorId,
+            submission.createdBy
+          ]
+          for (const id of candidates) {
+            if (id || id === 0) return String(id)
+          }
+          return null
+        }
+
+        const getSubmissionSubmitterName = (submission, fallback = '未知用户') => {
+          if (!submission) return fallback
+          if (submission.submitter && typeof submission.submitter === 'object') {
+            const submitter = submission.submitter
+            const name = submitter.name || submitter.username || submitter.userName || submitter.nickname
+            if (name && String(name).trim() !== '' && name !== '未知用户') {
+              return String(name).trim()
+            }
+          }
+          const directFields = [
+            submission.submitterName,
+            submission.submitter_name,
+            submission.submitterUsername,
+            submission.submitter_username
+          ]
+          for (const field of directFields) {
+            if (field && String(field).trim() !== '' && field !== '未知用户') {
+              return String(field).trim()
+            }
+          }
+          return fallback
+        }
+
+        const ensureMemberEntry = (submitterId, submitterName) => {
+          let key = null
+          if (submitterId || submitterId === 0) {
+            key = String(submitterId)
+          }
+
+          if (key && memberWorktimeMap.has(key)) {
+            return key
+          }
+
+          // 如果通过ID没有匹配到成员，尝试用名字匹配项目成员
+          let matchedMember = null
+          if (submitterName) {
+            matchedMember = members.find(m => {
+              const nameCandidates = [m.username, m.name, m.realName, m.nickname]
+              return nameCandidates.some(n => n && String(n).trim() === submitterName)
+            })
+          }
+
+          if (matchedMember) {
+            const memberId = String(matchedMember.userId || matchedMember.id || submitterId || submitterName)
+            if (!memberWorktimeMap.has(memberId)) {
+              memberWorktimeMap.set(memberId, {
+                userId: memberId,
+                name: matchedMember.username || matchedMember.name || submitterName || '未知用户',
+                worktime: 0
+              })
+            }
+            return memberId
+          }
+
+          // 仍然匹配不到，就按名字单独建一个虚拟成员
+          const virtualKey = submitterName || key || 'unknown'
+          if (!memberWorktimeMap.has(virtualKey)) {
+            memberWorktimeMap.set(virtualKey, {
+              userId: virtualKey,
+              name: submitterName || '未知用户',
+              worktime: 0
+            })
+          }
+          return virtualKey
+        }
+
+        const parseSubmissionWorktime = (submission) => {
+          if (!submission) return 0
+          const candidates = [
+            submission.actualWorktime,
+            submission.actualWorkTime,
+            submission.worktime,
+            submission.workTime,
+            submission.hours,
+            submission.duration
+          ]
+          for (const value of candidates) {
+            if (value === null || value === undefined || value === '') continue
+            // 统一转成字符串再提取数字，兼容例如 "50", "50.5", "50 小时"
+            const str = String(value)
+            const match = str.match(/[-+]?[0-9]*\.?[0-9]+/)
+            if (!match) continue
+            const num = Number(match[0])
+            if (!Number.isNaN(num) && Number.isFinite(num) && num > 0) {
+              return num
+            }
+          }
+          return 0
+        }
+
         for (const task of allTasks) {
+          const taskId = task && task.id
+          if (!taskId) continue
           try {
-            // 获取任务的最新提交记录
-            const submissionResponse = await worktimeAPI.getLatestWorktime(task.id)
-            if (submissionResponse && submissionResponse.code === 200 && submissionResponse.data) {
-              const submission = submissionResponse.data
-              const actualWorktime = submission.actualWorktime
-              
-              if (actualWorktime && actualWorktime > 0) {
-                // 获取任务的执行者
-                const assignees = task.assignees || []
-                if (Array.isArray(assignees) && assignees.length > 0) {
-                  // 如果有多个执行者，平均分配工时
-                  const worktimePerAssignee = Number(actualWorktime) / assignees.length
-                  
-                  assignees.forEach(assignee => {
-                    const assigneeId = String(assignee.userId || assignee.id || '')
-                    if (memberWorktimeMap.has(assigneeId)) {
-                      const memberData = memberWorktimeMap.get(assigneeId)
-                      memberData.worktime += worktimePerAssignee
-                    }
-                  })
-                } else if (task.assignee_id && Array.isArray(task.assignee_id) && task.assignee_id.length > 0) {
-                  // 兼容旧的assignee_id格式
-                  const worktimePerAssignee = Number(actualWorktime) / task.assignee_id.length
-                  task.assignee_id.forEach(assigneeId => {
-                    const id = String(assigneeId)
-                    if (memberWorktimeMap.has(id)) {
-                      const memberData = memberWorktimeMap.get(id)
-                      memberData.worktime += worktimePerAssignee
-                    }
-                  })
-                }
+            const response = await getLatestSubmission(taskId)
+            if (response && response.code === 200 && response.data) {
+              const submission = response.data
+              const numericWorktime = parseSubmissionWorktime(submission)
+              console.log('[ProjectDashboard] latest worktime submission for task', taskId, '=>', submission, 'parsedWorktime=', numericWorktime)
+              if (numericWorktime <= 0) {
+                continue
               }
+
+              const submitterName = getSubmissionSubmitterName(submission)
+              const submitterId = getSubmissionSubmitterId(submission)
+              const key = ensureMemberEntry(submitterId, submitterName)
+              const item = memberWorktimeMap.get(key)
+              item.worktime += numericWorktime
+            } else {
+              console.log('[ProjectDashboard] 最新工时接口无数据或返回非200, taskId=', taskId, 'resp=', response)
             }
           } catch (error) {
-            // 如果获取某个任务的工时失败，继续处理下一个
-            console.warn(`[ProjectDashboard] 获取任务${task.id}的工时失败:`, error)
+            console.warn(`[ProjectDashboard] 获取任务${taskId}最新工时失败:`, error)
           }
         }
 
@@ -738,10 +850,14 @@ export default {
             heightPercent: m.heightPercent
           }))
         })
+        // 成员列表准备好后，再次尝试解析成果负责人
+        this.updateAchievementOwners()
 
       } catch (error) {
         console.error('[ProjectDashboard] 加载成员工时数据失败:', error)
         this.memberWorktimes = []
+        // 即便失败也尝试刷新，以防有部分成员数据
+        this.updateAchievementOwners()
       }
     },
 
@@ -756,6 +872,49 @@ export default {
       }
 
       try {
+        const normalizeStatus = (value) => {
+          if (!value && value !== 0) return ''
+          if (typeof value === 'string') return value.toUpperCase()
+          if (typeof value === 'object' && value.name) return String(value.name).toUpperCase()
+          return String(value).toUpperCase()
+        }
+
+        const toLocalDateStr = (dateInput) => {
+          if (!dateInput) return null
+          const date = new Date(dateInput)
+          if (Number.isNaN(date.getTime())) {
+            return null
+          }
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        }
+
+        const getTaskFallbackDate = (task) => {
+          if (!task) return null
+          const candidates = [
+            task.completedAt,
+            task.completed_at,
+            task.completedDate,
+            task.doneAt,
+            task.done_at,
+            task.finishAt,
+            task.finish_at,
+            task.finishTime,
+            task.endTime,
+            task.updatedAt,
+            task.updated_at
+          ]
+          for (const candidate of candidates) {
+            const dateStr = toLocalDateStr(candidate)
+            if (dateStr) {
+              return dateStr
+            }
+          }
+          return null
+        }
+
         // 1. 获取项目中所有状态为DONE的任务（按项目统计，不区分用户）
         const { taskAPI } = await import('@/api/task')
         let allDoneTasks = []
@@ -783,10 +942,15 @@ export default {
                 hasMore = false
               }
               
-              // 筛选出状态为DONE的任务（按项目统计，不区分用户）
+              // 筛选出状态为DONE/已完成/待审核的任务（按项目统计，不区分用户）
               const doneTasks = taskList.filter(task => {
-                const isDone = task.status === 'DONE' || task.status === '已完成'
-                return isDone
+                const status = normalizeStatus(task.status)
+                const doneStatuses = new Set(['DONE', 'COMPLETED', 'FINISHED'])
+                const pendingStatuses = new Set(['PENDING_REVIEW', 'PENDING'])
+                return doneStatuses.has(status) ||
+                  pendingStatuses.has(status) ||
+                  task.status === '已完成' ||
+                  task.status === '待审核'
               })
               allDoneTasks = allDoneTasks.concat(doneTasks)
               
@@ -810,7 +974,6 @@ export default {
 
         // 2. 对于每个任务，获取其提交记录，找到最后一次审核通过的记录
         // 重要：只有提交后被审核通过的任务才算完成的任务
-        const { worktimeAPI } = await import('@/api/worktime')
         const completionDates = [] // 存储所有任务的完成日期（审核通过时间）
         const skippedTasks = [] // 记录被跳过的任务
 
@@ -818,8 +981,8 @@ export default {
           try {
             console.log(`[ProjectDashboard] 处理任务${task.id}(${task.title})...`)
             
-            // 获取任务的所有提交记录
-            const submissionsResponse = await worktimeAPI.getTaskWorktimeHistory(task.id)
+            // 获取任务的所有提交记录（使用与任务详情相同的提交接口）
+            const submissionsResponse = await getTaskSubmissions(task.id)
             if (submissionsResponse && submissionsResponse.code === 200 && submissionsResponse.data) {
               const submissions = Array.isArray(submissionsResponse.data) 
                 ? submissionsResponse.data 
@@ -828,9 +991,10 @@ export default {
               console.log(`[ProjectDashboard] 任务${task.id}(${task.title}) 提交记录数: ${submissions.length}`)
               
               // 找到所有审核通过的记录（reviewStatus === 'APPROVED'）
-              const approvedSubmissions = submissions.filter(
-                sub => sub.reviewStatus === 'APPROVED' && sub.reviewTime
-              )
+              const approvedSubmissions = submissions.filter(sub => {
+                const reviewStatus = normalizeStatus(sub.reviewStatus)
+                return reviewStatus === 'APPROVED' && sub.reviewTime
+              })
               
               console.log(`[ProjectDashboard] 任务${task.id}(${task.title}) 审核通过记录数: ${approvedSubmissions.length}`)
               
@@ -844,33 +1008,65 @@ export default {
                 
                 const latestApproved = approvedSubmissions[0]
                 if (latestApproved.reviewTime) {
-                  // 使用审核通过时间作为完成时间
-                  // 使用本地时区处理日期，避免时区问题
-                  const reviewTimeStr = latestApproved.reviewTime
-                  const reviewDate = new Date(reviewTimeStr)
+                  const localDateStr = toLocalDateStr(latestApproved.reviewTime)
                   
-                  // 转换为本地日期字符串（YYYY-MM-DD），使用本地时区
-                  const year = reviewDate.getFullYear()
-                  const month = String(reviewDate.getMonth() + 1).padStart(2, '0')
-                  const day = String(reviewDate.getDate()).padStart(2, '0')
-                  const localDateStr = `${year}-${month}-${day}`
-                  
+                  if (localDateStr) {
+                    completionDates.push({
+                      date: localDateStr,
+                      taskId: task.id,
+                      taskTitle: task.title,
+                      reviewTime: latestApproved.reviewTime
+                    })
+                    
+                    console.log(`[ProjectDashboard] ✅ 任务${task.id}(${task.title}) 审核通过时间: ${latestApproved.reviewTime}, 本地日期: ${localDateStr}`)
+                    continue
+                  }
+                }
+              }
+
+              // ⚠️ 没有审核通过记录时的备用逻辑
+              const fallbackSubmission = submissions
+                .filter(sub => sub.reviewTime || sub.submissionTime)
+                .sort((a, b) => {
+                  const timeA = new Date(a.reviewTime || a.submissionTime || 0).getTime()
+                  const timeB = new Date(b.reviewTime || b.submissionTime || 0).getTime()
+                  return timeB - timeA
+                })[0]
+
+              if (fallbackSubmission) {
+                const fallbackDate = toLocalDateStr(fallbackSubmission.reviewTime || fallbackSubmission.submissionTime)
+                if (fallbackDate) {
+                  const fallbackStatus = normalizeStatus(fallbackSubmission.reviewStatus)
                   completionDates.push({
-                    date: localDateStr,
+                    date: fallbackDate,
                     taskId: task.id,
                     taskTitle: task.title,
-                    reviewTime: reviewTimeStr
+                    reviewTime: fallbackSubmission.reviewTime || null,
+                    submissionTime: fallbackSubmission.submissionTime || null,
+                    reviewStatus: fallbackStatus || 'UNKNOWN',
+                    isPending: fallbackStatus !== 'APPROVED'
                   })
-                  
-                  console.log(`[ProjectDashboard] ✅ 任务${task.id}(${task.title}) 审核通过时间: ${reviewTimeStr}, 本地日期: ${localDateStr}`)
+                  console.warn(`[ProjectDashboard] ⚠️ 任务${task.id}(${task.title}) 没有审核通过记录，使用${fallbackSubmission.reviewTime ? '审核时间' : '提交时间'}作为完成时间，状态=${fallbackStatus || 'N/A'}`)
                   continue
                 }
-              } else {
-                // 如果没有审核通过的记录，这个任务不应该被统计
-                const reason = submissions.length === 0 ? '没有提交记录' : '没有审核通过的记录'
-                skippedTasks.push({ taskId: task.id, taskTitle: task.title, reason })
-                console.warn(`[ProjectDashboard] ⚠️ 任务${task.id}(${task.title}) 状态为DONE但${reason}，跳过统计`)
               }
+
+              const fallbackTaskDate = getTaskFallbackDate(task)
+              if (fallbackTaskDate) {
+                completionDates.push({
+                  date: fallbackTaskDate,
+                  taskId: task.id,
+                  taskTitle: task.title,
+                  reviewTime: task.updatedAt || task.updated_at || null,
+                  fromTaskMeta: true
+                })
+                console.warn(`[ProjectDashboard] ⚠️ 任务${task.id}(${task.title}) 使用任务元数据(${task.updatedAt || task.updated_at || 'unknown'})作为完成日期`)
+                continue
+              }
+
+              const reason = submissions.length === 0 ? '没有提交记录' : '无法确定完成时间'
+              skippedTasks.push({ taskId: task.id, taskTitle: task.title, reason })
+              console.warn(`[ProjectDashboard] ⚠️ 任务${task.id}(${task.title}) 状态为DONE但${reason}，跳过统计`)
             } else {
               // 如果没有提交记录，这个任务不应该被统计
               skippedTasks.push({ taskId: task.id, taskTitle: task.title, reason: '无法获取提交记录' })
@@ -958,6 +1154,291 @@ export default {
       }
     },
 
+    /**
+     * 加载成果统计数据
+     */
+    async loadAchievements() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        // 项目ID不存在时，静默处理，不显示错误
+        this.achievements = []
+        return
+      }
+
+      try {
+        // 导入知识库API
+        const { knowledgeAPI } = await import('@/api/knowledge')
+        
+        // 获取项目的成果列表（获取前10条，按更新时间降序）
+        const response = await knowledgeAPI.getProjectAchievements(projectId, 0, 10)
+        
+        // 只处理成功响应（code === 200 且有数据）
+        if (response && response.code === 200 && response.data) {
+          const achievementsData = response.data
+          let achievementList = []
+          
+          // 处理分页数据
+          if (achievementsData.content && Array.isArray(achievementsData.content)) {
+            achievementList = achievementsData.content
+          } else if (Array.isArray(achievementsData)) {
+            achievementList = achievementsData
+          }
+          
+          this.achievements = achievementList
+          
+          // 只在有数据时输出日志
+          if (achievementList.length > 0) {
+            console.log('[ProjectDashboard] 成果数据加载完成:', {
+              total: achievementList.length,
+              achievements: achievementList.map(a => ({
+                id: a.id,
+                title: a.title,
+                type: a.typeName || a.type,
+                status: a.status,
+                creator: a.creatorName
+              }))
+            })
+          }
+          // 解析负责人姓名
+          this.updateAchievementOwners()
+        } else {
+          // 响应失败或没有数据时，静默处理，设置为空数组
+          // 不输出错误日志，避免干扰用户体验
+          this.achievements = []
+        }
+      } catch (error) {
+        // 捕获所有错误（包括网络错误、后端错误等），静默处理
+        // 不输出错误日志，避免干扰用户体验
+        this.achievements = []
+        this.updateAchievementOwners()
+      }
+    },
+
+    /**
+     * 根据接口返回与项目成员列表解析成果负责人姓名
+     */
+    updateAchievementOwners() {
+      if (!Array.isArray(this.achievements)) {
+        this.achievements = []
+        return
+      }
+
+      const memberMap = new Map()
+      if (Array.isArray(this.projectMembers)) {
+        this.projectMembers.forEach(member => {
+          const id = member ? (member.userId || member.id || member.memberId) : null
+          const name = member ? (member.username || member.name || member.nickname || member.realName) : null
+          if (id && name && typeof name === 'string' && name.trim() !== '') {
+            memberMap.set(String(id), name.trim())
+          }
+        })
+      }
+
+      const updatedAchievements = this.achievements.map(achievement => {
+        const responsibleName = this.resolveAchievementOwner(achievement, memberMap)
+        if (achievement.responsibleName === responsibleName) {
+          return achievement
+        }
+        return {
+          ...achievement,
+          responsibleName
+        }
+      })
+
+      this.achievements = updatedAchievements
+    },
+
+    /**
+     * 解析单条成果的负责人姓名
+     * @param {Object} achievement 
+     * @param {Map} memberMap 
+     * @returns {String}
+     */
+    resolveAchievementOwner(achievement, memberMap = new Map()) {
+      if (!achievement) {
+        return '未知'
+      }
+
+      const candidateStrings = [
+        achievement.responsibleName,
+        achievement.creatorName,
+        achievement.creator,
+        achievement.createdByName,
+        achievement.createdBy,
+        achievement.updatedByName,
+        achievement.ownerName,
+        achievement.managerName,
+        achievement.leaderName,
+        achievement.uploader,
+        achievement.username,
+        achievement.userName,
+        achievement.submitterName,
+        achievement.lastOperatorName
+      ]
+
+      const normalize = value => {
+        if (typeof value !== 'string') return null
+        const trimmed = value.trim()
+        if (!trimmed) return null
+        if (trimmed === '未知' || trimmed === '未知用户') return null
+        return trimmed
+      }
+
+      for (const candidate of candidateStrings) {
+        const normalized = normalize(candidate)
+        if (normalized) {
+          return normalized
+        }
+      }
+
+      const nestedObjects = [
+        achievement.creatorUser,
+        achievement.createdByUser,
+        achievement.creatorInfo,
+        achievement.owner,
+        achievement.member,
+        achievement.submitter
+      ]
+
+      for (const obj of nestedObjects) {
+        if (obj && typeof obj === 'object') {
+          const nestedCandidate = normalize(
+            obj.name ||
+            obj.username ||
+            obj.userName ||
+            obj.nickname ||
+            obj.realName
+          )
+          if (nestedCandidate) {
+            return nestedCandidate
+          }
+        }
+      }
+
+      const idCandidates = [
+        achievement.creatorId,
+        achievement.createdById,
+        achievement.ownerId,
+        achievement.uploaderId,
+        achievement.submitterId,
+        achievement.memberId
+      ]
+
+      for (const id of idCandidates) {
+        if (!id && id !== 0) continue
+        const key = String(id)
+        if (memberMap.has(key)) {
+          return memberMap.get(key)
+        }
+      }
+
+      return '未知'
+    },
+
+    /**
+     * 根据成员ID获取显示姓名
+     */
+    getMemberDisplayNameById(userId, fallback = '未知用户') {
+      if (!userId && userId !== 0) {
+        return fallback
+      }
+      const idStr = String(userId)
+      if (Array.isArray(this.projectMembers)) {
+        const found = this.projectMembers.find(member => {
+          const candidateIds = [
+            member?.userId,
+            member?.id,
+            member?.memberId,
+            member?.member?.id,
+            member?.user?.id
+          ].filter(val => val || val === 0).map(val => String(val))
+          return candidateIds.includes(idStr)
+        })
+        if (found) {
+          return found.username ||
+            found.name ||
+            found.nickname ||
+            found.realName ||
+            found.displayName ||
+            fallback
+        }
+      }
+      return fallback
+    },
+
+    /**
+     * 获取状态显示文本
+     */
+    getStatusDisplay(status) {
+      const statusMap = {
+        'draft': '草稿',
+        'under_review': '审核中',
+        'published': '已发布',
+        'obsolete': '已归档',
+        'DRAFT': '草稿',
+        'UNDER_REVIEW': '审核中',
+        'PUBLISHED': '已发布',
+        'OBSOLETE': '已归档'
+      }
+      return statusMap[status] || status || '未知'
+    },
+
+    /**
+     * 获取状态样式类
+     */
+    getStatusBadgeClass(status) {
+      const statusClassMap = {
+        'draft': 'badge draft',
+        'under_review': 'badge warning',
+        'published': 'badge success',
+        'obsolete': 'badge obsolete',
+        'DRAFT': 'badge draft',
+        'UNDER_REVIEW': 'badge warning',
+        'PUBLISHED': 'badge success',
+        'OBSOLETE': 'badge obsolete'
+      }
+      return statusClassMap[status] || 'badge'
+    },
+
+    /**
+     * 获取类型显示文本
+     */
+    getTypeDisplay(type) {
+      const typeMap = {
+        'paper': '论文',
+        'patent': '专利',
+        'dataset': '数据集',
+        'model': '模型文件',
+        'report': '实验报告',
+        'custom': '自定义成果'
+      }
+      return typeMap[type] || type || '未知'
+    },
+
+    /**
+     * 格式化日期时间显示
+     */
+    formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return '未知'
+      try {
+        const date = new Date(dateTimeStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      } catch (error) {
+        // 如果日期格式不对，尝试直接处理字符串
+        if (typeof dateTimeStr === 'string') {
+          // 尝试提取日期部分 (YYYY-MM-DD)
+          const match = dateTimeStr.match(/(\d{4}-\d{2}-\d{2})/)
+          if (match) {
+            return match[1]
+          }
+        }
+        return dateTimeStr
+      }
+    },
+
     polarToCartesian(cx, cy, radius, angleInDegrees) {
       const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0
       return {
@@ -972,7 +1453,11 @@ export default {
       let sweep = endAngle - startAngle
       if (sweep <= 0) return ''
       if (sweep >= 360) {
-        return `M ${cx} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx - 0.01} ${cy - radius} A ${radius} ${radius} 0 1 1 ${cx} ${cy - radius} Z`
+        // 绘制完整的圆形：使用两个180度圆弧，确保完美连接
+        const topPoint = this.polarToCartesian(cx, cy, radius, 0)
+        const bottomPoint = this.polarToCartesian(cx, cy, radius, 180)
+        // 从圆心到顶部点，然后画两个180度圆弧形成完整圆
+        return `M ${cx} ${cy} L ${topPoint.x} ${topPoint.y} A ${radius} ${radius} 0 1 1 ${bottomPoint.x} ${bottomPoint.y} A ${radius} ${radius} 0 1 1 ${topPoint.x} ${topPoint.y} Z`
       }
       const start = this.polarToCartesian(cx, cy, radius, endAngle)
       const end = this.polarToCartesian(cx, cy, radius, startAngle)
@@ -1247,6 +1732,9 @@ export default {
 .badge{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600}
 .badge.success{background:#dcfce7;color:#15803d}
 .badge.warning{background:#fef9c3;color:#a16207}
+.badge.draft{background:#e5e7eb;color:#4b5563}
+.badge.obsolete{background:#f3f4f6;color:#6b7280}
+.achievement-empty{height:200px;display:flex;align-items:center;justify-content:center}
 @media (max-width: 1024px){
   .kpis{grid-template-columns:1fr 1fr}
   .charts{grid-template-columns:1fr}
