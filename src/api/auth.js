@@ -302,7 +302,6 @@ export const authAPI = {
   supplementOAuth2Info(data) {
     console.log('[authAPI.supplementOAuth2Info] 补充信息创建账号, provider:', data.provider)
     return api.post('/zhiyan/auth/oauth2/supplement', data)
-    return api.get('/zhiyan/auth/users/me')
   }
 }
 
