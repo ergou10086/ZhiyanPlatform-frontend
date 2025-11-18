@@ -1321,6 +1321,41 @@
         </div>
       </div>
     </div>
+
+    <!-- 删除成果确认弹窗 -->
+    <div v-if="deleteConfirmOpen" class="modal-overlay" @click="cancelDeleteFile">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">删除成果</h3>
+          <button class="modal-close" @click="cancelDeleteFile">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要删除成果"{{ fileToDelete ? fileToDelete.name : '' }}"吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelDeleteFile">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmDeleteFile">确认删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成功提示弹窗（居中，自动消失） -->
+    <div v-if="successToastVisible" class="success-modal-overlay">
+      <div class="success-modal-content">
+        <div class="success-modal-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#10b981" stroke-width="2" fill="#d1fae5"/>
+            <path d="M8 12L11 15L16 9" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="success-modal-title">操作成功</h3>
+        <p class="success-modal-message">{{ successToastMessage }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1354,18 +1389,6 @@ export default {
     archiveRows: {
       type: Array,
       default: () => []
-    },
-    
-    // 从 iframe 文本预览切换为纯文本模式
-    switchToPlainText() {
-      if (this.previewFileUrl) {
-        this.previewLoading = true
-        this.previewError = null
-        this.previewFileType = 'text'
-        this.loadTextContentForPreview(this.previewFileUrl).finally(() => {
-          this.previewLoading = false
-        })
-      }
     },
     projectId: {
       type: [String, Number],
@@ -1472,7 +1495,14 @@ export default {
           { content: '' }
         ],
         files: []
-      }
+      },
+      // 上传成功提示弹窗
+      successToastVisible: false,
+      successToastMessage: '',
+      successToastTimer: null,
+      // 删除成果确认弹窗
+      deleteConfirmOpen: false,
+      fileToDelete: null
     }
   },
   computed: {
@@ -1574,6 +1604,30 @@ export default {
     }
   },
   methods: {
+    // 显示上传成功提示（自动消失）
+    showSuccessToast(message) {
+      this.successToastMessage = message
+      this.successToastVisible = true
+      if (this.successToastTimer) {
+        clearTimeout(this.successToastTimer)
+      }
+      this.successToastTimer = setTimeout(() => {
+        this.successToastVisible = false
+        this.successToastMessage = ''
+        this.successToastTimer = null
+      }, 1500)
+    },
+    // 从 iframe 文本预览切换为纯文本模式
+    switchToPlainText() {
+      if (this.previewFileUrl) {
+        this.previewLoading = true
+        this.previewError = null
+        this.previewFileType = 'text'
+        this.loadTextContentForPreview(this.previewFileUrl).finally(() => {
+          this.previewLoading = false
+        })
+      }
+    },
     /**
      * 判断当前用户是否可以编辑指定成果
      */
@@ -1905,8 +1959,8 @@ export default {
             this.isAddingToExisting = false
             this.targetAchievementId = null
             this.showUploadDialog = false
-            
-            alert(`已成功添加${files.length}个文件到成果中！`)
+
+            this.showSuccessToast(`已成功添加${files.length}个文件到成果中！`)
             return
           }
           
@@ -1947,8 +2001,8 @@ export default {
           
           // 6. 跳转到最后一页显示新上传的成果
           this.goToLastPage()
-          
-          alert(`成果"${this.achievementForm.name}"创建成功！已上传${files.length}个文件。`)
+
+          this.showSuccessToast(`成果"${this.achievementForm.name}"创建成功！已上传${files.length}个文件。`)
           
         } catch (error) {
           console.error('上传失败:', error)
@@ -2691,10 +2745,25 @@ export default {
     },
     
     
-    async deleteFile(file) {
-      if (confirm(`确定要删除成果"${file.name}"吗？此操作不可撤销。`)) {
-        try {
-          console.log('删除成果, ID:', file.id, '名称:', file.name)
+    // 打开删除成果确认弹窗
+    deleteFile(file) {
+      this.fileToDelete = file
+      this.deleteConfirmOpen = true
+    },
+    // 取消删除成果
+    cancelDeleteFile() {
+      this.deleteConfirmOpen = false
+      this.fileToDelete = null
+    },
+    // 确认删除成果
+    async confirmDeleteFile() {
+      if (!this.fileToDelete) {
+        this.cancelDeleteFile()
+        return
+      }
+      const file = this.fileToDelete
+      try {
+        console.log('删除成果, ID:', file.id, '名称:', file.name)
           
           // 调用后端API删除成果
           const response = await knowledgeAPI.deleteAchievement(file.id)
@@ -2740,11 +2809,13 @@ export default {
             console.log('✅ 视图更新完成，当前列表数量:', this.uploadedFiles.length)
             console.log('✅ 当前页数据:', this.paginatedFiles)
             
-            alert('成果删除成功！')
+            this.showSuccessToast('成果删除成功！')
+            this.cancelDeleteFile()
           } else {
             const errorMsg = response?.msg || response?.message || '删除失败，服务器返回异常'
             console.error('❌ 删除失败:', errorMsg)
-            throw new Error(errorMsg)
+            this.cancelDeleteFile()
+            alert('删除失败: ' + errorMsg)
           }
         } catch (error) {
           console.error('❌ 删除成果异常:', error)
@@ -2753,9 +2824,9 @@ export default {
             response: error.response,
             stack: error.stack
           })
+          this.cancelDeleteFile()
           alert('删除失败: ' + (error.message || error.toString() || '请重试'))
         }
-      }
     },
     
     // 多文件相关方法
@@ -4024,6 +4095,82 @@ export default {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 成功提示弹窗样式 */
+.success-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.success-modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  min-width: 320px;
+  max-width: 480px;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.success-modal-icon {
+  margin: 0 auto 20px;
+  animation: checkmarkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+}
+
+.success-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #10b981;
+  margin: 0 0 12px 0;
+}
+
+.success-modal-message {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.6;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes checkmarkPop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 </style>
