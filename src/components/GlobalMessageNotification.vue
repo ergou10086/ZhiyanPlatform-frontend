@@ -20,35 +20,57 @@
       <div v-if="showPanel" class="message-panel" @click.stop v-click-outside="closeMessagePanel">
         <!-- 面板头部 -->
         <div class="panel-header">
-          <div class="header-title">
+          <div class="header-left">
             <span class="title-text">消息通知</span>
-            <span v-if="unreadCount > 0" class="unread-badge">{{ unreadCount }}</span>
+            <span v-if="unreadCount > 0" class="unread-count">{{ unreadCount }}</span>
           </div>
-          <div class="header-actions">
-            <el-button 
-              type="text" 
-              size="small" 
-              @click="markAllRead"
-              :disabled="unreadCount === 0"
-            >
-              全部已读
-            </el-button>
+          <div class="header-right">
+            <button class="action-btn" @click="markAllRead" :disabled="unreadCount === 0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>全部已读</span>
+            </button>
           </div>
         </div>
 
-        <!-- 消息场景筛选 -->
-        <div class="scene-filter">
-          <el-radio-group v-model="selectedScene" size="small" @change="handleSceneChange">
-            <el-radio-button label="">全部</el-radio-button>
-            <el-radio-button label="TASK_ASSIGNED">任务</el-radio-button>
-            <el-radio-button label="PROJECT_INVITE">项目</el-radio-button>
-            <el-radio-button label="SYSTEM_NOTICE">系统</el-radio-button>
-          </el-radio-group>
+        <!-- 标签页切换 -->
+        <div class="tabs">
+          <div 
+            class="tab-item" 
+            :class="{ 'active': selectedScene === '' }"
+            @click="switchScene('')"
+          >
+            全部
+          </div>
+          <div 
+            class="tab-item" 
+            :class="{ 'active': selectedScene === 'TASK_ASSIGNED' }"
+            @click="switchScene('TASK_ASSIGNED')"
+          >
+            任务
+          </div>
+          <div 
+            class="tab-item" 
+            :class="{ 'active': selectedScene === 'PROJECT_INVITE' }"
+            @click="switchScene('PROJECT_INVITE')"
+          >
+            项目
+          </div>
+          <div 
+            class="tab-item" 
+            :class="{ 'active': selectedScene === 'SYSTEM_NOTICE' }"
+            @click="switchScene('SYSTEM_NOTICE')"
+          >
+            系统
+          </div>
         </div>
 
         <!-- 消息列表 -->
-        <div class="message-list" v-loading="loading">
-          <div v-if="messages.length === 0" class="empty-state">
+        <div class="message-list">
+          <!-- 空状态 -->
+          <div v-if="!loading && messages.length === 0" class="empty-state">
             <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -56,6 +78,13 @@
             <p>暂无消息</p>
           </div>
 
+          <!-- 加载状态 -->
+          <div v-if="loading" class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>加载中...</p>
+          </div>
+
+          <!-- 消息项 -->
           <div 
             v-for="message in messages" 
             :key="message.id" 
@@ -78,27 +107,12 @@
             <!-- 未读标记 -->
             <div v-if="!message.isRead" class="unread-dot"></div>
 
-            <!-- 操作按钮 -->
-            <div class="message-actions">
-              <el-button 
-                type="text" 
-                size="mini" 
-                icon="el-icon-delete"
-                @click.stop="handleDeleteMessage(message.id)"
-              />
-            </div>
-          </div>
-
-          <!-- 加载更多 -->
-          <div v-if="hasMore" class="load-more">
-            <el-button 
-              type="text" 
-              size="small" 
-              @click="loadMore"
-              :loading="loadingMore"
-            >
-              加载更多
-            </el-button>
+            <!-- 删除按钮 -->
+            <button class="delete-btn" @click.stop="handleDeleteMessage(message.id)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -244,7 +258,13 @@ export default {
     /**
      * 场景切换
      */
-    handleSceneChange() {
+    switchScene(scene) {
+      if (this.selectedScene === scene) return
+      
+      this.selectedScene = scene
+      this.loading = true
+      this.messages = []
+      this.currentPage = 0
       this.loadMessages(true)
     },
 
@@ -521,6 +541,7 @@ export default {
   top: calc(100% + 12px);
   right: 0;
   width: 400px;
+  min-height: 400px;
   max-height: 600px;
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
@@ -530,6 +551,7 @@ export default {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: height 0.3s ease;
 }
 
 /* 面板顶部小三角 */
@@ -560,13 +582,14 @@ export default {
 /* 面板头部 */
 .panel-header {
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 1px solid var(--border-secondary);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: var(--bg-primary);
 }
 
-.header-title {
+.header-left {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -578,18 +601,79 @@ export default {
   color: var(--text-primary);
 }
 
-.unread-badge {
+.unread-count {
   background: var(--danger-color);
   color: white;
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
 }
 
-/* 场景筛选 */
-.scene-filter {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border-primary);
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  color: var(--primary-color);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: var(--primary-lightest);
+}
+
+.action-btn:disabled {
+  color: var(--text-quaternary);
+  cursor: not-allowed;
+}
+
+.action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 标签页 */
+.tabs {
+  display: flex;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+}
+
+.tab-item {
+  flex: 1;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-item:hover {
+  color: var(--primary-color);
+}
+
+.tab-item.active {
+  color: var(--primary-color);
+  font-weight: 600;
+  border-bottom-color: var(--primary-color);
 }
 
 /* 消息列表 */
@@ -597,6 +681,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   max-height: 450px;
+  transition: all 0.3s ease;
 }
 
 .empty-state {
@@ -611,6 +696,32 @@ export default {
 }
 
 .empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 加载状态 */
+.loading-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 3px solid var(--border-secondary);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state p {
   margin: 0;
   font-size: 14px;
 }
@@ -706,21 +817,33 @@ export default {
   border-radius: 50%;
 }
 
-.message-actions {
-  flex-shrink: 0;
+.delete-btn {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.message-item:hover .message-actions {
+.delete-btn:hover {
+  background: var(--danger-lightest);
+  color: var(--danger-color);
+}
+
+.message-item:hover .delete-btn {
   opacity: 1;
 }
 
-/* 加载更多 */
-.load-more {
-  padding: 12px 20px;
-  text-align: center;
-}
 
 /* 过渡动画 */
 .slide-fade-enter-active {
@@ -740,6 +863,7 @@ export default {
   transform: translateY(-10px);
   opacity: 0;
 }
+
 
 /* 响应式 */
 @media (max-width: 768px) {
