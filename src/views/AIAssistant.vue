@@ -31,8 +31,33 @@
     <!-- 主要内容区域 -->
     <div class="main-content">
       <h1 class="page-main-title">AI 实验分析助手</h1>
+      
+      <!-- 模式切换Tab -->
+      <div class="mode-tabs">
+        <button 
+          :class="['mode-tab', { active: currentMode === 'chat' }]"
+          @click="switchMode('chat')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          对话问答
+        </button>
+        <button 
+          :class="['mode-tab', { active: currentMode === 'taskResult' }]"
+          @click="switchMode('taskResult')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5V5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 12H15M9 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          任务成果草稿
+        </button>
+      </div>
+      
       <!-- 主内容布局：左侧对话区域，右侧文件列表 -->
-      <div class="main-layout">
+      <div class="main-layout" v-if="currentMode === 'chat'">
         <!-- AI对话区域 -->
         <div class="ai-chat-section">
         <div class="chat-header">
@@ -198,6 +223,204 @@
                   </svg>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 任务成果草稿模式布局 -->
+      <div class="main-layout task-result-layout" v-else-if="currentMode === 'taskResult'">
+        <!-- 左侧：项目与任务选择 -->
+        <div class="task-config-panel">
+          <h2 class="section-title">任务成果草稿</h2>
+          <p class="section-subtitle">
+            请选择项目和已完成的任务，AI 会根据任务的提交内容、附件和审核意见生成一份可记录的成果草稿。
+          </p>
+
+          <!-- 步骤 1：选择项目 -->
+          <div class="task-step">
+            <div class="task-step-header">
+              <span class="task-step-index">1</span>
+              <div class="task-step-text">
+                <div class="task-step-title">选择项目</div>
+                <div class="task-step-desc">先选择需要生成成果的项目</div>
+              </div>
+            </div>
+            <div class="task-step-body">
+              <select
+                v-model="taskResultProjectId"
+                class="project-select"
+              >
+                <option disabled value="">请选择项目</option>
+                <option
+                  v-for="project in availableProjects"
+                  :key="project.id"
+                  :value="project.id"
+                >
+                  {{ project.title || project.name || '未命名项目' }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 步骤 2：选择已完成任务 -->
+          <div class="task-step">
+            <div class="task-step-header">
+              <span class="task-step-index">2</span>
+              <div class="task-step-text">
+                <div class="task-step-title">选择已完成任务</div>
+                <div class="task-step-desc">从该项目中选择一个或多个已完成的任务，作为成果生成的依据</div>
+              </div>
+            </div>
+            <div class="task-step-body">
+              <button
+                class="btn-primary"
+                :disabled="!taskResultProjectId"
+                @click="openTaskSelectDialog"
+              >
+                选择已完成任务
+              </button>
+              <p v-if="!taskResultProjectId" class="hint-text">
+                请先选择项目
+              </p>
+            </div>
+          </div>
+
+          <!-- 已选任务列表 -->
+          <div class="selected-tasks" v-if="selectedTaskSummaries.length > 0">
+            <div class="selected-tasks-header">
+              <h3>已选任务 ({{ selectedTaskSummaries.length }})</h3>
+              <button class="link-btn" @click="clearSelectedTasks">清空</button>
+            </div>
+            <div class="selected-tasks-list">
+              <div
+                v-for="task in selectedTaskSummaries"
+                :key="task.id"
+                class="selected-task-item"
+              >
+                <div class="task-main">
+                  <div class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</div>
+                  <div class="task-meta">
+                    <span class="task-id">ID: {{ task.id }}</span>
+                    <span v-if="task.assignee" class="task-assignee">负责人：{{ task.assignee }}</span>
+                  </div>
+                </div>
+                <button class="task-remove-btn" @click="removeSelectedTask(task.id)">
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+          <div v-else class="selected-tasks empty">
+            <p class="hint-text">尚未选择任务，请从项目中选择已完成任务。</p>
+          </div>
+        </div>
+
+        <!-- 右侧：提示词与成果预览 -->
+        <div class="task-result-panel">
+          <h2 class="section-title">成果草稿生成</h2>
+          <p class="section-subtitle">
+            你可以补充对成果格式或侧重点的要求，例如：
+            “按照论文结构生成一份实验成果总结，突出创新点和关键数据”。
+          </p>
+
+          <div class="prompt-area">
+            <textarea
+              v-model="taskResultPrompt"
+              class="prompt-textarea"
+              placeholder="可以在这里补充你对成果草稿的要求（可选）"
+              rows="5"
+            ></textarea>
+            <button
+              class="btn-primary generate-btn"
+              :disabled="selectedTaskIds.length === 0 || isGeneratingTaskResult"
+              @click="generateTaskResultDraft"
+            >
+              <span v-if="!isGeneratingTaskResult">生成成果草稿</span>
+              <span v-else>正在生成...</span>
+            </button>
+          </div>
+
+          <div class="task-result-output" v-if="taskResultOutput">
+            <h3>生成结果</h3>
+            <div class="task-result-content" v-html="formatMarkdown(taskResultOutput)"></div>
+          </div>
+          <div class="task-result-output empty" v-else>
+            <p class="hint-text">生成的成果草稿会显示在这里。</p>
+          </div>
+        </div>
+
+        <!-- 选择任务的弹窗 -->
+        <div v-if="showTaskSelectDialog" class="file-dialog-overlay ai-view" @click="closeTaskSelectDialog">
+          <div class="file-dialog" @click.stop>
+            <div class="file-dialog-header">
+              <div class="header-content">
+                <h3>选择已完成任务</h3>
+                <p class="header-subtitle">
+                  从当前项目中选择一个或多个已完成任务。后端任务列表接口接入后，这里会展示真实数据。
+                </p>
+              </div>
+              <button class="close-btn" @click="closeTaskSelectDialog">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+            <div class="file-dialog-body">
+              <div v-if="taskListLoading" class="loading-container">
+                <div class="loading-spinner-large"></div>
+                <p class="loading-text">正在加载任务列表...</p>
+              </div>
+              <div v-else-if="availableDoneTasks.length === 0" class="empty-state">
+                <div class="empty-icon">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <p class="empty-text">暂未加载到已完成任务。后端接口接入后，这里会显示真实任务列表。</p>
+              </div>
+              <div v-else class="file-list-container">
+                <div class="file-list">
+                  <div
+                    v-for="task in availableDoneTasks"
+                    :key="task.id"
+                    class="file-card"
+                    :class="{ 'selected': selectedTaskIds.includes(task.id) }"
+                    @click="toggleTaskSelection(task)"
+                  >
+                    <div class="file-card-content">
+                      <div class="file-card-main">
+                        <div class="file-name-wrapper">
+                          <div class="file-name">{{ task.title || '未命名任务' }}</div>
+                          <div class="file-badge-group">
+                            <span class="file-type-badge">已完成</span>
+                            <span v-if="task.assignee" class="file-count-badge">负责人：{{ task.assignee }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="file-select-indicator" :class="{ 'active': selectedTaskIds.includes(task.id) }">
+                        <div class="checkmark-circle">
+                          <svg v-if="selectedTaskIds.includes(task.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="file-dialog-footer">
+              <button class="btn-cancel" @click="closeTaskSelectDialog">取消</button>
+              <button
+                class="btn-confirm"
+                @click="confirmTaskSelection"
+                :disabled="selectedTaskIds.length === 0"
+                :class="{ 'disabled': selectedTaskIds.length === 0 }"
+              >
+                <span>确认选择</span>
+                <span v-if="selectedTaskIds.length > 0" class="selected-count">{{ selectedTaskIds.length }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -422,6 +645,8 @@ export default {
   },
   data() {
     return {
+      // 当前模式：chat 对话问答 / taskResult 任务成果草稿
+      currentMode: 'chat',
       sidebarOpen: false,
       activeFilter: 'all',
       searchQuery: '',
@@ -448,6 +673,16 @@ export default {
       tasks: [],
       // 不同项目的任务数据
       projectTasks: {},
+      // 任务成果草稿模式相关
+      taskResultProjectId: '',
+      showTaskSelectDialog: false,
+      taskListLoading: false,
+      availableDoneTasks: [],
+      selectedTaskIds: [],
+      selectedTaskSummaries: [],
+      taskResultPrompt: '',
+      taskResultOutput: '',
+      isGeneratingTaskResult: false,
       // ⭐ 打字机效果相关
       typewriterTimer: null, // 打字机定时器
       typewriterQueue: '', // 打字机字符队列
@@ -607,6 +842,11 @@ export default {
     }
   },
   methods: {
+    // 切换左侧模式 Tab
+    switchMode(mode) {
+      this.currentMode = mode
+    },
+
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
     },
@@ -631,6 +871,102 @@ export default {
   
       // 重新加载项目任务数据（只调用一次）
       this.loadProjectTasks(project.id)
+    },
+
+    // === 任务成果草稿模式相关 ===
+    // 打开任务选择弹窗
+    openTaskSelectDialog() {
+      if (!this.taskResultProjectId) {
+        return
+      }
+
+      this.showTaskSelectDialog = true
+      this.taskListLoading = true
+
+      // 目前先从已有 tasks 中筛选 status === 'completed' 的任务作为示例
+      // 后续接入后端 ProjectTaskClient 接口后，在这里发请求替换掉本地筛选逻辑
+      this.$nextTick(() => {
+        const doneTasks = (this.tasks || []).filter(t => t.status === 'completed' || t.status === 'DONE')
+        this.availableDoneTasks = doneTasks.map(t => ({
+          id: t.id,
+          title: t.title,
+          assignee: t.assignee,
+          raw: t
+        }))
+        this.taskListLoading = false
+      })
+    },
+
+    closeTaskSelectDialog() {
+      this.showTaskSelectDialog = false
+    },
+
+    // 勾选/取消任务
+    toggleTaskSelection(task) {
+      const id = task.id
+      const index = this.selectedTaskIds.indexOf(id)
+      if (index > -1) {
+        this.selectedTaskIds.splice(index, 1)
+      } else {
+        this.selectedTaskIds.push(id)
+      }
+    },
+
+    // 确认选择任务，将其摘要保存到 selectedTaskSummaries
+    confirmTaskSelection() {
+      if (this.selectedTaskIds.length === 0) return
+
+      const selected = this.availableDoneTasks.filter(t => this.selectedTaskIds.includes(t.id))
+      this.selectedTaskSummaries = selected.map(t => ({
+        id: t.id,
+        title: t.title,
+        assignee: t.assignee
+      }))
+
+      this.showTaskSelectDialog = false
+    },
+
+    // 清空所有已选任务
+    clearSelectedTasks() {
+      this.selectedTaskIds = []
+      this.selectedTaskSummaries = []
+    },
+
+    // 移除单个已选任务
+    removeSelectedTask(taskId) {
+      this.selectedTaskIds = this.selectedTaskIds.filter(id => id !== taskId)
+      this.selectedTaskSummaries = this.selectedTaskSummaries.filter(t => t.id !== taskId)
+    },
+
+    // 模拟生成任务成果草稿（后续接入真实 AI 调用）
+    async generateTaskResultDraft() {
+      if (this.selectedTaskIds.length === 0 || this.isGeneratingTaskResult) {
+        return
+      }
+
+      this.isGeneratingTaskResult = true
+
+      // 简单占位：根据已选任务和提示词拼一段说明，方便先看交互效果
+      const taskTitles = this.selectedTaskSummaries.map(t => `- [${t.id}] ${t.title || '未命名任务'}`).join('\n')
+      const promptText = this.taskResultPrompt && this.taskResultPrompt.trim()
+        ? this.taskResultPrompt.trim()
+        : '请根据下列任务的提交信息、附件和审核意见，生成一份结构化的实验成果记录。'
+
+      const mockContent = `### 生成说明（占位）\n\n` +
+        `> 这里会展示由后端 + AI 生成的正式成果文稿。当前仅为前端占位文本，用于验证交互流程。\n\n` +
+        `**选中的项目 ID：** ${this.taskResultProjectId || '（未指定）'}\n\n` +
+        `**选中的任务：**\n${taskTitles || '- 暂无任务'}\n\n` +
+        `**你的补充要求：**\n${promptText}\n\n` +
+        `---\n\n` +
+        `> 下一步将接入：\n` +
+        `> 1. 后端 ProjectTaskClient 查询 DONE 任务详情及提交记录\n` +
+        `> 2. 知识模块 TaskResultDetailDTO 组装任务 + 人员 + 附件信息\n` +
+        `> 3. Dify 模块调用 AI 生成正式成果内容。`
+
+      // 模拟一点生成延迟
+      await new Promise(resolve => setTimeout(resolve, 600))
+      this.taskResultOutput = mockContent
+      this.isGeneratingTaskResult = false
     },
 
     // 同步任务状态变化
