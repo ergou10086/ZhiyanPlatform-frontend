@@ -80,21 +80,49 @@
                   </label>
                 </div>
                 <div class="created-summary" v-else>
-                  <div class="summary-item">
-                    <span class="summary-label">总任务</span>
-                    <span class="summary-value">{{ createdTaskStats.total }}</span>
+                  <div class="summary-card summary-total">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">总任务</span>
+                      <span class="summary-value">{{ createdTaskStats.total }}</span>
+                    </div>
                   </div>
-                  <div class="summary-item">
-                    <span class="summary-label">进行中</span>
-                    <span class="summary-value info">{{ createdTaskStats.inProgress }}</span>
+                  <div class="summary-card summary-progress">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">进行中</span>
+                      <span class="summary-value">{{ createdTaskStats.inProgress }}</span>
+                    </div>
                   </div>
-                  <div class="summary-item">
-                    <span class="summary-label">已完成</span>
-                    <span class="summary-value success">{{ createdTaskStats.completed }}</span>
+                  <div class="summary-card summary-completed">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">已完成</span>
+                      <span class="summary-value">{{ createdTaskStats.completed }}</span>
+                    </div>
                   </div>
-                  <div class="summary-item">
-                    <span class="summary-label">待开始</span>
-                    <span class="summary-value warning">{{ createdTaskStats.pending }}</span>
+                  <div class="summary-card summary-pending">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 8V12M12 16H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">待开始</span>
+                      <span class="summary-value">{{ createdTaskStats.pending }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -178,9 +206,6 @@
                       <div class="task-content">
                         <div class="task-header">
                           <h4 class="task-title">{{ task.taskTitle || task.title || '未命名任务' }}</h4>
-                          <span class="task-status-badge" :class="'status-' + (task.status || task.taskStatus || 'UNKNOWN')">
-                            {{ getStatusText(task.status || task.taskStatus) }}
-                          </span>
                         </div>
                         <p class="task-description" v-if="task.description || task.taskDescription">
                           {{ task.description || task.taskDescription }}
@@ -198,10 +223,8 @@
                             </span>
                             <span class="meta-sep">·</span>
                             <span class="meta-pair">
-                              <span class="meta-label">截止时间：</span>
-                              <span class="meta-value" :class="getDueDateClass(task)">
-                                {{ formatDueDate(task.dueDate || task.due_date || task.taskDueDate) }}
-                              </span>
+                              <span class="meta-label">提交时间：</span>
+                              <span class="meta-value">{{ formatSubmissionTime(task.submissionTime) }}</span>
                             </span>
                           </div>
                         </div>
@@ -244,6 +267,7 @@
                       <h4 class="chart-title">总览</h4>
                       <div class="kpi-group">
                         <span class="kpi-badge kpi-progress">进行中 {{ displayStats.inProgress }}</span>
+                        <span class="kpi-badge kpi-reviewing">待审核 {{ displayStats.reviewing }}</span>
                         <span class="kpi-badge kpi-done">已完成 {{ displayStats.completed }}</span>
                       </div>
                     </div>
@@ -267,6 +291,10 @@
                         <div class="mini-gauge" @click="openTaskListModal('inProgress')">
                           <div class="mini-title">进行中</div>
                           <div ref="gaugeInProgress" class="chart-box tiny clickable-chart"></div>
+                        </div>
+                        <div class="mini-gauge" @click="openTaskListModal('reviewing')">
+                          <div class="mini-title">待审核</div>
+                          <div ref="gaugeReviewing" class="chart-box tiny clickable-chart"></div>
                         </div>
                         <div class="mini-gauge" @click="openTaskListModal('completed')">
                           <div class="mini-title">已完成</div>
@@ -294,7 +322,8 @@
                     <div 
                       v-for="milestone in upcomingMilestones" 
                       :key="milestone.id"
-                      class="milestone-item"
+                      class="milestone-item clickable"
+                      @click="goToProject(milestone.projectId)"
                     >
                       <div class="milestone-info">
                         <span class="milestone-name">{{ milestone.title }}</span>
@@ -338,15 +367,6 @@
                       <span class="project-status-badge" :class="'status-' + project.status">
                         {{ getProjectStatusText(project.status) }}
                       </span>
-                    </div>
-                    <div class="project-progress">
-                      <div class="progress-bar">
-                        <div 
-                          class="progress-fill" 
-                          :style="{ width: (project.progress || 0) + '%' }"
-                        ></div>
-                      </div>
-                      <span class="progress-text">{{ project.progress || 0 }}%</span>
                     </div>
                   </div>
                   <div class="project-link" @click.stop="goToProject(project.id)">
@@ -553,6 +573,7 @@ export default {
         pending: 0,
         inProgress: 0,
         completed: 0,
+        reviewing: 0,
         high: 0,
         medium: 0,
         low: 0,
@@ -563,6 +584,7 @@ export default {
       displayStats: {
         inProgress: 0,
         completed: 0,
+        reviewing: 0,
         high: 0,
         medium: 0,
         low: 0
@@ -571,6 +593,7 @@ export default {
       upcomingMilestones: [],
       // 用于tooltip显示的任务列表
       inProgressTasks: [], // 进行中的任务列表
+      reviewingTasks: [], // 待审核任务列表
       completedTasks: [], // 已完成的任务列表
       highPriorityTasks: [], // 高优先级任务列表
       mediumPriorityTasks: [], // 中优先级任务列表
@@ -612,17 +635,23 @@ export default {
     statusBreakdown() {
       const total =
         (this.displayStats.inProgress || 0) +
-        (this.displayStats.completed || 0)
-      const palette = ['#7DD3A8', '#FBBF83']
+        (this.displayStats.completed || 0) +
+        (this.displayStats.reviewing || 0)
+      const palette = ['#7DD3A8', '#FBBF83', '#C7B9FF']
       const items = [
         { key: 'inProgress', label: '进行中', value: this.displayStats.inProgress || 0, color: palette[0] },
-        { key: 'completed', label: '已完成', value: this.displayStats.completed || 0, color: palette[1] }
+        { key: 'completed', label: '已完成', value: this.displayStats.completed || 0, color: palette[1] },
+        { key: 'reviewing', label: '待审核', value: this.displayStats.reviewing || 0, color: palette[2] }
       ]
       return items.map((item) => ({
         ...item,
         percent: total > 0 ? Math.round((item.value / total) * 100) : 0
       }))
     }
+  },
+  mounted() {
+    this.initPage()
+    this.ensureTooltipZIndex()
   },
   methods: {
     ensureTooltipZIndex() {
@@ -680,6 +709,7 @@ export default {
       this.taskStats.pending = sample.pending
       this.taskStats.inProgress = sample.inProgress
       this.taskStats.completed = sample.completed
+      this.taskStats.reviewing = sample.reviewing
       this.taskStats.high = sample.high
       this.taskStats.medium = sample.medium
       this.taskStats.low = sample.low
@@ -757,10 +787,11 @@ export default {
     async initPage() {
       this.loadUserInfo()
       // 并行加载所有数据，不等待图表初始化
+      this.applySampleTaskStats()
       await Promise.all([
         this.loadPendingTasks(),
         this.loadProjects(),
-        this.loadTaskStatistics(), // 内部已处理ECharts加载
+        this.loadTaskStatistics(),
         this.loadActivityLogs()
       ])
     },
@@ -807,6 +838,8 @@ export default {
         if (response.code === 200) {
           let tasks = response.data.content || []
           
+          console.log('[MyActivity] 加载的待审核任务:', tasks)
+          
           // 过滤逾期项
           if (this.showOverdueOnly) {
             const now = new Date()
@@ -820,16 +853,12 @@ export default {
           tasks = this.sortTasks(tasks, this.sortBy)
           
           this.pendingTasks = tasks
-        }
-
-        // 如果没有任何任务，填充示例数据以便先看到样式
-        if (!this.pendingTasks || this.pendingTasks.length === 0) {
-          this.pendingTasks = this.getSamplePendingTasks()
+        } else {
+          this.pendingTasks = []
         }
       } catch (error) {
         console.error('加载待审核任务失败:', error)
-        // 异常时使用示例数据
-        this.pendingTasks = this.getSamplePendingTasks()
+        this.pendingTasks = []
       } finally {
         this.isLoadingTasks = false
       }
@@ -881,13 +910,23 @@ export default {
     },
     
     getStatusText(status) {
+      if (!status) return '未知'
+      const normalized = String(status).toUpperCase()
       const statusMap = {
         'PENDING': '未开始',
+        'TODO': '未开始',
+        'NOT_STARTED': '未开始',
         'IN_PROGRESS': '进行中',
+        'PROGRESS': '进行中',
         'DONE': '已完成',
-        'REVIEWING': '待审核'
+        'COMPLETED': '已完成',
+        'REVIEWING': '待审核',
+        'PENDING_REVIEW': '待审核',
+        'REVIEW': '待审核',
+        'APPROVED': '已通过',
+        'REJECTED': '已驳回'
       }
-      return statusMap[status] || status || '未知'
+      return statusMap[normalized] || status || '未知'
     },
 
     getStatusColorClass(status) {
@@ -921,6 +960,23 @@ export default {
       if (diffDays === 0) return '今天到期'
       if (diffDays === 1) return '明天到期'
       if (diffDays <= 7) return `${diffDays} 天后到期`
+      
+      return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+    },
+    
+    formatSubmissionTime(dateStr) {
+      if (!dateStr) return '未知时间'
+      const date = new Date(dateStr)
+      const now = new Date()
+      const diffMs = now - date
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+      
+      if (diffMins < 1) return '刚刚'
+      if (diffMins < 60) return `${diffMins} 分钟前`
+      if (diffHours < 24) return `${diffHours} 小时前`
+      if (diffDays < 7) return `${diffDays} 天前`
       
       return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
     },
@@ -1069,6 +1125,7 @@ export default {
           this.taskStats.pending = stats.pendingCount || stats.pending || stats.todoCount || stats.todo || 0
           this.taskStats.inProgress = stats.inProgressCount || stats.inProgress || stats.progressCount || stats.progress || 0
           this.taskStats.completed = stats.completedCount || stats.completed || stats.doneCount || stats.done || 0
+          this.taskStats.reviewing = stats.reviewingCount || stats.reviewing || stats.pendingReviewCount || stats.pendingReview || 0
           
           // 从统计数据中获取优先级分布（如果API返回）
           this.taskStats.high = stats.highPriorityCount || stats.high || 0
@@ -1116,132 +1173,163 @@ export default {
     async loadTaskDetailsAsync() {
       // 后台异步加载详细任务数据，不阻塞UI
       try {
-        // 减少获取的任务数量，只获取必要的字段（获取50个任务足够计算趋势）
-        const myTasksResponse = await taskAPI.getMyAssignedTasks(0, 50).catch(() => ({ code: 0 }))
-        
+        const [assignedResult, createdResult] = await Promise.allSettled([
+          taskAPI.getMyAssignedTasks(0, 100),
+          taskAPI.getMyCreatedTasks(0, 100)
+        ])
+
         let allTasks = []
-        
-        if (myTasksResponse.code === 200) {
-          const pageData = myTasksResponse.data
-          console.log('[MyActivity] 任务列表API返回的数据结构:', pageData)
-          allTasks = (pageData && (pageData.content || pageData.list || pageData.records)) || []
-          console.log('[MyActivity] 解析后的任务列表数量:', allTasks.length)
+        if (assignedResult.status === 'fulfilled' && assignedResult.value?.code === 200) {
+          let assigned = this.extractTaskList(assignedResult.value.data)
+          if (!assigned.length) assigned = this.extractTaskList(assignedResult.value)
+          console.log('[MyActivity] 我的任务数量:', assigned.length)
+          allTasks = assigned.slice()
+        } else {
+          console.warn('[MyActivity] 获取我的任务失败:', assignedResult.status === 'rejected' ? assignedResult.reason : assignedResult.value)
+        }
 
-          // 如果API返回的统计数据为空，从任务列表中计算
-          if ((this.taskStats.pending === 0 && this.taskStats.inProgress === 0 && this.taskStats.completed === 0) && allTasks.length > 0) {
-            console.log('[MyActivity] API统计数据为空，从任务列表计算统计数据')
-            const statusCounts = { pending: 0, inProgress: 0, completed: 0 }
-            const priorityCounts = { high: 0, medium: 0, low: 0 }
-            
-            // 单次遍历同时计算状态和优先级
-            allTasks.forEach(task => {
-              const status = String(task.status || '').toUpperCase()
-              if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
-                statusCounts.completed++
-              } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
-                statusCounts.inProgress++
-              } else {
-                statusCounts.pending++
-              }
-              
-              // 同时计算优先级
-              const priority = this.mapTaskPriority(task.priority)
-              if (priority === 'high') priorityCounts.high++
-              else if (priority === 'medium') priorityCounts.medium++
-              else if (priority === 'low') priorityCounts.low++
-            })
-            
-            this.taskStats.pending = statusCounts.pending
-            this.taskStats.inProgress = statusCounts.inProgress
-            this.taskStats.completed = statusCounts.completed
-            this.taskStats.high = priorityCounts.high
-            this.taskStats.medium = priorityCounts.medium
-            this.taskStats.low = priorityCounts.low
-            
-            console.log('[MyActivity] 从任务列表计算的统计数据:', statusCounts, priorityCounts)
-            
-            // 启动数字动画效果
-            this.animateStats()
-            
-            // 更新图表
-            if (this._charts) {
-              this.updateCharts(window.echarts)
-            }
-          }
-
-          // 分类任务到不同状态列表（保存完整任务对象）- 单次遍历完成所有分类
-          this.inProgressTasks = []
-          this.completedTasks = []
-          this.highPriorityTasks = []
-          this.mediumPriorityTasks = []
-          this.lowPriorityTasks = []
-          
-          // 单次遍历完成所有分类和计算
-          allTasks.forEach(task => {
-            const status = String(task.status || '').toUpperCase()
-            const priority = this.mapTaskPriority(task.priority)
-            
-            const taskObj = {
-              id: task.id || task.taskId,
-              title: task.title || task.taskTitle || '未命名任务',
-              description: task.description || task.taskDescription || '',
-              priority: priority,
-              dueDate: task.dueDate || task.due_date || task.taskDueDate,
-              status: task.status || 'TODO',
-              projectId: task.projectId || task.project_id
-            }
-            
-            // 按状态分类
-            if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
-              this.completedTasks.push(taskObj)
-            } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
-              this.inProgressTasks.push(taskObj)
-            }
-            
-            // 按优先级分类
-            if (priority === 'high') {
-              this.highPriorityTasks.push(taskObj)
-            } else if (priority === 'medium') {
-              this.mediumPriorityTasks.push(taskObj)
-            } else if (priority === 'low') {
-              this.lowPriorityTasks.push(taskObj)
+        if (createdResult.status === 'fulfilled' && createdResult.value?.code === 200) {
+          let created = this.extractTaskList(createdResult.value.data)
+          if (!created.length) created = this.extractTaskList(createdResult.value)
+          console.log('[MyActivity] 我发布的任务数量:', created.length)
+          const seenIds = new Set(
+            allTasks.map(task => String(task.id || task.taskId || task.taskID || task.uuid || task.code || task.number))
+          )
+          created.forEach(task => {
+            const taskId = String(task.id || task.taskId || task.taskID || task.uuid || `${task.projectId || task.project_id || 'project'}-${task.title || task.taskTitle || Math.random()}`)
+            if (!seenIds.has(taskId)) {
+              seenIds.add(taskId)
+              allTasks.push(task)
             }
           })
+        } else if (createdResult.status === 'rejected') {
+          console.warn('[MyActivity] 获取我发布的任务失败:', createdResult.reason)
+        }
+
+        console.log('[MyActivity] 统计使用的任务总数:', allTasks.length)
+
+        // 如果API返回的统计数据为空，从任务列表中计算
+        const hasApiStats = ['pending', 'inProgress', 'completed', 'reviewing'].some(key => (this.taskStats[key] || 0) > 0)
+        if (!hasApiStats && allTasks.length > 0) {
+          console.log('[MyActivity] API统计数据为空，从任务列表计算统计数据')
+          const statusCounts = { pending: 0, inProgress: 0, completed: 0, reviewing: 0 }
+          const priorityCounts = { high: 0, medium: 0, low: 0 }
           
-          // 如果API没有返回优先级统计，使用计算的值
-          if (this.taskStats.high === 0 && this.taskStats.medium === 0 && this.taskStats.low === 0) {
-            this.taskStats.high = this.highPriorityTasks.length
-            this.taskStats.medium = this.mediumPriorityTasks.length
-            this.taskStats.low = this.lowPriorityTasks.length
-            // 更新动画显示值
-            this.animateStats()
-          }
-
-          const now = new Date()
-          const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+          // 单次遍历同时计算状态和优先级
+          allTasks.forEach(task => {
+            const status = String(task.status || '').toUpperCase()
+            if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+              statusCounts.completed++
+            } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
+              statusCounts.inProgress++
+            } else if (status === 'REVIEWING' || status.includes('REVIEW') || status.includes('待审核') || status === 'PENDING_REVIEW') {
+              statusCounts.reviewing++
+            } else {
+              statusCounts.pending++
+            }
+            
+            // 同时计算优先级
+            const priority = this.mapTaskPriority(task.priority)
+            if (priority === 'high') priorityCounts.high++
+            else if (priority === 'medium') priorityCounts.medium++
+            else if (priority === 'low') priorityCounts.low++
+          })
           
-          this.upcomingMilestones = allTasks
-            .filter(task => {
-              const dueDate = new Date(task.dueDate || task.due_date)
-              return dueDate >= now && dueDate <= sevenDaysLater
-            })
-            .slice(0, 5)
-
-          // 计算过去7天的完成趋势和逾期任务（使用真实数据）
-          this.calculateTrendData(allTasks)
-
-          // 确保 trendData 和 overdueData 已初始化（如果没有数据则为空数组）
-          if (!this.taskStats.trendData || this.taskStats.trendData.length === 0) {
-            this.taskStats.trendData = Array(7).fill(0)
-          }
-          if (!this.taskStats.overdueData || this.taskStats.overdueData.length === 0) {
-            this.taskStats.overdueData = Array(7).fill(0)
-          }
-
-          // 更新图表（如果已初始化）
-          if (this._charts && window.echarts) {
+          this.taskStats.pending = statusCounts.pending
+          this.taskStats.inProgress = statusCounts.inProgress
+          this.taskStats.completed = statusCounts.completed
+          this.taskStats.reviewing = statusCounts.reviewing
+          this.taskStats.high = priorityCounts.high
+          this.taskStats.medium = priorityCounts.medium
+          this.taskStats.low = priorityCounts.low
+          
+          console.log('[MyActivity] 从任务列表计算的统计数据:', statusCounts, priorityCounts)
+          
+          // 启动数字动画效果
+          this.animateStats()
+          
+          // 更新图表
+          if (this._charts) {
             this.updateCharts(window.echarts)
           }
+        }
+
+        // 分类任务到不同状态列表（保存完整任务对象）- 单次遍历完成所有分类
+        this.inProgressTasks = []
+        this.reviewingTasks = []
+        this.completedTasks = []
+        this.highPriorityTasks = []
+        this.mediumPriorityTasks = []
+        this.lowPriorityTasks = []
+        
+        // 单次遍历完成所有分类和计算
+        allTasks.forEach(task => {
+          const status = String(task.status || '').toUpperCase()
+          const priority = this.mapTaskPriority(task.priority)
+          
+          const taskObj = {
+            id: task.id || task.taskId,
+            title: task.title || task.taskTitle || '未命名任务',
+            description: task.description || task.taskDescription || '',
+            priority: priority,
+            dueDate: task.dueDate || task.due_date || task.taskDueDate,
+            status: task.status || 'TODO',
+            projectId: task.projectId || task.project_id
+          }
+          
+          // 按状态分类
+          if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+            this.completedTasks.push(taskObj)
+          } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
+            this.inProgressTasks.push(taskObj)
+          } else if (status === 'REVIEWING' || status.includes('REVIEW') || status.includes('待审核') || status === 'PENDING_REVIEW') {
+            this.reviewingTasks.push(taskObj)
+          }
+          
+          // 按优先级分类
+          if (priority === 'high') {
+            this.highPriorityTasks.push(taskObj)
+          } else if (priority === 'medium') {
+            this.mediumPriorityTasks.push(taskObj)
+          } else if (priority === 'low') {
+            this.lowPriorityTasks.push(taskObj)
+          }
+        })
+        
+        // 如果API没有返回优先级统计，使用计算的值
+        const hasPriorityStats = ['high', 'medium', 'low'].some(key => (this.taskStats[key] || 0) > 0)
+        if (!hasPriorityStats) {
+          this.taskStats.high = this.highPriorityTasks.length
+          this.taskStats.medium = this.mediumPriorityTasks.length
+          this.taskStats.low = this.lowPriorityTasks.length
+          // 更新动画显示值
+          this.animateStats()
+        }
+
+        const now = new Date()
+        const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        
+        this.upcomingMilestones = allTasks
+          .filter(task => {
+            const dueDate = new Date(task.dueDate || task.due_date)
+            return dueDate >= now && dueDate <= sevenDaysLater
+          })
+          .slice(0, 5)
+
+        // 计算过去7天的完成趋势和逾期任务（使用真实数据）
+        this.calculateTrendData(allTasks)
+
+        // 确保 trendData 和 overdueData 已初始化（如果没有数据则为空数组）
+        if (!this.taskStats.trendData || this.taskStats.trendData.length === 0) {
+          this.taskStats.trendData = Array(7).fill(0)
+        }
+        if (!this.taskStats.overdueData || this.taskStats.overdueData.length === 0) {
+          this.taskStats.overdueData = Array(7).fill(0)
+        }
+
+        // 更新图表（如果已初始化）
+        if (this._charts && window.echarts) {
+          this.updateCharts(window.echarts)
         }
       } catch (error) {
         console.error('加载任务详情失败:', error)
@@ -1371,6 +1459,21 @@ export default {
       this.taskStats.overdueData = overdueData
     },
 
+    extractTaskList(payload, depth = 0) {
+      if (!payload || depth > 2) return []
+      if (Array.isArray(payload)) return payload
+      const candidates = [payload.content, payload.list, payload.records, payload.data, payload.items]
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i]
+        if (Array.isArray(candidate)) return candidate
+        if (candidate && typeof candidate === 'object') {
+          const nested = this.extractTaskList(candidate, depth + 1)
+          if (nested.length) return nested
+        }
+      }
+      return []
+    },
+
     getSampleStats() {
       const today = new Date()
       const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`
@@ -1382,6 +1485,7 @@ export default {
         pending: 6,
         inProgress: 11,
         completed: 9,
+        reviewing: 4,
         high: 5,
         medium: 12,
         low: 9,
@@ -1406,7 +1510,7 @@ export default {
         return chart
       }
 
-      const total = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0)
+      const total = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0) + (this.displayStats.reviewing || 0)
       // 更柔和的配色（总览不刺眼）
       const palette = ['#7DD3A8', '#FBBF83', '#C7B9FF', '#F59FB0', '#5FD4E6']
 
@@ -1460,12 +1564,23 @@ export default {
           data: [{ value: this.displayStats.completed || 0 }] 
         }]
       })
+      this._charts.gaugeReviewing = create('gaugeReviewing', {
+        tooltip: {
+          show: false // 禁用tooltip
+        },
+        series: [{ 
+          ...gaugeBase, 
+          max: gaugeMax,
+          progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[2] } },
+          data: [{ value: this.displayStats.reviewing || 0 }] 
+        }]
+      })
 
       // 环形图 - 计算百分比并显示
-      const totalForPie = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0)
+      const totalForPie = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0) + (this.displayStats.reviewing || 0)
       
       this._charts.pieStatus = create('pieStatus', {
-        color: [palette[0], palette[1]],
+        color: [palette[0], palette[1], palette[2]],
         tooltip: { 
           trigger: 'item',
           formatter: '{b}: {c} ({d}%)'
@@ -1488,17 +1603,28 @@ export default {
             show: totalForPie > 0,
             position: 'inside',
             formatter: '{d}%',
-            fontSize: 12,
-            fontWeight: 'bold',
-            color: '#111827'
+            fontSize: 14,
+            fontWeight: '700',
+            color: '#4b5563',
+            textBorderColor: '#ffffff',
+            textBorderWidth: 2,
+            textShadowColor: 'rgba(255, 255, 255, 0.8)',
+            textShadowBlur: 4,
+            textShadowOffsetX: 0,
+            textShadowOffsetY: 0
           },
           labelLine: { show: false },
           emphasis: { 
             label: { 
               show: true, 
-              fontSize: 14, 
-              fontWeight: 'bold',
-              formatter: '{b}: {d}%'
+              fontSize: 16, 
+              fontWeight: '700',
+              formatter: '{b}: {d}%',
+              color: '#374151',
+              textBorderColor: '#ffffff',
+              textBorderWidth: 2.5,
+              textShadowColor: 'rgba(255, 255, 255, 0.9)',
+              textShadowBlur: 5
             } 
           },
           animationType: 'scale',
@@ -1506,7 +1632,8 @@ export default {
           animationDelay: (idx) => idx * 50,
           data: [
             { value: this.displayStats.inProgress || 0, name: '进行中' },
-            { value: this.displayStats.completed || 0, name: '已完成' }
+            { value: this.displayStats.completed || 0, name: '已完成' },
+            { value: this.displayStats.reviewing || 0, name: '待审核' }
           ]
         }]
       })
@@ -1714,7 +1841,7 @@ export default {
 
     updateCharts(echarts) {
       if (!this._charts) return
-      const { gaugeInProgress, gaugeCompleted, pieStatus, barPriority, lineTrend, barOverdue } = this._charts
+      const { gaugeInProgress, gaugeReviewing, gaugeCompleted, pieStatus, barPriority, lineTrend, barOverdue } = this._charts
       const total = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0)
       const gaugeMax = Math.max(1, total)
       
@@ -1723,6 +1850,13 @@ export default {
         series: [{ 
           max: gaugeMax,
           data: [{ value: this.displayStats.inProgress || 0 }] 
+        }] 
+      })
+      if (gaugeReviewing) gaugeReviewing.setOption({ 
+        tooltip: { show: false },
+        series: [{ 
+          max: gaugeMax,
+          data: [{ value: this.displayStats.reviewing || 0 }] 
         }] 
       })
       if (gaugeCompleted) gaugeCompleted.setOption({ 
@@ -1739,7 +1873,8 @@ export default {
           },
           data: [
             { value: this.displayStats.inProgress || 0, name: '进行中' },
-            { value: this.displayStats.completed || 0, name: '已完成' }
+            { value: this.displayStats.completed || 0, name: '已完成' },
+            { value: this.displayStats.reviewing || 0, name: '待审核' }
           ]
         }]
       })
@@ -2008,7 +2143,7 @@ export default {
     animateStats() {
       // 数字递增动画效果
       const duration = 1000 // 动画时长1秒
-      const statsToAnimate = ['inProgress', 'completed', 'high', 'medium', 'low']
+      const statsToAnimate = ['inProgress', 'completed', 'reviewing', 'high', 'medium', 'low']
       
       statsToAnimate.forEach(key => {
         this.animateCount(key, this.taskStats[key] || 0, duration)
@@ -2059,6 +2194,9 @@ export default {
       if (type === 'inProgress') {
         this.taskListModalTitle = `进行中任务 (${this.taskStats.inProgress || 0})`
         this.taskListModalTasks = this.inProgressTasks || []
+      } else if (type === 'reviewing') {
+        this.taskListModalTitle = `待审核任务 (${this.taskStats.reviewing || 0})`
+        this.taskListModalTasks = this.reviewingTasks || []
       } else if (type === 'completed') {
         this.taskListModalTitle = `已完成任务 (${this.taskStats.completed || 0})`
         this.taskListModalTasks = this.completedTasks || []
@@ -2923,7 +3061,8 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 20px;
+  min-height: 80px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   cursor: pointer;
@@ -3148,8 +3287,9 @@ export default {
 }
 
 .kpi-pending { background: #fef3c7; color: #92400e; }
-.kpi-progress { background: #dbeafe; color: #1e40af; }
-.kpi-done { background: #d1fae5; color: #065f46; }
+.kpi-progress { background: #d1f4e0; color: #065f46; }
+.kpi-reviewing { background: #e9d5ff; color: #6b21a8; }
+.kpi-done { background: #fed7aa; color: #92400e; }
 
 .overview-grid {
   display: grid;
@@ -3187,6 +3327,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   min-height: 150px;
+  max-height: 150px;
   height: 100%;
 }
 
@@ -3372,6 +3513,15 @@ export default {
   width: 220px; /* 缩短长度，形成小块 */
   box-sizing: border-box;
   border: 1px solid #eef2f7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.milestone-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .milestone-info {
@@ -3388,12 +3538,99 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .milestone-countdown {
   font-size: 12px;
   color: #f59e0b;
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 我发布的任务统计卡片 */
+.created-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.summary-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.summary-total .summary-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.summary-progress .summary-icon {
+  background: linear-gradient(135deg, #7DD3A8 0%, #5fb88f 100%);
+  color: white;
+}
+
+.summary-completed .summary-icon {
+  background: linear-gradient(135deg, #FBBF83 0%, #f59e0b 100%);
+  color: white;
+}
+
+.summary-pending .summary-icon {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+}
+
+.summary-card:hover .summary-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 /* 操作日志时间轴 */
