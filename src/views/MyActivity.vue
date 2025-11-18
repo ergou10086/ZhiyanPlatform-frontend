@@ -1336,16 +1336,6 @@ export default {
       }
     },
 
-    getSamplePendingTasks() {
-      const currentUserId = this.getCurrentUserId() || 1
-      const today = new Date()
-      const addDays = (n) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000).toISOString()
-      return [
-        { id: 'demo-1', taskTitle: '整理数据集与标签', projectName: '图像识别研究', submitter: { name: '张三' }, dueDate: addDays(1), status: 'PENDING', taskCreatorId: currentUserId },
-        { id: 'demo-2', taskTitle: '搭建训练流水线', projectName: '语音识别项目', submitter: { name: '李四' }, dueDate: addDays(3), status: 'IN_PROGRESS', taskCreatorId: currentUserId },
-        { id: 'demo-3', taskTitle: '撰写阶段性报告', projectName: '无人车感知', submitter: { name: '王五' }, dueDate: addDays(-1), status: 'PENDING', taskCreatorId: currentUserId },
-      ]
-    },
 
     calculateTrendData(allTasks) {
       console.log('[MyActivity] 计算趋势数据，任务数量:', allTasks.length)
@@ -1537,7 +1527,7 @@ export default {
           color: '#111827',
           offsetCenter: [0, '90%'] // 将数字移动到外圈下方，避免遮挡
         },
-        animationDuration: 800,
+        animationDuration: 1800,
         animationEasing: 'cubicOut'
       }
       const gaugeMax = Math.max(1, total)
@@ -1550,9 +1540,17 @@ export default {
           ...gaugeBase, 
           max: gaugeMax,
           progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[0] } },
-          data: [{ value: this.displayStats.inProgress || 0 }] 
+          data: [{ value: 0 }] 
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (this._charts.gaugeInProgress) {
+          this._charts.gaugeInProgress.setOption({
+            series: [{ data: [{ value: this.displayStats.inProgress || 0 }] }]
+          })
+        }
+      }, 100)
       this._charts.gaugeCompleted = create('gaugeCompleted', {
         tooltip: {
           show: false // 禁用tooltip
@@ -1561,9 +1559,16 @@ export default {
           ...gaugeBase, 
           max: gaugeMax,
           progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[1] } },
-          data: [{ value: this.displayStats.completed || 0 }] 
+          data: [{ value: 0 }] 
         }]
       })
+      setTimeout(() => {
+        if (this._charts.gaugeCompleted) {
+          this._charts.gaugeCompleted.setOption({
+            series: [{ data: [{ value: this.displayStats.completed || 0 }] }]
+          })
+        }
+      }, 100)
       this._charts.gaugeReviewing = create('gaugeReviewing', {
         tooltip: {
           show: false // 禁用tooltip
@@ -1572,9 +1577,16 @@ export default {
           ...gaugeBase, 
           max: gaugeMax,
           progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[2] } },
-          data: [{ value: this.displayStats.reviewing || 0 }] 
+          data: [{ value: 0 }] 
         }]
       })
+      setTimeout(() => {
+        if (this._charts.gaugeReviewing) {
+          this._charts.gaugeReviewing.setOption({
+            series: [{ data: [{ value: this.displayStats.reviewing || 0 }] }]
+          })
+        }
+      }, 100)
 
       // 环形图 - 计算百分比并显示
       const totalForPie = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0) + (this.displayStats.reviewing || 0)
@@ -1628,15 +1640,30 @@ export default {
             } 
           },
           animationType: 'scale',
-          animationEasing: 'elasticOut',
-          animationDelay: (idx) => idx * 50,
+          animationEasing: 'cubicOut',
+          animationDuration: 1500,
+          animationDelay: (idx) => idx * 100,
           data: [
-            { value: this.displayStats.inProgress || 0, name: '进行中' },
-            { value: this.displayStats.completed || 0, name: '已完成' },
-            { value: this.displayStats.reviewing || 0, name: '待审核' }
+            { value: 0, name: '进行中' },
+            { value: 0, name: '已完成' },
+            { value: 0, name: '待审核' }
           ]
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (this._charts.pieStatus) {
+          this._charts.pieStatus.setOption({
+            series: [{
+              data: [
+                { value: this.displayStats.inProgress || 0, name: '进行中' },
+                { value: this.displayStats.completed || 0, name: '已完成' },
+                { value: this.displayStats.reviewing || 0, name: '待审核' }
+              ]
+            }]
+          })
+        }
+      }, 100)
 
       // 优先级分布
       const priorityData = [
@@ -1671,7 +1698,7 @@ export default {
             ]),
             barBorderRadius: [6, 6, 0, 0]
           },
-          animationDuration: 700,
+          animationDuration: 1500,
           animationEasing: 'cubicOut'
         }]
       })
@@ -1727,17 +1754,25 @@ export default {
           symbolSize: 5,
           lineStyle: { width: 2.5, color: palette[5] },
           itemStyle: { color: palette[5], borderColor: '#ffffff', borderWidth: 1.5 },
-          data: trendData, 
+          data: Array(7).fill(0), 
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(6, 182, 212, 0.3)' },
               { offset: 1, color: 'rgba(6, 182, 212, 0.05)' }
             ])
           },
-          animationDuration: 700,
+          animationDuration: 1500,
           animationEasing: 'cubicOut'
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (lineTrendChart) {
+          lineTrendChart.setOption({
+            series: [{ data: trendData }]
+          })
+        }
+      }, 200)
       
       // 为完成趋势图添加点击事件
       if (lineTrendChart) {
@@ -1787,7 +1822,7 @@ export default {
         },
         series: [{ 
           type: 'bar', 
-          data: overdueData,
+          data: Array(7).fill(0),
           itemStyle: { 
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#F59FB0' },
@@ -1795,10 +1830,18 @@ export default {
             ]),
             barBorderRadius: [6, 6, 0, 0]
           },
-          animationDuration: 600,
+          animationDuration: 1500,
           animationEasing: 'cubicOut'
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (barOverdueChart) {
+          barOverdueChart.setOption({
+            series: [{ data: overdueData }]
+          })
+        }
+      }, 200)
       
       // 为逾期任务图添加点击事件
       if (barOverdueChart) {
@@ -2142,39 +2185,49 @@ export default {
     
     animateStats() {
       // 数字递增动画效果
-      const duration = 1000 // 动画时长1秒
+      const duration = 1200 // 动画时长1.2秒
       const statsToAnimate = ['inProgress', 'completed', 'reviewing', 'high', 'medium', 'low']
       
-      statsToAnimate.forEach(key => {
-        this.animateCount(key, this.taskStats[key] || 0, duration)
+      let completedCount = 0
+      const totalStats = statsToAnimate.length
+      
+      statsToAnimate.forEach((key, index) => {
+        // 添加延迟，让数字依次出现
+        setTimeout(() => {
+          this.animateCount(key, this.taskStats[key] || 0, duration, () => {
+            completedCount++
+            // 所有数字动画完成后才更新图表
+            if (completedCount === totalStats) {
+              this.$nextTick(() => {
+                if (this._charts && window.echarts) {
+                  this.updateCharts(window.echarts)
+                }
+              })
+            }
+          })
+        }, index * 80) // 每个数字延迟80ms开始
       })
     },
     
-    animateCount(key, target, duration = 1000) {
+    animateCount(key, target, duration, onComplete) {
       const start = performance.now()
       const from = this.displayStats[key] || 0
       
       const step = (now) => {
         const elapsed = now - start
         const progress = Math.min(1, elapsed / duration)
-        // 使用缓动函数（ease-out）
-        const eased = 1 - Math.pow(1 - progress, 3)
-        this.displayStats[key] = Math.round(from + (target - from) * eased)
+        // 使用平滑的缓动函数
+        const eased = progress < 0.5 
+          ? 2 * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2
         
-        // 在动画过程中更新图表（节流，每5帧更新一次）
-        if (Math.floor(progress * 100) % 5 === 0 && this._charts && window.echarts) {
-          this.updateCharts(window.echarts)
-        }
+        this.displayStats[key] = Math.round(from + (target - from) * eased)
         
         if (progress < 1) {
           requestAnimationFrame(step)
         } else {
-          // 确保最终值准确
           this.displayStats[key] = target
-          // 最后一次更新图表
-          if (this._charts && window.echarts) {
-            this.updateCharts(window.echarts)
-          }
+          if (onComplete) onComplete()
         }
       }
       
@@ -2390,50 +2443,6 @@ export default {
       return '未分配'
     },
     
-    getSampleCreatedTasks() {
-      const today = new Date()
-      const addDays = (n) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000).toISOString()
-      const samples = [
-        {
-          id: 'created-1',
-          title: '完善评审标准',
-          description: '梳理最新的实验评审要求并同步团队',
-          priority: 'high',
-          status: 'IN_PROGRESS',
-          dueDate: addDays(2),
-          projectId: 1,
-          assignees: '张三'
-        },
-        {
-          id: 'created-2',
-          title: '发布v0.3测试任务',
-          description: '准备新版本测试清单',
-          priority: 'medium',
-          status: 'PENDING',
-          dueDate: addDays(5),
-          projectId: 2,
-          assignees: '未分配'
-        },
-        {
-          id: 'created-3',
-          title: '整理阶段报告',
-          description: '汇总上月成果输出阶段报告',
-          priority: 'low',
-          status: 'DONE',
-          dueDate: addDays(-1),
-          projectId: 3,
-          assignees: '李四'
-        }
-      ]
-      return samples.map(sample => {
-        const normalizedStatus = this.normalizeStatus(sample.status)
-        return {
-          ...sample,
-          status: normalizedStatus,
-          statusClass: `status-${normalizedStatus}`
-        }
-      })
-    }
   }
 }
 </script>
@@ -3284,6 +3293,18 @@ export default {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  animation: fadeInUp 2s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .kpi-pending { background: #fef3c7; color: #92400e; }
