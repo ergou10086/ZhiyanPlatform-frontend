@@ -421,13 +421,26 @@
                   <div class="timeline-dot" :class="'type-' + log.type"></div>
                   <div class="timeline-content">
                     <div class="log-header">
-                      <span class="log-type">{{ getLogTypeText(log.type) }}</span>
-                      <span class="log-time">{{ formatDateTime(log.timestamp || log.createdAt) }}</span>
+                      <div class="log-header-left">
+                        <span class="log-module" v-if="log.module">{{ log.module }}</span>
+                        <span class="log-type">{{ getLogTypeText(log.type) }}</span>
+                      </div>
+                      <span class="log-time">{{ formatDateTime(log.timestamp) }}</span>
                     </div>
-                    <p class="log-description">{{ log.description || log.content }}</p>
-                    <div class="log-target" v-if="log.targetName">
-                      <span class="target-label">关联对象：</span>
-                      <span class="target-name">{{ log.targetName }}</span>
+                    <p class="log-description">{{ log.description }}</p>
+                    <div class="log-meta">
+                      <div class="log-source" v-if="log.source">
+                        <span class="source-label">来源：</span>
+                        <span class="source-name">{{ log.source }}</span>
+                      </div>
+                      <div class="log-operator" v-if="log.operator">
+                        <span class="operator-label">操作人：</span>
+                        <span class="operator-name">{{ log.operator }}</span>
+                      </div>
+                      <div class="log-ip" v-if="log.ip">
+                        <span class="ip-label">IP：</span>
+                        <span class="ip-value">{{ log.ip }}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -518,6 +531,7 @@ import {
 } from '@/api/taskSubmission'
 import { taskAPI } from '@/api/task'
 import { projectAPI } from '@/api/project'
+import { getMyActivityLogs } from '@/api/operationLog'
 
 export default {
   name: 'MyActivity',
@@ -1312,7 +1326,10 @@ export default {
         this.upcomingMilestones = allTasks
           .filter(task => {
             const dueDate = new Date(task.dueDate || task.due_date)
-            return dueDate >= now && dueDate <= sevenDaysLater
+            const status = String(task.status || '').toUpperCase()
+            const isCompleted = status === 'DONE' || status.includes('DONE') || status.includes('完成') || status === 'COMPLETED'
+            // 排除已完成的任务
+            return !isCompleted && dueDate >= now && dueDate <= sevenDaysLater
           })
           .slice(0, 5)
 
@@ -2033,33 +2050,58 @@ export default {
     async loadActivityLogs() {
       this.isLoadingLogs = true
       try {
-        // 从提交记录生成操作日志
-        const response = await getMySubmissions({
+        // 使用后端操作日志API
+        const response = await getMyActivityLogs({
           page: this.logPage,
           size: this.logPageSize
         })
         
-        if (response.code === 200) {
-          const submissions = response.data.content || []
-          const newLogs = submissions.map(sub => ({
-            id: sub.id,
-            type: 'submission',
-            description: `提交了任务"${sub.taskTitle}"`,
-            targetName: sub.taskTitle,
-            timestamp: sub.submissionTime || sub.createdAt
-          }))
-          
-          if (this.logPage === 0) {
-            this.activityLogs = newLogs
-          } else {
-            this.activityLogs.push(...newLogs)
+        // 处理响应数据
+        let logs = []
+        if (response && response.code === 200) {
+          const data = response.data
+          if (data && data.content) {
+            logs = data.content
+          } else if (Array.isArray(data)) {
+            logs = data
           }
-          
-          this.hasMoreLogs = newLogs.length === this.logPageSize
-          this.filterActivityLogs()
+        } else if (response && Array.isArray(response.content)) {
+          logs = response.content
+        } else if (Array.isArray(response)) {
+          logs = response
         }
+        
+        // 映射日志数据（根据后端UnifiedOperationLogVO结构）
+        const newLogs = logs.map(log => ({
+          id: log.id,
+          type: log.operationType,
+          module: log.operationModule,
+          source: log.source,
+          description: log.description || log.title,
+          targetName: log.title,
+          timestamp: log.time,
+          projectId: log.projectId,
+          operator: log.username,
+          userId: log.userId,
+          ip: log.ip,
+          userAgent: log.userAgent,
+          relatedId: log.relatedId
+        }))
+        
+        if (this.logPage === 0) {
+          this.activityLogs = newLogs
+        } else {
+          this.activityLogs.push(...newLogs)
+        }
+        
+        this.hasMoreLogs = newLogs.length === this.logPageSize
+        this.filterActivityLogs()
       } catch (error) {
         console.error('加载操作日志失败:', error)
+        if (this.logPage === 0) {
+          this.activityLogs = []
+          this.filteredActivityLogs = []
+        }
       } finally {
         this.isLoadingLogs = false
       }
@@ -2068,17 +2110,13 @@ export default {
     filterActivityLogs() {
       let filtered = [...this.activityLogs]
       
-      // 按类型过滤
-      if (this.logFilterType !== 'all') {
-        filtered = filtered.filter(log => log.type === this.logFilterType)
-      }
-      
-      // 按关键词搜索
+      // 按关键词搜索（类型过滤由后端处理）
       if (this.logSearchKeyword.trim()) {
         const keyword = this.logSearchKeyword.toLowerCase()
         filtered = filtered.filter(log => 
-          log.description.toLowerCase().includes(keyword) ||
-          (log.targetName && log.targetName.toLowerCase().includes(keyword))
+          (log.description && log.description.toLowerCase().includes(keyword)) ||
+          (log.targetName && log.targetName.toLowerCase().includes(keyword)) ||
+          (log.projectName && log.projectName.toLowerCase().includes(keyword))
         )
       }
       
@@ -2100,10 +2138,16 @@ export default {
     
     getLogTypeText(type) {
       const typeMap = {
-        'submission': '任务提交',
-        'upload': '成果上传',
-        'comment': '评论回复',
-        'review': '审核操作'
+        'CREATE': '创建',
+        'UPDATE': '更新',
+        'DELETE': '删除',
+        'ASSIGN': '分配',
+        'STATUS_CHANGE': '状态变更',
+        'SUBMIT': '提交',
+        'REVIEW': '审核',
+        'MEMBER_ADD': '添加成员',
+        'MEMBER_REMOVE': '移除成员',
+        'ROLE_CHANGE': '角色变更'
       }
       return typeMap[type] || type
     },
@@ -3724,6 +3768,21 @@ export default {
   margin-bottom: 4px;
 }
 
+.log-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-module {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 .log-type {
   font-size: 13px;
   font-weight: 600;
@@ -3742,19 +3801,40 @@ export default {
   line-height: 1.5;
 }
 
-.log-target {
-  margin-top: 4px;
+.log-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   font-size: 12px;
   color: #9ca3af;
 }
 
-.target-label {
-  margin-right: 4px;
+.log-source,
+.log-operator,
+.log-ip {
+  display: flex;
+  align-items: center;
 }
 
-.target-name {
-  color: #3b82f6;
-  cursor: pointer;
+.source-label,
+.operator-label,
+.ip-label {
+  margin-right: 4px;
+  font-weight: 500;
+}
+
+.source-name {
+  color: #8b5cf6;
+}
+
+.operator-name {
+  color: #6366f1;
+}
+
+.ip-value {
+  color: #64748b;
+  font-family: monospace;
 }
 
 .load-more {

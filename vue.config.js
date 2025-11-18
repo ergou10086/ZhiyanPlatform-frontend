@@ -4,6 +4,7 @@
  * 代理规则说明：
  * - 代理规则按照从上到下的顺序匹配，更具体的路径规则应该放在前面
  * - /zhiyan/projects/* → http://localhost:8095 (项目服务，端口8095)
+ * - /zhiyan/message/* → http://localhost:8095 (消息服务，端口8095)
  * - /zhiyan/auth/* → http://localhost:8091 (认证服务，端口8091)
  * - /zhiyan/api/projects/* → http://localhost:8095 (项目服务，端口8095，旧路径兼容)
  * - /zhiyan/api/users/* → http://localhost:8095 (用户搜索，通过项目服务，端口8095)
@@ -216,6 +217,17 @@ module.exports = {
         
         // ⭐ 设置超时时间（0表示无限制）
         timeout: 0
+      },
+      // ✅ 消息相关API - 转发到8095端口（项目服务）
+      // URL示例：/zhiyan/message/* → http://localhost:8095/zhiyan/message/*
+      // 包含：收件箱消息、未读数量、标记已读、删除消息等
+      '/zhiyan/message': {
+        target: 'http://localhost:8095',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+        // 不需要pathRewrite，直接转发 /zhiyan/message/* 到后端
       },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/auth/* → http://localhost:8091/zhiyan/auth/*
