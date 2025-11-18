@@ -7,10 +7,19 @@ import config from '@/config'
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
   try {
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    // 匹配JSON中的大整数（16位以上），将其转换为字符串
+    // 确保不匹配已经是字符串的数字
+    const processed = data.replace(/:\s*(\d{16,})([,\}\]])/g, ':"$1"$2')
+    return JSON.parse(processed)
   } catch (e) {
     console.error('JSON解析错误:', e)
-    return data
+    console.error('原始数据:', data)
+    // 如果解析失败，尝试直接解析
+    try {
+      return JSON.parse(data)
+    } catch (e2) {
+      return data
+    }
   }
 }
 

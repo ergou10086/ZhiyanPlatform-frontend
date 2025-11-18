@@ -235,22 +235,32 @@
                 <span v-if="task.assignee_name" class="task-assignee">
                   负责人: {{ task.assignee_name }}
                 </span>
+                <span v-if="task.participantCount" class="task-participant-count">
+                  接取人数: {{ task.assignees ? task.assignees.length : 0 }}/{{ task.participantCount }}
+                </span>
             </div>
-            <div v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" class="task-assign-section" @click.stop>
-              <button @click="assignTask(task)" class="assign-btn">接取任务</button>
-            </div>
-            <div v-else-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="task-assign-section" @click.stop>
-              <span class="assign-status-badge completed">已完成</span>
-            </div>
-            <div v-else-if="task.assignee_name && isCurrentUserAssignee(task)" class="task-assign-section" @click.stop>
-              <span class="assign-status-badge assigned-by-me">已接取</span>
-              <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
-              </button>
+            <!-- 任务操作区域 - 支持多人接取 -->
+            <div class="task-assign-section" @click.stop>
+              <!-- 已完成状态 -->
+              <span v-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="assign-status-badge completed">已完成</span>
+              
+              <!-- 当前用户已接取 -->
+              <template v-else-if="isCurrentUserAssignee(task)">
+                <span class="assign-status-badge assigned-by-me">已接取</span>
+                <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
+                </button>
+              </template>
+              
+              <!-- 当前用户未接取，但可以接取 -->
+              <button v-else-if="canClaimTask(task)" @click="assignTask(task)" class="assign-btn">接取任务</button>
+              
+              <!-- 任务已满员 -->
+              <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
             </div>
           </div>
         </div>
@@ -465,6 +475,17 @@
                 <option value="低">低</option>
               </select>
             </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">任务人数</label>
+            <input 
+              v-model.number="newTask.participantCount" 
+              type="number" 
+              class="form-input" 
+              placeholder="请输入可参加的成员数量"
+              min="1"
+              step="1"
+            />
           </div>
         </div>
         <div class="modal-footer">
@@ -742,18 +763,33 @@
                   <span v-if="task.assignee_name" class="task-assignee">
                     负责人: {{ task.assignee_name }}
                   </span>
+                  <span v-if="task.participantCount" class="task-participant-count">
+                    接取人数: {{ task.assignees ? task.assignees.length : 0 }}/{{ task.participantCount }}
+                  </span>
                 </div>
               </div>
-              <div class="task-item-assign" :class="{ 'has-button': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') || (task.assignee_name && isCurrentUserAssignee(task) && task.status !== '完成' && task.status !== 'DONE' && task.status_value !== 'DONE') }" @click.stop>
-                <button v-if="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')" @click="assignTask(task)" class="assign-btn">接取任务</button>
-                <span v-else-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="assign-status-badge completed">已完成</span>
-                <button v-else-if="task.assignee_name && isCurrentUserAssignee(task)" @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
-                </button>
+              <!-- 任务操作区域 - 支持多人接取 -->
+              <div class="task-item-assign" @click.stop>
+                <!-- 已完成状态 -->
+                <span v-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="assign-status-badge completed">已完成</span>
+                
+                <!-- 当前用户已接取 -->
+                <template v-else-if="isCurrentUserAssignee(task)">
+                  <span class="assign-status-badge assigned-by-me">已接取</span>
+                  <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
+                  </button>
+                </template>
+                
+                <!-- 当前用户未接取，但可以接取 -->
+                <button v-else-if="canClaimTask(task)" @click="assignTask(task)" class="assign-btn">接取任务</button>
+                
+                <!-- 任务已满员 -->
+                <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
               </div>
             </div>
           </div>
@@ -1078,9 +1114,47 @@
                 <div class="task-info-value">{{ selectedTask.created_by_name }}</div>
               </div>
             </div>
+            <!-- 接取人数 -->
+            <div class="task-info-card" v-if="selectedTask.participantCount">
+              <div class="task-info-icon participants">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">接取人数</div>
+                <div class="task-info-value">
+                  <span :class="{ 'text-success': !isTaskFull(selectedTask), 'text-warning': isTaskFull(selectedTask) }">
+                    {{ selectedTask.assignees ? selectedTask.assignees.length : 0 }}/{{ selectedTask.participantCount }}
+                  </span>
+                  <span v-if="isTaskFull(selectedTask)" class="task-full-badge">已满员</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
+          <!-- 接取任务按钮 -->
+          <button v-if="canClaimTask(selectedTask)" @click="assignTask(selectedTask)" class="btn btn-success" style="margin-right: 12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
+              <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 5.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            接取任务
+          </button>
+          <!-- 提交任务按钮 -->
+          <button v-else-if="isCurrentUserAssignee(selectedTask)" @click="openTaskSubmissionModal(selectedTask)" class="btn btn-success" style="margin-right: 12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ (selectedTask.hasSubmission || selectedTask.status === '待审核' || selectedTask.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
+          </button>
+          <!-- 审核提交按钮（仅管理员） -->
           <button v-if="isProjectManager" @click="openTaskReviewModal(selectedTask)" class="btn btn-secondary" style="margin-right: 12px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
               <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1108,15 +1182,25 @@
           <div class="assign-task-info">
             <h4 class="assign-task-title">{{ taskToAssign.title }}</h4>
             <p class="assign-task-description">{{ taskToAssign.description || '暂无描述' }}</p>
+            <div class="task-assignee-status">
+              <span class="status-label">当前执行者:</span>
+              <span class="status-value">{{ taskToAssign.assignee_name || '暂无' }}</span>
+              <span v-if="taskToAssign.participantCount" class="status-count">
+                ({{ taskToAssign.assignees ? taskToAssign.assignees.length : 0 }}/{{ taskToAssign.participantCount }})
+              </span>
+            </div>
           </div>
           <div class="form-field">
-            <label class="form-label">选择负责人</label>
+            <label class="form-label">添加执行者</label>
             <div class="member-select-list">
               <div 
                 v-for="member in teamMembers" 
                 :key="member.id" 
                 class="member-select-item"
-                :class="{ selected: selectedAssigneeId === member.id }"
+                :class="{ 
+                  selected: selectedAssigneeId === member.id,
+                  'already-assigned': taskToAssign.assignee_id && taskToAssign.assignee_id.includes(String(member.id))
+                }"
                 @click="selectedAssigneeId = member.id"
               >
                 <div class="member-select-avatar">
@@ -1129,7 +1213,10 @@
                   </div>
                 </div>
                 <div class="member-select-info">
-                  <div class="member-select-name">{{ member.name }}</div>
+                  <div class="member-select-name">
+                    {{ member.name }}
+                    <span v-if="taskToAssign.assignee_id && taskToAssign.assignee_id.includes(String(member.id))" class="already-assigned-badge">已分配</span>
+                  </div>
                   <div class="member-select-role">{{ member.role }}</div>
                 </div>
                 <div class="member-select-indicator" v-if="selectedAssigneeId === member.id">
@@ -1549,6 +1636,8 @@ export default {
               status_value: task.status || 'TODO',
               assignee_id: assigneeIds,
               assignee_name: assigneeNames,
+              assignees: task.assignees || [], // 保存原始的assignees数组
+              participantCount: task.requiredPeople || null, // 从后端获取requiredPeople字段
               created_by: task.createdBy || currentUserId,
               // 如果后端返回的创建人是"未知用户"（auth服务不可用），使用本地用户信息
               created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
@@ -2678,7 +2767,8 @@ export default {
         dueDate: '',
         priority: '中',
         status: '待接取',
-        dateError: ''
+        dateError: '',
+        participantCount: null
       }
     },
     closeTaskModal() {
@@ -2711,7 +2801,8 @@ export default {
           description: this.newTask.description.trim(),
           priority: this.getPriorityValue(this.newTask.priority), // 转换为英文枚举值
           dueDate: this.newTask.dueDate || null,
-          assigneeIds: [] // 新任务默认没有执行者
+          assigneeIds: [], // 新任务默认没有执行者
+          requiredPeople: this.newTask.participantCount || 1 // 发送任务人数限制到后端
         }
         console.log('[saveNewTask] 创建任务，数据:', taskData)
         // 调用后端API创建任务
@@ -2933,6 +3024,48 @@ export default {
       // 检查assignee_id数组中是否包含当前用户ID
       return task.assignee_id.some(id => String(id) === currentUserIdStr)
     },
+    /**
+     * 检查当前用户是否可以接取任务
+     * @param {Object} task - 任务对象
+     * @returns {Boolean} 是否可以接取
+     */
+    canClaimTask(task) {
+      console.log('[canClaimTask] 检查任务:', task)
+      if (!task) {
+        console.log('[canClaimTask] 任务不存在')
+        return false
+      }
+      // 如果任务已完成，不能接取
+      if (task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE') {
+        console.log('[canClaimTask] 任务已完成')
+        return false
+      }
+      // 如果当前用户已经接取，不能重复接取
+      if (this.isCurrentUserAssignee(task)) {
+        console.log('[canClaimTask] 当前用户已接取')
+        return false
+      }
+      // 如果任务已满员，不能接取
+      if (this.isTaskFull(task)) {
+        console.log('[canClaimTask] 任务已满员')
+        return false
+      }
+      // 能看到项目详情页面的用户都是项目成员，所以不需要额外检查
+      console.log('[canClaimTask] 可以接取任务')
+      return true
+    },
+    /**
+     * 检查任务是否已满员
+     * @param {Object} task - 任务对象
+     * @returns {Boolean} 是否已满员
+     */
+    isTaskFull(task) {
+      if (!task || !task.participantCount) {
+        return false // 没有设置人数限制，不会满员
+      }
+      const currentCount = task.assignees ? task.assignees.length : 0
+      return currentCount >= task.participantCount
+    },
     getCurrentUserName() {
       // 从localStorage获取当前用户姓名
       const savedUserInfo = localStorage.getItem('user_info')
@@ -3148,11 +3281,32 @@ export default {
         alert('未找到选中的成员')
         return
       }
+      
+      // 检查该成员是否已经是执行者
+      const currentAssigneeIds = this.taskToAssign.assignee_id || []
+      if (currentAssigneeIds.includes(String(this.selectedAssigneeId))) {
+        alert('该成员已经是任务执行者')
+        return
+      }
+      
+      // 检查任务是否已满员
+      if (this.isTaskFull(this.taskToAssign)) {
+        alert(`任务已达到最大人数限制(${this.taskToAssign.participantCount})，无法再分配`)
+        return
+      }
+      
       try {
         console.log('[confirmAssignTask] 开始分配任务, ID:', this.taskToAssign.id, '当前状态:', this.taskToAssign.status)
+        console.log('[confirmAssignTask] 当前执行者:', currentAssigneeIds)
+        console.log('[confirmAssignTask] 新增执行者:', this.selectedAssigneeId)
+        
+        // 将新成员添加到现有执行者列表中（保持字符串格式，避免大整数精度丢失）
+        const updatedAssigneeIds = [...currentAssigneeIds.map(id => String(id)), String(this.selectedAssigneeId)]
+        console.log('[confirmAssignTask] 更新后的执行者列表:', updatedAssigneeIds)
+        
         // 调用后端API分配任务
         const { taskAPI } = await import('@/api/task')
-        const response = await taskAPI.assignTask(this.taskToAssign.id, [this.selectedAssigneeId])
+        const response = await taskAPI.assignTask(this.taskToAssign.id, updatedAssigneeIds)
         console.log('[confirmAssignTask] 后端返回:', response)
         if (response && response.code === 200) {
           console.log('[confirmAssignTask] ✅ 任务分配成功')
@@ -4215,5 +4369,111 @@ export default {
   justify-content: flex-start;
   margin-top: 16px;
   padding-left: 0;
+}
+
+/* 任务已满员状态样式 */
+.assign-status-badge.task-full {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 任务参与人数显示样式 */
+.task-participant-count {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* 分配任务模态框 - 当前执行者状态 */
+.task-assignee-status {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.task-assignee-status .status-label {
+  font-weight: 500;
+  color: #374151;
+  margin-right: 8px;
+}
+
+.task-assignee-status .status-value {
+  color: #6b7280;
+}
+
+.task-assignee-status .status-count {
+  color: #10b981;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* 已分配成员样式 */
+.member-select-item.already-assigned {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+}
+
+.already-assigned-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #10b981;
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 任务详情模态框按钮样式 */
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-success:active {
+  transform: translateY(0);
+}
+
+/* 接取人数显示样式 */
+.text-success {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.text-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.task-full-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.task-info-icon.participants {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 </style>
