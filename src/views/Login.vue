@@ -51,9 +51,10 @@
             </a>
           </div>
           
-          <!-- 滑动验证码 -->
+          <!-- 滑动验证码：只有在输入了邮箱和密码后才允许滑动 -->
           <SliderCaptcha 
             ref="sliderCaptcha"
+            :disabled="!loginForm.email || !loginForm.password"
             @verify-success="handleVerifySuccess"
             @verify-failed="handleVerifyFailed"
           />

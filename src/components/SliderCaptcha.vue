@@ -35,6 +35,11 @@ export default {
     autoReset: {
       type: Boolean,
       default: false
+    },
+    // 是否禁用滑动（例如未填写账号密码时）
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -87,7 +92,7 @@ export default {
       })
     },
     handleMouseDown(e) {
-      if (this.isVerified) return
+      if (this.disabled || this.isVerified) return
       this.isDragging = true
       this.startX = e.clientX - this.sliderPosition
       e.preventDefault()
@@ -104,7 +109,7 @@ export default {
       this.checkVerification()
     },
     handleTouchStart(e) {
-      if (this.isVerified) return
+      if (this.disabled || this.isVerified) return
       this.isDragging = true
       const touch = e.touches[0]
       this.startX = touch.clientX - this.sliderPosition

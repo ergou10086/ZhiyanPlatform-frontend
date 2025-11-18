@@ -270,10 +270,6 @@
           <h2 class="section-title">团队成员</h2>
           <div class="section-actions">
             <!-- 邀请成员按钮：对所有管理员（OWNER和ADMIN）显示 -->
-            <!-- 临时调试：显示权限状态 -->
-            <span v-if="true" style="font-size: 11px; color: #666; margin-right: 10px; padding: 4px 8px; background: #f0f0f0; border-radius: 4px;">
-              [调试] isAdmin={{ isAdmin }}, isOwner={{ isOwner }}, isPM={{ isProjectManager }}, members={{ teamMembers.length }}
-            </span>
             <button 
               v-if="isProjectManager" 
               class="btn primary admin-action" 
@@ -476,6 +472,137 @@
           <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim() || isCreatingTask">
             {{ isCreatingTask ? '创建中...' : '创建任务' }}
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 接取任务确认弹窗（替代浏览器 confirm） -->
+    <div v-if="claimTaskConfirmOpen" class="modal-overlay" @click="cancelClaimTask">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">确认接取任务</h3>
+          <button class="modal-close" @click="cancelClaimTask">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确认接取任务
+            <strong v-if="taskToClaim && taskToClaim.title">“{{ taskToClaim.title }}”</strong>
+            吗？接取后该任务将标记为由你执行。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelClaimTask">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmClaimTask">确认接取</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 取消邀请成员确认弹窗（替代浏览器 confirm） -->
+    <div v-if="removeInviteConfirmOpen" class="modal-overlay" @click="cancelRemoveInviteSlot">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">取消邀请成员</h3>
+          <button class="modal-close" @click="cancelRemoveInviteSlot">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要取消该成员的邀请吗？</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRemoveInviteSlot">保留邀请</button>
+          <button type="button" class="btn btn-primary" @click="confirmRemoveInviteSlot">取消邀请</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移除项目成员确认弹窗（替代浏览器 confirm） -->
+    <div v-if="removeMemberConfirmOpen" class="modal-overlay" @click="cancelRemoveMember">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">移除项目成员</h3>
+          <button class="modal-close" @click="cancelRemoveMember">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            确定要移除
+            <strong v-if="memberToRemove && memberToRemove.name">{{ memberToRemove.name }}</strong>
+            <span v-else>该成员</span>
+            吗？移除后该成员将不再属于此项目。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRemoveMember">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmRemoveMember">确认移除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除项目确认弹窗（替代浏览器 confirm） -->
+    <div v-if="deleteProjectConfirmOpen" class="modal-overlay" @click="cancelDeleteProject">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">删除项目</h3>
+          <button class="modal-close" @click="cancelDeleteProject">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要删除此项目吗？此操作不可撤销，项目及其所有数据将被永久删除。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelDeleteProject">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmDeleteProject">确认删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 删除任务确认弹窗（替代浏览器 confirm） -->
+    <div v-if="deleteTaskConfirmOpen" class="modal-overlay" @click="cancelDeleteTask">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">删除任务</h3>
+          <button class="modal-close" @click="cancelDeleteTask">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要删除此任务吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelDeleteTask">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmDeleteTask">确定</button>
+        </div>
+      </div>
+    </div>
+    <!-- 错误提示弹窗（替代浏览器 alert） -->
+    <div v-if="errorDialogOpen" class="modal-overlay" @click="closeErrorDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">提示</h3>
+          <button class="modal-close" @click="closeErrorDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>{{ errorMessage }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" @click="closeErrorDialog">确定</button>
         </div>
       </div>
     </div>
@@ -1162,6 +1289,23 @@ export default {
       submissionToReview: null,
       // 用于编辑提交的最新提交数据
       latestSubmissionForEdit: null,
+      // 接取任务确认弹窗
+      claimTaskConfirmOpen: false,
+      taskToClaim: null,
+      // 取消邀请成员确认弹窗
+      removeInviteConfirmOpen: false,
+      inviteSlotToRemove: null,
+      // 移除项目成员确认弹窗
+      removeMemberConfirmOpen: false,
+      memberToRemove: null,
+      // 删除项目确认弹窗
+      deleteProjectConfirmOpen: false,
+      // 删除任务确认弹窗
+      deleteTaskConfirmOpen: false,
+      taskToDelete: null,
+      // 错误提示弹窗
+      errorDialogOpen: false,
+      errorMessage: '',
       // 权限相关
       isAdmin: false, // 当前用户是否为项目管理员（包括OWNER和ADMIN）
       isOwner: false, // 当前用户是否为项目拥有者
@@ -2263,6 +2407,7 @@ export default {
         console.log('未找到项目拥有者，负责人保持为:', this.project.manager)
       }
     },
+    // 打开移除成员确认弹窗
     async removeTeamMember(memberId) {
       // 检查要移除的成员
       const member = this.teamMembers.find(m => String(m.id) === String(memberId))
@@ -2280,21 +2425,30 @@ export default {
         this.showSuccessToast('管理员不能移除其他管理员，只有项目拥有者可以')
         return
       }
-      if (!confirm('确定要移除此成员吗？')) {
+      this.memberToRemove = member
+      this.removeMemberConfirmOpen = true
+    },
+    // 取消移除成员
+    cancelRemoveMember() {
+      this.removeMemberConfirmOpen = false
+      this.memberToRemove = null
+    },
+    // 确认移除成员
+    async confirmRemoveMember() {
+      const member = this.memberToRemove
+      if (!member) {
+        this.cancelRemoveMember()
         return
       }
       try {
         const { projectAPI } = await import('@/api/project')
         const projectId = this.$route.params.id
-        // 调用后端API删除成员
-        const response = await projectAPI.removeMember(projectId, memberId)
+        const response = await projectAPI.removeMember(projectId, member.id)
         if (response && response.code === 200) {
-          // 删除成功，重新加载团队成员列表
           await this.loadTeamMembers()
           this.showSuccessToast('成员已成功移除')
-          console.log('成功移除成员:', memberId)
+          console.log('成功移除成员:', member.id)
         } else {
-          // 删除失败，显示错误信息
           const errorMsg = response?.msg || response?.message || '移除成员失败'
           this.showSuccessToast(errorMsg)
           console.error('移除成员失败:', response)
@@ -2303,13 +2457,29 @@ export default {
         console.error('移除成员时出错:', error)
         const errorMsg = error?.msg || error?.message || '网络错误'
         this.showSuccessToast('移除成员失败: ' + errorMsg)
+      } finally {
+        this.cancelRemoveMember()
       }
     },
+    // 打开取消邀请确认弹窗
     removeInviteSlot(slotId) {
-      if (confirm('确定要取消此邀请吗？')) {
-        this.inviteSlots = this.inviteSlots.filter(s => s.id !== slotId)
-        this.saveProjectData()
+      this.inviteSlotToRemove = slotId
+      this.removeInviteConfirmOpen = true
+    },
+    // 取消移除邀请
+    cancelRemoveInviteSlot() {
+      this.removeInviteConfirmOpen = false
+      this.inviteSlotToRemove = null
+    },
+    // 确认移除邀请
+    confirmRemoveInviteSlot() {
+      if (!this.inviteSlotToRemove) {
+        this.cancelRemoveInviteSlot()
+        return
       }
+      this.inviteSlots = this.inviteSlots.filter(s => s.id !== this.inviteSlotToRemove)
+      this.saveProjectData()
+      this.cancelRemoveInviteSlot()
     },
     saveProjectData() {
       // 保存项目数据到localStorage
@@ -2449,62 +2619,44 @@ export default {
         }
       }
     },
-    async deleteProject() {
-      if (confirm('确定要删除此项目吗？\n\n此操作不可撤销！项目及其所有数据将被永久删除。')) {
-        try {
-          // 使用项目API模块删除项目
-          const { projectAPI } = await import('@/api/project')
-          console.log('====== 开始删除项目 ======')
-          console.log('项目ID:', this.project.id, '类型:', typeof this.project.id)
-          console.log('项目名称:', this.project.name || this.project.title)
-          const response = await projectAPI.deleteProject(this.project.id)
-          console.log('删除项目API返回结果:', response)
-          console.log('返回code:', response?.code)
-          console.log('返回msg:', response?.msg)
-          // 检查API返回结果
-          if (response && response.code === 200) {
-            console.log('项目删除成功，准备清理本地数据')
-            // 从localStorage中删除项目
-            const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-            console.log('删除前的项目列表:', savedProjects.map(p => ({ id: p.id, name: p.name || p.title })))
-            // 使用字符串比较确保正确匹配
-            const updatedProjects = savedProjects.filter(p => String(p.id) !== String(this.project.id))
-            console.log('删除后的项目列表:', updatedProjects.map(p => ({ id: p.id, name: p.name || p.title })))
-            localStorage.setItem('projects', JSON.stringify(updatedProjects))
-            this.showSuccessToast('项目删除成功！')
-            console.log('====== 项目删除完成，即将跳转 ======')
-            // 延迟跳转，让用户看到成功提示
-            setTimeout(() => {
-              this.$router.push('/project-square')
-            }, 1500)
-          } else {
-            const errorMsg = response?.msg || '未知错误'
-            console.error('删除失败，错误信息:', errorMsg)
-            alert('删除失败：' + errorMsg)
-          }
-        } catch (error) {
-          console.error('====== 删除项目异常 ======')
-          console.error('错误类型:', error.constructor.name)
-          console.error('错误信息:', error.message)
-          console.error('错误详情:', error)
-          // 处理不同类型的错误
-          let errorMessage = '删除项目失败，请稍后重试'
-          if (error.response) {
-            // 服务器返回错误响应
-            console.error('服务器错误响应:', error.response.status, error.response.data)
-            errorMessage = error.response.data?.msg || `服务器错误 (${error.response.status})`
-          } else if (error.request) {
-            // 请求已发送但没有收到响应
-            console.error('网络错误，未收到响应')
-            errorMessage = '网络连接失败，请检查网络连接'
-          } else if (error.msg) {
-            // 后端返回的错误信息
-            errorMessage = error.msg
-          }
-          alert(errorMessage)
+    // 打开删除项目确认弹窗
+    deleteProject() {
+      this.deleteProjectConfirmOpen = true
+    },
+    // 取消删除项目
+    cancelDeleteProject() {
+      this.deleteProjectConfirmOpen = false
+    },
+    // 确认删除项目（在居中弹窗中点击“确认删除”）
+    async confirmDeleteProject() {
+      try {
+        const { projectAPI } = await import('@/api/project')
+        console.log('====== 开始删除项目 ======')
+        console.log('项目ID:', this.project.id, '类型:', typeof this.project.id)
+        console.log('项目名称:', this.project.name || this.project.title)
+        const response = await projectAPI.deleteProject(this.project.id)
+        console.log('删除项目API返回结果:', response)
+        console.log('返回code:', response?.code)
+        console.log('返回msg:', response?.msg)
+        if (response && response.code === 200) {
+          const savedProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+          console.log('删除前的项目列表:', savedProjects.map(p => ({ id: p.id, name: p.name || p.title })))
+          const updatedProjects = savedProjects.filter(p => String(p.id) !== String(this.project.id))
+          console.log('删除后的项目列表:', updatedProjects.map(p => ({ id: p.id, name: p.name || p.title })))
+          localStorage.setItem('projects', JSON.stringify(updatedProjects))
+          this.showSuccessToast('项目删除成功！')
+          console.log('====== 项目删除完成，即将跳转 ======')
+          setTimeout(() => {
+            this.$router.push('/project-square')
+          }, 1500)
+        } else {
+          const errorMsg = response?.msg || '未知错误'
+          console.error('删除失败，错误信息:', errorMsg)
+          this.showSuccessToast('删除失败：' + errorMsg)
         }
-      } else {
-        console.log('用户取消删除项目')
+      } catch (error) {
+        console.error('删除项目失败:', error)
+        alert('删除项目失败，请稍后重试')
       }
     },
     // 验证新建任务截止日期
@@ -2681,29 +2833,54 @@ export default {
       }
       return true
     },
-    async deleteTask(taskId) {
-      if (!confirm('确定要删除此任务吗？')) {
+    // 打开删除任务确认弹窗
+    deleteTask(taskId) {
+      this.taskToDelete = taskId
+      this.deleteTaskConfirmOpen = true
+    },
+    // 取消删除任务
+    cancelDeleteTask() {
+      this.deleteTaskConfirmOpen = false
+      this.taskToDelete = null
+    },
+    // 确认删除任务（在居中弹窗中点击"确定"）
+    async confirmDeleteTask() {
+      if (!this.taskToDelete) {
+        this.cancelDeleteTask()
         return
       }
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        console.log('[deleteTask] 删除任务，任务ID:', taskId)
+        console.log('[deleteTask] 删除任务，任务ID:', this.taskToDelete)
         // 调用后端API删除任务
-        const response = await taskAPI.deleteTask(taskId)
+        const response = await taskAPI.deleteTask(this.taskToDelete)
         console.log('[deleteTask] API返回结果:', response)
         if (response && response.code === 200) {
           console.log('[deleteTask] ✅ 任务删除成功，重新从后端加载任务列表')
           // ✅ 重新从后端加载最新的任务列表，确保数据一致性
           await this.loadProjectTasks()
           this.showSuccessToast('任务已删除！')
+          this.cancelDeleteTask()
         } else {
-          alert('删除任务失败：' + (response.msg || '未知错误'))
+          this.showErrorDialog('删除任务失败：' + (response.msg || '未知错误'))
+          this.cancelDeleteTask()
         }
       } catch (error) {
         console.error('[deleteTask] 删除任务失败:', error)
-        alert('删除任务失败，请稍后重试')
+        this.showErrorDialog('删除任务失败，请稍后重试')
+        this.cancelDeleteTask()
       }
+    },
+    // 显示错误提示弹窗
+    showErrorDialog(message) {
+      this.errorMessage = message
+      this.errorDialogOpen = true
+    },
+    // 关闭错误提示弹窗
+    closeErrorDialog() {
+      this.errorDialogOpen = false
+      this.errorMessage = ''
     },
     handleClickOutside(event) {
       if (!event.target.closest('.dropdown')) {
@@ -2896,30 +3073,43 @@ export default {
         this.$set(task, 'showStatusMenu', false)
       }
     },
-    async assignTask(task) {
-      // 普通成员接取任务（使用专门的claimTask接口）
-      const confirmed = confirm(`确认接取任务"${task.title}"吗？`)
-      if (!confirmed) return
+    // 打开接取任务确认弹窗
+    assignTask(task) {
+      this.taskToClaim = task
+      this.claimTaskConfirmOpen = true
+    },
+    // 取消接取任务
+    cancelClaimTask() {
+      this.claimTaskConfirmOpen = false
+      this.taskToClaim = null
+    },
+    // 确认接取任务（在居中弹窗中点击“确认接取”）
+    async confirmClaimTask() {
+      const task = this.taskToClaim
+      if (!task) {
+        this.cancelClaimTask()
+        return
+      }
       try {
         const currentUserId = this.getCurrentUserId()
         const currentUserName = this.getCurrentUserName()
         console.log('[assignTask] 开始接取任务, ID:', task.id, '当前状态:', task.status)
-        // ✅ 调用后端专门的接取任务API
+        // 调用后端专门的接取任务API
         const { taskAPI } = await import('@/api/task')
         const response = await taskAPI.claimTask(task.id)
         console.log('[assignTask] 后端返回:', response)
         if (response && response.code === 200) {
           console.log('[assignTask] ✅ 任务接取成功')
-          // ✅ 添加延迟确保数据库事务完成
+          // 添加延迟确保数据库事务完成
           await new Promise(resolve => setTimeout(resolve, 300))
-          // ✅ 重新从后端加载最新的任务列表
+          // 重新从后端加载最新的任务列表
           await this.loadProjectTasks()
-          // ✅ 强制Vue更新视图
+          // 强制Vue更新视图
           this.$nextTick(() => {
             this.$forceUpdate()
           })
           this.showSuccessToast(`成功接取任务: ${task.title}`)
-          // ✅ 验证数据是否更新
+          // 验证数据是否更新
           const updatedTask = this.tasks.find(t => t.id === task.id)
           console.log('[assignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
           if (updatedTask && updatedTask.status === '待接取') {
@@ -2934,6 +3124,8 @@ export default {
       } catch (error) {
         console.error('[assignTask] 接取任务失败:', error)
         alert('接取任务失败，请稍后重试')
+      } finally {
+        this.cancelClaimTask()
       }
     },
     // 打开分配任务模态框
@@ -4015,5 +4207,13 @@ export default {
   transform: none;
   filter: none;
   opacity: 0.6;
+}
+
+/* 任务列表底部"更多"按钮靠左对齐 */
+.more-button-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 16px;
+  padding-left: 0;
 }
 </style>
