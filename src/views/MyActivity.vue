@@ -22,300 +22,403 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content-wrapper">
-      <!-- 顶部欢迎条已移除，减少首屏占用 -->
+      <div class="activity-content-layout">
+        <aside class="activity-side-nav">
+          <button
+            v-for="nav in activityNavItems"
+            :key="nav.key"
+            :class="['activity-nav-item', { active: activePage === nav.key }]"
+            @click="setActivePage(nav.key)"
+          >
+            <span class="nav-label">{{ nav.label }}</span>
+          </button>
+        </aside>
 
-      <!-- 2.（对调后）任务统计（全宽） -->
-      <section class="review-panel-section">
-        <div class="section-card">
-          <div class="section-header">
-            <h3 class="section-title">任务统计</h3>
-          </div>
-          <div class="stats-content">
-            <div v-if="isLoadingStats" class="loading-overlay">
-              <div class="loading-spinner small"></div>
-            </div>
-            <!-- 高级仪表盘：左侧总览（环形+迷你仪表），右侧趋势 -->
-            <div class="dashboard-pro">
-              <div class="card-overview">
-                <div class="card-header-row">
-                  <h4 class="chart-title">总览</h4>
-                  <div class="kpi-group">
-                    <span class="kpi-badge kpi-progress">进行中 {{ displayStats.inProgress }}</span>
-                    <span class="kpi-badge kpi-done">已完成 {{ displayStats.completed }}</span>
+        <div class="activity-page-content">
+          <!-- 我的任务 -->
+          <section 
+            v-if="activePage === 'my-tasks'"
+            class="page-section my-tasks-section"
+          >
+            <div class="dashboard-card task-statistics">
+              <div class="card-header">
+                <div class="card-header-top">
+                  <h3 class="card-title">我的任务</h3>
+                  <div class="review-mode-toggle">
+                    <button 
+                      class="toggle-btn" 
+                      :class="{ active: reviewMode === 'to-review' }"
+                      @click="switchReviewMode('to-review')"
+                    >
+                      我审核的任务
+                    </button>
+                    <button 
+                      class="toggle-btn" 
+                      :class="{ active: reviewMode === 'my-submissions' }"
+                      @click="switchReviewMode('my-submissions')"
+                    >
+                      我提交的待审核任务
+                    </button>
+                    <button 
+                      class="toggle-btn" 
+                      :class="{ active: reviewMode === 'my-created' }"
+                      @click="switchReviewMode('my-created')"
+                    >
+                      我发布的任务
+                    </button>
                   </div>
                 </div>
-                <div class="overview-grid">
-                  <div class="overview-left">
-                    <div ref="pieStatus" class="chart-box medium"></div>
-                    <div class="status-summary">
-                      <div 
-                        v-for="item in statusBreakdown" 
-                        :key="item.key"
-                        class="status-item"
-                      >
-                        <span class="status-dot" :style="{ background: item.color }"></span>
-                        <span class="status-name">{{ item.label }}</span>
-                        <span class="status-count">{{ item.value }}</span>
-                        <span class="status-percent">{{ item.percent }}%</span>
+                <div class="section-controls" v-if="reviewMode !== 'my-created'">
+                  <select v-model="sortBy" class="sort-select" @change="loadPendingTasks">
+                    <option value="project">按项目分类</option>
+                    <option value="priority">按优先级</option>
+                    <option value="dueDate">按截止时间</option>
+                  </select>
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="showOverdueOnly" @change="loadPendingTasks">
+                    <span>仅看逾期项</span>
+                  </label>
+                </div>
+                <div class="created-summary" v-else>
+                  <div class="summary-item">
+                    <span class="summary-label">总任务</span>
+                    <span class="summary-value">{{ createdTaskStats.total }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">进行中</span>
+                    <span class="summary-value info">{{ createdTaskStats.inProgress }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">已完成</span>
+                    <span class="summary-value success">{{ createdTaskStats.completed }}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">待开始</span>
+                    <span class="summary-value warning">{{ createdTaskStats.pending }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="task-list-container">
+                <template v-if="reviewMode === 'my-created'">
+                  <div v-if="isLoadingCreatedTasks" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>加载中...</p>
+                  </div>
+                  <div v-else-if="createdTasks.length === 0" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M8 12H12L16 14" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>暂无我发布的任务</p>
+                  </div>
+                  <div v-else class="task-cards-list">
+                    <div 
+                      v-for="task in createdTasks" 
+                      :key="task.id"
+                      class="task-card-clean"
+                      :class="['status-view', task.statusClass]"
+                    >
+                      <div class="task-status-bar" :class="getStatusColorClass(task.status)"></div>
+                      <div class="task-content">
+                        <div class="task-header">
+                          <h4 class="task-title">{{ task.title }}</h4>
+                          <span class="task-status-badge" :class="'status-' + (task.status || 'UNKNOWN')">
+                            {{ getStatusText(task.status) }}
+                          </span>
+                        </div>
+                        <p class="task-description" v-if="task.description">
+                          {{ task.description }}
+                        </p>
+                        <div class="task-details">
+                          <div class="meta-line">
+                            <span class="meta-pair">
+                              <span class="meta-label">执行人：</span>
+                              <span class="meta-value">{{ task.assignees || '未分配' }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">优先级：</span>
+                              <span class="meta-value">{{ getPriorityText(task.priority) }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">截止时间：</span>
+                              <span class="meta-value">{{ formatTaskDate(task.dueDate) }}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="task-actions">
+                        <button class="action-btn-review" @click="goToProject(task.projectId)">
+                          查看项目
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div class="overview-right">
-                    <div class="mini-gauge" @click="openTaskListModal('inProgress')">
-                      <div class="mini-title">进行中</div>
-                      <div ref="gaugeInProgress" class="chart-box tiny clickable-chart"></div>
+                </template>
+                <template v-else>
+                  <div v-if="isLoadingTasks" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>加载中...</p>
+                  </div>
+                  <div v-else-if="pendingTasks.length === 0" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>{{ reviewMode === 'to-review' ? '暂无需要我审核的任务' : '暂无我提交待审核的任务' }}</p>
+                  </div>
+                  <div v-else class="task-cards-list">
+                    <div 
+                      v-for="task in pendingTasks" 
+                      :key="task.id"
+                      class="task-card-clean"
+                      :class="getTaskUrgencyClass(task)"
+                    >
+                      <div class="task-status-bar" :class="getUrgencyClass(task)"></div>
+                      <div class="task-content">
+                        <div class="task-header">
+                          <h4 class="task-title">{{ task.taskTitle || task.title || '未命名任务' }}</h4>
+                          <span class="task-status-badge" :class="'status-' + (task.status || task.taskStatus || 'UNKNOWN')">
+                            {{ getStatusText(task.status || task.taskStatus) }}
+                          </span>
+                        </div>
+                        <p class="task-description" v-if="task.description || task.taskDescription">
+                          {{ task.description || task.taskDescription }}
+                        </p>
+                        <div class="task-details">
+                          <div class="meta-line">
+                            <span class="meta-pair">
+                              <span class="meta-label">提交人：</span>
+                              <span class="meta-value">{{ getSubmitterName(task) }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">项目：</span>
+                              <span class="meta-value">{{ task.projectName || '未知项目' }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">截止时间：</span>
+                              <span class="meta-value" :class="getDueDateClass(task)">
+                                {{ formatDueDate(task.dueDate || task.due_date || task.taskDueDate) }}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="task-actions">
+                        <button 
+                          class="action-btn-review"
+                          @click="openReviewModal(task)"
+                          v-if="reviewMode === 'to-review' && isProjectManager(task)"
+                        >
+                          审核
+                        </button>
+                        <span v-else-if="reviewMode === 'my-submissions'" class="review-status-text">
+                          {{ getReviewStatusText(task) }}
+                        </span>
+                      </div>
                     </div>
-                    <div class="mini-gauge" @click="openTaskListModal('completed')">
-                      <div class="mini-title">已完成</div>
-                      <div ref="gaugeCompleted" class="chart-box tiny clickable-chart"></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </section>
+
+          <!-- 任务统计 -->
+          <section 
+            v-else-if="activePage === 'task-stats'"
+            class="review-panel-section page-section"
+          >
+            <div class="section-card">
+              <div class="section-header">
+                <h3 class="section-title">任务统计</h3>
+              </div>
+              <div class="stats-content">
+                <div v-if="isLoadingStats" class="loading-overlay">
+                  <div class="loading-spinner small"></div>
+                </div>
+                <div class="dashboard-pro">
+                  <div class="card-overview">
+                    <div class="card-header-row">
+                      <h4 class="chart-title">总览</h4>
+                      <div class="kpi-group">
+                        <span class="kpi-badge kpi-progress">进行中 {{ displayStats.inProgress }}</span>
+                        <span class="kpi-badge kpi-done">已完成 {{ displayStats.completed }}</span>
+                      </div>
                     </div>
-                    <div class="mini-bar">
-                      <div class="mini-title">优先级分布</div>
-                      <div ref="barPriority" class="chart-box small clickable-chart"></div>
+                    <div class="overview-grid">
+                      <div class="overview-left">
+                        <div ref="pieStatus" class="chart-box medium"></div>
+                        <div class="status-summary">
+                          <div 
+                            v-for="item in statusBreakdown" 
+                            :key="item.key"
+                            class="status-item"
+                          >
+                            <span class="status-dot" :style="{ background: item.color }"></span>
+                            <span class="status-name">{{ item.label }}</span>
+                            <span class="status-count">{{ item.value }}</span>
+                            <span class="status-percent">{{ item.percent }}%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="overview-right">
+                        <div class="mini-gauge" @click="openTaskListModal('inProgress')">
+                          <div class="mini-title">进行中</div>
+                          <div ref="gaugeInProgress" class="chart-box tiny clickable-chart"></div>
+                        </div>
+                        <div class="mini-gauge" @click="openTaskListModal('completed')">
+                          <div class="mini-title">已完成</div>
+                          <div ref="gaugeCompleted" class="chart-box tiny clickable-chart"></div>
+                        </div>
+                        <div class="mini-bar">
+                          <div class="mini-title">优先级分布</div>
+                          <div ref="barPriority" class="chart-box small clickable-chart"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card-trend">
+                    <h4 class="chart-title">过去七天完成趋势</h4>
+                    <div ref="lineTrend" class="chart-box large clickable-chart"></div>
+                    <h4 class="chart-title">过去七天逾期任务</h4>
+                    <div ref="barOverdue" class="chart-box small clickable-chart"></div>
+                  </div>
+                </div>
+
+                <div class="upcoming-milestones">
+                  <h4 class="chart-title">即将到期</h4>
+                  <div class="milestones-list">
+                    <div 
+                      v-for="milestone in upcomingMilestones" 
+                      :key="milestone.id"
+                      class="milestone-item"
+                    >
+                      <div class="milestone-info">
+                        <span class="milestone-name">{{ milestone.title }}</span>
+                        <span class="milestone-countdown">{{ getCountdown(milestone.dueDate || milestone.due_date) }}</span>
+                      </div>
+                    </div>
+                    <div v-if="upcomingMilestones.length === 0" class="empty-milestones">
+                      <p>暂无即将到期的任务</p>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div class="card-trend">
-                <h4 class="chart-title">过去七天完成趋势</h4>
-                <div ref="lineTrend" class="chart-box large clickable-chart"></div>
-                <h4 class="chart-title">过去七天逾期任务</h4>
-                <div ref="barOverdue" class="chart-box small clickable-chart"></div>
-              </div>
             </div>
+          </section>
 
-            <!-- 即将到期的关键节点 -->
-            <div class="upcoming-milestones">
-              <h4 class="chart-title">即将到期</h4>
-              <div class="milestones-list">
+          <!-- 项目总览 -->
+          <section 
+            v-else-if="activePage === 'projects'"
+            class="page-section projects-section"
+          >
+            <div class="dashboard-card projects-overview">
+              <div class="card-header">
+                <h3 class="card-title">项目总览</h3>
+              </div>
+              <div v-if="isLoadingProjects" class="loading-state">
+                <div class="loading-spinner small"></div>
+              </div>
+              <div v-else-if="projects.length === 0" class="empty-state small">
+                <p>暂无参与项目</p>
+              </div>
+              <div v-else class="projects-list">
                 <div 
-                  v-for="milestone in upcomingMilestones" 
-                  :key="milestone.id"
-                  class="milestone-item"
+                  v-for="project in projects" 
+                  :key="project.id"
+                  class="project-item"
+                  @click="goToProject(project.id)"
                 >
-                  <div class="milestone-info">
-                    <span class="milestone-name">{{ milestone.title }}</span>
-                    <span class="milestone-countdown">{{ getCountdown(milestone.dueDate || milestone.due_date) }}</span>
-                  </div>
-                </div>
-                <div v-if="upcomingMilestones.length === 0" class="empty-milestones">
-                  <p>暂无即将到期的任务</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 3. 个人工作仪表盘 -->
-      <section class="dashboard-section">
-        <div class="dashboard-grid">
-          <!-- 左侧：项目总览图表 -->
-          <div class="dashboard-card projects-overview">
-            <div class="card-header">
-              <h3 class="card-title">项目总览</h3>
-            </div>
-            <div v-if="isLoadingProjects" class="loading-state">
-              <div class="loading-spinner small"></div>
-            </div>
-            <div v-else-if="projects.length === 0" class="empty-state small">
-              <p>暂无参与项目</p>
-            </div>
-            <div v-else class="projects-list">
-              <div 
-                v-for="project in projects" 
-                :key="project.id"
-                class="project-item"
-                @click="goToProject(project.id)"
-              >
-                <div class="project-info">
-                  <div class="project-header">
-                    <h4 class="project-name">{{ project.title }}</h4>
-                    <span class="project-status-badge" :class="'status-' + project.status">
-                      {{ getProjectStatusText(project.status) }}
-                    </span>
-                  </div>
-                  <div class="project-progress">
-                    <div class="progress-bar">
-                      <div 
-                        class="progress-fill" 
-                        :style="{ width: (project.progress || 0) + '%' }"
-                      ></div>
+                  <div class="project-info">
+                    <div class="project-header">
+                      <h4 class="project-name">{{ project.title }}</h4>
+                      <span class="project-status-badge" :class="'status-' + project.status">
+                        {{ getProjectStatusText(project.status) }}
+                      </span>
                     </div>
-                    <span class="progress-text">{{ project.progress || 0 }}%</span>
+                    <div class="project-progress">
+                      <div class="progress-bar">
+                        <div 
+                          class="progress-fill" 
+                          :style="{ width: (project.progress || 0) + '%' }"
+                        ></div>
+                      </div>
+                      <span class="progress-text">{{ project.progress || 0 }}%</span>
+                    </div>
+                  </div>
+                  <div class="project-link" @click.stop="goToProject(project.id)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                   </div>
                 </div>
-                <div class="project-link" @click.stop="goToProject(project.id)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- 右侧（对调后）：待审核任务 -->
-          <div class="dashboard-card task-statistics">
-            <div class="card-header">
-              <div class="card-header-top">
-                <h3 class="card-title">待审核任务</h3>
-                <div class="review-mode-toggle">
-                  <button 
-                    class="toggle-btn" 
-                    :class="{ active: reviewMode === 'to-review' }"
-                    @click="switchReviewMode('to-review')"
+          <!-- 操作日志 -->
+          <section class="activity-log-section page-section" v-else>
+            <div class="section-card">
+              <div class="section-header">
+                <h3 class="section-title">操作日志</h3>
+                <div class="section-controls">
+                  <input 
+                    type="text" 
+                    v-model="logSearchKeyword" 
+                    placeholder="搜索日志..."
+                    class="search-input"
+                    @input="filterActivityLogs"
                   >
-                    我审核的任务
-                  </button>
-                  <button 
-                    class="toggle-btn" 
-                    :class="{ active: reviewMode === 'my-submissions' }"
-                    @click="switchReviewMode('my-submissions')"
-                  >
-                    我被审核的任务
-                  </button>
+                  <select v-model="logFilterType" class="filter-select" @change="filterActivityLogs">
+                    <option value="all">全部类型</option>
+                    <option value="submission">任务提交</option>
+                    <option value="upload">成果上传</option>
+                    <option value="comment">评论回复</option>
+                    <option value="review">审核操作</option>
+                  </select>
                 </div>
               </div>
-              <div class="section-controls">
-                <select v-model="sortBy" class="sort-select" @change="loadPendingTasks">
-                  <option value="project">按项目分类</option>
-                  <option value="priority">按优先级</option>
-                  <option value="dueDate">按截止时间</option>
-                </select>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="showOverdueOnly" @change="loadPendingTasks">
-                  <span>仅看逾期项</span>
-                </label>
-              </div>
-            </div>
-            <div class="task-list-container">
-              <div v-if="isLoadingTasks" class="loading-state">
+              <div v-if="isLoadingLogs" class="loading-state">
                 <div class="loading-spinner"></div>
                 <p>加载中...</p>
               </div>
-              <div v-else-if="pendingTasks.length === 0" class="empty-state">
+              <div v-else-if="filteredActivityLogs.length === 0" class="empty-state">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 6V12L16 14" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <p>{{ reviewMode === 'to-review' ? '暂无待审核任务' : '暂无待审核的提交' }}</p>
+                <p>暂无操作记录</p>
               </div>
-              <div v-else class="task-cards-list">
+              <div v-else class="activity-timeline" @scroll="handleLogScroll">
                 <div 
-                  v-for="task in pendingTasks" 
-                  :key="task.id"
-                  class="task-card-clean"
-                  :class="getTaskUrgencyClass(task)"
+                  v-for="log in filteredActivityLogs" 
+                  :key="log.id"
+                  class="timeline-item"
                 >
-                  <div class="task-status-bar" :class="getUrgencyClass(task)"></div>
-                  <div class="task-content">
-                    <div class="task-header">
-                      <h4 class="task-title">{{ task.taskTitle || task.title || '未命名任务' }}</h4>
-                      <span class="task-status-badge" :class="'status-' + (task.status || task.taskStatus || 'UNKNOWN')">
-                        {{ getStatusText(task.status || task.taskStatus) }}
-                      </span>
+                  <div class="timeline-dot" :class="'type-' + log.type"></div>
+                  <div class="timeline-content">
+                    <div class="log-header">
+                      <span class="log-type">{{ getLogTypeText(log.type) }}</span>
+                      <span class="log-time">{{ formatDateTime(log.timestamp || log.createdAt) }}</span>
                     </div>
-                    <p class="task-description" v-if="task.description || task.taskDescription">
-                      {{ task.description || task.taskDescription }}
-                    </p>
-                    <div class="task-details">
-                      <div class="meta-line">
-                        <span class="meta-pair">
-                          <span class="meta-label">提交人：</span>
-                          <span class="meta-value">{{ getSubmitterName(task) }}</span>
-                        </span>
-                        <span class="meta-sep">·</span>
-                        <span class="meta-pair">
-                          <span class="meta-label">项目：</span>
-                          <span class="meta-value">{{ task.projectName || '未知项目' }}</span>
-                        </span>
-                        <span class="meta-sep">·</span>
-                        <span class="meta-pair">
-                          <span class="meta-label">截止时间：</span>
-                          <span class="meta-value" :class="getDueDateClass(task)">
-                            {{ formatDueDate(task.dueDate || task.due_date || task.taskDueDate) }}
-                          </span>
-                        </span>
-                      </div>
+                    <p class="log-description">{{ log.description || log.content }}</p>
+                    <div class="log-target" v-if="log.targetName">
+                      <span class="target-label">关联对象：</span>
+                      <span class="target-name">{{ log.targetName }}</span>
                     </div>
                   </div>
-                  <div class="task-actions">
-                    <button 
-                      class="action-btn-review"
-                      @click="openReviewModal(task)"
-                      v-if="reviewMode === 'to-review' && isProjectManager(task)"
-                    >
-                      审核
-                    </button>
-                    <span v-else-if="reviewMode === 'my-submissions'" class="review-status-text">
-                      {{ getReviewStatusText(task) }}
-                    </span>
-                  </div>
+                </div>
+                <div v-if="hasMoreLogs" class="load-more" @click="loadMoreLogs">
+                  <span>加载更多</span>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
-      </section>
-
-      <!-- 4. 个人操作日志展示区 -->
-      <section class="activity-log-section">
-        <div class="section-card">
-          <div class="section-header">
-            <h3 class="section-title">操作日志</h3>
-            <div class="section-controls">
-              <input 
-                type="text" 
-                v-model="logSearchKeyword" 
-                placeholder="搜索日志..."
-                class="search-input"
-                @input="filterActivityLogs"
-              >
-              <select v-model="logFilterType" class="filter-select" @change="filterActivityLogs">
-                <option value="all">全部类型</option>
-                <option value="submission">任务提交</option>
-                <option value="upload">成果上传</option>
-                <option value="comment">评论回复</option>
-                <option value="review">审核操作</option>
-              </select>
-            </div>
-          </div>
-          <div v-if="isLoadingLogs" class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
-          </div>
-          <div v-else-if="filteredActivityLogs.length === 0" class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 6V12L16 14" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <p>暂无操作记录</p>
-          </div>
-          <div v-else class="activity-timeline" @scroll="handleLogScroll">
-            <div 
-              v-for="log in filteredActivityLogs" 
-              :key="log.id"
-              class="timeline-item"
-            >
-              <div class="timeline-dot" :class="'type-' + log.type"></div>
-              <div class="timeline-content">
-                <div class="log-header">
-                  <span class="log-type">{{ getLogTypeText(log.type) }}</span>
-                  <span class="log-time">{{ formatDateTime(log.timestamp || log.createdAt) }}</span>
-                </div>
-                <p class="log-description">{{ log.description || log.content }}</p>
-                <div class="log-target" v-if="log.targetName">
-                  <span class="target-label">关联对象：</span>
-                  <span class="target-name">{{ log.targetName }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="hasMoreLogs" class="load-more" @click="loadMoreLogs">
-              <span>加载更多</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
 
     <!-- 审核弹窗 -->
@@ -413,7 +516,16 @@ export default {
     return {
       // 侧边栏状态
       sidebarOpen: false,
-      
+
+      // 页面内导航
+      activePage: 'my-tasks',
+      activityNavItems: [
+        { key: 'my-tasks', label: '我的任务' },
+        { key: 'task-stats', label: '任务统计' },
+        { key: 'projects', label: '项目总览' },
+        { key: 'activity-log', label: '操作日志' }
+      ],
+
       // 用户信息
       userName: '用户',
       
@@ -423,6 +535,14 @@ export default {
       sortBy: 'dueDate',
       showOverdueOnly: false,
       reviewMode: 'to-review', // 'to-review': 我审核的任务, 'my-submissions': 我被审核的任务
+      createdTasks: [],
+      isLoadingCreatedTasks: false,
+      createdTaskStats: {
+        total: 0,
+        inProgress: 0,
+        completed: 0,
+        pending: 0
+      },
       
       // 项目总览
       projects: [],
@@ -504,13 +624,6 @@ export default {
       }))
     }
   },
-  mounted() {
-    // 不再预先设置示例数据，直接加载真实数据
-    this.initPage()
-    
-    // 动态添加样式，确保ECharts tooltip显示在最上层
-    this.ensureTooltipZIndex()
-  },
   methods: {
     ensureTooltipZIndex() {
       // 创建一个style标签，确保ECharts tooltip的z-index足够高
@@ -525,6 +638,40 @@ export default {
           }
         `
         document.head.appendChild(style)
+      }
+    },
+
+    async loadCreatedTasks() {
+      this.isLoadingCreatedTasks = true
+      try {
+        const response = await taskAPI.getMyCreatedTasks(0, 50)
+        let tasks = []
+        if (response && Array.isArray(response)) {
+          tasks = response
+        } else if (response && response.data) {
+          const payload = response.data
+          if (Array.isArray(payload)) {
+            tasks = payload
+          } else if (Array.isArray(payload.content)) {
+            tasks = payload.content
+          } else if (Array.isArray(payload.list)) {
+            tasks = payload.list
+          } else if (Array.isArray(payload.records)) {
+            tasks = payload.records
+          }
+        } else if (Array.isArray(response?.content)) {
+          tasks = response.content
+        }
+
+        const mappedTasks = (tasks || []).map(task => this.mapCreatedTask(task))
+        this.createdTasks = mappedTasks
+        this.updateCreatedTaskStats(mappedTasks)
+      } catch (error) {
+        console.error('加载我发布的任务失败:', error)
+        this.createdTasks = []
+        this.updateCreatedTaskStats([])
+      } finally {
+        this.isLoadingCreatedTasks = false
       }
     },
 
@@ -552,6 +699,16 @@ export default {
     
     closeSidebar() {
       this.sidebarOpen = false
+    },
+    
+    setActivePage(pageKey) {
+      if (this.activePage === pageKey) return
+      this.activePage = pageKey
+      if (pageKey === 'task-stats') {
+        this.$nextTick(() => {
+          this.ensureChartsInitialized()
+        })
+      }
     },
     
     goToHome() {
@@ -620,8 +777,11 @@ export default {
     
     
     switchReviewMode(mode) {
-      if (this.reviewMode !== mode) {
-        this.reviewMode = mode
+      if (this.reviewMode === mode) return
+      this.reviewMode = mode
+      if (mode === 'my-created') {
+        this.loadCreatedTasks()
+      } else {
         this.loadPendingTasks()
       }
     },
@@ -729,6 +889,10 @@ export default {
       }
       return statusMap[status] || status || '未知'
     },
+
+    getStatusColorClass(status) {
+      return `status-${this.normalizeStatus(status)}`
+    },
     
     getDueDateClass(task) {
       const dueDate = new Date(task.dueDate || task.due_date || task.taskDueDate)
@@ -802,6 +966,9 @@ export default {
       this.loadPendingTasks()
       this.loadTaskStatistics()
       this.loadActivityLogs()
+      if (this.reviewMode === 'my-created') {
+        this.loadCreatedTasks()
+      }
     },
     
     async loadProjects() {
@@ -1988,6 +2155,147 @@ export default {
         event.preventDefault()
       }
     },
+
+    updateCreatedTaskStats(tasks) {
+      const stats = {
+        total: tasks.length,
+        inProgress: 0,
+        completed: 0,
+        pending: 0
+      }
+      tasks.forEach(task => {
+        const status = this.normalizeStatus(task.status)
+        if (status === 'DONE') {
+          stats.completed += 1
+        } else if (status === 'IN_PROGRESS' || status === 'REVIEWING') {
+          stats.inProgress += 1
+        } else {
+          stats.pending += 1
+        }
+      })
+      this.createdTaskStats = stats
+    },
+    mapCreatedTask(task) {
+      if (!task) {
+        return null
+      }
+
+      const normalizedStatus = this.normalizeStatus(task.status || task.taskStatus || task.statusCode)
+      const prioritySource = (task.priority || task.priorityValue || task.priorityLevel || '').toString().toUpperCase()
+      const priority = this.mapTaskPriority(prioritySource || 'MEDIUM')
+
+      const assigneeList =
+        task.assignees ||
+        task.assigneeList ||
+        task.taskAssignees ||
+        task.assignments ||
+        task.members ||
+        null
+
+      const fallbackAssignee =
+        task.assigneeName ||
+        task.assigneeNames ||
+        task.executorName ||
+        task.executor ||
+        null
+
+      const dueDateRaw =
+        task.dueDate ||
+        task.due_date ||
+        task.taskDueDate ||
+        task.deadline ||
+        task.targetDate ||
+        null
+
+      return {
+        id: task.id || task.taskId || task.task_id,
+        projectId: task.projectId || task.project_id || task.project?.id,
+        projectName: task.projectName || task.project?.title,
+        title: task.title || task.taskTitle || '未命名任务',
+        description: task.description || task.taskDescription || '',
+        status: normalizedStatus,
+        statusClass: `status-${normalizedStatus}`,
+        priority,
+        dueDate: dueDateRaw,
+        assignees: this.formatAssignees(assigneeList || fallbackAssignee),
+        raw: task
+      }
+    },
+    
+    normalizeStatus(status) {
+      if (!status) return 'UNKNOWN'
+      const upper = String(status).toUpperCase()
+      const map = {
+        'NOT_STARTED': 'PENDING',
+        'TODO': 'PENDING',
+        'PENDING_REVIEW': 'REVIEWING',
+        'APPROVED': 'DONE',
+        'COMPLETED': 'DONE'
+      }
+      return map[upper] || upper
+    },
+    
+    formatAssignees(value) {
+      if (!value) return '未分配'
+      if (Array.isArray(value)) {
+        const names = value
+          .map(item => item?.name || item?.nickname || item?.username || item)
+          .filter(Boolean)
+        return names.length ? names.join('、') : '未分配'
+      }
+      if (typeof value === 'string') {
+        return value
+      }
+      if (typeof value === 'object') {
+        return value.name || value.nickname || value.username || '未分配'
+      }
+      return '未分配'
+    },
+    
+    getSampleCreatedTasks() {
+      const today = new Date()
+      const addDays = (n) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000).toISOString()
+      const samples = [
+        {
+          id: 'created-1',
+          title: '完善评审标准',
+          description: '梳理最新的实验评审要求并同步团队',
+          priority: 'high',
+          status: 'IN_PROGRESS',
+          dueDate: addDays(2),
+          projectId: 1,
+          assignees: '张三'
+        },
+        {
+          id: 'created-2',
+          title: '发布v0.3测试任务',
+          description: '准备新版本测试清单',
+          priority: 'medium',
+          status: 'PENDING',
+          dueDate: addDays(5),
+          projectId: 2,
+          assignees: '未分配'
+        },
+        {
+          id: 'created-3',
+          title: '整理阶段报告',
+          description: '汇总上月成果输出阶段报告',
+          priority: 'low',
+          status: 'DONE',
+          dueDate: addDays(-1),
+          projectId: 3,
+          assignees: '李四'
+        }
+      ]
+      return samples.map(sample => {
+        const normalizedStatus = this.normalizeStatus(sample.status)
+        return {
+          ...sample,
+          status: normalizedStatus,
+          statusClass: `status-${normalizedStatus}`
+        }
+      })
+    }
   }
 }
 </script>
@@ -2075,13 +2383,84 @@ export default {
 
 /* 主要内容区域 */
 .main-content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding-top: 80px; /* 为固定页眉留出空间 */
+}
+
+.activity-content-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  min-height: calc(100vh - 120px);
+  width: 100%;
+}
+
+.activity-side-nav {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 100px;
+  height: fit-content;
+}
+
+.activity-nav-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.activity-nav-item:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.activity-nav-item.active {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px #c7d2fe;
+}
+
+.activity-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.page-section {
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-section > .dashboard-card,
+.page-section > .section-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 欢迎语区域 */
@@ -2460,7 +2839,8 @@ export default {
 
 .dashboard-card.projects-overview,
 .dashboard-card.task-statistics {
-  height: calc(100vh * 3 / 7); /* 再缩短高度，首屏尽量完整显示 */
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column; /* 让内部可自适应填充并滚动 */
   overflow: hidden; /* 防止整个卡片溢出 */
