@@ -238,6 +238,7 @@
                 <span v-if="task.participantCount" class="task-participant-count">
                   接取人数: {{ task.assignees ? task.assignees.length : 0 }}/{{ task.participantCount }}
                 </span>
+              </div>
             </div>
             <!-- 任务操作区域 - 支持多人接取 -->
             <div class="task-assign-section" @click.stop>
@@ -1134,6 +1135,36 @@
                 </div>
               </div>
             </div>
+            <!-- 统计信息 - 可点击查看详情 -->
+            <div class="task-info-card clickable" @click="openTaskStatisticsModal(selectedTask)">
+              <div class="task-info-icon statistics">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 20V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 20V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content">
+                <div class="task-info-label">
+                  统计信息
+                  <span class="click-hint">点击查看详情</span>
+                </div>
+                <div class="task-info-value task-statistics-grid">
+                  <div class="stat-item">
+                    <span class="stat-label">执行者:</span>
+                    <span class="stat-value">{{ selectedTask.assignees ? selectedTask.assignees.length : 0 }}人</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">提交状态:</span>
+                    <span class="stat-value">{{ selectedTask.hasSubmission ? '已提交' : '未提交' }}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">审核状态:</span>
+                    <span class="stat-value">{{ getApprovalStatus(selectedTask) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -1166,6 +1197,139 @@
         </div>
       </div>
     </div>
+    </div>
+    <!-- 任务统计详情弹窗 -->
+    <div v-if="statisticsModalOpen && taskForStatistics" class="modal-overlay" @click="closeStatisticsModal">
+      <div class="modal-content statistics-modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">任务统计详情</h3>
+          <button class="modal-close" @click="closeStatisticsModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body statistics-modal-body">
+          <!-- 多人任务分配标题 -->
+          <div class="statistics-section">
+            <h4 class="statistics-task-title">多人任务分配</h4>
+          </div>
+          
+          <!-- 统计概览 -->
+          <div class="statistics-section" v-if="taskStats">
+            <div class="section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 20V10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 20V4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M6 20V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h5 class="section-title">统计概览</h5>
+            </div>
+            <div class="stats-overview">
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-card-label">执行者总数</div>
+                  <div class="stat-card-value">{{ taskStats.totalExecutors || 0 }}</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-card-label">最终提交数</div>
+                  <div class="stat-card-value">{{ taskStats.totalFinalSubmissions || 0 }}</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-card-label">已批准提交</div>
+                  <div class="stat-card-value approved">{{ taskStats.approvedFinalSubmissions || 0 }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 所有执行者 -->
+          <div class="statistics-section">
+            <div class="section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h5 class="section-title">所有执行者 ({{ taskStats ? taskStats.totalExecutors : (taskForStatistics.assignees ? taskForStatistics.assignees.length : 0) }}人)</h5>
+            </div>
+            <div class="assignees-list">
+              <div v-if="taskForStatistics.assignees && taskForStatistics.assignees.length > 0" class="assignee-items">
+                <div v-for="(assignee, index) in taskForStatistics.assignees" :key="index" class="assignee-item">
+                  <!-- 显示头像：优先使用后端返回的头像URL，否则显示首字母 -->
+                  <div v-if="assignee.avatarUrl" class="assignee-avatar-img">
+                    <img :src="assignee.avatarUrl" :alt="assignee.userName" class="avatar-image" />
+                  </div>
+                  <div v-else class="assignee-avatar">{{ assignee.userName ? assignee.userName.charAt(0) : '?' }}</div>
+                  <div class="assignee-info">
+                    <div class="assignee-name">{{ assignee.userName }}</div>
+                    <div class="assignee-meta">
+                      <span class="assignee-type">{{ assignee.assignType === 'CLAIMED' ? '主动接取' : '管理员分配' }}</span>
+                      <span class="assignee-time">{{ formatTime(assignee.assignedAt) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="empty-state">暂无执行者</div>
+            </div>
+          </div>
+
+          <!-- 最终提交信息 -->
+          <div class="statistics-section">
+            <div class="section-header">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <h5 class="section-title">最终提交信息</h5>
+            </div>
+            <div v-if="approvedSubmission" class="submission-details">
+              <!-- 提交者信息 -->
+              <div class="submission-meta">
+                <div class="meta-item">
+                  <span class="meta-label">提交人:</span>
+                  <span class="meta-value">{{ approvedSubmission.submitterName }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">提交时间:</span>
+                  <span class="meta-value">{{ formatTime(approvedSubmission.submittedAt) }}</span>
+                </div>
+                <div class="meta-item">
+                  <span class="meta-label">审核状态:</span>
+                  <span class="meta-value status-approved">已批准</span>
+                </div>
+              </div>
+              
+              <!-- 提交内容 -->
+              <div class="submission-content">
+                <div class="content-label">提交内容:</div>
+                <div class="content-text">{{ approvedSubmission.content || '无' }}</div>
+              </div>
+              
+              <!-- 附件列表 -->
+              <div v-if="approvedSubmission.attachments && approvedSubmission.attachments.length > 0" class="submission-attachments">
+                <div class="content-label">附件 ({{ approvedSubmission.attachments.length }}):</div>
+                <div class="attachment-list">
+                  <div v-for="(attachmentUrl, index) in approvedSubmission.attachments" :key="index" class="attachment-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <a :href="attachmentUrl" target="_blank" class="attachment-name">{{ getFileNameFromUrl(attachmentUrl) }}</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-state">
+              {{ taskForStatistics.hasSubmission ? '暂无已批准的提交' : '暂无提交' }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeStatisticsModal" class="btn btn-primary">关闭</button>
+        </div>
+      </div>
     </div>
     <!-- 分配任务模态框 -->
     <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click="closeAssignTaskModal">
@@ -1283,7 +1447,6 @@
         </div>
       </div>
     </div>
-    </div>
   </div>
 </template>
 <script>
@@ -1335,6 +1498,10 @@ export default {
       selectedTask: null, // 当前选中的任务
       selectedTaskWorktimeInfo: null, // 当前任务的最新工时信息
       selectedTaskWorktimeLoading: false, // 工时信息加载状态
+      statisticsModalOpen: false, // 统计详情弹窗
+      taskForStatistics: null, // 统计详情的任务
+      approvedSubmission: null, // 已批准的提交信息
+      taskStats: null, // 任务统计信息（来自后端）
       editTaskModalOpen: false, // 编辑任务弹窗
       editTaskData: {
         title: '',
@@ -1571,13 +1738,302 @@ export default {
         this.selectedTaskWorktimeLoading = false
         return
       }
+      
+      // 获取任务的提交状态
+      await this.updateTaskSubmissionStatus(taskId)
+      
+      // 获取工时信息
       await this.fetchTaskWorktime(taskId)
+    },
+    /**
+     * 批量更新任务状态（仅更新待审核状态的任务，避免性能问题）
+     */
+    async batchUpdateTaskStatus() {
+      try {
+        // 只检查状态为"待审核"的任务
+        const pendingTasks = this.tasks.filter(t => 
+          t.status === '待审核' || t.status_value === 'PENDING_REVIEW'
+        )
+        
+        if (pendingTasks.length === 0) {
+          console.log('[batchUpdateTaskStatus] 没有待审核的任务需要更新')
+          return
+        }
+        
+        console.log(`[batchUpdateTaskStatus] 检查 ${pendingTasks.length} 个待审核任务的提交状态`)
+        
+        const { getTaskSubmissions } = await import('@/api/taskSubmission')
+        
+        // 并发检查所有待审核任务（限制并发数为5，避免请求过多）
+        const batchSize = 5
+        for (let i = 0; i < pendingTasks.length; i += batchSize) {
+          const batch = pendingTasks.slice(i, i + batchSize)
+          await Promise.all(batch.map(async (task) => {
+            try {
+              const response = await getTaskSubmissions(task.id)
+              if (response && response.code === 200 && response.data) {
+                const submissions = response.data
+                
+                // 检查是否有已批准的最终提交
+                const hasApprovedSubmission = submissions.some(s => 
+                  s.reviewStatus === 'APPROVED' && s.isFinal === true
+                )
+                
+                if (hasApprovedSubmission) {
+                  // 更新任务状态为"完成"
+                  const taskIndex = this.tasks.findIndex(t => t.id === task.id)
+                  if (taskIndex !== -1) {
+                    this.$set(this.tasks[taskIndex], 'status', '完成')
+                    this.$set(this.tasks[taskIndex], 'status_value', 'DONE')
+                    this.$set(this.tasks[taskIndex], 'hasApprovedSubmission', true)
+                    console.log(`[batchUpdateTaskStatus] ✅ 任务 ${task.id}(${task.title}) 状态已更新为"完成"`)
+                  }
+                }
+              }
+            } catch (error) {
+              console.error(`[batchUpdateTaskStatus] 检查任务 ${task.id} 失败:`, error)
+            }
+          }))
+        }
+        
+        console.log('[batchUpdateTaskStatus] 批量状态更新完成')
+      } catch (error) {
+        console.error('[batchUpdateTaskStatus] 批量更新失败:', error)
+      }
+    },
+    /**
+     * 更新任务的提交状态信息
+     */
+    async updateTaskSubmissionStatus(taskId) {
+      try {
+        const { getTaskSubmissions } = await import('@/api/taskSubmission')
+        const response = await getTaskSubmissions(taskId)
+        
+        if (response && response.code === 200 && response.data) {
+          const submissions = response.data
+          
+          // 检查是否有提交记录
+          const hasSubmission = submissions.length > 0
+          
+          // 检查是否有最终提交
+          const hasFinalSubmission = submissions.some(s => s.isFinal === true)
+          
+          // 检查是否有已批准的最终提交
+          const hasApprovedSubmission = submissions.some(s => 
+            s.reviewStatus === 'APPROVED' && s.isFinal === true
+          )
+          
+          // 更新 selectedTask 的提交状态
+          if (this.selectedTask) {
+            this.selectedTask.hasSubmission = hasSubmission
+            this.selectedTask.hasFinalSubmission = hasFinalSubmission
+            this.selectedTask.hasApprovedSubmission = hasApprovedSubmission
+            
+            // ✅ 如果有已批准的提交，更新任务状态为"完成"
+            if (hasApprovedSubmission) {
+              this.selectedTask.status = '完成'
+              this.selectedTask.status_value = 'DONE'
+            } else if (hasFinalSubmission) {
+              // 如果有最终提交但未批准，状态应该是"待审核"
+              this.selectedTask.status = '待审核'
+              this.selectedTask.status_value = 'PENDING_REVIEW'
+            }
+            
+            // ✅ 同步更新任务列表中的对应任务
+            const taskIndex = this.tasks.findIndex(t => t.id === taskId)
+            if (taskIndex !== -1) {
+              this.$set(this.tasks[taskIndex], 'hasSubmission', hasSubmission)
+              this.$set(this.tasks[taskIndex], 'hasFinalSubmission', hasFinalSubmission)
+              this.$set(this.tasks[taskIndex], 'hasApprovedSubmission', hasApprovedSubmission)
+              
+              if (hasApprovedSubmission) {
+                this.$set(this.tasks[taskIndex], 'status', '完成')
+                this.$set(this.tasks[taskIndex], 'status_value', 'DONE')
+              } else if (hasFinalSubmission) {
+                this.$set(this.tasks[taskIndex], 'status', '待审核')
+                this.$set(this.tasks[taskIndex], 'status_value', 'PENDING_REVIEW')
+              }
+            }
+          }
+          
+          console.log('[updateTaskSubmissionStatus] 任务提交状态已更新:', {
+            hasSubmission,
+            hasFinalSubmission,
+            hasApprovedSubmission,
+            status: this.selectedTask?.status
+          })
+        }
+      } catch (error) {
+        console.error('更新任务提交状态失败:', error)
+      }
     },
     closeTaskDetailModal() {
       this.taskDetailModalOpen = false
       this.selectedTask = null
       this.selectedTaskWorktimeInfo = null
       this.selectedTaskWorktimeLoading = false
+    },
+    /**
+     * 打开任务统计详情弹窗
+     */
+    async openTaskStatisticsModal(task) {
+      this.taskForStatistics = task
+      this.statisticsModalOpen = true
+      this.approvedSubmission = null
+      this.taskStats = null
+      
+      // 获取任务详情（包含执行者的完整信息：姓名、头像等）
+      await this.fetchTaskDetailForStats(task.id)
+      
+      // 获取任务统计信息（从后端）
+      await this.fetchTaskStats(task.id)
+      
+      // 获取已批准的提交信息
+      await this.fetchApprovedSubmission(task.id)
+    },
+    /**
+     * 关闭统计详情弹窗
+     */
+    /**
+     * 获取任务详情（用于统计弹窗，包含执行者完整信息）
+     */
+    async fetchTaskDetailForStats(taskId) {
+      try {
+        const { taskAPI } = await import('@/api/task')
+        const response = await taskAPI.getTaskDetail(taskId)
+        
+        if (response && response.code === 200 && response.data) {
+          // 更新 taskForStatistics，使用后端返回的最新数据（包含任务标题、执行者的姓名、头像等）
+          this.taskForStatistics = {
+            ...this.taskForStatistics,
+            title: response.data.title || this.taskForStatistics.title,  // 使用后端返回的任务标题
+            assignees: response.data.assignees || []  // 使用后端返回的最新执行者信息
+          }
+          console.log('[fetchTaskDetailForStats] 获取到任务详情:', {
+            title: this.taskForStatistics.title,
+            assignees: this.taskForStatistics.assignees
+          })
+        }
+      } catch (error) {
+        console.error('获取任务详情失败:', error)
+      }
+    },
+    closeStatisticsModal() {
+      this.statisticsModalOpen = false
+      this.taskForStatistics = null
+      this.approvedSubmission = null
+      this.taskStats = null
+    },
+    /**
+     * 获取任务统计信息
+     */
+    async fetchTaskStats(taskId) {
+      try {
+        const { getTaskSubmissionStats } = await import('@/api/taskSubmission')
+        const response = await getTaskSubmissionStats(taskId)
+        
+        if (response && response.code === 200 && response.data) {
+          this.taskStats = response.data
+          console.log('[fetchTaskStats] 统计信息:', this.taskStats)
+        }
+      } catch (error) {
+        console.error('获取任务统计信息失败:', error)
+      }
+    },
+    /**
+     * 获取已批准的提交信息
+     */
+    async fetchApprovedSubmission(taskId) {
+      try {
+        const { getTaskSubmissions } = await import('@/api/taskSubmission')
+        const response = await getTaskSubmissions(taskId)
+        
+        if (response && response.code === 200 && response.data) {
+          const submissions = response.data
+          // 筛选出已批准且是最终提交的记录
+          const approvedFinalSubmissions = submissions.filter(s => 
+            s.reviewStatus === 'APPROVED' && s.isFinal === true
+          )
+          
+          if (approvedFinalSubmissions.length > 0) {
+            // 取最新的一条已批准提交（按提交时间倒序，第一条就是最新的）
+            const latestApproved = approvedFinalSubmissions[0]
+            this.approvedSubmission = {
+              submitterName: latestApproved.submitter?.name || latestApproved.submitter?.username || '未知',
+              submittedAt: latestApproved.submissionTime,
+              content: latestApproved.submissionContent || '无',
+              attachments: latestApproved.attachmentUrls || []
+            }
+            console.log('[fetchApprovedSubmission] 找到已批准提交:', this.approvedSubmission)
+            console.log('[fetchApprovedSubmission] 原始数据:', latestApproved)
+          } else {
+            console.log('[fetchApprovedSubmission] 没有找到已批准的最终提交')
+          }
+        }
+      } catch (error) {
+        console.error('获取提交信息失败:', error)
+      }
+    },
+    /**
+     * 获取审核状态显示文本
+     */
+    getApprovalStatus(task) {
+      if (!task.hasSubmission) {
+        return '未提交'
+      }
+      
+      // 优先使用 hasApprovedSubmission 字段判断
+      if (task.hasApprovedSubmission) {
+        return '已批准'
+      }
+      
+      // 如果有提交但没有批准，检查任务状态
+      if (task.status === '待审核' || task.status_value === 'PENDING_REVIEW') {
+        return '待审核'
+      }
+      if (task.status === '完成' || task.status_value === 'DONE') {
+        return '已批准'
+      }
+      
+      // 有提交但状态未知
+      if (task.hasFinalSubmission) {
+        return '待审核'
+      }
+      
+      return '未提交'
+    },
+    /**
+     * 格式化时间
+     */
+    formatTime(timestamp) {
+      if (!timestamp) return '未知'
+      try {
+        const date = new Date(timestamp)
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      } catch (e) {
+        return '未知'
+      }
+    },
+    /**
+     * 从URL中提取文件名
+     */
+    getFileNameFromUrl(url) {
+      if (!url) return '未知文件'
+      try {
+        // 从URL中提取文件名（最后一个/后面的部分）
+        const parts = url.split('/')
+        const filename = parts[parts.length - 1]
+        // 解码URL编码的文件名
+        return decodeURIComponent(filename)
+      } catch (e) {
+        return url
+      }
     },
     goToTaskList() {
       // 跳转到任务列表页面
@@ -1647,6 +2103,10 @@ export default {
             }
           })
           console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
+          
+          // ✅ 批量更新任务状态（检查提交记录，确保状态正确）
+          await this.batchUpdateTaskStatus()
+          
           // 同步更新到localStorage
           this.saveProjectData()
         } else {
@@ -4387,6 +4847,23 @@ export default {
   font-size: 12px;
 }
 
+/* 任务元信息区域 - 确保换行显示 */
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 任务操作区域 - 独立一行，不与上方文本重叠 */
+.task-assign-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  clear: both;
+}
+
 /* 分配任务模态框 - 当前执行者状态 */
 .task-assignee-status {
   margin-top: 12px;
@@ -4475,5 +4952,333 @@ export default {
 
 .task-info-icon.participants {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* 统计信息图标样式 */
+.task-info-icon.statistics {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* 统计信息网格布局 */
+.task-statistics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.stat-label {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.stat-value {
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 可点击的卡片样式 */
+.task-info-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-info-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.click-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* 统计详情弹窗样式 */
+.statistics-modal {
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.statistics-modal-body {
+  padding: 24px;
+}
+
+.statistics-task-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.statistics-section {
+  margin-bottom: 24px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.section-header svg {
+  color: #8b5cf6;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+/* 统计概览卡片 */
+.stats-overview {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.stat-card-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.stat-card-value.approved {
+  color: #10b981;
+}
+
+/* 执行者列表样式 */
+.assignees-list {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.assignee-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.assignee-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.assignee-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* 头像图片容器 */
+.assignee-avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #f3f4f6;
+}
+
+/* 头像图片 */
+.assignee-avatar-img .avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.assignee-info {
+  flex: 1;
+}
+
+.assignee-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.assignee-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.assignee-type {
+  padding: 2px 8px;
+  background-color: #ddd6fe;
+  color: #6d28d9;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.assignee-time {
+  color: #9ca3af;
+}
+
+/* 提交详情样式 */
+.submission-details {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.submission-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.meta-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.meta-value {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.status-approved {
+  color: #10b981 !important;
+}
+
+.submission-content {
+  margin-bottom: 16px;
+}
+
+.content-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.content-text {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  background-color: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  white-space: pre-wrap;
+}
+
+.submission-attachments {
+  margin-top: 16px;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.attachment-item:hover {
+  background-color: #f3f4f6;
+  border-color: #8b5cf6;
+}
+
+.attachment-item svg {
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+.attachment-name {
+  font-size: 13px;
+  color: #4b5563;
+  text-decoration: none;
+  flex: 1;
+}
+
+.attachment-name:hover {
+  color: #8b5cf6;
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: #9ca3af;
+  font-size: 14px;
 }
 </style>

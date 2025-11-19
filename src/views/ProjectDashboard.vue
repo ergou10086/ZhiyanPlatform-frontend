@@ -16,11 +16,23 @@
     <div class="grid kpis">
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">项目总任务数</div>
-        <div class="kpi-value">{{ display.totalTasks }}</div>
+        <div 
+          class="kpi-value"
+          @mousemove="showTaskListTooltip($event)"
+          @mouseleave="hideTooltip"
+        >
+          {{ display.totalTasks }}
+        </div>
       </div>
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">已完成数（完成率）</div>
-        <div class="kpi-value">{{ display.completed }} <span class="sub">({{ display.completeRate }}%)</span></div>
+        <div 
+          class="kpi-value"
+          @mousemove="showCompletedTasksTooltip($event)"
+          @mouseleave="hideTooltip"
+        >
+          {{ display.completed }} <span class="sub">({{ display.completeRate }}%)</span>
+        </div>
       </div>
       <div class="kpi-card glow gradient-border">
         <div class="kpi-label">延期任务数</div>
@@ -112,26 +124,23 @@
               stroke-width="2.5"
               :points="linePoints.map(p => `${p.x},${p.y}`).join(' ')"/>
             <!-- 只显示有数据的点（已经过滤，所有点都显示） -->
-            <template v-for="(p, idx) in linePoints">
+            <g v-for="(p, idx) in linePoints" :key="'point-'+idx">
               <circle 
-                :key="'circle-'+idx" 
                 :cx="p.x" 
                 :cy="p.y" 
                 r="2.5" 
                 fill="url(#lineStrokeGradient)"
                 class="line-point"/>
               <text 
-                :key="'text-'+idx" 
                 :x="p.x" 
                 :y="Math.max(8, p.y - 4)" 
                 class="line-label">{{ p.v }}</text>
               <!-- 显示日期 -->
               <text 
-                :key="'date-'+idx" 
                 :x="p.x" 
                 :y="42" 
                 class="line-date">{{ formatDate(p.date) }}</text>
-            </template>
+            </g>
           </svg>
         </div>
         <div class="line-chart-empty" v-else>
@@ -166,14 +175,13 @@
       <div class="card-title">成果统计</div>
       <table class="table" v-if="achievements.length > 0">
         <thead>
-          <tr><th>成果名称</th><th>类型</th><th>负责人</th><th>状态</th><th>更新时间</th></tr>
+          <tr><th>成果名称</th><th>类型</th><th>负责人</th><th>更新时间</th></tr>
         </thead>
         <tbody>
           <tr v-for="achievement in achievements" :key="achievement.id">
             <td>{{ achievement.title }}</td>
             <td>{{ achievement.typeName || getTypeDisplay(achievement.type) }}</td>
             <td>{{ achievement.responsibleName || '未知' }}</td>
-            <td><span :class="getStatusBadgeClass(achievement.status)">{{ getStatusDisplay(achievement.status) }}</span></td>
             <td>{{ formatDateTime(achievement.updatedAt || achievement.createdAt) }}</td>
           </tr>
         </tbody>
@@ -185,7 +193,21 @@
 
     <div v-if="tooltip.show" class="tooltip" :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
       <div class="tooltip-title">{{ tooltip.title }}</div>
-      <div class="tooltip-value">{{ tooltip.value }}{{ tooltip.suffix }}</div>
+      <div v-if="tooltip.mode === 'value'" class="tooltip-value">{{ tooltip.value }}{{ tooltip.suffix }}</div>
+      <div v-else-if="tooltip.mode === 'tasks'" class="tooltip-task-list">
+        <div v-if="!tooltip.tasks || tooltip.tasks.length === 0" class="tooltip-empty">暂无任务数据</div>
+        <ul v-else>
+          <li v-for="task in tooltip.tasks" :key="task.id || task.taskId" class="tooltip-task-item">
+            <!-- 展示任务名称 + 接取该任务的成员名称；如果没有接取则显示“未接取” -->
+            <div class="task-title">
+              {{ task.title || task.name || '未命名任务' }}
+              <span class="task-owner">
+                - {{ getTaskAssigneeName(task) }}
+              </span>
+            </div>
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
@@ -226,10 +248,15 @@ export default {
       // 动态
       barHeights: [60, 75, 70, 55, 40],
       lineKey: Date.now(),
-      tooltip: { show: false, x: 0, y: 0, title: '', value: '', suffix: '' },
+      // 通用提示信息（支持数值和任务列表两种模式）
+      tooltip: { show: false, x: 0, y: 0, title: '', value: '', suffix: '', mode: 'value', tasks: [] },
       statusCounts: { todo: 0, doing: 0, blocked: 0, done: 0 },
       // 饼图动画进度 (0-1)
       pieAnimationProgress: 0,
+      // 从后端获取的完整任务列表（真实任务数据）
+      allTasks: [],
+      // 从后端获取的已完成任务列表（真实完成任务数据）
+      completedTasks: [],
       // 成员工时数据
       memberWorktimes: [],
       // 近30天完成趋势数据
@@ -452,6 +479,9 @@ export default {
         }
 
         console.log('[ProjectDashboard] 获取到的任务列表:', allTasks)
+
+        // 保存完整任务列表用于后续悬浮展示
+        this.allTasks = Array.isArray(allTasks) ? allTasks : []
 
         // 计算统计数据
         this.calculateStatistics(allTasks)
@@ -1084,6 +1114,29 @@ export default {
           console.warn('[ProjectDashboard] 被跳过的任务:', skippedTasks)
         }
 
+        // 保存完成任务列表（用于鼠标悬停显示）
+        // ✅ 只保存任务状态为"完成"（DONE）的任务，与已完成数统计保持一致
+        this.completedTasks = completionDates
+          .map(item => {
+            const task = allDoneTasks.find(t => t.id === item.taskId)
+            return {
+              ...task,
+              completionDate: item.date,
+              reviewTime: item.reviewTime,
+              reviewStatus: item.reviewStatus || 'APPROVED'
+            }
+          })
+          .filter(task => {
+            // ✅ 只保留状态为"完成"的任务
+            const status = task.status || task.status_value
+            const isCompleted = status === 'DONE' || status === '已完成' || status === 'COMPLETED'
+            if (!isCompleted) {
+              console.log(`[ProjectDashboard] 任务 ${task.id}(${task.title}) 状态为"${status}"，不计入已完成任务`)
+            }
+            return isCompleted
+          })
+        console.log('[ProjectDashboard] 保存已完成任务列表:', this.completedTasks.length, '个（仅状态为"完成"的任务）')
+
         // 3. 计算近30天的日期范围（使用本地时区）
         const today = new Date()
         const todayYear = today.getFullYear()
@@ -1491,6 +1544,68 @@ export default {
       }
       requestAnimationFrame(step)
     },
+    // 从任务对象中解析接取该任务的成员名称；如果没有接取则返回“未接取”
+    getTaskAssigneeName(task) {
+      if (!task) return '未接取'
+
+      const normalize = (val) => {
+        if (typeof val !== 'string') return ''
+        const trimmed = val.trim()
+        return trimmed || ''
+      }
+
+      // 1. 优先从后端返回的 assignees 数组中读取（真实的执行者列表）
+      if (Array.isArray(task.assignees) && task.assignees.length > 0) {
+        const names = task.assignees
+          .map(a => normalize(a.userName || a.username || a.name || a.realName || a.nickname))
+          .filter(n => n)
+        if (names.length > 0) {
+          return names.join(', ')
+        }
+      }
+
+      // 2. 再从“接取/负责人”类字符串字段中获取
+      const candidateStrings = [
+        task.assigneeName,
+        task.assignee,
+        task.responsibleName,
+        task.responsible,
+        task.executorName,
+        task.executor,
+        task.handlerName,
+        task.handler
+      ]
+
+      for (const c of candidateStrings) {
+        const v = normalize(c)
+        if (v) return v
+      }
+
+      // 3. 尝试从嵌套的用户对象中解析
+      const nested = [
+        task.assigneeUser,
+        task.responsibleUser,
+        task.executorUser,
+        task.handlerUser,
+        task.user
+      ]
+
+      for (const obj of nested) {
+        if (obj && typeof obj === 'object') {
+          const v = normalize(
+            obj.name ||
+            obj.username ||
+            obj.userName ||
+            obj.nickname ||
+            obj.realName
+          )
+          if (v) return v
+        }
+      }
+
+      // 4. 如果以上都没有，则认为当前任务还没有被接取
+      return '未接取'
+    },
     /**
      * 饼图动画效果
      */
@@ -1520,7 +1635,47 @@ export default {
         y: evt.clientY + margin,
         title,
         value,
-        suffix
+        suffix,
+        mode: 'value',
+        tasks: []
+      }
+    },
+    // 在项目总任务数上显示真实任务列表
+    showTaskListTooltip(evt) {
+      const margin = 14
+      const tasks = Array.isArray(this.allTasks) ? this.allTasks : []
+      // 为了避免弹窗过长，限制最多显示前50条任务
+      const maxItems = 50
+      const taskList = tasks.slice(0, maxItems)
+
+      this.tooltip = {
+        show: true,
+        x: evt.clientX + margin,
+        y: evt.clientY + margin,
+        title: `项目总任务（共 ${tasks.length} 个）`,
+        value: '',
+        suffix: '',
+        mode: 'tasks',
+        tasks: taskList
+      }
+    },
+    // 在已完成数上显示真实完成任务列表（来自后端审核通过的任务）
+    showCompletedTasksTooltip(evt) {
+      const margin = 14
+      const tasks = Array.isArray(this.completedTasks) ? this.completedTasks : []
+      // 为了避免弹窗过长，限制最多显示前50条任务
+      const maxItems = 50
+      const taskList = tasks.slice(0, maxItems)
+
+      this.tooltip = {
+        show: true,
+        x: evt.clientX + margin,
+        y: evt.clientY + margin,
+        title: `已完成任务（共 ${tasks.length} 个）`,
+        value: '',
+        suffix: '',
+        mode: 'tasks',
+        tasks: taskList
       }
     },
     hideTooltip() {
@@ -1745,6 +1900,14 @@ export default {
 .tooltip{position:fixed;z-index:10;pointer-events:none;background:#111827;color:#fff;border-radius:8px;padding:8px 10px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
 .tooltip-title{font-size:12px;color:#cbd5e1;margin-bottom:4px}
 .tooltip-value{font-size:14px;font-weight:700}
+.tooltip-task-list{max-width:260px;max-height:260px;overflow:auto;margin-top:4px;padding-right:4px}
+.tooltip-task-list ul{list-style:none;margin:0;padding:0}
+.tooltip-task-item{padding:4px 0;border-bottom:1px solid rgba(148,163,184,0.35)}
+.tooltip-task-item:last-child{border-bottom:none}
+.tooltip-task-item .task-title{font-size:13px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;color:#ffffff}
+.tooltip-task-item .task-title .task-owner{font-size:12px;color:rgba(226,232,240,0.9);margin-left:4px}
+.tooltip-task-item .task-meta{font-size:11px;color:#9ca3af;margin-top:2px}
+.tooltip-empty{font-size:12px;color:#9ca3af;padding:4px 0}
 </style>
 
 
