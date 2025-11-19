@@ -361,6 +361,13 @@ export const projectAPI = {
   updateMemberRole(projectId, userId, role) {
     console.log('[projectAPI.updateMemberRole] 更新成员角色, 项目ID:', projectId, '用户ID:', userId, '角色:', role)
     return api.put(`/zhiyan/projects/${projectId}/members/${userId}/role`, { newRole: role })
+  },
+
+  getProjectTasksByStatus(projectId, status = 'DONE', page = 0, size = 20) {
+    console.log('[projectAPI.getProjectTasksByStatus] 获取项目任务, 项目ID:', projectId, '状态:', status)
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/status/${status}`, {
+      params: { page, size }
+    })
   }
 }
 

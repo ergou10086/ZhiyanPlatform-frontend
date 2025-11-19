@@ -64,6 +64,11 @@ export function convertToCreateDTO(formData, projectId, fileType) {
     dto.detailData = detailData
   }
 
+  // 关联任务ID列表（可选），用于后端 TaskResultDetailDTO.linkedTaskIds
+  if (Array.isArray(formData.linkedTaskIds) && formData.linkedTaskIds.length > 0) {
+    dto.linkedTaskIds = formData.linkedTaskIds
+  }
+
   return dto
 }
 

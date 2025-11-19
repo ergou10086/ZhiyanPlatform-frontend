@@ -391,6 +391,39 @@
             </div>
           </div>
 
+          <!-- 关联项目任务（可选） -->
+          <div v-if="!isAddingToExisting" class="form-group">
+            <label>关联项目任务（可选）：</label>
+            <div class="task-link-section">
+              <button
+                type="button"
+                class="btn primary"
+                :disabled="!projectId"
+                @click="openTaskLinkDialogForUpload"
+              >
+                从本项目中选择已完成任务
+              </button>
+              <p v-if="!projectId" class="hint-text">当前没有项目ID，无法加载任务。</p>
+
+              <div v-if="achievementForm.linkedTaskSummaries && achievementForm.linkedTaskSummaries.length > 0" class="linked-tasks-list">
+                <div class="linked-tasks-header">
+                  <span>已关联任务 ({{ achievementForm.linkedTaskSummaries.length }})</span>
+                  <button type="button" class="link-btn" @click="clearUploadLinkedTasks">清空</button>
+                </div>
+                <div class="linked-task-item" v-for="task in achievementForm.linkedTaskSummaries" :key="task.id">
+                  <div class="task-main">
+                    <span class="task-title" :title="task.title">[{{ task.id }}] {{ task.title || '未命名任务' }}</span>
+                    <span v-if="task.assignee" class="task-meta">负责人：{{ task.assignee }}</span>
+                  </div>
+                  <button type="button" class="task-remove-btn" @click="removeUploadLinkedTask(task.id)">×</button>
+                </div>
+              </div>
+              <div v-else class="linked-tasks-empty">
+                <p class="hint-text">尚未关联任务，如有需要可从本项目中选择已完成任务。</p>
+              </div>
+            </div>
+          </div>
+
           <!-- 文件上传区域 -->
           <div class="form-group">
             <label>上传文件：</label>
@@ -1322,6 +1355,76 @@
       </div>
     </div>
 
+    <!-- 关联任务选择弹窗（上传成果时使用） -->
+    <div v-if="showTaskLinkDialog" class="modal-overlay" @click="closeTaskLinkDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">选择已完成任务</h3>
+          <button class="modal-close" @click="closeTaskLinkDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">从当前项目中选择一个或多个状态为 DONE 的任务，作为成果的关联依据</p>
+          <div v-if="taskLinkLoading" class="loading-container">
+            <div class="loading-spinner-large"></div>
+            <p class="loading-text">正在加载已完成任务...</p>
+          </div>
+          <div v-else-if="candidateDoneTasks.length === 0" class="empty-state">
+            <div class="empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="empty-text">当前项目中暂未查询到已完成任务。</p>
+          </div>
+          <div v-else class="file-list-container">
+            <div class="file-list">
+              <div
+                v-for="task in candidateDoneTasks"
+                :key="task.id"
+                class="file-card"
+                :class="{ 'selected': selectedTaskIdsForDialog.includes(task.id) }"
+                @click="toggleTaskSelectionForDialog(task.id)"
+              >
+                <div class="file-card-content">
+                  <div class="file-card-main">
+                    <div class="file-name-wrapper">
+                      <div class="file-name">{{ task.title || '未命名任务' }}</div>
+                      <div class="file-badge-group">
+                        <span class="file-type-badge">DONE</span>
+                        <span v-if="task.assignee" class="file-count-badge">负责人：{{ task.assignee }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="file-select-indicator" :class="{ 'active': selectedTaskIdsForDialog.includes(task.id) }">
+                    <div class="checkmark-circle">
+                      <svg v-if="selectedTaskIdsForDialog.includes(task.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeTaskLinkDialog">取消</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="confirmTaskLinkSelection"
+            :disabled="selectedTaskIdsForDialog.length === 0"
+          >
+            确认选择<span v-if="selectedTaskIdsForDialog.length > 0">（{{ selectedTaskIdsForDialog.length }}）</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 删除成果确认弹窗 -->
     <div v-if="deleteConfirmOpen" class="modal-overlay" @click="cancelDeleteFile">
       <div class="modal-content" @click.stop>
@@ -1381,7 +1484,8 @@ import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 import { projectAPI } from '@/api/project'
 import { getCurrentUserId } from '@/utils/auth'
- import { marked } from 'marked'
+import { marked } from 'marked'
+import { getLinkedTasks as apiGetLinkedTasks, linkTasksToAchievement as apiLinkTasks, unlinkTasksFromAchievement as apiUnlinkTasks } from '@/api/taskResult'
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1435,13 +1539,12 @@ export default {
       previewFileType: 'unknown', // image, pdf, text, video, audio, office, code, unknown
       previewLoading: false,
       previewError: null,
-       previewMarkdownHtml: '', // 渲染后的Markdown HTML
+      previewMarkdownHtml: '', // 渲染后的Markdown HTML
       // Office查看器相关
       officeViewerError: false,
       useMicrosoftViewer: false,
       useOnlineViewer: false, // 是否使用在线查看器（false=直接加载，true=使用在线查看器）
       officeIframeLoaded: false, // iframe是否成功加载
-      
       // 编辑模式
       isEditingDescription: false,
       isEditingContent: false,
@@ -1485,7 +1588,10 @@ export default {
         descriptions: [
           { content: '' }
         ],
-        files: []
+        files: [],
+        // 关联任务
+        linkedTaskIds: [],
+        linkedTaskSummaries: []
       },
       // 新增：自定义类型上传表单
       customUploadForm: {
@@ -1502,7 +1608,14 @@ export default {
       successToastTimer: null,
       // 删除成果确认弹窗
       deleteConfirmOpen: false,
-      fileToDelete: null
+      fileToDelete: null,
+      // 任务关联选择弹窗
+      showTaskLinkDialog: false,
+      taskLinkLoading: false,
+      candidateDoneTasks: [],
+      selectedTaskIdsForDialog: [],
+      // 查看成果时的已关联任务
+      viewingLinkedTasks: []
     }
   },
   computed: {
@@ -1616,6 +1729,63 @@ export default {
         this.successToastMessage = ''
         this.successToastTimer = null
       }, 1500)
+    },
+    // === 成果上传时关联任务相关 ===
+    async openTaskLinkDialogForUpload() {
+      if (!this.projectId) {
+        return
+      }
+      this.showTaskLinkDialog = true
+      this.taskLinkLoading = true
+      this.selectedTaskIdsForDialog = [...(this.achievementForm.linkedTaskIds || [])]
+      try {
+        const resp = await projectAPI.getProjectTasksByStatus(this.projectId, 'DONE', 0, 100)
+        console.log('[KnowledgeBaseCatalog] DONE 任务列表响应:', resp)
+        if (resp && resp.code === 200 && resp.data) {
+          const content = Array.isArray(resp.data.content) ? resp.data.content : []
+          this.candidateDoneTasks = content.map(t => ({
+            id: t.id,
+            title: t.title || t.name || '未命名任务',
+            assignee: t.assigneeNames || t.assigneeName || t.assignee || ''
+          }))
+        } else {
+          this.candidateDoneTasks = []
+        }
+      } catch (e) {
+        console.error('[KnowledgeBaseCatalog] 加载 DONE 任务失败:', e)
+        this.candidateDoneTasks = []
+      } finally {
+        this.taskLinkLoading = false
+      }
+    },
+    closeTaskLinkDialog() {
+      this.showTaskLinkDialog = false
+    },
+    toggleTaskSelectionForDialog(taskId) {
+      const idx = this.selectedTaskIdsForDialog.indexOf(taskId)
+      if (idx >= 0) {
+        this.selectedTaskIdsForDialog.splice(idx, 1)
+      } else {
+        this.selectedTaskIdsForDialog.push(taskId)
+      }
+    },
+    confirmTaskLinkSelection() {
+      const ids = [...this.selectedTaskIdsForDialog]
+      this.achievementForm.linkedTaskIds = ids
+      const map = new Map(this.candidateDoneTasks.map(t => [t.id, t]))
+      this.achievementForm.linkedTaskSummaries = ids
+        .map(id => map.get(id))
+        .filter(Boolean)
+        .map(t => ({ id: t.id, title: t.title, assignee: t.assignee }))
+      this.showTaskLinkDialog = false
+    },
+    clearUploadLinkedTasks() {
+      this.achievementForm.linkedTaskIds = []
+      this.achievementForm.linkedTaskSummaries = []
+    },
+    removeUploadLinkedTask(taskId) {
+      this.achievementForm.linkedTaskIds = (this.achievementForm.linkedTaskIds || []).filter(id => id !== taskId)
+      this.achievementForm.linkedTaskSummaries = (this.achievementForm.linkedTaskSummaries || []).filter(t => t.id !== taskId)
     },
     // 从 iframe 文本预览切换为纯文本模式
     switchToPlainText() {
