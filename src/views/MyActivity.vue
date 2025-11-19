@@ -57,7 +57,7 @@
                       :class="{ active: reviewMode === 'my-submissions' }"
                       @click="switchReviewMode('my-submissions')"
                     >
-                      我提交的待审核任务
+                      我提交的任务
                     </button>
                     <button 
                       class="toggle-btn" 
@@ -193,7 +193,7 @@
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <p>{{ reviewMode === 'to-review' ? '暂无需要我审核的任务' : '暂无我提交待审核的任务' }}</p>
+                    <p>{{ reviewMode === 'to-review' ? '暂无需要我审核的任务' : '暂无我提交的任务' }}</p>
                   </div>
                   <div v-else class="task-cards-list">
                     <div 
@@ -237,7 +237,7 @@
                         >
                           审核
                         </button>
-                        <span v-else-if="reviewMode === 'my-submissions'" class="review-status-text">
+                        <span v-else-if="reviewMode === 'my-submissions'" class="review-status-text" :class="getReviewStatusClass(task)">
                           {{ getReviewStatusText(task) }}
                         </span>
                       </div>
@@ -526,8 +526,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
 import { 
   getPendingSubmissionsForReview,
-  getMySubmissions,
-  getMyPendingSubmissions
+  getMySubmissions
 } from '@/api/taskSubmission'
 import { taskAPI } from '@/api/task'
 import { projectAPI } from '@/api/project'
@@ -568,7 +567,7 @@ export default {
       isLoadingTasks: false,
       sortBy: 'dueDate',
       showOverdueOnly: false,
-      reviewMode: 'to-review', // 'to-review': 我审核的任务, 'my-submissions': 我被审核的任务
+      reviewMode: 'to-review', // 'to-review': 我审核的任务, 'my-submissions': 我提交的任务（包括待审核和已完成）
       createdTasks: [],
       isLoadingCreatedTasks: false,
       createdTaskStats: {
@@ -842,8 +841,8 @@ export default {
             size: 50
           })
         } else {
-          // 我被审核的任务（我提交的，等待别人审核的）
-          response = await getMyPendingSubmissions({
+          // 我提交的任务（包括待审核和已完成的）
+          response = await getMySubmissions({
             page: 0,
             size: 50
           })
@@ -2192,6 +2191,18 @@ export default {
       return statusMap[status] || '待审核'
     },
     
+    getReviewStatusClass(task) {
+      // 获取审核状态样式类
+      const status = task.reviewStatus || task.status || task.submissionStatus
+      const classMap = {
+        'PENDING': 'status-pending',
+        'APPROVED': 'status-approved',
+        'REJECTED': 'status-rejected',
+        'REVIEWING': 'status-reviewing'
+      }
+      return classMap[status] || 'status-pending'
+    },
+    
     getPriorityText(priority) {
       const textMap = {
         'high': '高优先级',
@@ -3008,9 +3019,32 @@ export default {
 
 .review-status-text {
   font-size: 13px;
-  color: #6b7280;
   font-weight: 500;
-  padding: 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.review-status-text.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.review-status-text.status-reviewing {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.review-status-text.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.review-status-text.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* 仪表盘网格 */
