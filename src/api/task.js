@@ -341,6 +341,20 @@ export const taskAPI = {
   },
 
   /**
+   * 根据状态获取项目任务
+   * @param {Number} projectId - 项目ID
+   * @param {String} status - 任务状态 (TODO/IN_PROGRESS/BLOCKED/DONE)
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getTasksByStatus(projectId, status, page = 0, size = 20) {
+    console.log('[taskAPI.getTasksByStatus] 根据状态获取任务, 项目ID:', projectId, '状态:', status)
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/status/${status}`, {
+      params: { page, size }
+    })
+  },
+
+  /**
    * 统计项目任务数量
    * @param {Number} projectId - 项目ID
    */

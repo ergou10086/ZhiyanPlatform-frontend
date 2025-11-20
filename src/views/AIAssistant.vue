@@ -669,6 +669,7 @@
 import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
+import { taskAPI } from '@/api/task'
 import difyAPI from '@/api/dify'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
@@ -938,7 +939,7 @@ export default {
 
     // === 任务成果草稿模式相关 ===
     // 打开任务选择弹窗
-    openTaskSelectDialog() {
+    async openTaskSelectDialog() {
       if (!this.taskResultProjectId) {
         return
       }
@@ -946,9 +947,45 @@ export default {
       this.showTaskSelectDialog = true
       this.taskListLoading = true
 
-      // 目前先从已有 tasks 中筛选 status === 'completed' 的任务作为示例
-      // 后续接入后端 ProjectTaskClient 接口后，在这里发请求替换掉本地筛选逻辑
-      this.$nextTick(() => {
+      try {
+        // 调用后端接口获取已完成的任务（状态为 DONE）
+        console.log('[任务选择] 正在加载项目已完成任务, 项目ID:', this.taskResultProjectId)
+        const response = await taskAPI.getTasksByStatus(this.taskResultProjectId, 'DONE', 0, 100)
+        
+        console.log('[任务选择] 后端返回数据:', response)
+        
+        // 处理返回的数据
+        let tasks = []
+        if (response && response.code === 200) {
+          // 成功响应
+          if (response.data) {
+            if (Array.isArray(response.data)) {
+              tasks = response.data
+            } else if (response.data.content && Array.isArray(response.data.content)) {
+              // Spring分页数据
+              tasks = response.data.content
+            } else if (response.data.list && Array.isArray(response.data.list)) {
+              tasks = response.data.list
+            }
+          }
+        } else if (Array.isArray(response)) {
+          // 直接返回数组
+          tasks = response
+        }
+        
+        // 转换为前端需要的格式
+        this.availableDoneTasks = tasks.map(t => ({
+          id: t.id || t.taskId,
+          title: t.title || t.taskTitle || '未命名任务',
+          assignee: t.assigneeName || t.assignee || '未分配',
+          raw: t
+        }))
+        
+        console.log('[任务选择] 成功加载', this.availableDoneTasks.length, '个已完成任务')
+      } catch (error) {
+        console.error('[任务选择] 加载已完成任务失败:', error)
+        // 失败时降级到本地筛选
+        console.log('[任务选择] 降级使用本地任务数据')
         const doneTasks = (this.tasks || []).filter(t => t.status === 'completed' || t.status === 'DONE')
         this.availableDoneTasks = doneTasks.map(t => ({
           id: t.id,
@@ -956,8 +993,9 @@ export default {
           assignee: t.assignee,
           raw: t
         }))
+      } finally {
         this.taskListLoading = false
-      })
+      }
     },
 
     closeTaskSelectDialog() {
