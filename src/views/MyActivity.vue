@@ -665,6 +665,8 @@ export default {
   mounted() {
     this.initPage()
     this.ensureTooltipZIndex()
+    // 预加载ECharts库（在后台加载，不阻塞UI）
+    this.preloadECharts()
   },
   methods: {
     ensureTooltipZIndex() {
@@ -797,10 +799,18 @@ export default {
       throw new Error('ECharts CDN 加载失败')
     },
 
+    preloadECharts() {
+      // 在后台预加载ECharts，不阻塞主流程
+      if (!window.echarts) {
+        this.loadECharts().catch(err => {
+          console.warn('[MyActivity] ECharts预加载失败，将在需要时重试:', err)
+        })
+      }
+    },
+
     async initPage() {
       this.loadUserInfo()
-      // 并行加载所有数据，不等待图表初始化
-      this.applySampleTaskStats()
+      // 并行加载所有数据
       await Promise.all([
         this.loadPendingTasks(),
         this.loadProjects(),
@@ -1125,10 +1135,12 @@ export default {
     async loadTaskStatistics() {
       this.isLoadingStats = true
       
-      // 先显示基础统计数据，不等待图表
       try {
-        // 优先加载统计数据（快速显示）
-        const statsResponse = await taskAPI.getUserTaskStatistics().catch(() => ({ code: 0 }))
+        // 并行加载统计数据和ECharts库
+        const [statsResponse, echarts] = await Promise.all([
+          taskAPI.getUserTaskStatistics().catch(() => ({ code: 0 })),
+          this.loadECharts().catch(() => null)
+        ])
         
         if (statsResponse.code === 200) {
           const stats = statsResponse.data || {}
@@ -1154,28 +1166,42 @@ export default {
             low: this.taskStats.low
           })
           
-          // 启动数字动画效果
-          this.animateStats()
+          // 立即更新显示数据，确保用户能立即看到数字
+          this.displayStats.inProgress = this.taskStats.inProgress
+          this.displayStats.completed = this.taskStats.completed
+          this.displayStats.reviewing = this.taskStats.reviewing
+          this.displayStats.high = this.taskStats.high
+          this.displayStats.medium = this.taskStats.medium
+          this.displayStats.low = this.taskStats.low
         } else {
           console.warn('[MyActivity] 统计数据API返回非200状态:', statsResponse.code, statsResponse)
         }
         
-        // 先初始化图表（使用基础数据）
-        const echartsPromise = this.loadECharts().catch(() => null)
-        const echarts = await echartsPromise
+        // 立即隐藏loading，显示基础数据
+        this.isLoadingStats = false
+        
+        // 使用 requestIdleCallback 在浏览器空闲时初始化图表
         if (echarts) {
           await this.$nextTick()
-          if (!this._charts || !this._charts.gaugePending) {
-            this.initCharts(echarts)
+          
+          const initChartsWhenIdle = () => {
+            if (!this._charts || !this._charts.gaugePending) {
+              this.initCharts(echarts)
+            } else {
+              this.updateCharts(echarts)
+            }
+          }
+          
+          // 如果浏览器支持 requestIdleCallback，在空闲时初始化
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(initChartsWhenIdle, { timeout: 300 })
           } else {
-            this.updateCharts(echarts)
+            // 否则延迟50ms执行，让页面先渲染
+            setTimeout(initChartsWhenIdle, 50)
           }
         }
         
-        // 标记基础数据已加载，可以显示
-        this.isLoadingStats = false
-        
-        // 异步加载详细任务数据（用于趋势图和任务列表）
+        // 后台异步加载详细任务数据（不阻塞UI）
         this.loadTaskDetailsAsync()
       } catch (error) {
         console.error('加载任务统计失败:', error)
