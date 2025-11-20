@@ -256,7 +256,7 @@ export const cozeAPI = {
     }
     
     // ⭐ 修复：将query和conversationId放到POST body中，避免URL过长导致431错误
-    const url = '/zhiyan/api/coze/chat/stream'
+    const url = '/zhiyan/ai/coze/chat/stream'
     
     // 构建请求体（包含query、conversationId和自定义变量）
     const requestBody = {
@@ -488,7 +488,7 @@ export const cozeAPI = {
     }
     
     // 构建URL（使用相对路径，确保通过Vue代理）
-    const url = '/zhiyan/api/coze/chat/stream-with-files'
+    const url = '/zhiyan/ai/coze/chat/stream-with-files'
     
     console.log('[cozeAPI.chatStreamWithFiles] 请求URL:', url)
     console.log('[cozeAPI.chatStreamWithFiles] Token存在:', !!token)
@@ -652,7 +652,7 @@ export const cozeAPI = {
     console.log('[cozeAPI.uploadFile] 上传文件, fileName:', file?.name)
     const formData = new FormData()
     formData.append('file', file)
-    return api.post('/zhiyan/api/coze/files/upload', formData)
+    return api.post('/zhiyan/ai/coze/files/upload', formData)
   },
 
   /**
@@ -666,7 +666,7 @@ export const cozeAPI = {
     files.forEach(file => {
       formData.append('files', file)
     })
-    return api.post('/zhiyan/api/coze/files/upload/batch', formData)
+    return api.post('/zhiyan/ai/coze/files/upload/batch', formData)
   },
 
   /**
@@ -676,7 +676,7 @@ export const cozeAPI = {
    */
   getFileDetail(fileId) {
     console.log('[cozeAPI.getFileDetail] 查询文件详情, fileId:', fileId)
-    return api.get(`/zhiyan/api/coze/files/${fileId}`)
+    return api.get(`/zhiyan/ai/coze/files/${fileId}`)
   },
 
   /**
@@ -687,7 +687,7 @@ export const cozeAPI = {
    */
   getChatDetail(conversationId, chatId) {
     console.log('[cozeAPI.getChatDetail] 查询对话详情', { conversationId, chatId })
-    return api.get('/zhiyan/api/coze/chat/detail', {
+    return api.get('/zhiyan/ai/coze/chat/detail', {
       params: { conversationId, chatId }
     })
   }

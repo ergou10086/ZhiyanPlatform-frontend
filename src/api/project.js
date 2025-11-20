@@ -19,7 +19,7 @@ function parseJSONWithBigInt(data) {
  * 
  * 注意：所有项目相关的API请求都通过Vue开发服务器的代理转发到8095端口（项目服务）
  * 代理配置在 vue.config.js 中：
- * - /zhiyan/api/projects → http://localhost:8095
+ * - /zhiyan/projects → http://localhost:8095
  * 
  * 使用相对路径（baseURL为空），让代理服务器处理路由
  */
@@ -128,7 +128,7 @@ export const projectAPI = {
    */
   createProject(projectData) {
     console.log('[projectAPI.createProject] 创建项目, 数据:', projectData)
-    return api.post('/zhiyan/api/projects', projectData)
+    return api.post('/zhiyan/projects', projectData)
   },
 
   /**
@@ -138,7 +138,7 @@ export const projectAPI = {
    */
   updateProject(projectId, projectData) {
     console.log('[projectAPI.updateProject] 更新项目, ID:', projectId, '数据:', projectData)
-    return api.put(`/zhiyan/api/projects/${projectId}`, projectData)
+    return api.put(`/zhiyan/projects/${projectId}`, projectData)
   },
 
   /**
@@ -147,7 +147,7 @@ export const projectAPI = {
    */
   deleteProject(projectId) {
     console.log('[projectAPI.deleteProject] 删除项目, ID:', projectId)
-    return api.delete(`/zhiyan/api/projects/${projectId}`)
+    return api.delete(`/zhiyan/projects/${projectId}`)
   },
 
   /**
@@ -156,7 +156,7 @@ export const projectAPI = {
    */
   getProjectById(projectId) {
     console.log('[projectAPI.getProjectById] 获取项目详情, ID:', projectId)
-    return api.get(`/zhiyan/api/projects/${projectId}`)
+    return api.get(`/zhiyan/projects/${projectId}`)
   },
 
   /**
@@ -166,7 +166,7 @@ export const projectAPI = {
    */
   getMyCreatedProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyCreatedProjects] 获取我创建的项目')
-    return api.get('/zhiyan/api/projects/my-created', {
+    return api.get('/zhiyan/projects/my-created', {
       params: { page, size },
       timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
@@ -179,7 +179,7 @@ export const projectAPI = {
    */
   getMyProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyProjects] 获取我参与的项目')
-    return api.get('/zhiyan/api/projects/my-projects', {
+    return api.get('/zhiyan/projects/my-projects', {
       params: { page, size },
       timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
@@ -192,7 +192,7 @@ export const projectAPI = {
    */
   getPublicActiveProjects(page = 0, size = 10) {
     console.log('[projectAPI.getPublicActiveProjects] 获取公开项目')
-    return api.get('/zhiyan/api/projects/public/active', {
+    return api.get('/zhiyan/projects/public/active', {
       params: { page, size },
       timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
@@ -206,7 +206,7 @@ export const projectAPI = {
    */
   searchProjects(keyword, page = 0, size = 10) {
     console.log('[projectAPI.searchProjects] 搜索项目, 关键词:', keyword)
-    return api.get('/zhiyan/api/projects/search', {
+    return api.get('/zhiyan/projects/search', {
       params: { keyword, page, size }
     })
   },
@@ -218,7 +218,7 @@ export const projectAPI = {
    */
   updateProjectStatus(projectId, status) {
     console.log('[projectAPI.updateProjectStatus] 更新项目状态, ID:', projectId, '状态:', status)
-    return api.patch(`/zhiyan/api/projects/${projectId}/status`, { status })
+    return api.patch(`/zhiyan/projects/${projectId}/status`, { status })
   },
 
   /**
@@ -227,7 +227,7 @@ export const projectAPI = {
    */
   archiveProject(projectId) {
     console.log('[projectAPI.archiveProject] 归档项目, ID:', projectId)
-    return api.post(`/zhiyan/api/projects/${projectId}/archive`)
+    return api.post(`/zhiyan/projects/${projectId}/archive`)
   },
 
   /**
@@ -235,7 +235,7 @@ export const projectAPI = {
    */
   countMyCreatedProjects() {
     console.log('[projectAPI.countMyCreatedProjects] 统计我创建的项目')
-    return api.get('/zhiyan/api/projects/count/my-created')
+    return api.get('/zhiyan/projects/count/my-created')
   },
 
   /**
@@ -243,7 +243,7 @@ export const projectAPI = {
    */
   countMyParticipatedProjects() {
     console.log('[projectAPI.countMyParticipatedProjects] 统计我参与的项目')
-    return api.get('/zhiyan/api/projects/count/my-participated')
+    return api.get('/zhiyan/projects/count/my-participated')
   },
 
   /**
@@ -262,7 +262,7 @@ export const projectAPI = {
     
     // ✅ 不要手动设置 Content-Type
     // ✅ Axios 会自动检测 FormData 并设置正确的 multipart/form-data (包含 boundary)
-    return api.post('/zhiyan/api/projects/upload-image', formData)
+    return api.post('/zhiyan/projects/upload-image', formData)
   },
 
   /**
@@ -271,7 +271,7 @@ export const projectAPI = {
    */
   deleteProjectImage(imageUrl) {
     console.log('[projectAPI.deleteProjectImage] 删除项目图片:', imageUrl)
-    return api.delete('/zhiyan/api/projects/delete-image', {
+    return api.delete('/zhiyan/projects/delete-image', {
       params: { imageUrl }
     })
   },
@@ -283,7 +283,7 @@ export const projectAPI = {
    */
   inviteMember(projectId, data) {
     console.log('[projectAPI.inviteMember] 邀请成员, 项目ID:', projectId, '数据:', data)
-    return api.post(`/zhiyan/api/projects/${projectId}/invite`, data)
+    return api.post(`/zhiyan/projects/${projectId}/invite`, data)
   },
 
   /**
@@ -293,7 +293,7 @@ export const projectAPI = {
    */
   assignRole(projectId, data) {
     console.log('[projectAPI.assignRole] 分配角色, 项目ID:', projectId, '数据:', data)
-    return api.post(`/zhiyan/api/projects/${projectId}/assign`, data)
+    return api.post(`/zhiyan/projects/${projectId}/assign`, data)
   },
 
   /**
@@ -303,7 +303,7 @@ export const projectAPI = {
    */
   removeMember(projectId, userId) {
     console.log('[projectAPI.removeMember] 移除成员, 项目ID:', projectId, '用户ID:', userId)
-    return api.delete(`/zhiyan/api/projects/${projectId}/members/${userId}`)
+    return api.delete(`/zhiyan/projects/${projectId}/members/${userId}`)
   },
 
   /**
@@ -314,7 +314,7 @@ export const projectAPI = {
    */
   getProjectMembers(projectId, page = 0, size = 20) {
     console.log('[projectAPI.getProjectMembers] 获取项目成员, 项目ID:', projectId)
-    return api.get(`/zhiyan/api/projects/${projectId}/members`, {
+    return api.get(`/zhiyan/projects/${projectId}/members`, {
       params: { page, size },
       timeout: 60000 // 成员列表查询可能需要更长时间，设置为60秒
     })
@@ -329,9 +329,38 @@ export const projectAPI = {
    */
   searchUsers(keyword, page = 0, size = 10) {
     console.log('[projectAPI.searchUsers] 搜索用户, 关键词:', keyword, '页码:', page, '每页:', size)
-    return api.get(`/zhiyan/api/users/search`, {
+    return api.get(`/zhiyan/projects/users/search`, {
       params: { keyword, page, size }
     })
+  },
+
+  /**
+   * 检查用户是否为项目管理员（包括OWNER和ADMIN）
+   * @param {Number} projectId - 项目ID
+   */
+  checkAdmin(projectId) {
+    console.log('[projectAPI.checkAdmin] 检查管理员身份, 项目ID:', projectId)
+    return api.get(`/zhiyan/projects/${projectId}/check-admin`)
+  },
+
+  /**
+   * 检查用户是否为项目拥有者
+   * @param {Number} projectId - 项目ID
+   */
+  checkOwner(projectId) {
+    console.log('[projectAPI.checkOwner] 检查拥有者身份, 项目ID:', projectId)
+    return api.get(`/zhiyan/projects/${projectId}/check-owner`)
+  },
+
+  /**
+   * 更新成员角色
+   * @param {Number} projectId - 项目ID
+   * @param {Number} userId - 用户ID
+   * @param {String} role - 新角色 (OWNER, ADMIN, MEMBER)
+   */
+  updateMemberRole(projectId, userId, role) {
+    console.log('[projectAPI.updateMemberRole] 更新成员角色, 项目ID:', projectId, '用户ID:', userId, '角色:', role)
+    return api.put(`/zhiyan/projects/${projectId}/members/${userId}/role`, { newRole: role })
   }
 }
 

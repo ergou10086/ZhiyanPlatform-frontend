@@ -7,10 +7,19 @@ import config from '@/config'
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
   try {
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    // 匹配JSON中的大整数（16位以上），将其转换为字符串
+    // 确保不匹配已经是字符串的数字
+    const processed = data.replace(/:\s*(\d{16,})([,\}\]])/g, ':"$1"$2')
+    return JSON.parse(processed)
   } catch (e) {
     console.error('JSON解析错误:', e)
-    return data
+    console.error('原始数据:', data)
+    // 如果解析失败，尝试直接解析
+    try {
+      return JSON.parse(data)
+    } catch (e2) {
+      return data
+    }
   }
 }
 
@@ -98,7 +107,7 @@ export const taskAPI = {
    */
   createTask(taskData) {
     console.log('[taskAPI.createTask] 创建任务, 数据:', taskData)
-    return api.post('/zhiyan/api/projects/tasks', taskData)
+    return api.post('/zhiyan/projects/tasks', taskData)
   },
 
   /**
@@ -152,7 +161,7 @@ export const taskAPI = {
    */
   updateTask(taskId, taskData) {
     console.log('[taskAPI.updateTask] 更新任务, ID:', taskId, '数据:', taskData)
-    return api.put(`/zhiyan/api/projects/tasks/${taskId}`, taskData)
+    return api.put(`/zhiyan/projects/tasks/${taskId}`, taskData)
   },
 
   /**
@@ -161,7 +170,7 @@ export const taskAPI = {
    */
   deleteTask(taskId) {
     console.log('[taskAPI.deleteTask] 删除任务, ID:', taskId)
-    return api.delete(`/zhiyan/api/projects/tasks/${taskId}`)
+    return api.delete(`/zhiyan/projects/tasks/${taskId}`)
   },
 
   /**
@@ -170,7 +179,7 @@ export const taskAPI = {
    */
   getTaskDetail(taskId) {
     console.log('[taskAPI.getTaskDetail] 获取任务详情, ID:', taskId)
-    return api.get(`/zhiyan/api/projects/tasks/${taskId}`)
+    return api.get(`/zhiyan/projects/tasks/${taskId}`)
   },
 
   /**
@@ -179,7 +188,7 @@ export const taskAPI = {
    */
   getTaskBoard(projectId) {
     console.log('[taskAPI.getTaskBoard] 获取任务看板, 项目ID:', projectId)
-    return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/board`)
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/board`)
   },
 
   /**
@@ -190,7 +199,7 @@ export const taskAPI = {
    */
   getProjectTasks(projectId, page = 0, size = 20) {
     console.log('[taskAPI.getProjectTasks] 获取项目任务列表, 项目ID:', projectId)
-    return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}`, {
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}`, {
       params: { page, size }
     })
   },
@@ -202,7 +211,7 @@ export const taskAPI = {
    */
   updateTaskStatus(taskId, status) {
     console.log('[taskAPI.updateTaskStatus] 更新任务状态, ID:', taskId, '状态:', status)
-    return api.patch(`/zhiyan/api/projects/tasks/${taskId}/status`, { status })
+    return api.patch(`/zhiyan/projects/tasks/${taskId}/status`, { status })
   },
 
   /**
@@ -212,7 +221,7 @@ export const taskAPI = {
    */
   assignTask(taskId, assigneeIds) {
     console.log('[taskAPI.assignTask] 分配任务, ID:', taskId, '执行者:', assigneeIds)
-    return api.put(`/zhiyan/api/projects/tasks/${taskId}/assign`, assigneeIds)
+    return api.put(`/zhiyan/projects/tasks/${taskId}/assign`, assigneeIds)
   },
 
   /**
@@ -221,7 +230,7 @@ export const taskAPI = {
    */
   claimTask(taskId) {
     console.log('[taskAPI.claimTask] 接取任务, ID:', taskId)
-    return api.post(`/zhiyan/api/projects/tasks/${taskId}/claim`)
+    return api.post(`/zhiyan/projects/tasks/${taskId}/claim`)
   },
 
   /**
@@ -231,7 +240,7 @@ export const taskAPI = {
    */
   getMyAssignedTasks(page = 0, size = 20) {
     console.log('[taskAPI.getMyAssignedTasks] 获取我的所有任务')
-    return api.get('/zhiyan/api/projects/tasks/my-assigned', {
+    return api.get('/zhiyan/projects/tasks/my-assigned', {
       params: { page, size }
     })
   },
@@ -243,7 +252,7 @@ export const taskAPI = {
    */
   getMyClaimedTasks(page = 0, size = 20) {
     console.log('[taskAPI.getMyClaimedTasks] 获取我接取的任务')
-    return api.get('/zhiyan/api/projects/tasks/my-claimed', {
+    return api.get('/zhiyan/projects/tasks/my-claimed', {
       params: { page, size }
     })
   },
@@ -255,7 +264,7 @@ export const taskAPI = {
    */
   getMyAssignedOnlyTasks(page = 0, size = 20) {
     console.log('[taskAPI.getMyAssignedOnlyTasks] 获取分配给我的任务')
-    return api.get('/zhiyan/api/projects/tasks/my-assigned-only', {
+    return api.get('/zhiyan/projects/tasks/my-assigned-only', {
       params: { page, size }
     })
   },
@@ -266,7 +275,7 @@ export const taskAPI = {
    */
   getUserTasksInProject(projectId) {
     console.log('[taskAPI.getUserTasksInProject] 获取项目中我的任务, 项目ID:', projectId)
-    return api.get(`/zhiyan/api/projects/tasks/my-tasks/project/${projectId}`)
+    return api.get(`/zhiyan/projects/tasks/my-tasks/project/${projectId}`)
   },
 
   /**
@@ -275,7 +284,7 @@ export const taskAPI = {
    */
   getUserTaskStatistics() {
     console.log('[taskAPI.getUserTaskStatistics] 获取任务统计')
-    return api.get('/zhiyan/api/projects/tasks/my-statistics')
+    return api.get('/zhiyan/projects/tasks/my-statistics')
   },
 
   /**
@@ -285,7 +294,7 @@ export const taskAPI = {
    */
   getMyCreatedTasks(page = 0, size = 20) {
     console.log('[taskAPI.getMyCreatedTasks] 获取我创建的任务')
-    return api.get('/zhiyan/api/projects/tasks/my-created', {
+    return api.get('/zhiyan/projects/tasks/my-created', {
       params: { page, size }
     })
   },
@@ -299,7 +308,7 @@ export const taskAPI = {
    */
   searchTasks(projectId, keyword, page = 0, size = 20) {
     console.log('[taskAPI.searchTasks] 搜索任务, 关键词:', keyword)
-    return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/search`, {
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/search`, {
       params: { keyword, page, size }
     })
   },
@@ -313,7 +322,7 @@ export const taskAPI = {
    */
   getUpcomingTasks(projectId, days = 7, page = 0, size = 20) {
     console.log('[taskAPI.getUpcomingTasks] 获取即将到期的任务')
-    return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/upcoming`, {
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/upcoming`, {
       params: { days, page, size }
     })
   },
@@ -326,7 +335,7 @@ export const taskAPI = {
    */
   getOverdueTasks(projectId, page = 0, size = 20) {
     console.log('[taskAPI.getOverdueTasks] 获取已逾期的任务')
-    return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/overdue`, {
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/overdue`, {
       params: { page, size }
     })
   },
@@ -337,7 +346,7 @@ export const taskAPI = {
    */
   countProjectTasks(projectId) {
     console.log('[taskAPI.countProjectTasks] 统计项目任务')
-    return api.get(`/zhiyan/api/projects/tasks/projects/${projectId}/count`)
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/count`)
   },
 
   /**
@@ -400,7 +409,7 @@ export const taskAPI = {
       }
     )
     
-    return tempApi.post(`/zhiyan/api/projects/tasks/${taskId}/result`, formData)
+    return tempApi.post(`/zhiyan/projects/tasks/${taskId}/result`, formData)
   },
 
   /**
@@ -409,7 +418,7 @@ export const taskAPI = {
    */
   getTaskResult(taskId) {
     console.log('[taskAPI.getTaskResult] 获取任务结果, 任务ID:', taskId)
-    return api.get(`/zhiyan/api/projects/tasks/${taskId}/result`)
+    return api.get(`/zhiyan/projects/tasks/${taskId}/result`)
   }
 }
 

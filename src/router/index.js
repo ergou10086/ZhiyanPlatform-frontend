@@ -14,7 +14,9 @@ import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
-import TaskSubmissionReview from '../views/TaskSubmissionReview.vue'
+import ProjectDashboard from '../views/ProjectDashboard.vue'
+import MyActivity from '../views/MyActivity.vue'
+import OAuth2Callback from '../views/OAuth2Callback.vue'
 
 Vue.use(VueRouter)
 
@@ -37,6 +39,16 @@ const routes = [
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: ForgotPassword
+  },
+  {
+    path: '/auth/oauth2/callback/:provider',
+    name: 'OAuth2Callback',
+    component: OAuth2Callback
+  },
+  {
+    path: '/zhiyan/auth/oauth2/callback/:provider',
+    name: 'OAuth2CallbackWithPrefix',
+    component: OAuth2Callback
   },
   {
     path: '/home',
@@ -64,6 +76,11 @@ const routes = [
     component: ProjectKnowledge
   },
   {
+    path: '/project-dashboard/:id',
+    name: 'ProjectDashboard',
+    component: ProjectDashboard
+  },
+  {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
     component: KnowledgeBase,
@@ -85,9 +102,13 @@ const routes = [
     component: Profile
   },
   {
+    path: '/my-activity',
+    name: 'MyActivity',
+    component: MyActivity
+  },
+  {
     path: '/task-review',
-    name: 'TaskSubmissionReview',
-    component: TaskSubmissionReview
+    redirect: '/my-activity'
   },
 ]
 
@@ -137,6 +158,13 @@ router.beforeEach((to, from, next) => {
     return
   }
   
+  // OAuth2回调页面 - 允许所有用户访问
+  if (to.path.startsWith('/auth/oauth2/callback') || to.path.startsWith('/zhiyan/auth/oauth2/callback')) {
+    console.log('OAuth2回调页面，允许访问')
+    next()
+    return
+  }
+  
   // 游客可以访问的页面
   const guestAllowedPages = ['/home', '/project-square', '/profile']
   if (guestAllowedPages.includes(to.path)) {
@@ -152,8 +180,9 @@ router.beforeEach((to, from, next) => {
     '/knowledge-base',
     '/project-detail',
     '/project-knowledge',
+    '/project-dashboard',
     '/project',
-    '/task-review'
+    '/my-activity'
   ]
   
   const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))

@@ -24,6 +24,10 @@ export function normalizeProjectCoverUrl(url) {
       console.warn('检测到无效URL:', url, '- 将返回null使用默认图片')
       return null
     }
+    if (url.includes('10.7.10.98:9000')) {
+      const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
+      return url.replace('http://10.7.10.98:9000', minioBaseUrl)
+    }
     return url
   }
 
@@ -36,18 +40,18 @@ export function normalizeProjectCoverUrl(url) {
   // 如果URL以 zhiyan/ 开头，说明是MinIO的对象键
   if (url.startsWith('zhiyan/')) {
     // 构建完整的MinIO URL
-    const minioBaseUrl = MINIO_BASE_URL || 'http://10.7.10.98:9000'
+    const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
     return `${minioBaseUrl}/${url}`
   }
 
   // 如果只是文件名，假设在 zhiyan/project-covers/ 目录下
   if (!url.includes('/')) {
-    const minioBaseUrl = MINIO_BASE_URL || 'http://10.7.10.98:9000'
+    const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
     return `${minioBaseUrl}/zhiyan/project-covers/${url}`
   }
 
   // 其他情况，尝试构建MinIO URL
-  const minioBaseUrl = MINIO_BASE_URL || 'http://10.7.10.98:9000'
+  const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
   return `${minioBaseUrl}/${url}`
 }
 
@@ -75,6 +79,10 @@ export function normalizeImageUrl(url, defaultBucket = 'zhiyan') {
       console.warn('检测到包含localhost的无效URL:', url)
       return null
     }
+    if (url.includes('10.7.10.98:9000')) {
+      const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
+      return url.replace('http://10.7.10.98:9000', minioBaseUrl)
+    }
     return url
   }
 
@@ -85,12 +93,12 @@ export function normalizeImageUrl(url, defaultBucket = 'zhiyan') {
 
   // 如果URL已经包含bucket名称，直接构建完整URL
   if (url.startsWith(`${defaultBucket}/`)) {
-    const minioBaseUrl = MINIO_BASE_URL || 'http://10.7.10.98:9000'
+    const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
     return `${minioBaseUrl}/${url}`
   }
 
   // 否则，添加默认bucket
-  const minioBaseUrl = MINIO_BASE_URL || 'http://10.7.10.98:9000'
+  const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
   return `${minioBaseUrl}/${defaultBucket}/${url}`
 }
 
@@ -110,22 +118,24 @@ export function normalizeAvatarUrl(avatar) {
     if (avatar.startsWith('{')) {
       try {
         const parsed = JSON.parse(avatar)
-        return parsed.minio_url || parsed.minioUrl || parsed.cdn_url || parsed.cdnUrl || null
+        return parsed.minio_url || parsed.minioUrl || parsed.cdn_url || parsed.cdnUrl
+          ? normalizeImageUrl(parsed.minio_url || parsed.minioUrl || parsed.cdn_url || parsed.cdnUrl, 'user-avatars')
+          : null
       } catch (e) {
         console.warn('解析头像JSON失败:', avatar)
         // 不是有效的JSON，按普通URL处理
-        return normalizeImageUrl(avatar, 'zhiyan')
+        return normalizeImageUrl(avatar, 'user-avatars')
       }
     }
     
     // 普通字符串URL
-    return normalizeImageUrl(avatar, 'zhiyan')
+    return normalizeImageUrl(avatar, 'user-avatars')
   }
 
   // 如果是对象
   if (typeof avatar === 'object') {
     const url = avatar.minio_url || avatar.minioUrl || avatar.cdn_url || avatar.cdnUrl
-    return url ? normalizeImageUrl(url, 'zhiyan') : null
+    return url ? normalizeImageUrl(url, 'user-avatars') : null
   }
 
   return null
@@ -237,13 +247,24 @@ export function addTimestampToUrl(url, timestamp = null) {
   // 使用提供的时间戳或当前时间
   const ts = timestamp || Date.now()
 
-  // 检查URL中是否已有查询参数
-  const separator = url.includes('?') ? '&' : '?'
+  try {
+    // 优先使用 URL 对象安全地管理查询参数
+    const urlObj = new URL(url)
+    urlObj.searchParams.set('t', ts.toString())
+    return urlObj.toString()
+  } catch (e) {
+    // 对于相对路径等不能被 URL 解析的情况，回退到字符串处理
 
-  // 如果URL已经有时间戳参数，先移除
-  const urlWithoutTimestamp = url.replace(/[?&]t=\d+/, '')
+    // 先处理以 ?t= 开头的时间戳，将其保留为单独的 ?
+    let cleaned = url.replace(/\?t=\d+/, '?')
+    // 再移除中间的 &t=xxx
+    cleaned = cleaned.replace(/&t=\d+/, '')
 
-  return `${urlWithoutTimestamp}${separator}t=${ts}`
+    // 根据是否已有其他查询参数决定分隔符
+    const separator = cleaned.includes('?') ? '&' : '?'
+
+    return `${cleaned}${separator}t=${ts}`
+  }
 }
 
 /**

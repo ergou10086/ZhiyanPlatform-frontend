@@ -26,6 +26,24 @@
           </div>
         </div>
 
+        <!-- 实际工时 -->
+        <div class="form-group">
+          <label class="form-label">提交工时 <span class="label-tip">(单位：小时，支持小数)</span></label>
+          <div class="worktime-input-wrapper">
+            <input
+              v-model="formData.actualWorktime"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="0.1"
+              class="form-input"
+              placeholder="例如 2 或 2.5 表示耗时 2.5 小时"
+            />
+            <span class="input-suffix">小时</span>
+          </div>
+          <div class="form-hint">可选项，不填默认不记录工时</div>
+        </div>
+
         <!-- 提交说明 -->
         <div class="form-group">
           <label class="form-label required">提交说明 <span class="label-tip">(至少10字)</span></label>
@@ -126,6 +144,7 @@ export default {
   data() {
     return {
       formData: {
+        actualWorktime: '',
         submissionContent: '',
         attachmentUrls: []
       },
@@ -164,6 +183,7 @@ export default {
 
     resetForm() {
       this.formData = {
+        actualWorktime: '',
         submissionContent: '',
         attachmentUrls: []
       }
@@ -180,6 +200,13 @@ export default {
       }
       
       console.log('[TaskSubmissionModal] 加载之前的提交内容:', this.latestSubmission)
+      
+      // 加载实际工时
+      if (this.latestSubmission.actualWorktime !== undefined && this.latestSubmission.actualWorktime !== null) {
+        this.formData.actualWorktime = String(this.latestSubmission.actualWorktime)
+      } else {
+        this.formData.actualWorktime = ''
+      }
       
       // 加载提交说明
       this.formData.submissionContent = this.latestSubmission.submissionContent || ''
@@ -429,10 +456,36 @@ export default {
         return
       }
 
+      const trimmedContent = this.formData.submissionContent.trim()
+
+      // 验证工时
+      let actualWorktimeValue = null
+      if (this.formData.actualWorktime !== '' && this.formData.actualWorktime !== null && this.formData.actualWorktime !== undefined) {
+        const parsed = Number(this.formData.actualWorktime)
+        if (Number.isNaN(parsed)) {
+          this.showErrorToast('提交工时必须是数字')
+          return
+        }
+        if (parsed < 0) {
+          this.showErrorToast('提交工时不能为负数')
+          return
+        }
+        actualWorktimeValue = Number(parsed.toFixed(2))
+      }
+
+      const payload = {
+        submissionContent: trimmedContent,
+        attachmentUrls: [...this.formData.attachmentUrls]
+      }
+
+      if (actualWorktimeValue !== null) {
+        payload.actualWorktime = actualWorktimeValue
+      }
+
       this.isSubmitting = true
 
       try {
-        const response = await submitTask(this.task.id, this.formData)
+        const response = await submitTask(this.task.id, payload)
 
         if (response && response.code === 200) {
           this.showSuccessToast('任务提交成功，等待审核')
@@ -924,6 +977,15 @@ export default {
 .input-group {
   display: flex;
   align-items: center;
+}
+
+.worktime-input-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.worktime-input-wrapper .form-input {
+  flex: 1;
 }
 
 .form-input {
