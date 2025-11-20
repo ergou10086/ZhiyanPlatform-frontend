@@ -628,6 +628,26 @@
         </div>
       </div>
     </div>
+    <!-- 角色变更确认弹窗（替代浏览器 confirm） -->
+    <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click="cancelRoleChange">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">{{ roleChangeTitle }}</h3>
+          <button class="modal-close" @click="cancelRoleChange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>{{ roleChangeMessage }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRoleChange">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmRoleChange">确定</button>
+        </div>
+      </div>
+    </div>
     <!-- 编辑项目模态框 -->
     <div v-if="editProjectModalOpen" class="modal-overlay" @click="closeEditProjectModal">
       <div class="modal-content" @click.stop>
@@ -1560,6 +1580,12 @@ export default {
       // 错误提示弹窗
       errorDialogOpen: false,
       errorMessage: '',
+      // 角色变更确认弹窗
+      roleChangeConfirmOpen: false,
+      roleChangeTitle: '',
+      roleChangeMessage: '',
+      memberToChangeRole: null,
+      newRoleToSet: null,
       // 权限相关
       isAdmin: false, // 当前用户是否为项目管理员（包括OWNER和ADMIN）
       isOwner: false, // 当前用户是否为项目拥有者
@@ -4675,12 +4701,39 @@ export default {
         this.showSuccessToast('管理员不能修改其他管理员的角色，只有项目拥有者可以')
         return
       }
-      const confirmMsg = newRole === 'ADMIN' 
+      // 显示确认弹窗
+      this.memberToChangeRole = member
+      this.newRoleToSet = newRole
+      this.roleChangeTitle = newRole === 'ADMIN' ? '设置管理员' : '移除管理员'
+      this.roleChangeMessage = newRole === 'ADMIN' 
         ? `确定要将 ${member.name} 设为项目管理员吗？` 
         : `确定要移除 ${member.name} 的管理员身份吗？`
-      if (!confirm(confirmMsg)) {
+      this.roleChangeConfirmOpen = true
+    },
+    /**
+     * 取消角色变更
+     */
+    cancelRoleChange() {
+      this.roleChangeConfirmOpen = false
+      this.memberToChangeRole = null
+      this.newRoleToSet = null
+      this.roleChangeTitle = ''
+      this.roleChangeMessage = ''
+    },
+    /**
+     * 确认角色变更
+     */
+    async confirmRoleChange() {
+      const member = this.memberToChangeRole
+      const newRole = this.newRoleToSet
+      
+      // 关闭弹窗
+      this.roleChangeConfirmOpen = false
+      
+      if (!member || !newRole) {
         return
       }
+      
       try {
         const { projectAPI } = await import('@/api/project')
         const projectId = this.$route.params.id
@@ -4704,6 +4757,12 @@ export default {
         console.error('更新成员角色失败:', error)
         const errorMsg = error?.msg || error?.message || '网络错误'
         this.showSuccessToast('更新角色失败: ' + errorMsg)
+      } finally {
+        // 清理状态
+        this.memberToChangeRole = null
+        this.newRoleToSet = null
+        this.roleChangeTitle = ''
+        this.roleChangeMessage = ''
       }
     },
     /**
