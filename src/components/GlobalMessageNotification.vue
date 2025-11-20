@@ -46,22 +46,22 @@
           </div>
           <div 
             class="tab-item" 
-            :class="{ 'active': selectedScene === 'TASK_ASSIGNED' }"
-            @click="switchScene('TASK_ASSIGNED')"
+            :class="{ 'active': selectedScene === 'TASK' }"
+            @click="switchScene('TASK')"
           >
             任务
           </div>
           <div 
             class="tab-item" 
-            :class="{ 'active': selectedScene === 'PROJECT_INVITE' }"
-            @click="switchScene('PROJECT_INVITE')"
+            :class="{ 'active': selectedScene === 'PROJECT' }"
+            @click="switchScene('PROJECT')"
           >
             项目
           </div>
           <div 
             class="tab-item" 
-            :class="{ 'active': selectedScene === 'SYSTEM_NOTICE' }"
-            @click="switchScene('SYSTEM_NOTICE')"
+            :class="{ 'active': selectedScene === 'SYSTEM' }"
+            @click="switchScene('SYSTEM')"
           >
             系统
           </div>
@@ -86,7 +86,7 @@
 
           <!-- 消息项 -->
           <div 
-            v-for="message in messages" 
+            v-for="message in displayedMessages" 
             :key="message.id" 
             class="message-item"
             :class="{ 'unread': !message.isRead }"
@@ -113,6 +113,66 @@
                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
+          </div>
+
+          <div v-if="!loading && messages.length > 0" class="message-footer">
+            <button 
+              class="load-more-btn" 
+              v-if="hasMore" 
+              :disabled="loadingMore" 
+              @click.stop="loadMore"
+            >
+              <span v-if="!loadingMore">加载更多</span>
+              <span v-else>加载中...</span>
+            </button>
+            <div v-else class="no-more">没有更多消息</div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- 消息详情弹窗 -->
+    <transition name="fade">
+      <div 
+        v-if="detailDialogVisible" 
+        class="message-detail-overlay" 
+        @click.self="closeMessageDetail"
+      >
+        <div class="message-detail-modal">
+          <div class="detail-header">
+            <div>
+              <div class="detail-scene">{{ detailMessage?.scene || '消息详情' }}</div>
+              <div class="detail-title">{{ detailMessage?.title }}</div>
+            </div>
+            <button class="detail-close" @click="closeMessageDetail">
+              <span>&times;</span>
+            </button>
+          </div>
+
+          <div class="detail-body">
+            <div class="detail-section">
+              <div class="section-label">内容</div>
+              <div class="section-content">{{ detailMessage?.content }}</div>
+            </div>
+
+            <div class="detail-section">
+              <div class="section-label">触发时间</div>
+              <div class="section-content">{{ detailMessage?.createdAt || detailMessage?.triggerTime }}</div>
+            </div>
+
+            <div class="detail-section" v-if="detailMessage?.businessType">
+              <div class="section-label">业务类型</div>
+              <div class="section-content">{{ detailMessage.businessType }}</div>
+            </div>
+
+            <div class="detail-section" v-if="detailMessage?.extendData">
+              <div class="section-label">扩展信息</div>
+              <pre class="section-extend">{{ formatExtendData(detailMessage.extendData) }}</pre>
+            </div>
+          </div>
+
+          <div class="detail-footer">
+            <button class="detail-btn" @click="closeMessageDetail">关闭</button>
           </div>
         </div>
       </div>
@@ -142,7 +202,9 @@ export default {
       currentPage: 0,
       pageSize: 10,
       hasMore: true,
-      pollingTimer: null
+      pollingTimer: null,
+      detailDialogVisible: false,
+      detailMessage: null
     }
   },
   mounted() {
@@ -210,35 +272,30 @@ export default {
           page: this.currentPage,
           size: this.pageSize
         }
-        
-        if (this.selectedScene) {
-          params.scene = this.selectedScene
-        }
 
         console.log('📨 请求消息列表:', params)
         const response = await getInboxMessages(params)
         console.log('📨 消息列表响应:', response)
-        
+
         if (response && response.code === 200 && response.data) {
-          const newMessages = response.data.content || []
-          
+          const newMessages = this.transformMessages(response.data.content || [])
+
           if (reset) {
             this.messages = newMessages
           } else {
-            this.messages.push(...newMessages)
+            this.messages = [...this.messages, ...newMessages]
           }
 
           this.hasMore = !response.data.last
+          this.currentPage = response.data.number || this.currentPage
           console.log('✅ 消息加载成功，共', newMessages.length, '条')
         } else {
           console.warn('消息列表响应格式异常:', response)
-          // 不显示警告提示，让面板显示空状态
           this.messages = []
           this.hasMore = false
         }
       } catch (error) {
         console.error('加载消息列表失败:', error)
-        // 不显示错误提示，让面板显示空状态
         this.messages = []
         this.hasMore = false
       } finally {
@@ -251,7 +308,8 @@ export default {
      * 加载更多消息
      */
     loadMore() {
-      this.currentPage++
+      if (!this.hasMore || this.loadingMore) return
+      this.currentPage += 1
       this.loadMessages(false)
     },
 
@@ -285,34 +343,40 @@ export default {
         }
       }
 
-      // 根据消息类型跳转
-      this.handleMessageNavigation(message)
+      // 展示消息详情
+      this.openMessageDetail(message)
     },
 
     /**
-     * 消息导航处理
+     * 打开消息详情弹窗
      */
-    handleMessageNavigation(message) {
-      const { scene, businessType, businessId } = message
+    openMessageDetail(message) {
+      this.detailMessage = { ...message }
+      this.detailDialogVisible = true
+    },
 
-      // 关闭面板
-      this.showPanel = false
+    /**
+     * 关闭消息详情弹窗
+     */
+    closeMessageDetail() {
+      this.detailDialogVisible = false
+      this.detailMessage = null
+    },
 
-      // 根据业务类型跳转
-      if (businessType === 'TASK' && businessId) {
-        // 跳转到任务详情或我的活动页面
-        this.$router.push({ 
-          path: '/my-activity',
-          query: { taskId: businessId }
-        })
-      } else if (businessType === 'PROJECT' && businessId) {
-        // 跳转到项目详情
-        this.$router.push({ 
-          path: `/project/${businessId}`
-        })
-      } else if (scene === 'SYSTEM_NOTICE') {
-        // 系统通知可能不需要跳转
-        this.$message.info(message.content)
+    /**
+     * 格式化扩展数据
+     */
+    formatExtendData(extendData) {
+      if (!extendData) return ''
+      try {
+        if (typeof extendData === 'string') {
+          const parsed = JSON.parse(extendData)
+          return JSON.stringify(parsed, null, 2)
+        }
+        return JSON.stringify(extendData, null, 2)
+      } catch (error) {
+        console.warn('扩展数据解析失败:', error)
+        return extendData
       }
     },
 
@@ -369,16 +433,18 @@ export default {
      * 获取场景图标
      */
     getSceneIcon(scene) {
-      const icons = {
-        TASK_ASSIGNED: 'TaskIcon',
-        TASK_STATUS_CHANGED: 'TaskIcon',
-        TASK_CLAIMED: 'TaskIcon',
-        TASK_FULL: 'TaskIcon',
-        PROJECT_INVITE: 'ProjectIcon',
-        PROJECT_MEMBER_ADDED: 'ProjectIcon',
-        SYSTEM_NOTICE: 'NoticeIcon'
+      const taskScenes = ['TASK_ASSIGN', 'TASK_STATUS_CHANGED', 'TASK_REVIEW_REQUEST', 'TASK_REVIEW_RESULT', 'TASK_DEADLINE_REMIND', 'TASK_OVERDUE']
+      const projectScenes = ['PROJECT_CREATED', 'PROJECT_ARCHIVED', 'PROJECT_DELETED', 'PROJECT_MEMBER_APPLY', 'PROJECT_MEMBER_INVITED', 'PROJECT_MEMBER_REMOVED', 'PROJECT_MEMBER_APPROVAL', 'PROJECT_ROLE_CHANGED', 'PROJECT_STATUS_CHANGED']
+
+      if (taskScenes.includes(scene)) {
+        return 'TaskIcon'
       }
-      return icons[scene] || 'NoticeIcon'
+
+      if (projectScenes.includes(scene)) {
+        return 'ProjectIcon'
+      }
+
+      return 'NoticeIcon'
     },
 
     /**
@@ -426,6 +492,38 @@ export default {
         clearInterval(this.pollingTimer)
         this.pollingTimer = null
       }
+    },
+
+    /**
+     * 将后端消息数据转换为前端可用结构
+     */
+    transformMessages(messageList) {
+      return messageList.map(item => ({
+        id: item.recipientId,
+        title: item.title,
+        content: item.content,
+        isRead: item.readFlag,
+        createdAt: item.triggerTime,
+        scene: item.scene,
+        businessId: item.businessId,
+        businessType: item.businessType
+      }))
+    },
+
+    /**
+     * 根据场景分类过滤
+     */
+    matchSceneCategory(scene, category) {
+      if (!category || !scene) return true
+      return scene.startsWith(category)
+    }
+  },
+  computed: {
+    displayedMessages() {
+      if (!this.selectedScene) {
+        return this.messages
+      }
+      return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
     }
   },
   directives: {
@@ -684,6 +782,38 @@ export default {
   transition: all 0.3s ease;
 }
 
+.message-footer {
+  padding: 12px 20px;
+  text-align: center;
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+}
+
+.load-more-btn {
+  border: 1px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  padding: 6px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-more-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.no-more {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
 .empty-state {
   padding: 60px 20px;
   text-align: center;
@@ -760,19 +890,39 @@ export default {
   color: white;
 }
 
-.message-icon.scene-TASK_ASSIGNED,
+.message-icon.scene-TASK_ASSIGN,
 .message-icon.scene-TASK_STATUS_CHANGED,
-.message-icon.scene-TASK_CLAIMED,
-.message-icon.scene-TASK_FULL {
+.message-icon.scene-TASK_REVIEW_REQUEST,
+.message-icon.scene-TASK_REVIEW_RESULT,
+.message-icon.scene-TASK_DEADLINE_REMIND,
+.message-icon.scene-TASK_OVERDUE {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-.message-icon.scene-PROJECT_INVITE,
-.message-icon.scene-PROJECT_MEMBER_ADDED {
+.message-icon.scene-PROJECT_CREATED,
+.message-icon.scene-PROJECT_ARCHIVED,
+.message-icon.scene-PROJECT_DELETED,
+.message-icon.scene-PROJECT_MEMBER_APPLY,
+.message-icon.scene-PROJECT_MEMBER_INVITED,
+.message-icon.scene-PROJECT_MEMBER_REMOVED,
+.message-icon.scene-PROJECT_MEMBER_APPROVAL,
+.message-icon.scene-PROJECT_ROLE_CHANGED,
+.message-icon.scene-PROJECT_STATUS_CHANGED {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
-.message-icon.scene-SYSTEM_NOTICE {
+.message-icon.scene-ACHIEVEMENT_FILE_UPLOADED,
+.message-icon.scene-ACHIEVEMENT_CREATED,
+.message-icon.scene-ACHIEVEMENT_DELETED,
+.message-icon.scene-ACHIEVEMENT_FILE_DELETED,
+.message-icon.scene-ACHIEVEMENT_REVIEW_REQUEST,
+.message-icon.scene-ACHIEVEMENT_STATUS_CHANGED,
+.message-icon.scene-ACHIEVEMENT_PUBLISHED {
+  background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+}
+
+.message-icon.scene-SYSTEM_SECURITY_ALERT,
+.message-icon.scene-SYSTEM_BROADCAST {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
@@ -798,6 +948,7 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
@@ -862,6 +1013,126 @@ export default {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.message-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10005;
+  padding: 16px;
+}
+
+.message-detail-modal {
+  width: 520px;
+  max-width: 100%;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.detail-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 4px;
+}
+
+.detail-scene {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.detail-close {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.detail-body {
+  padding: 16px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.detail-section {
+  margin-bottom: 16px;
+}
+
+.section-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.section-content {
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+.section-extend {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.detail-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border-secondary);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detail-btn {
+  min-width: 96px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary-color);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 

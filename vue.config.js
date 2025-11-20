@@ -20,6 +20,14 @@ module.exports = {
     compress: false,
     
     proxy: {
+      '/zhiyan/message': {
+        target: 'http://localhost:8088',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug'
+        // 不需要pathRewrite，直接转发 /zhiyan/projects/* 到后端
+      },
       // ✅ 项目相关API - 转发到8095端口（项目服务）
       // 包含：创建项目、更新项目、删除项目、获取项目列表等
       // URL示例：/zhiyan/projects/* → http://localhost:8095/zhiyan/projects/*
@@ -30,6 +38,12 @@ module.exports = {
         ws: true,
         logLevel: 'debug'
         // 不需要pathRewrite，直接转发 /zhiyan/projects/* 到后端
+      },
+      '/user-avatars': {
+        target: 'http://152.136.245.180:9000',
+        changeOrigin: true,
+        secure: false,
+        pathRewrite: { '^/user-avatars': '/user-avatars' }
       },
       // ✅ 项目相关API（旧路径兼容） - 转发到8095端口（项目服务）
       // URL示例：/zhiyan/api/projects → http://localhost:8095/api/projects
@@ -217,17 +231,6 @@ module.exports = {
         
         // ⭐ 设置超时时间（0表示无限制）
         timeout: 0
-      },
-      // ✅ 消息相关API - 转发到8095端口（项目服务）
-      // URL示例：/zhiyan/message/* → http://localhost:8095/zhiyan/message/*
-      // 包含：收件箱消息、未读数量、标记已读、删除消息等
-      '/zhiyan/message': {
-        target: 'http://localhost:8095',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        logLevel: 'debug'
-        // 不需要pathRewrite，直接转发 /zhiyan/message/* 到后端
       },
       // ✅ 认证相关API - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/auth/* → http://localhost:8091/zhiyan/auth/*
