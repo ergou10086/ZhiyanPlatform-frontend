@@ -20,12 +20,22 @@
 .ai-assistant-container .content-wrapper {
   height: 100%;
   overflow: hidden;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 60px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 对话模式也固定高度 */
 .ai-assistant-container .chat-mode-content {
   height: 100%;
   overflow: hidden;
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
 }
 
 .ai-assistant-container .ai-chat-section {
@@ -153,14 +163,10 @@
   font-size: 14px;
   font-weight: 500;
   color: #1e293b;
-  background: white;
+  background: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  padding-right: 48px;
 }
 
 .ai-assistant-container .control-select:hover {
@@ -171,6 +177,112 @@
   outline: none;
   border-color: #0044CC;
   box-shadow: 0 0 0 3px rgba(0, 68, 204, 0.1);
+}
+
+/* 下拉框增强包装：用于自定义箭头，保持与整体 UI 一致 */
+.ai-assistant-container .control-select-wrapper {
+  position: relative;
+  width: 100%;
+  display: inline-flex;
+}
+
+.ai-assistant-container .control-select.control-select--enhanced {
+  padding-right: 44px;
+}
+
+.ai-assistant-container .control-select-arrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-assistant-container .control-select.control-select--enhanced:focus + .control-select-arrow {
+  color: #0044CC;
+}
+
+.ai-assistant-container .control-select.control-select--enhanced option {
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+/* vue-select 项目下拉样式，使其与 control-select 风格一致 */
+.ai-assistant-container .project-select {
+  width: 100%;
+}
+
+.ai-assistant-container .project-select .vs__dropdown-toggle {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  background: #ffffff;
+  min-height: 44px;
+  box-shadow: none;
+  transition: all 0.3s ease;
+}
+
+.ai-assistant-container .project-select .vs__selected-options {
+  padding: 0;
+}
+
+.ai-assistant-container .project-select .vs__selected {
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.ai-assistant-container .project-select .vs__search::placeholder {
+  color: #9ca3af;
+}
+
+.ai-assistant-container .project-select .vs__dropdown-toggle:hover {
+  border-color: #5EB6E4;
+}
+
+.ai-assistant-container .project-select .vs__dropdown-toggle:focus,
+.ai-assistant-container .project-select .vs__dropdown-toggle.vs__dropdown-toggle--open {
+  border-color: #0044CC;
+  box-shadow: 0 0 0 3px rgba(0, 68, 204, 0.1);
+}
+
+.ai-assistant-container .project-select .vs__open-indicator {
+  display: none;
+}
+
+.ai-assistant-container .project-select .vs__clear {
+  display: none;
+}
+
+/* vue-select 下拉菜单 */
+.ai-assistant-container .project-select .vs__dropdown-menu {
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  padding: 4px 0;
+  margin-top: 6px;
+}
+
+.ai-assistant-container .project-select .vs__dropdown-option {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #1f2933;
+}
+
+.ai-assistant-container .project-select .vs__dropdown-option--highlight {
+  background: #f0f7ff;
+  color: #0044CC;
+}
+
+.ai-assistant-container .project-select .vs__dropdown-option--selected {
+  background: #e5f0ff;
+  color: #0044CC;
 }
 
 /* 选择任务按钮 */
@@ -256,6 +368,187 @@
   cursor: not-allowed;
   box-shadow: none;
   transform: none;
+}
+
+/* ========== 左侧模式切换侧边栏（来自旧样式，保留有效部分） ========== */
+.ai-assistant-container .mode-sidebar {
+  width: 220px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 0 16px 16px 0;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  border-left: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+  height: fit-content;
+  position: fixed;
+  left: 0;
+  top: 120px;
+  transform: translateX(-176px);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+.ai-assistant-container .mode-sidebar:hover {
+  transform: translateX(0);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.ai-assistant-container .mode-sidebar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60px;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  border-radius: 0 4px 4px 0;
+  transition: height 0.3s ease;
+}
+
+.ai-assistant-container .mode-sidebar:hover::before {
+  height: 80px;
+}
+
+.ai-assistant-container .mode-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+  text-align: left;
+  width: 100%;
+}
+
+.ai-assistant-container .mode-nav-item svg {
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.ai-assistant-container .mode-nav-item span {
+  flex: 1;
+}
+
+.ai-assistant-container .mode-nav-item:hover {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2ff 100%);
+  color: #0044CC;
+  transform: translateX(4px);
+}
+
+.ai-assistant-container .mode-nav-item.active {
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+  transform: translateX(4px);
+}
+
+.ai-assistant-container .mode-nav-item.active:hover {
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+}
+
+/* ========== Markdown 内容样式（从旧文件合并） ========== */
+.ai-assistant-container .markdown-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #1e293b;
+}
+
+.ai-assistant-container .markdown-content h1,
+.ai-assistant-container .markdown-content h2,
+.ai-assistant-container .markdown-content h3 {
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.ai-assistant-container .markdown-content h1 {
+  font-size: 24px;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.ai-assistant-container .markdown-content h2 {
+  font-size: 20px;
+}
+
+.ai-assistant-container .markdown-content h3 {
+  font-size: 18px;
+}
+
+.ai-assistant-container .markdown-content p {
+  margin: 12px 0;
+}
+
+.ai-assistant-container .markdown-content ul,
+.ai-assistant-container .markdown-content ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.ai-assistant-container .markdown-content li {
+  margin: 6px 0;
+}
+
+.ai-assistant-container .markdown-content code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #ef4444;
+}
+
+.ai-assistant-container .markdown-content pre {
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.ai-assistant-container .markdown-content pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.ai-assistant-container .markdown-content blockquote {
+  border-left: 4px solid #5EB6E4;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #64748b;
+  font-style: italic;
+}
+
+.ai-assistant-container .markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+}
+
+.ai-assistant-container .markdown-content th,
+.ai-assistant-container .markdown-content td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.ai-assistant-container .markdown-content th {
+  background: #f8fafc;
+  font-weight: 600;
 }
 
 /* ========== 右侧滚动内容区 ========== */

@@ -249,19 +249,17 @@
                 </svg>
                 选择项目
               </label>
-              <select
-                v-model="taskResultProjectId"
-                class="control-select"
-              >
-                <option disabled value="">请选择项目</option>
-                <option
-                  v-for="project in availableProjects"
-                  :key="project.id"
-                  :value="project.id"
-                >
-                  {{ project.title || project.name || '未命名项目' }}
-                </option>
-              </select>
+              <div class="control-select-wrapper">
+                <v-select
+                  v-model="taskResultProjectId"
+                  :options="availableProjects"
+                  :reduce="reduceProjectOption"
+                  label="title"
+                  class="project-select"
+                  placeholder="请选择项目"
+                  :clearable="false"
+                />
+              </div>
             </div>
 
             <!-- 选择任务按钮 -->
@@ -335,15 +333,15 @@
                       <div class="task-meta">
                         <span class="meta-item">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 8H17M7 12H17M7 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                          </svg>
-                          ID: {{ task.id }}
-                        </span>
-                        <span v-if="task.assignee" class="meta-item">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                           </svg>
-                          {{ task.assignee }}
+                          负责人：{{ task.assignee || '未分配' }}
+                        </span>
+                        <span v-if="task.projectTitle" class="meta-item">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          项目：{{ task.projectTitle }}
                         </span>
                       </div>
                     </div>
@@ -662,7 +660,6 @@
       </div>
     </div>
     </div>
-  </div>
 </template>
 
 <script>
@@ -671,9 +668,10 @@ import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
 import { taskAPI } from '@/api/task'
 import difyAPI from '@/api/dify'
+import vSelect from 'vue-select'
+import 'vue-select/dist/vue-select.css'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
-import '@/assets/styles/AIAssistantTaskResult.css'
 import '@/assets/styles/AIAssistantTaskResult-v2.css'
 
 // ⭐ Markdown渲染和代码高亮
@@ -705,7 +703,8 @@ marked.setOptions({
 export default {
   name: 'AIAssistant',
   components: {
-    Sidebar
+    Sidebar,
+    'v-select': vSelect
   },
   data() {
     return {
@@ -906,6 +905,10 @@ export default {
     }
   },
   methods: {
+    reduceProjectOption(project) {
+      return project && project.id
+    },
+
     // 切换左侧模式 Tab
     switchMode(mode) {
       this.currentMode = mode
@@ -1021,7 +1024,8 @@ export default {
       this.selectedTaskSummaries = selected.map(t => ({
         id: t.id,
         title: t.title,
-        assignee: t.assignee
+        assignee: t.assignee,
+        projectTitle: this.currentProject ? (this.currentProject.title || this.currentProject.name || '当前项目') : ''
       }))
 
       this.showTaskSelectDialog = false

@@ -960,6 +960,17 @@
                   <span class="detail-label">上传时间：</span>
                   <span class="detail-value">{{ viewingFile.time || viewingFile.uploadTime || '未知' }}</span>
                 </div>
+                <div class="detail-item" v-if="viewingLinkedTasks && viewingLinkedTasks.length > 0">
+                  <span class="detail-label">关联任务：</span>
+                  <span class="detail-value">
+                    <span
+                      v-for="task in viewingLinkedTasks"
+                      :key="task.id"
+                    >
+                      [{{ task.id }}] {{ task.title || '未命名任务' }}<span v-if="task.assignee">（负责人：{{ task.assignee }}）</span>
+                    </span>
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -1089,6 +1100,14 @@
                 <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               添加文件到此成果
+            </button>
+            <button
+              v-if="projectId && canEditAchievement(viewingFile)"
+              type="button"
+              class="btn secondary"
+              @click.stop="openTaskLinkDialogForExisting"
+            >
+              关联/修改关联任务
             </button>
             <div class="status-selector">
               <label>成果状态：</label>
@@ -1615,7 +1634,9 @@ export default {
       candidateDoneTasks: [],
       selectedTaskIdsForDialog: [],
       // 查看成果时的已关联任务
-      viewingLinkedTasks: []
+      viewingLinkedTasks: [],
+      // 当前任务关联弹窗作用目标（upload: 上传表单；existing: 已有成果）
+      taskLinkDialogTarget: 'upload'
     }
   },
   computed: {
@@ -1730,14 +1751,26 @@ export default {
         this.successToastTimer = null
       }, 1500)
     },
-    // === 成果上传时关联任务相关 ===
+    // === 成果上传/查看时关联任务相关 ===
     async openTaskLinkDialogForUpload() {
       if (!this.projectId) {
         return
       }
+      this.taskLinkDialogTarget = 'upload'
+      await this.openTaskLinkDialogInternal(this.achievementForm.linkedTaskIds || [])
+    },
+    async openTaskLinkDialogForExisting() {
+      if (!this.projectId || !this.viewingFile || !this.viewingFile.id) {
+        return
+      }
+      this.taskLinkDialogTarget = 'existing'
+      const existingIds = (this.viewingLinkedTasks || []).map(t => t.id)
+      await this.openTaskLinkDialogInternal(existingIds)
+    },
+    async openTaskLinkDialogInternal(initialSelectedIds) {
       this.showTaskLinkDialog = true
       this.taskLinkLoading = true
-      this.selectedTaskIdsForDialog = [...(this.achievementForm.linkedTaskIds || [])]
+      this.selectedTaskIdsForDialog = [...initialSelectedIds]
       try {
         const resp = await projectAPI.getProjectTasksByStatus(this.projectId, 'DONE', 0, 100)
         console.log('[KnowledgeBaseCatalog] DONE 任务列表响应:', resp)
@@ -1771,13 +1804,40 @@ export default {
     },
     confirmTaskLinkSelection() {
       const ids = [...this.selectedTaskIdsForDialog]
-      this.achievementForm.linkedTaskIds = ids
       const map = new Map(this.candidateDoneTasks.map(t => [t.id, t]))
-      this.achievementForm.linkedTaskSummaries = ids
-        .map(id => map.get(id))
-        .filter(Boolean)
-        .map(t => ({ id: t.id, title: t.title, assignee: t.assignee }))
-      this.showTaskLinkDialog = false
+
+      if (this.taskLinkDialogTarget === 'existing' && this.viewingFile && this.viewingFile.id) {
+        // 为已有成果更新关联任务
+        const achievementId = this.viewingFile.id
+        apiLinkTasks(achievementId, ids)
+          .then(resp => {
+            console.log('[KnowledgeBaseCatalog] 更新已有成果关联任务响应:', resp)
+            if (resp && resp.code === 200) {
+              this.viewingLinkedTasks = ids
+                .map(id => map.get(id))
+                .filter(Boolean)
+                .map(t => ({ id: t.id, title: t.title, assignee: t.assignee }))
+              this.showSuccessToast('已更新成果关联任务')
+            } else {
+              alert(resp?.msg || '更新关联任务失败，请重试')
+            }
+          })
+          .catch(e => {
+            console.error('[KnowledgeBaseCatalog] 更新已有成果关联任务失败:', e)
+            alert('更新关联任务失败，请稍后重试')
+          })
+          .finally(() => {
+            this.showTaskLinkDialog = false
+          })
+      } else {
+        // 上传表单场景，仅在前端记录
+        this.achievementForm.linkedTaskIds = ids
+        this.achievementForm.linkedTaskSummaries = ids
+          .map(id => map.get(id))
+          .filter(Boolean)
+          .map(t => ({ id: t.id, title: t.title, assignee: t.assignee }))
+        this.showTaskLinkDialog = false
+      }
     },
     clearUploadLinkedTasks() {
       this.achievementForm.linkedTaskIds = []
@@ -2405,6 +2465,11 @@ export default {
           // 转换DTO为前端格式
           const detailData = convertFromDTO(response.data)
           console.log('转换后的成果详情:', detailData)
+
+          // 如果详情中的上传者为空或为“未知用户”，尝试使用列表行中的上传者
+          if ((!detailData.uploader || detailData.uploader === '未知用户') && file && file.uploader) {
+            detailData.uploader = file.uploader
+          }
           
           // 获取文件列表
           const filesResponse = await knowledgeAPI.getAchievementFiles(file.id)
@@ -2427,6 +2492,24 @@ export default {
             console.warn('获取文件列表失败或文件列表为空')
             detailData.files = []
             detailData.fileCount = 0
+          }
+
+          // 获取成果已关联任务
+          try {
+            const linkedResp = await apiGetLinkedTasks(file.id)
+            console.log('[KnowledgeBaseCatalog] 获取成果已关联任务响应:', linkedResp)
+            if (linkedResp && linkedResp.code === 200 && Array.isArray(linkedResp.data)) {
+              this.viewingLinkedTasks = linkedResp.data.map(t => ({
+                id: t.id,
+                title: t.title || t.name || '未命名任务',
+                assignee: t.assigneeNames || t.assigneeName || t.assignee || ''
+              }))
+            } else {
+              this.viewingLinkedTasks = []
+            }
+          } catch (e) {
+            console.error('[KnowledgeBaseCatalog] 获取成果已关联任务失败:', e)
+            this.viewingLinkedTasks = []
           }
           
           this.viewingFile = detailData
