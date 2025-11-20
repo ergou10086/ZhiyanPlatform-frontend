@@ -68,26 +68,63 @@ export default {
         const urlParams = new URLSearchParams(window.location.search)
         const code = urlParams.get('code')
         const state = urlParams.get('state')
+        const status = urlParams.get('status')
+        const token = urlParams.get('token')
+        const refreshToken = urlParams.get('refreshToken')
+        const message = urlParams.get('message')
         const provider = this.$route.params.provider || sessionStorage.getItem('oauth2_provider') || 'github'
 
-        console.log('📥 OAuth2回调参数:', { code, state, provider })
+        console.log('📥 OAuth2回调参数:', { code, state, status, provider })
         console.log('📥 当前URL:', window.location.href)
 
-        // 检查是否是直接从后端返回的 JSON 数据页面
-        // 如果页面显示的是 JSON 数据，说明后端直接返回了响应而不是重定向
-        if (document.body.textContent.includes('"code":') && document.body.textContent.includes('"data":')) {
-          console.log('⚠️ 检测到后端直接返回JSON，尝试解析...')
-          try {
-            const jsonData = JSON.parse(document.body.textContent)
-            if (jsonData.code === 200 && jsonData.data) {
-              console.log('✅ 成功解析后端JSON响应')
-              this.handleCallbackResponse(jsonData.data)
-              return
+        // 检查是否是后端重定向过来的（带有status参数）
+        if (status) {
+          console.log('✅ 检测到后端重定向，status:', status)
+          
+          // 处理错误状态
+          if (status === 'ERROR') {
+            throw new Error(decodeURIComponent(message || '授权失败'))
+          }
+
+          // 处理登录成功
+          if (status === 'SUCCESS' && token) {
+            console.log('✅ 登录成功，直接跳转')
+            const loginResponse = {
+              accessToken: token,
+              refreshToken: refreshToken || null
             }
-          } catch (e) {
-            console.error('❌ 解析JSON失败:', e)
+            this.handleLoginSuccess(loginResponse)
+            return
+          }
+
+          // 处理需要绑定账号
+          if (status === 'NEED_BIND') {
+            console.log('⚠️ 需要绑定或创建账号，调用后端API获取详细信息')
+            // 需要调用后端API获取OAuth2用户信息
+            const response = await authAPI.handleOAuth2Callback(provider, code, state)
+            if (response.code === 200 && response.data) {
+              this.handleCallbackResponse(response.data)
+            } else {
+              throw new Error(response.msg || '获取用户信息失败')
+            }
+            return
+          }
+
+          // 处理需要补充信息
+          if (status === 'NEED_SUPPLEMENT') {
+            console.log('⚠️ 需要补充信息，调用后端API获取详细信息')
+            const response = await authAPI.handleOAuth2Callback(provider, code, state)
+            if (response.code === 200 && response.data) {
+              this.handleCallbackResponse(response.data)
+            } else {
+              throw new Error(response.msg || '获取用户信息失败')
+            }
+            return
           }
         }
+
+        // 如果没有status参数，说明是旧的流程，直接调用后端API
+        console.log('📞 调用后端回调API')
 
         // 验证参数
         if (!code || !state) {
