@@ -453,24 +453,45 @@ export default {
     formatTime(timestamp) {
       if (!timestamp) return ''
       
-      const now = new Date()
-      const time = new Date(timestamp)
-      const diff = now - time
-      
-      const minute = 60 * 1000
-      const hour = 60 * minute
-      const day = 24 * hour
-      
-      if (diff < minute) {
-        return '刚刚'
-      } else if (diff < hour) {
-        return Math.floor(diff / minute) + '分钟前'
-      } else if (diff < day) {
-        return Math.floor(diff / hour) + '小时前'
-      } else if (diff < 7 * day) {
-        return Math.floor(diff / day) + '天前'
-      } else {
-        return time.toLocaleDateString()
+      try {
+        const now = new Date()
+        // 确保 timestamp 是有效的 Date 对象或可转换的值
+        let time
+        if (timestamp instanceof Date) {
+          time = timestamp
+        } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+          time = new Date(timestamp)
+        } else {
+          console.warn('formatTime: 无效的时间格式', timestamp)
+          return ''
+        }
+        
+        // 检查日期是否有效
+        if (isNaN(time.getTime())) {
+          console.warn('formatTime: 无效的日期', timestamp)
+          return ''
+        }
+        
+        const diff = now - time
+        
+        const minute = 60 * 1000
+        const hour = 60 * minute
+        const day = 24 * hour
+        
+        if (diff < minute) {
+          return '刚刚'
+        } else if (diff < hour) {
+          return Math.floor(diff / minute) + '分钟前'
+        } else if (diff < day) {
+          return Math.floor(diff / hour) + '小时前'
+        } else if (diff < 7 * day) {
+          return Math.floor(diff / day) + '天前'
+        } else {
+          return time.toLocaleDateString()
+        }
+      } catch (error) {
+        console.error('formatTime 错误:', error, timestamp)
+        return ''
       }
     },
 
@@ -498,16 +519,40 @@ export default {
      * 将后端消息数据转换为前端可用结构
      */
     transformMessages(messageList) {
-      return messageList.map(item => ({
-        id: item.recipientId,
-        title: item.title,
-        content: item.content,
-        isRead: item.readFlag,
-        createdAt: item.triggerTime,
-        scene: item.scene,
-        businessId: item.businessId,
-        businessType: item.businessType
-      }))
+      if (!Array.isArray(messageList)) {
+        console.warn('transformMessages: messageList 不是数组', messageList)
+        return []
+      }
+      
+      return messageList.map(item => {
+        // 安全处理时间字段
+        let createdAt = item.triggerTime
+        if (createdAt) {
+          // 如果是字符串，尝试转换为 Date
+          if (typeof createdAt === 'string') {
+            createdAt = new Date(createdAt)
+          } else if (typeof createdAt === 'object' && createdAt !== null) {
+            // 如果是对象，尝试提取时间戳或转换为字符串
+            if (createdAt instanceof Date) {
+              createdAt = createdAt
+            } else {
+              // 尝试从对象中提取时间值
+              createdAt = new Date(createdAt.toString())
+            }
+          }
+        }
+        
+        return {
+          id: item.recipientId || item.id,
+          title: item.title || '',
+          content: item.content || '',
+          isRead: item.readFlag || false,
+          createdAt: createdAt,
+          scene: item.scene || '',
+          businessId: item.businessId,
+          businessType: item.businessType
+        }
+      })
     },
 
     /**
@@ -552,30 +597,104 @@ export default {
     }
   },
   components: {
-    // 场景图标组件
+    // 场景图标组件 - 使用 render 函数以兼容运行时构建
     TaskIcon: {
-      template: `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `
+      render(h) {
+        return h('svg', {
+          attrs: {
+            width: '20',
+            height: '20',
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            xmlns: 'http://www.w3.org/2000/svg'
+          }
+        }, [
+          h('path', {
+            attrs: {
+              d: 'M9 11L12 14L22 4',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          }),
+          h('path', {
+            attrs: {
+              d: 'M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          })
+        ])
+      }
     },
     ProjectIcon: {
-      template: `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `
+      render(h) {
+        return h('svg', {
+          attrs: {
+            width: '20',
+            height: '20',
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            xmlns: 'http://www.w3.org/2000/svg'
+          }
+        }, [
+          h('path', {
+            attrs: {
+              d: 'M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          })
+        ])
+      }
     },
     NoticeIcon: {
-      template: `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `
+      render(h) {
+        return h('svg', {
+          attrs: {
+            width: '20',
+            height: '20',
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            xmlns: 'http://www.w3.org/2000/svg'
+          }
+        }, [
+          h('circle', {
+            attrs: {
+              cx: '12',
+              cy: '12',
+              r: '10',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          }),
+          h('path', {
+            attrs: {
+              d: 'M12 16V12',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          }),
+          h('path', {
+            attrs: {
+              d: 'M12 8H12.01',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          })
+        ])
+      }
     }
   }
 }
