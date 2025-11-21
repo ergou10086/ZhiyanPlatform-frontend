@@ -22,300 +22,436 @@
 
     <!-- 主要内容区域 -->
     <div class="main-content-wrapper">
-      <!-- 顶部欢迎条已移除，减少首屏占用 -->
+      <div class="activity-content-layout">
+        <aside class="activity-side-nav">
+          <button
+            v-for="nav in activityNavItems"
+            :key="nav.key"
+            :class="['activity-nav-item', { active: activePage === nav.key }]"
+            @click="setActivePage(nav.key)"
+          >
+            <span class="nav-label">{{ nav.label }}</span>
+          </button>
+        </aside>
 
-      <!-- 2.（对调后）任务统计（全宽） -->
-      <section class="review-panel-section">
-        <div class="section-card">
-          <div class="section-header">
-            <h3 class="section-title">任务统计</h3>
-          </div>
-          <div class="stats-content">
-            <div v-if="isLoadingStats" class="loading-overlay">
-              <div class="loading-spinner small"></div>
-            </div>
-            <!-- 高级仪表盘：左侧总览（环形+迷你仪表），右侧趋势 -->
-            <div class="dashboard-pro">
-              <div class="card-overview">
-                <div class="card-header-row">
-                  <h4 class="chart-title">总览</h4>
-                  <div class="kpi-group">
-                    <span class="kpi-badge kpi-progress">进行中 {{ taskStats.inProgress || 0 }}</span>
-                    <span class="kpi-badge kpi-done">已完成 {{ taskStats.completed || 0 }}</span>
+        <div class="activity-page-content">
+          <!-- 我的任务 -->
+          <section 
+            v-if="activePage === 'my-tasks'"
+            class="page-section my-tasks-section"
+          >
+            <div class="dashboard-card task-statistics">
+              <div class="card-header">
+                <div class="card-header-top">
+                  <h3 class="card-title">我的任务</h3>
+                  <div class="review-mode-toggle">
+                    <button 
+                      class="toggle-btn" 
+                      :class="{ active: reviewMode === 'to-review' }"
+                      @click="switchReviewMode('to-review')"
+                    >
+                      我审核的任务
+                    </button>
+                    <button 
+                      class="toggle-btn" 
+                      :class="{ active: reviewMode === 'my-submissions' }"
+                      @click="switchReviewMode('my-submissions')"
+                    >
+                      我提交的任务
+                    </button>
+                    <button 
+                      class="toggle-btn" 
+                      :class="{ active: reviewMode === 'my-created' }"
+                      @click="switchReviewMode('my-created')"
+                    >
+                      我发布的任务
+                    </button>
                   </div>
                 </div>
-                <div class="overview-grid">
-                  <div class="overview-left">
-                    <div ref="pieStatus" class="chart-box medium"></div>
-                    <div class="status-summary">
-                      <div 
-                        v-for="item in statusBreakdown" 
-                        :key="item.key"
-                        class="status-item"
-                      >
-                        <span class="status-dot" :style="{ background: item.color }"></span>
-                        <span class="status-name">{{ item.label }}</span>
-                        <span class="status-count">{{ item.value }}</span>
-                        <span class="status-percent">{{ item.percent }}%</span>
+                <div class="section-controls" v-if="reviewMode !== 'my-created'">
+                  <select v-model="sortBy" class="sort-select" @change="loadPendingTasks">
+                    <option value="project">按项目分类</option>
+                    <option value="priority">按优先级</option>
+                    <option value="dueDate">按截止时间</option>
+                  </select>
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="showOverdueOnly" @change="loadPendingTasks">
+                    <span>仅看逾期项</span>
+                  </label>
+                </div>
+                <div class="created-summary" v-else>
+                  <div class="summary-card summary-total">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15M9 5C9 6.10457 9.89543 7 11 7H13C14.1046 7 15 6.10457 15 5M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5M12 12H15M12 16H15M9 12H9.01M9 16H9.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">总任务</span>
+                      <span class="summary-value">{{ createdTaskStats.total }}</span>
+                    </div>
+                  </div>
+                  <div class="summary-card summary-progress">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 8V12L15 15M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">进行中</span>
+                      <span class="summary-value">{{ createdTaskStats.inProgress }}</span>
+                    </div>
+                  </div>
+                  <div class="summary-card summary-completed">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">已完成</span>
+                      <span class="summary-value">{{ createdTaskStats.completed }}</span>
+                    </div>
+                  </div>
+                  <div class="summary-card summary-pending">
+                    <div class="summary-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 8V12M12 16H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                    <div class="summary-content">
+                      <span class="summary-label">待开始</span>
+                      <span class="summary-value">{{ createdTaskStats.pending }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="task-list-container">
+                <template v-if="reviewMode === 'my-created'">
+                  <div v-if="isLoadingCreatedTasks" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>加载中...</p>
+                  </div>
+                  <div v-else-if="createdTasks.length === 0" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M8 12H12L16 14" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>暂无我发布的任务</p>
+                  </div>
+                  <div v-else class="task-cards-list">
+                    <div 
+                      v-for="task in createdTasks" 
+                      :key="task.id"
+                      class="task-card-clean"
+                      :class="['status-view', task.statusClass]"
+                    >
+                      <div class="task-status-bar" :class="getStatusColorClass(task.status)"></div>
+                      <div class="task-content">
+                        <div class="task-header">
+                          <h4 class="task-title">{{ task.title }}</h4>
+                          <span class="task-status-badge" :class="'status-' + (task.status || 'UNKNOWN')">
+                            {{ getStatusText(task.status) }}
+                          </span>
+                        </div>
+                        <p class="task-description" v-if="task.description">
+                          {{ task.description }}
+                        </p>
+                        <div class="task-details">
+                          <div class="meta-line">
+                            <span class="meta-pair">
+                              <span class="meta-label">执行人：</span>
+                              <span class="meta-value">{{ task.assignees || '未分配' }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">优先级：</span>
+                              <span class="meta-value">{{ getPriorityText(task.priority) }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">截止时间：</span>
+                              <span class="meta-value">{{ formatTaskDate(task.dueDate) }}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="task-actions">
+                        <button class="action-btn-review" @click="goToProject(task.projectId)">
+                          查看项目
+                        </button>
                       </div>
                     </div>
                   </div>
-                  <div class="overview-right">
-                    <div class="mini-gauge" @click="openTaskListModal('inProgress')">
-                      <div class="mini-title">进行中</div>
-                      <div ref="gaugeInProgress" class="chart-box tiny clickable-chart"></div>
+                </template>
+                <template v-else>
+                  <div v-if="isLoadingTasks" class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>加载中...</p>
+                  </div>
+                  <div v-else-if="pendingTasks.length === 0" class="empty-state">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>{{ reviewMode === 'to-review' ? '暂无需要我审核的任务' : '暂无我提交的任务' }}</p>
+                  </div>
+                  <div v-else class="task-cards-list">
+                    <div 
+                      v-for="task in pendingTasks" 
+                      :key="task.id"
+                      class="task-card-clean"
+                      :class="getTaskUrgencyClass(task)"
+                    >
+                      <div class="task-status-bar" :class="getUrgencyClass(task)"></div>
+                      <div class="task-content">
+                        <div class="task-header">
+                          <h4 class="task-title">{{ task.taskTitle || task.title || '未命名任务' }}</h4>
+                        </div>
+                        <p class="task-description" v-if="task.description || task.taskDescription">
+                          {{ task.description || task.taskDescription }}
+                        </p>
+                        <div class="task-details">
+                          <div class="meta-line">
+                            <span class="meta-pair">
+                              <span class="meta-label">提交人：</span>
+                              <span class="meta-value">{{ getSubmitterName(task) }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">项目：</span>
+                              <span class="meta-value">{{ task.projectName || '未知项目' }}</span>
+                            </span>
+                            <span class="meta-sep">·</span>
+                            <span class="meta-pair">
+                              <span class="meta-label">提交时间：</span>
+                              <span class="meta-value">{{ formatSubmissionTime(task.submissionTime) }}</span>
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="task-actions">
+                        <button 
+                          class="action-btn-review"
+                          @click="openReviewModal(task)"
+                          v-if="reviewMode === 'to-review' && isProjectManager(task)"
+                        >
+                          审核
+                        </button>
+                        <span v-else-if="reviewMode === 'my-submissions'" class="review-status-text" :class="getReviewStatusClass(task)">
+                          {{ getReviewStatusText(task) }}
+                        </span>
+                      </div>
                     </div>
-                    <div class="mini-gauge" @click="openTaskListModal('completed')">
-                      <div class="mini-title">已完成</div>
-                      <div ref="gaugeCompleted" class="chart-box tiny clickable-chart"></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </section>
+
+          <!-- 任务统计 -->
+          <section 
+            v-else-if="activePage === 'task-stats'"
+            class="review-panel-section page-section"
+          >
+            <div class="section-card">
+              <div class="section-header">
+                <h3 class="section-title">任务统计</h3>
+              </div>
+              <div class="stats-content">
+                <div v-if="isLoadingStats" class="loading-overlay">
+                  <div class="loading-spinner small"></div>
+                </div>
+                <div class="dashboard-pro">
+                  <div class="card-overview">
+                    <div class="card-header-row">
+                      <h4 class="chart-title">总览</h4>
+                      <div class="kpi-group">
+                        <span class="kpi-badge kpi-progress">进行中 {{ displayStats.inProgress }}</span>
+                        <span class="kpi-badge kpi-reviewing">待审核 {{ displayStats.reviewing }}</span>
+                        <span class="kpi-badge kpi-done">已完成 {{ displayStats.completed }}</span>
+                      </div>
                     </div>
-                    <div class="mini-bar">
-                      <div class="mini-title">优先级分布</div>
-                      <div ref="barPriority" class="chart-box small clickable-chart"></div>
+                    <div class="overview-grid">
+                      <div class="overview-left">
+                        <div ref="pieStatus" class="chart-box medium"></div>
+                        <div class="status-summary">
+                          <div 
+                            v-for="item in statusBreakdown" 
+                            :key="item.key"
+                            class="status-item"
+                          >
+                            <span class="status-dot" :style="{ background: item.color }"></span>
+                            <span class="status-name">{{ item.label }}</span>
+                            <span class="status-count">{{ item.value }}</span>
+                            <span class="status-percent">{{ item.percent }}%</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="overview-right">
+                        <div class="mini-gauge" @click="openTaskListModal('inProgress')">
+                          <div class="mini-title">进行中</div>
+                          <div ref="gaugeInProgress" class="chart-box tiny clickable-chart"></div>
+                        </div>
+                        <div class="mini-gauge" @click="openTaskListModal('reviewing')">
+                          <div class="mini-title">待审核</div>
+                          <div ref="gaugeReviewing" class="chart-box tiny clickable-chart"></div>
+                        </div>
+                        <div class="mini-gauge" @click="openTaskListModal('completed')">
+                          <div class="mini-title">已完成</div>
+                          <div ref="gaugeCompleted" class="chart-box tiny clickable-chart"></div>
+                        </div>
+                        <div class="mini-bar">
+                          <div class="mini-title">优先级分布</div>
+                          <div ref="barPriority" class="chart-box small clickable-chart"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="card-trend">
+                    <h4 class="chart-title">过去七天完成趋势</h4>
+                    <div ref="lineTrend" class="chart-box large clickable-chart"></div>
+                    <h4 class="chart-title">过去七天逾期任务</h4>
+                    <div ref="barOverdue" class="chart-box small clickable-chart"></div>
+                  </div>
+                </div>
+
+                <div class="upcoming-milestones">
+                  <h4 class="chart-title">即将到期</h4>
+                  <div class="milestones-list">
+                    <div 
+                      v-for="milestone in upcomingMilestones" 
+                      :key="milestone.id"
+                      class="milestone-item clickable"
+                      @click="goToProject(milestone.projectId)"
+                    >
+                      <div class="milestone-info">
+                        <span class="milestone-name">{{ milestone.title }}</span>
+                        <span class="milestone-countdown">{{ getCountdown(milestone.dueDate || milestone.due_date) }}</span>
+                      </div>
+                    </div>
+                    <div v-if="upcomingMilestones.length === 0" class="empty-milestones">
+                      <p>暂无即将到期的任务</p>
                     </div>
                   </div>
                 </div>
               </div>
-
-              <div class="card-trend">
-                <h4 class="chart-title">过去七天完成趋势</h4>
-                <div ref="lineTrend" class="chart-box large clickable-chart"></div>
-                <h4 class="chart-title">过去七天逾期任务</h4>
-                <div ref="barOverdue" class="chart-box small clickable-chart"></div>
-              </div>
             </div>
+          </section>
 
-            <!-- 即将到期的关键节点 -->
-            <div class="upcoming-milestones">
-              <h4 class="chart-title">即将到期</h4>
-              <div class="milestones-list">
+          <!-- 项目总览 -->
+          <section 
+            v-else-if="activePage === 'projects'"
+            class="page-section projects-section"
+          >
+            <div class="dashboard-card projects-overview">
+              <div class="card-header">
+                <h3 class="card-title">项目总览</h3>
+              </div>
+              <div v-if="isLoadingProjects" class="loading-state">
+                <div class="loading-spinner small"></div>
+              </div>
+              <div v-else-if="projects.length === 0" class="empty-state small">
+                <p>暂无参与项目</p>
+              </div>
+              <div v-else class="projects-list">
                 <div 
-                  v-for="milestone in upcomingMilestones" 
-                  :key="milestone.id"
-                  class="milestone-item"
+                  v-for="project in projects" 
+                  :key="project.id"
+                  class="project-item"
+                  @click="goToProject(project.id)"
                 >
-                  <div class="milestone-info">
-                    <span class="milestone-name">{{ milestone.title }}</span>
-                    <span class="milestone-countdown">{{ getCountdown(milestone.dueDate || milestone.due_date) }}</span>
-                  </div>
-                </div>
-                <div v-if="upcomingMilestones.length === 0" class="empty-milestones">
-                  <p>暂无即将到期的任务</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 3. 个人工作仪表盘 -->
-      <section class="dashboard-section">
-        <div class="dashboard-grid">
-          <!-- 左侧：项目总览图表 -->
-          <div class="dashboard-card projects-overview">
-            <div class="card-header">
-              <h3 class="card-title">项目总览</h3>
-            </div>
-            <div v-if="isLoadingProjects" class="loading-state">
-              <div class="loading-spinner small"></div>
-            </div>
-            <div v-else-if="projects.length === 0" class="empty-state small">
-              <p>暂无参与项目</p>
-            </div>
-            <div v-else class="projects-list">
-              <div 
-                v-for="project in projects" 
-                :key="project.id"
-                class="project-item"
-                @click="goToProject(project.id)"
-              >
-                <div class="project-info">
-                  <div class="project-header">
-                    <h4 class="project-name">{{ project.title }}</h4>
-                    <span class="project-status-badge" :class="'status-' + project.status">
-                      {{ getProjectStatusText(project.status) }}
-                    </span>
-                  </div>
-                  <div class="project-progress">
-                    <div class="progress-bar">
-                      <div 
-                        class="progress-fill" 
-                        :style="{ width: (project.progress || 0) + '%' }"
-                      ></div>
+                  <div class="project-info">
+                    <div class="project-header">
+                      <h4 class="project-name">{{ project.title }}</h4>
+                      <span class="project-status-badge" :class="'status-' + project.status">
+                        {{ getProjectStatusText(project.status) }}
+                      </span>
                     </div>
-                    <span class="progress-text">{{ project.progress || 0 }}%</span>
+                  </div>
+                  <div class="project-link" @click.stop="goToProject(project.id)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
                   </div>
                 </div>
-                <div class="project-link" @click.stop="goToProject(project.id)">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- 右侧（对调后）：待审核任务 -->
-          <div class="dashboard-card task-statistics">
-            <div class="card-header">
-              <div class="card-header-top">
-                <h3 class="card-title">待审核任务</h3>
-                <div class="review-mode-toggle">
-                  <button 
-                    class="toggle-btn" 
-                    :class="{ active: reviewMode === 'to-review' }"
-                    @click="switchReviewMode('to-review')"
+          <!-- 操作日志 -->
+          <section class="activity-log-section page-section" v-else>
+            <div class="section-card">
+              <div class="section-header">
+                <h3 class="section-title">操作日志</h3>
+                <div class="section-controls">
+                  <input 
+                    type="text" 
+                    v-model="logSearchKeyword" 
+                    placeholder="搜索日志..."
+                    class="search-input"
+                    @input="filterActivityLogs"
                   >
-                    我审核的任务
-                  </button>
-                  <button 
-                    class="toggle-btn" 
-                    :class="{ active: reviewMode === 'my-submissions' }"
-                    @click="switchReviewMode('my-submissions')"
-                  >
-                    我被审核的任务
-                  </button>
+                  <select v-model="logFilterType" class="filter-select" @change="filterActivityLogs">
+                    <option value="all">全部类型</option>
+                    <option value="submission">任务提交</option>
+                    <option value="upload">成果上传</option>
+                    <option value="comment">评论回复</option>
+                    <option value="review">审核操作</option>
+                  </select>
                 </div>
               </div>
-              <div class="section-controls">
-                <select v-model="sortBy" class="sort-select" @change="loadPendingTasks">
-                  <option value="project">按项目分类</option>
-                  <option value="priority">按优先级</option>
-                  <option value="dueDate">按截止时间</option>
-                </select>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="showOverdueOnly" @change="loadPendingTasks">
-                  <span>仅看逾期项</span>
-                </label>
-              </div>
-            </div>
-            <div class="task-list-container">
-              <div v-if="isLoadingTasks" class="loading-state">
+              <div v-if="isLoadingLogs" class="loading-state">
                 <div class="loading-spinner"></div>
                 <p>加载中...</p>
               </div>
-              <div v-else-if="pendingTasks.length === 0" class="empty-state">
+              <div v-else-if="filteredActivityLogs.length === 0" class="empty-state">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M12 6V12L16 14" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <p>{{ reviewMode === 'to-review' ? '暂无待审核任务' : '暂无待审核的提交' }}</p>
+                <p>暂无操作记录</p>
               </div>
-              <div v-else class="task-cards-list">
+              <div v-else class="activity-timeline" @scroll="handleLogScroll">
                 <div 
-                  v-for="task in pendingTasks" 
-                  :key="task.id"
-                  class="task-card-clean"
-                  :class="getTaskUrgencyClass(task)"
+                  v-for="log in filteredActivityLogs" 
+                  :key="log.id"
+                  class="timeline-item"
                 >
-                  <div class="task-status-bar" :class="getUrgencyClass(task)"></div>
-                  <div class="task-content">
-                    <div class="task-header">
-                      <h4 class="task-title">{{ task.taskTitle || task.title || '未命名任务' }}</h4>
-                      <span class="task-status-badge" :class="'status-' + (task.status || task.taskStatus || 'UNKNOWN')">
-                        {{ getStatusText(task.status || task.taskStatus) }}
-                      </span>
+                  <div class="timeline-dot" :class="'type-' + log.type"></div>
+                  <div class="timeline-content">
+                    <div class="log-header">
+                      <div class="log-header-left">
+                        <span class="log-module" v-if="log.module">{{ log.module }}</span>
+                        <span class="log-type">{{ getLogTypeText(log.type) }}</span>
+                      </div>
+                      <span class="log-time">{{ formatDateTime(log.timestamp) }}</span>
                     </div>
-                    <p class="task-description" v-if="task.description || task.taskDescription">
-                      {{ task.description || task.taskDescription }}
-                    </p>
-                    <div class="task-details">
-                      <div class="meta-line">
-                        <span class="meta-pair">
-                          <span class="meta-label">提交人：</span>
-                          <span class="meta-value">{{ getSubmitterName(task) }}</span>
-                        </span>
-                        <span class="meta-sep">·</span>
-                        <span class="meta-pair">
-                          <span class="meta-label">项目：</span>
-                          <span class="meta-value">{{ task.projectName || '未知项目' }}</span>
-                        </span>
-                        <span class="meta-sep">·</span>
-                        <span class="meta-pair">
-                          <span class="meta-label">截止时间：</span>
-                          <span class="meta-value" :class="getDueDateClass(task)">
-                            {{ formatDueDate(task.dueDate || task.due_date || task.taskDueDate) }}
-                          </span>
-                        </span>
+                    <p class="log-description">{{ log.description }}</p>
+                    <div class="log-meta">
+                      <div class="log-source" v-if="log.source">
+                        <span class="source-label">来源：</span>
+                        <span class="source-name">{{ log.source }}</span>
+                      </div>
+                      <div class="log-operator" v-if="log.operator">
+                        <span class="operator-label">操作人：</span>
+                        <span class="operator-name">{{ log.operator }}</span>
+                      </div>
+                      <div class="log-ip" v-if="log.ip">
+                        <span class="ip-label">IP：</span>
+                        <span class="ip-value">{{ log.ip }}</span>
                       </div>
                     </div>
                   </div>
-                  <div class="task-actions">
-                    <button 
-                      class="action-btn-review"
-                      @click="openReviewModal(task)"
-                      v-if="reviewMode === 'to-review' && isProjectManager(task)"
-                    >
-                      审核
-                    </button>
-                    <span v-else-if="reviewMode === 'my-submissions'" class="review-status-text">
-                      {{ getReviewStatusText(task) }}
-                    </span>
-                  </div>
+                </div>
+                <div v-if="hasMoreLogs" class="load-more" @click="loadMoreLogs">
+                  <span>加载更多</span>
                 </div>
               </div>
             </div>
-          </div>
+          </section>
         </div>
-      </section>
-
-      <!-- 4. 个人操作日志展示区 -->
-      <section class="activity-log-section">
-        <div class="section-card">
-          <div class="section-header">
-            <h3 class="section-title">操作日志</h3>
-            <div class="section-controls">
-              <input 
-                type="text" 
-                v-model="logSearchKeyword" 
-                placeholder="搜索日志..."
-                class="search-input"
-                @input="filterActivityLogs"
-              >
-              <select v-model="logFilterType" class="filter-select" @change="filterActivityLogs">
-                <option value="all">全部类型</option>
-                <option value="submission">任务提交</option>
-                <option value="upload">成果上传</option>
-                <option value="comment">评论回复</option>
-                <option value="review">审核操作</option>
-              </select>
-            </div>
-          </div>
-          <div v-if="isLoadingLogs" class="loading-state">
-            <div class="loading-spinner"></div>
-            <p>加载中...</p>
-          </div>
-          <div v-else-if="filteredActivityLogs.length === 0" class="empty-state">
-            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M12 6V12L16 14" stroke="#ccc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <p>暂无操作记录</p>
-          </div>
-          <div v-else class="activity-timeline" @scroll="handleLogScroll">
-            <div 
-              v-for="log in filteredActivityLogs" 
-              :key="log.id"
-              class="timeline-item"
-            >
-              <div class="timeline-dot" :class="'type-' + log.type"></div>
-              <div class="timeline-content">
-                <div class="log-header">
-                  <span class="log-type">{{ getLogTypeText(log.type) }}</span>
-                  <span class="log-time">{{ formatDateTime(log.timestamp || log.createdAt) }}</span>
-                </div>
-                <p class="log-description">{{ log.description || log.content }}</p>
-                <div class="log-target" v-if="log.targetName">
-                  <span class="target-label">关联对象：</span>
-                  <span class="target-name">{{ log.targetName }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="hasMoreLogs" class="load-more" @click="loadMoreLogs">
-              <span>加载更多</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
 
     <!-- 审核弹窗 -->
@@ -390,11 +526,11 @@ import Sidebar from '@/components/Sidebar.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
 import { 
   getPendingSubmissionsForReview,
-  getMySubmissions,
-  getMyPendingSubmissions
+  getMySubmissions
 } from '@/api/taskSubmission'
 import { taskAPI } from '@/api/task'
 import { projectAPI } from '@/api/project'
+import { getMyActivityLogs } from '@/api/operationLog'
 
 export default {
   name: 'MyActivity',
@@ -413,7 +549,16 @@ export default {
     return {
       // 侧边栏状态
       sidebarOpen: false,
-      
+
+      // 页面内导航
+      activePage: 'my-tasks',
+      activityNavItems: [
+        { key: 'my-tasks', label: '我的任务' },
+        { key: 'task-stats', label: '任务统计' },
+        { key: 'projects', label: '项目总览' },
+        { key: 'activity-log', label: '操作日志' }
+      ],
+
       // 用户信息
       userName: '用户',
       
@@ -422,7 +567,15 @@ export default {
       isLoadingTasks: false,
       sortBy: 'dueDate',
       showOverdueOnly: false,
-      reviewMode: 'to-review', // 'to-review': 我审核的任务, 'my-submissions': 我被审核的任务
+      reviewMode: 'to-review', // 'to-review': 我审核的任务, 'my-submissions': 我提交的任务（包括待审核和已完成）
+      createdTasks: [],
+      isLoadingCreatedTasks: false,
+      createdTaskStats: {
+        total: 0,
+        inProgress: 0,
+        completed: 0,
+        pending: 0
+      },
       
       // 项目总览
       projects: [],
@@ -433,16 +586,27 @@ export default {
         pending: 0,
         inProgress: 0,
         completed: 0,
+        reviewing: 0,
         high: 0,
         medium: 0,
         low: 0,
         trendData: [], // 过去7天每天完成的任务数
         overdueData: [] // 过去7天每天逾期的任务数
       },
+      // 用于动画显示的数据（从0逐渐增加到真实值）
+      displayStats: {
+        inProgress: 0,
+        completed: 0,
+        reviewing: 0,
+        high: 0,
+        medium: 0,
+        low: 0
+      },
       isLoadingStats: false,
       upcomingMilestones: [],
       // 用于tooltip显示的任务列表
       inProgressTasks: [], // 进行中的任务列表
+      reviewingTasks: [], // 待审核任务列表
       completedTasks: [], // 已完成的任务列表
       highPriorityTasks: [], // 高优先级任务列表
       mediumPriorityTasks: [], // 中优先级任务列表
@@ -476,19 +640,21 @@ export default {
   computed: {
     maxTaskCount() {
       return Math.max(
-        this.taskStats.inProgress || 0,
-        this.taskStats.completed || 0,
+        this.displayStats.inProgress || 0,
+        this.displayStats.completed || 0,
         1
       )
     },
     statusBreakdown() {
       const total =
-        (this.taskStats.inProgress || 0) +
-        (this.taskStats.completed || 0)
-      const palette = ['#7DD3A8', '#FBBF83']
+        (this.displayStats.inProgress || 0) +
+        (this.displayStats.completed || 0) +
+        (this.displayStats.reviewing || 0)
+      const palette = ['#7DD3A8', '#FBBF83', '#C7B9FF']
       const items = [
-        { key: 'inProgress', label: '进行中', value: this.taskStats.inProgress || 0, color: palette[0] },
-        { key: 'completed', label: '已完成', value: this.taskStats.completed || 0, color: palette[1] }
+        { key: 'inProgress', label: '进行中', value: this.displayStats.inProgress || 0, color: palette[0] },
+        { key: 'completed', label: '已完成', value: this.displayStats.completed || 0, color: palette[1] },
+        { key: 'reviewing', label: '待审核', value: this.displayStats.reviewing || 0, color: palette[2] }
       ]
       return items.map((item) => ({
         ...item,
@@ -497,11 +663,10 @@ export default {
     }
   },
   mounted() {
-    // 不再预先设置示例数据，直接加载真实数据
     this.initPage()
-    
-    // 动态添加样式，确保ECharts tooltip显示在最上层
     this.ensureTooltipZIndex()
+    // 预加载ECharts库（在后台加载，不阻塞UI）
+    this.preloadECharts()
   },
   methods: {
     ensureTooltipZIndex() {
@@ -520,14 +685,52 @@ export default {
       }
     },
 
+    async loadCreatedTasks() {
+      this.isLoadingCreatedTasks = true
+      try {
+        const response = await taskAPI.getMyCreatedTasks(0, 50)
+        let tasks = []
+        if (response && Array.isArray(response)) {
+          tasks = response
+        } else if (response && response.data) {
+          const payload = response.data
+          if (Array.isArray(payload)) {
+            tasks = payload
+          } else if (Array.isArray(payload.content)) {
+            tasks = payload.content
+          } else if (Array.isArray(payload.list)) {
+            tasks = payload.list
+          } else if (Array.isArray(payload.records)) {
+            tasks = payload.records
+          }
+        } else if (Array.isArray(response?.content)) {
+          tasks = response.content
+        }
+
+        const mappedTasks = (tasks || []).map(task => this.mapCreatedTask(task))
+        this.createdTasks = mappedTasks
+        this.updateCreatedTaskStats(mappedTasks)
+      } catch (error) {
+        console.error('加载我发布的任务失败:', error)
+        this.createdTasks = []
+        this.updateCreatedTaskStats([])
+      } finally {
+        this.isLoadingCreatedTasks = false
+      }
+    },
+
     async applySampleTaskStats() {
       const sample = this.getSampleStats()
       this.taskStats.pending = sample.pending
       this.taskStats.inProgress = sample.inProgress
       this.taskStats.completed = sample.completed
+      this.taskStats.reviewing = sample.reviewing
       this.taskStats.high = sample.high
       this.taskStats.medium = sample.medium
       this.taskStats.low = sample.low
+      
+      // 启动数字动画效果
+      this.animateStats()
       this.upcomingMilestones = sample.milestones
 
       await this.$nextTick()
@@ -541,6 +744,16 @@ export default {
     
     closeSidebar() {
       this.sidebarOpen = false
+    },
+    
+    setActivePage(pageKey) {
+      if (this.activePage === pageKey) return
+      this.activePage = pageKey
+      if (pageKey === 'task-stats') {
+        this.$nextTick(() => {
+          this.ensureChartsInitialized()
+        })
+      }
     },
     
     goToHome() {
@@ -586,13 +799,22 @@ export default {
       throw new Error('ECharts CDN 加载失败')
     },
 
+    preloadECharts() {
+      // 在后台预加载ECharts，不阻塞主流程
+      if (!window.echarts) {
+        this.loadECharts().catch(err => {
+          console.warn('[MyActivity] ECharts预加载失败，将在需要时重试:', err)
+        })
+      }
+    },
+
     async initPage() {
       this.loadUserInfo()
-      // 并行加载所有数据，不等待图表初始化
+      // 并行加载所有数据
       await Promise.all([
         this.loadPendingTasks(),
         this.loadProjects(),
-        this.loadTaskStatistics(), // 内部已处理ECharts加载
+        this.loadTaskStatistics(),
         this.loadActivityLogs()
       ])
     },
@@ -609,8 +831,11 @@ export default {
     
     
     switchReviewMode(mode) {
-      if (this.reviewMode !== mode) {
-        this.reviewMode = mode
+      if (this.reviewMode === mode) return
+      this.reviewMode = mode
+      if (mode === 'my-created') {
+        this.loadCreatedTasks()
+      } else {
         this.loadPendingTasks()
       }
     },
@@ -626,8 +851,8 @@ export default {
             size: 50
           })
         } else {
-          // 我被审核的任务（我提交的，等待别人审核的）
-          response = await getMyPendingSubmissions({
+          // 我提交的任务（包括待审核和已完成的）
+          response = await getMySubmissions({
             page: 0,
             size: 50
           })
@@ -635,6 +860,8 @@ export default {
         
         if (response.code === 200) {
           let tasks = response.data.content || []
+          
+          console.log('[MyActivity] 加载的待审核任务:', tasks)
           
           // 过滤逾期项
           if (this.showOverdueOnly) {
@@ -649,16 +876,12 @@ export default {
           tasks = this.sortTasks(tasks, this.sortBy)
           
           this.pendingTasks = tasks
-        }
-
-        // 如果没有任何任务，填充示例数据以便先看到样式
-        if (!this.pendingTasks || this.pendingTasks.length === 0) {
-          this.pendingTasks = this.getSamplePendingTasks()
+        } else {
+          this.pendingTasks = []
         }
       } catch (error) {
         console.error('加载待审核任务失败:', error)
-        // 异常时使用示例数据
-        this.pendingTasks = this.getSamplePendingTasks()
+        this.pendingTasks = []
       } finally {
         this.isLoadingTasks = false
       }
@@ -710,13 +933,27 @@ export default {
     },
     
     getStatusText(status) {
+      if (!status) return '未知'
+      const normalized = String(status).toUpperCase()
       const statusMap = {
         'PENDING': '未开始',
+        'TODO': '未开始',
+        'NOT_STARTED': '未开始',
         'IN_PROGRESS': '进行中',
+        'PROGRESS': '进行中',
         'DONE': '已完成',
-        'REVIEWING': '待审核'
+        'COMPLETED': '已完成',
+        'REVIEWING': '待审核',
+        'PENDING_REVIEW': '待审核',
+        'REVIEW': '待审核',
+        'APPROVED': '已通过',
+        'REJECTED': '已驳回'
       }
-      return statusMap[status] || status || '未知'
+      return statusMap[normalized] || status || '未知'
+    },
+
+    getStatusColorClass(status) {
+      return `status-${this.normalizeStatus(status)}`
     },
     
     getDueDateClass(task) {
@@ -746,6 +983,23 @@ export default {
       if (diffDays === 0) return '今天到期'
       if (diffDays === 1) return '明天到期'
       if (diffDays <= 7) return `${diffDays} 天后到期`
+      
+      return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
+    },
+    
+    formatSubmissionTime(dateStr) {
+      if (!dateStr) return '未知时间'
+      const date = new Date(dateStr)
+      const now = new Date()
+      const diffMs = now - date
+      const diffMins = Math.floor(diffMs / (1000 * 60))
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+      
+      if (diffMins < 1) return '刚刚'
+      if (diffMins < 60) return `${diffMins} 分钟前`
+      if (diffHours < 24) return `${diffHours} 小时前`
+      if (diffDays < 7) return `${diffDays} 天前`
       
       return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
     },
@@ -791,6 +1045,9 @@ export default {
       this.loadPendingTasks()
       this.loadTaskStatistics()
       this.loadActivityLogs()
+      if (this.reviewMode === 'my-created') {
+        this.loadCreatedTasks()
+      }
     },
     
     async loadProjects() {
@@ -877,14 +1134,12 @@ export default {
     
     async loadTaskStatistics() {
       this.isLoadingStats = true
-      // 提前加载ECharts，不阻塞数据加载
-      const echartsPromise = this.loadECharts().catch(() => null)
       
       try {
-        // 并行加载数据，获取更多任务以便计算趋势（获取100个任务）
-        const [statsResponse, myTasksResponse] = await Promise.all([
+        // 并行加载统计数据和ECharts库
+        const [statsResponse, echarts] = await Promise.all([
           taskAPI.getUserTaskStatistics().catch(() => ({ code: 0 })),
-          taskAPI.getMyAssignedTasks(0, 100).catch(() => ({ code: 0 }))
+          this.loadECharts().catch(() => null)
         ])
         
         if (statsResponse.code === 200) {
@@ -895,105 +1150,213 @@ export default {
           this.taskStats.pending = stats.pendingCount || stats.pending || stats.todoCount || stats.todo || 0
           this.taskStats.inProgress = stats.inProgressCount || stats.inProgress || stats.progressCount || stats.progress || 0
           this.taskStats.completed = stats.completedCount || stats.completed || stats.doneCount || stats.done || 0
+          this.taskStats.reviewing = stats.reviewingCount || stats.reviewing || stats.pendingReviewCount || stats.pendingReview || 0
+          
+          // 从统计数据中获取优先级分布（如果API返回）
+          this.taskStats.high = stats.highPriorityCount || stats.high || 0
+          this.taskStats.medium = stats.mediumPriorityCount || stats.medium || 0
+          this.taskStats.low = stats.lowPriorityCount || stats.low || 0
           
           console.log('[MyActivity] 解析后的统计数据:', {
             pending: this.taskStats.pending,
             inProgress: this.taskStats.inProgress,
-            completed: this.taskStats.completed
+            completed: this.taskStats.completed,
+            high: this.taskStats.high,
+            medium: this.taskStats.medium,
+            low: this.taskStats.low
           })
+          
+          // 立即更新显示数据，确保用户能立即看到数字
+          this.displayStats.inProgress = this.taskStats.inProgress
+          this.displayStats.completed = this.taskStats.completed
+          this.displayStats.reviewing = this.taskStats.reviewing
+          this.displayStats.high = this.taskStats.high
+          this.displayStats.medium = this.taskStats.medium
+          this.displayStats.low = this.taskStats.low
         } else {
           console.warn('[MyActivity] 统计数据API返回非200状态:', statsResponse.code, statsResponse)
         }
         
-        let allTasks = []
-        // 初始化任务列表
-        this.inProgressTasks = []
-        this.completedTasks = []
+        // 立即隐藏loading，显示基础数据
+        this.isLoadingStats = false
         
-        if (myTasksResponse.code === 200) {
-          const pageData = myTasksResponse.data
-          console.log('[MyActivity] 任务列表API返回的数据结构:', pageData)
-          allTasks = (pageData && (pageData.content || pageData.list || pageData.records)) || []
-          console.log('[MyActivity] 解析后的任务列表数量:', allTasks.length)
-
-          // 如果API返回的统计数据为空，从任务列表中计算
-          if ((this.taskStats.pending === 0 && this.taskStats.inProgress === 0 && this.taskStats.completed === 0) && allTasks.length > 0) {
-            console.log('[MyActivity] API统计数据为空，从任务列表计算统计数据')
-            const statusCounts = { pending: 0, inProgress: 0, completed: 0 }
-            allTasks.forEach(task => {
-              const status = String(task.status || '').toUpperCase()
-              if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
-                statusCounts.completed++
-              } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
-                statusCounts.inProgress++
-              } else {
-                statusCounts.pending++
-              }
-            })
-            this.taskStats.pending = statusCounts.pending
-            this.taskStats.inProgress = statusCounts.inProgress
-            this.taskStats.completed = statusCounts.completed
-            console.log('[MyActivity] 从任务列表计算的统计数据:', statusCounts)
-          }
-
-          // 分类任务到不同状态列表（保存完整任务对象）
-          this.inProgressTasks = []
-          this.completedTasks = []
-          this.highPriorityTasks = []
-          this.mediumPriorityTasks = []
-          this.lowPriorityTasks = []
+        // 使用 requestIdleCallback 在浏览器空闲时初始化图表
+        if (echarts) {
+          await this.$nextTick()
           
-          allTasks.forEach(task => {
-            const status = String(task.status || '').toUpperCase()
-            const taskObj = {
-              id: task.id || task.taskId,
-              title: task.title || task.taskTitle || '未命名任务',
-              description: task.description || task.taskDescription || '',
-              priority: this.mapTaskPriority(task.priority),
-              dueDate: task.dueDate || task.due_date || task.taskDueDate,
-              status: task.status || 'TODO',
-              projectId: task.projectId || task.project_id
+          const initChartsWhenIdle = () => {
+            if (!this._charts || !this._charts.gaugePending) {
+              this.initCharts(echarts)
+            } else {
+              this.updateCharts(echarts)
             }
-            
-            // 按状态分类
-            if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
-              this.completedTasks.push(taskObj)
-            } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
-              this.inProgressTasks.push(taskObj)
-            }
-            
-            // 按优先级分类
-            const priority = taskObj.priority
-            if (priority === 'high') {
-              this.highPriorityTasks.push(taskObj)
-            } else if (priority === 'medium') {
-              this.mediumPriorityTasks.push(taskObj)
-            } else if (priority === 'low') {
-              this.lowPriorityTasks.push(taskObj)
+          }
+          
+          // 如果浏览器支持 requestIdleCallback，在空闲时初始化
+          if (window.requestIdleCallback) {
+            window.requestIdleCallback(initChartsWhenIdle, { timeout: 300 })
+          } else {
+            // 否则延迟50ms执行，让页面先渲染
+            setTimeout(initChartsWhenIdle, 50)
+          }
+        }
+        
+        // 后台异步加载详细任务数据（不阻塞UI）
+        this.loadTaskDetailsAsync()
+      } catch (error) {
+        console.error('加载任务统计失败:', error)
+        this.isLoadingStats = false
+      }
+    },
+    
+    async loadTaskDetailsAsync() {
+      // 后台异步加载详细任务数据，不阻塞UI
+      try {
+        const [assignedResult, createdResult] = await Promise.allSettled([
+          taskAPI.getMyAssignedTasks(0, 100),
+          taskAPI.getMyCreatedTasks(0, 100)
+        ])
+
+        let allTasks = []
+        if (assignedResult.status === 'fulfilled' && assignedResult.value?.code === 200) {
+          let assigned = this.extractTaskList(assignedResult.value.data)
+          if (!assigned.length) assigned = this.extractTaskList(assignedResult.value)
+          console.log('[MyActivity] 我的任务数量:', assigned.length)
+          allTasks = assigned.slice()
+        } else {
+          console.warn('[MyActivity] 获取我的任务失败:', assignedResult.status === 'rejected' ? assignedResult.reason : assignedResult.value)
+        }
+
+        if (createdResult.status === 'fulfilled' && createdResult.value?.code === 200) {
+          let created = this.extractTaskList(createdResult.value.data)
+          if (!created.length) created = this.extractTaskList(createdResult.value)
+          console.log('[MyActivity] 我发布的任务数量:', created.length)
+          const seenIds = new Set(
+            allTasks.map(task => String(task.id || task.taskId || task.taskID || task.uuid || task.code || task.number))
+          )
+          created.forEach(task => {
+            const taskId = String(task.id || task.taskId || task.taskID || task.uuid || `${task.projectId || task.project_id || 'project'}-${task.title || task.taskTitle || Math.random()}`)
+            if (!seenIds.has(taskId)) {
+              seenIds.add(taskId)
+              allTasks.push(task)
             }
           })
-
-          // 计算优先级分布（与首页一致的映射）
-          const toPriority = (p) => {
-            const map = { 'HIGH': 'high', 'MEDIUM': 'medium', 'LOW': 'low' }
-            return map[p] || 'medium'
-          }
-          const counts = { high: 0, medium: 0, low: 0 }
-          allTasks.forEach(t => { counts[toPriority(t.priority)]++ })
-          this.taskStats.high = counts.high
-          this.taskStats.medium = counts.medium
-          this.taskStats.low = counts.low
-
-          const now = new Date()
-          const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
-          
-          this.upcomingMilestones = allTasks
-            .filter(task => {
-              const dueDate = new Date(task.dueDate || task.due_date)
-              return dueDate >= now && dueDate <= sevenDaysLater
-            })
-            .slice(0, 5)
+        } else if (createdResult.status === 'rejected') {
+          console.warn('[MyActivity] 获取我发布的任务失败:', createdResult.reason)
         }
+
+        console.log('[MyActivity] 统计使用的任务总数:', allTasks.length)
+
+        // 如果API返回的统计数据为空，从任务列表中计算
+        const hasApiStats = ['pending', 'inProgress', 'completed', 'reviewing'].some(key => (this.taskStats[key] || 0) > 0)
+        if (!hasApiStats && allTasks.length > 0) {
+          console.log('[MyActivity] API统计数据为空，从任务列表计算统计数据')
+          const statusCounts = { pending: 0, inProgress: 0, completed: 0, reviewing: 0 }
+          const priorityCounts = { high: 0, medium: 0, low: 0 }
+          
+          // 单次遍历同时计算状态和优先级
+          allTasks.forEach(task => {
+            const status = String(task.status || '').toUpperCase()
+            if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+              statusCounts.completed++
+            } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
+              statusCounts.inProgress++
+            } else if (status === 'REVIEWING' || status.includes('REVIEW') || status.includes('待审核') || status === 'PENDING_REVIEW') {
+              statusCounts.reviewing++
+            } else {
+              statusCounts.pending++
+            }
+            
+            // 同时计算优先级
+            const priority = this.mapTaskPriority(task.priority)
+            if (priority === 'high') priorityCounts.high++
+            else if (priority === 'medium') priorityCounts.medium++
+            else if (priority === 'low') priorityCounts.low++
+          })
+          
+          this.taskStats.pending = statusCounts.pending
+          this.taskStats.inProgress = statusCounts.inProgress
+          this.taskStats.completed = statusCounts.completed
+          this.taskStats.reviewing = statusCounts.reviewing
+          this.taskStats.high = priorityCounts.high
+          this.taskStats.medium = priorityCounts.medium
+          this.taskStats.low = priorityCounts.low
+          
+          console.log('[MyActivity] 从任务列表计算的统计数据:', statusCounts, priorityCounts)
+          
+          // 启动数字动画效果
+          this.animateStats()
+          
+          // 更新图表
+          if (this._charts) {
+            this.updateCharts(window.echarts)
+          }
+        }
+
+        // 分类任务到不同状态列表（保存完整任务对象）- 单次遍历完成所有分类
+        this.inProgressTasks = []
+        this.reviewingTasks = []
+        this.completedTasks = []
+        this.highPriorityTasks = []
+        this.mediumPriorityTasks = []
+        this.lowPriorityTasks = []
+        
+        // 单次遍历完成所有分类和计算
+        allTasks.forEach(task => {
+          const status = String(task.status || '').toUpperCase()
+          const priority = this.mapTaskPriority(task.priority)
+          
+          const taskObj = {
+            id: task.id || task.taskId,
+            title: task.title || task.taskTitle || '未命名任务',
+            description: task.description || task.taskDescription || '',
+            priority: priority,
+            dueDate: task.dueDate || task.due_date || task.taskDueDate,
+            status: task.status || 'TODO',
+            projectId: task.projectId || task.project_id
+          }
+          
+          // 按状态分类
+          if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+            this.completedTasks.push(taskObj)
+          } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
+            this.inProgressTasks.push(taskObj)
+          } else if (status === 'REVIEWING' || status.includes('REVIEW') || status.includes('待审核') || status === 'PENDING_REVIEW') {
+            this.reviewingTasks.push(taskObj)
+          }
+          
+          // 按优先级分类
+          if (priority === 'high') {
+            this.highPriorityTasks.push(taskObj)
+          } else if (priority === 'medium') {
+            this.mediumPriorityTasks.push(taskObj)
+          } else if (priority === 'low') {
+            this.lowPriorityTasks.push(taskObj)
+          }
+        })
+        
+        // 如果API没有返回优先级统计，使用计算的值
+        const hasPriorityStats = ['high', 'medium', 'low'].some(key => (this.taskStats[key] || 0) > 0)
+        if (!hasPriorityStats) {
+          this.taskStats.high = this.highPriorityTasks.length
+          this.taskStats.medium = this.mediumPriorityTasks.length
+          this.taskStats.low = this.lowPriorityTasks.length
+          // 更新动画显示值
+          this.animateStats()
+        }
+
+        const now = new Date()
+        const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+        
+        this.upcomingMilestones = allTasks
+          .filter(task => {
+            const dueDate = new Date(task.dueDate || task.due_date)
+            const status = String(task.status || '').toUpperCase()
+            const isCompleted = status === 'DONE' || status.includes('DONE') || status.includes('完成') || status === 'COMPLETED'
+            // 排除已完成的任务
+            return !isCompleted && dueDate >= now && dueDate <= sevenDaysLater
+          })
+          .slice(0, 5)
 
         // 计算过去7天的完成趋势和逾期任务（使用真实数据）
         this.calculateTrendData(allTasks)
@@ -1006,63 +1369,15 @@ export default {
           this.taskStats.overdueData = Array(7).fill(0)
         }
 
-        // 调试日志：输出加载的数据
-        console.log('[MyActivity] 任务统计数据:', {
-          pending: this.taskStats.pending,
-          inProgress: this.taskStats.inProgress,
-          completed: this.taskStats.completed,
-          high: this.taskStats.high,
-          medium: this.taskStats.medium,
-          low: this.taskStats.low,
-          trendData: this.taskStats.trendData,
-          overdueData: this.taskStats.overdueData,
-          upcomingMilestones: this.upcomingMilestones.length
-        })
-
-        // 等待ECharts加载完成后初始化图表
-        const echarts = await echartsPromise
-        if (echarts) {
-          await this.$nextTick()
-          if (!this._charts || !this._charts.gaugePending) {
-            this.initCharts(echarts)
-          } else {
-            this.updateCharts(echarts)
-          }
+        // 更新图表（如果已初始化）
+        if (this._charts && window.echarts) {
+          this.updateCharts(window.echarts)
         }
       } catch (error) {
-        console.error('加载任务统计失败:', error)
-        // 异常时确保数据字段已初始化（显示0而不是示例数据）
-        if (!this.taskStats.trendData || this.taskStats.trendData.length === 0) {
-          this.taskStats.trendData = Array(7).fill(0)
-        }
-        if (!this.taskStats.overdueData || this.taskStats.overdueData.length === 0) {
-          this.taskStats.overdueData = Array(7).fill(0)
-        }
-        
-        const echarts = await echartsPromise
-        if (echarts) {
-          await this.$nextTick()
-          if (!this._charts || !this._charts.gaugePending) {
-            this.initCharts(echarts)
-          } else {
-            this.updateCharts(echarts)
-          }
-        }
-      } finally {
-        this.isLoadingStats = false
+        console.error('加载任务详情失败:', error)
       }
     },
 
-    getSamplePendingTasks() {
-      const currentUserId = this.getCurrentUserId() || 1
-      const today = new Date()
-      const addDays = (n) => new Date(today.getTime() + n * 24 * 60 * 60 * 1000).toISOString()
-      return [
-        { id: 'demo-1', taskTitle: '整理数据集与标签', projectName: '图像识别研究', submitter: { name: '张三' }, dueDate: addDays(1), status: 'PENDING', taskCreatorId: currentUserId },
-        { id: 'demo-2', taskTitle: '搭建训练流水线', projectName: '语音识别项目', submitter: { name: '李四' }, dueDate: addDays(3), status: 'IN_PROGRESS', taskCreatorId: currentUserId },
-        { id: 'demo-3', taskTitle: '撰写阶段性报告', projectName: '无人车感知', submitter: { name: '王五' }, dueDate: addDays(-1), status: 'PENDING', taskCreatorId: currentUserId },
-      ]
-    },
 
     calculateTrendData(allTasks) {
       console.log('[MyActivity] 计算趋势数据，任务数量:', allTasks.length)
@@ -1176,6 +1491,21 @@ export default {
       this.taskStats.overdueData = overdueData
     },
 
+    extractTaskList(payload, depth = 0) {
+      if (!payload || depth > 2) return []
+      if (Array.isArray(payload)) return payload
+      const candidates = [payload.content, payload.list, payload.records, payload.data, payload.items]
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i]
+        if (Array.isArray(candidate)) return candidate
+        if (candidate && typeof candidate === 'object') {
+          const nested = this.extractTaskList(candidate, depth + 1)
+          if (nested.length) return nested
+        }
+      }
+      return []
+    },
+
     getSampleStats() {
       const today = new Date()
       const fmt = (d) => `${d.getMonth() + 1}/${d.getDate()}`
@@ -1187,6 +1517,7 @@ export default {
         pending: 6,
         inProgress: 11,
         completed: 9,
+        reviewing: 4,
         high: 5,
         medium: 12,
         low: 9,
@@ -1211,7 +1542,7 @@ export default {
         return chart
       }
 
-      const total = (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
+      const total = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0) + (this.displayStats.reviewing || 0)
       // 更柔和的配色（总览不刺眼）
       const palette = ['#7DD3A8', '#FBBF83', '#C7B9FF', '#F59FB0', '#5FD4E6']
 
@@ -1238,7 +1569,7 @@ export default {
           color: '#111827',
           offsetCenter: [0, '90%'] // 将数字移动到外圈下方，避免遮挡
         },
-        animationDuration: 800,
+        animationDuration: 1800,
         animationEasing: 'cubicOut'
       }
       const gaugeMax = Math.max(1, total)
@@ -1251,9 +1582,17 @@ export default {
           ...gaugeBase, 
           max: gaugeMax,
           progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[0] } },
-          data: [{ value: this.taskStats.inProgress || 0 }] 
+          data: [{ value: 0 }] 
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (this._charts.gaugeInProgress) {
+          this._charts.gaugeInProgress.setOption({
+            series: [{ data: [{ value: this.displayStats.inProgress || 0 }] }]
+          })
+        }
+      }, 100)
       this._charts.gaugeCompleted = create('gaugeCompleted', {
         tooltip: {
           show: false // 禁用tooltip
@@ -1262,15 +1601,40 @@ export default {
           ...gaugeBase, 
           max: gaugeMax,
           progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[1] } },
-          data: [{ value: this.taskStats.completed || 0 }] 
+          data: [{ value: 0 }] 
         }]
       })
+      setTimeout(() => {
+        if (this._charts.gaugeCompleted) {
+          this._charts.gaugeCompleted.setOption({
+            series: [{ data: [{ value: this.displayStats.completed || 0 }] }]
+          })
+        }
+      }, 100)
+      this._charts.gaugeReviewing = create('gaugeReviewing', {
+        tooltip: {
+          show: false // 禁用tooltip
+        },
+        series: [{ 
+          ...gaugeBase, 
+          max: gaugeMax,
+          progress: { show: true, roundCap: true, width: 10, itemStyle: { color: palette[2] } },
+          data: [{ value: 0 }] 
+        }]
+      })
+      setTimeout(() => {
+        if (this._charts.gaugeReviewing) {
+          this._charts.gaugeReviewing.setOption({
+            series: [{ data: [{ value: this.displayStats.reviewing || 0 }] }]
+          })
+        }
+      }, 100)
 
       // 环形图 - 计算百分比并显示
-      const totalForPie = (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
+      const totalForPie = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0) + (this.displayStats.reviewing || 0)
       
       this._charts.pieStatus = create('pieStatus', {
-        color: [palette[0], palette[1]],
+        color: [palette[0], palette[1], palette[2]],
         tooltip: { 
           trigger: 'item',
           formatter: '{b}: {c} ({d}%)'
@@ -1293,34 +1657,61 @@ export default {
             show: totalForPie > 0,
             position: 'inside',
             formatter: '{d}%',
-            fontSize: 12,
-            fontWeight: 'bold',
-            color: '#111827'
+            fontSize: 14,
+            fontWeight: '700',
+            color: '#4b5563',
+            textBorderColor: '#ffffff',
+            textBorderWidth: 2,
+            textShadowColor: 'rgba(255, 255, 255, 0.8)',
+            textShadowBlur: 4,
+            textShadowOffsetX: 0,
+            textShadowOffsetY: 0
           },
           labelLine: { show: false },
           emphasis: { 
             label: { 
               show: true, 
-              fontSize: 14, 
-              fontWeight: 'bold',
-              formatter: '{b}: {d}%'
+              fontSize: 16, 
+              fontWeight: '700',
+              formatter: '{b}: {d}%',
+              color: '#374151',
+              textBorderColor: '#ffffff',
+              textBorderWidth: 2.5,
+              textShadowColor: 'rgba(255, 255, 255, 0.9)',
+              textShadowBlur: 5
             } 
           },
           animationType: 'scale',
-          animationEasing: 'elasticOut',
-          animationDelay: (idx) => idx * 50,
+          animationEasing: 'cubicOut',
+          animationDuration: 1500,
+          animationDelay: (idx) => idx * 100,
           data: [
-            { value: this.taskStats.inProgress || 0, name: '进行中' },
-            { value: this.taskStats.completed || 0, name: '已完成' }
+            { value: 0, name: '进行中' },
+            { value: 0, name: '已完成' },
+            { value: 0, name: '待审核' }
           ]
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (this._charts.pieStatus) {
+          this._charts.pieStatus.setOption({
+            series: [{
+              data: [
+                { value: this.displayStats.inProgress || 0, name: '进行中' },
+                { value: this.displayStats.completed || 0, name: '已完成' },
+                { value: this.displayStats.reviewing || 0, name: '待审核' }
+              ]
+            }]
+          })
+        }
+      }, 100)
 
       // 优先级分布
       const priorityData = [
-        { name: '高', value: this.taskStats.high || 0 },
-        { name: '中', value: this.taskStats.medium || 0 },
-        { name: '低', value: this.taskStats.low || 0 },
+        { name: '高', value: this.displayStats.high || 0 },
+        { name: '中', value: this.displayStats.medium || 0 },
+        { name: '低', value: this.displayStats.low || 0 },
       ]
       // 计算优先级数据的最大值，用于设置Y轴最大值
       const maxPriorityValue = Math.max(...priorityData.map(d => d.value), 1)
@@ -1349,7 +1740,7 @@ export default {
             ]),
             barBorderRadius: [6, 6, 0, 0]
           },
-          animationDuration: 700,
+          animationDuration: 1500,
           animationEasing: 'cubicOut'
         }]
       })
@@ -1405,17 +1796,25 @@ export default {
           symbolSize: 5,
           lineStyle: { width: 2.5, color: palette[5] },
           itemStyle: { color: palette[5], borderColor: '#ffffff', borderWidth: 1.5 },
-          data: trendData, 
+          data: Array(7).fill(0), 
           areaStyle: {
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: 'rgba(6, 182, 212, 0.3)' },
               { offset: 1, color: 'rgba(6, 182, 212, 0.05)' }
             ])
           },
-          animationDuration: 700,
+          animationDuration: 1500,
           animationEasing: 'cubicOut'
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (lineTrendChart) {
+          lineTrendChart.setOption({
+            series: [{ data: trendData }]
+          })
+        }
+      }, 200)
       
       // 为完成趋势图添加点击事件
       if (lineTrendChart) {
@@ -1465,7 +1864,7 @@ export default {
         },
         series: [{ 
           type: 'bar', 
-          data: overdueData,
+          data: Array(7).fill(0),
           itemStyle: { 
             color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: '#F59FB0' },
@@ -1473,10 +1872,18 @@ export default {
             ]),
             barBorderRadius: [6, 6, 0, 0]
           },
-          animationDuration: 600,
+          animationDuration: 1500,
           animationEasing: 'cubicOut'
         }]
       })
+      // 延迟更新到实际值以触发动画
+      setTimeout(() => {
+        if (barOverdueChart) {
+          barOverdueChart.setOption({
+            series: [{ data: overdueData }]
+          })
+        }
+      }, 200)
       
       // 为逾期任务图添加点击事件
       if (barOverdueChart) {
@@ -1519,22 +1926,29 @@ export default {
 
     updateCharts(echarts) {
       if (!this._charts) return
-      const { gaugeInProgress, gaugeCompleted, pieStatus, barPriority, lineTrend, barOverdue } = this._charts
-      const total = (this.taskStats.inProgress || 0) + (this.taskStats.completed || 0)
+      const { gaugeInProgress, gaugeReviewing, gaugeCompleted, pieStatus, barPriority, lineTrend, barOverdue } = this._charts
+      const total = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0)
       const gaugeMax = Math.max(1, total)
       
       if (gaugeInProgress) gaugeInProgress.setOption({ 
         tooltip: { show: false },
         series: [{ 
           max: gaugeMax,
-          data: [{ value: this.taskStats.inProgress || 0 }] 
+          data: [{ value: this.displayStats.inProgress || 0 }] 
+        }] 
+      })
+      if (gaugeReviewing) gaugeReviewing.setOption({ 
+        tooltip: { show: false },
+        series: [{ 
+          max: gaugeMax,
+          data: [{ value: this.displayStats.reviewing || 0 }] 
         }] 
       })
       if (gaugeCompleted) gaugeCompleted.setOption({ 
         tooltip: { show: false },
         series: [{ 
           max: gaugeMax,
-          data: [{ value: this.taskStats.completed || 0 }] 
+          data: [{ value: this.displayStats.completed || 0 }] 
         }] 
       })
       if (pieStatus) pieStatus.setOption({
@@ -1543,14 +1957,15 @@ export default {
             show: total > 0
           },
           data: [
-            { value: this.taskStats.inProgress || 0, name: '进行中' },
-            { value: this.taskStats.completed || 0, name: '已完成' }
+            { value: this.displayStats.inProgress || 0, name: '进行中' },
+            { value: this.displayStats.completed || 0, name: '已完成' },
+            { value: this.displayStats.reviewing || 0, name: '待审核' }
           ]
         }]
       })
       if (barPriority) {
         // 计算优先级数据的最大值，用于更新Y轴最大值
-        const priorityValues = [this.taskStats.high || 0, this.taskStats.medium || 0, this.taskStats.low || 0]
+        const priorityValues = [this.displayStats.high || 0, this.displayStats.medium || 0, this.displayStats.low || 0]
         const maxPriorityValue = Math.max(...priorityValues, 1)
         const priorityYAxisMax = Math.max(Math.ceil(maxPriorityValue), 5)
         
@@ -1660,33 +2075,58 @@ export default {
     async loadActivityLogs() {
       this.isLoadingLogs = true
       try {
-        // 从提交记录生成操作日志
-        const response = await getMySubmissions({
+        // 使用后端操作日志API
+        const response = await getMyActivityLogs({
           page: this.logPage,
           size: this.logPageSize
         })
         
-        if (response.code === 200) {
-          const submissions = response.data.content || []
-          const newLogs = submissions.map(sub => ({
-            id: sub.id,
-            type: 'submission',
-            description: `提交了任务"${sub.taskTitle}"`,
-            targetName: sub.taskTitle,
-            timestamp: sub.submissionTime || sub.createdAt
-          }))
-          
-          if (this.logPage === 0) {
-            this.activityLogs = newLogs
-          } else {
-            this.activityLogs.push(...newLogs)
+        // 处理响应数据
+        let logs = []
+        if (response && response.code === 200) {
+          const data = response.data
+          if (data && data.content) {
+            logs = data.content
+          } else if (Array.isArray(data)) {
+            logs = data
           }
-          
-          this.hasMoreLogs = newLogs.length === this.logPageSize
-          this.filterActivityLogs()
+        } else if (response && Array.isArray(response.content)) {
+          logs = response.content
+        } else if (Array.isArray(response)) {
+          logs = response
         }
+        
+        // 映射日志数据（根据后端UnifiedOperationLogVO结构）
+        const newLogs = logs.map(log => ({
+          id: log.id,
+          type: log.operationType,
+          module: log.operationModule,
+          source: log.source,
+          description: log.description || log.title,
+          targetName: log.title,
+          timestamp: log.time,
+          projectId: log.projectId,
+          operator: log.username,
+          userId: log.userId,
+          ip: log.ip,
+          userAgent: log.userAgent,
+          relatedId: log.relatedId
+        }))
+        
+        if (this.logPage === 0) {
+          this.activityLogs = newLogs
+        } else {
+          this.activityLogs.push(...newLogs)
+        }
+        
+        this.hasMoreLogs = newLogs.length === this.logPageSize
+        this.filterActivityLogs()
       } catch (error) {
         console.error('加载操作日志失败:', error)
+        if (this.logPage === 0) {
+          this.activityLogs = []
+          this.filteredActivityLogs = []
+        }
       } finally {
         this.isLoadingLogs = false
       }
@@ -1695,17 +2135,13 @@ export default {
     filterActivityLogs() {
       let filtered = [...this.activityLogs]
       
-      // 按类型过滤
-      if (this.logFilterType !== 'all') {
-        filtered = filtered.filter(log => log.type === this.logFilterType)
-      }
-      
-      // 按关键词搜索
+      // 按关键词搜索（类型过滤由后端处理）
       if (this.logSearchKeyword.trim()) {
         const keyword = this.logSearchKeyword.toLowerCase()
         filtered = filtered.filter(log => 
-          log.description.toLowerCase().includes(keyword) ||
-          (log.targetName && log.targetName.toLowerCase().includes(keyword))
+          (log.description && log.description.toLowerCase().includes(keyword)) ||
+          (log.targetName && log.targetName.toLowerCase().includes(keyword)) ||
+          (log.projectName && log.projectName.toLowerCase().includes(keyword))
         )
       }
       
@@ -1727,10 +2163,16 @@ export default {
     
     getLogTypeText(type) {
       const typeMap = {
-        'submission': '任务提交',
-        'upload': '成果上传',
-        'comment': '评论回复',
-        'review': '审核操作'
+        'CREATE': '创建',
+        'UPDATE': '更新',
+        'DELETE': '删除',
+        'ASSIGN': '分配',
+        'STATUS_CHANGE': '状态变更',
+        'SUBMIT': '提交',
+        'REVIEW': '审核',
+        'MEMBER_ADD': '添加成员',
+        'MEMBER_REMOVE': '移除成员',
+        'ROLE_CHANGE': '角色变更'
       }
       return typeMap[type] || type
     },
@@ -1775,6 +2217,18 @@ export default {
       return statusMap[status] || '待审核'
     },
     
+    getReviewStatusClass(task) {
+      // 获取审核状态样式类
+      const status = task.reviewStatus || task.status || task.submissionStatus
+      const classMap = {
+        'PENDING': 'status-pending',
+        'APPROVED': 'status-approved',
+        'REJECTED': 'status-rejected',
+        'REVIEWING': 'status-reviewing'
+      }
+      return classMap[status] || 'status-pending'
+    },
+    
     getPriorityText(priority) {
       const textMap = {
         'high': '高优先级',
@@ -1809,6 +2263,57 @@ export default {
       
       return deadline < today
     },
+    
+    animateStats() {
+      // 数字递增动画效果
+      const duration = 1200 // 动画时长1.2秒
+      const statsToAnimate = ['inProgress', 'completed', 'reviewing', 'high', 'medium', 'low']
+      
+      let completedCount = 0
+      const totalStats = statsToAnimate.length
+      
+      statsToAnimate.forEach((key, index) => {
+        // 添加延迟，让数字依次出现
+        setTimeout(() => {
+          this.animateCount(key, this.taskStats[key] || 0, duration, () => {
+            completedCount++
+            // 所有数字动画完成后才更新图表
+            if (completedCount === totalStats) {
+              this.$nextTick(() => {
+                if (this._charts && window.echarts) {
+                  this.updateCharts(window.echarts)
+                }
+              })
+            }
+          })
+        }, index * 80) // 每个数字延迟80ms开始
+      })
+    },
+    
+    animateCount(key, target, duration, onComplete) {
+      const start = performance.now()
+      const from = this.displayStats[key] || 0
+      
+      const step = (now) => {
+        const elapsed = now - start
+        const progress = Math.min(1, elapsed / duration)
+        // 使用平滑的缓动函数
+        const eased = progress < 0.5 
+          ? 2 * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2
+        
+        this.displayStats[key] = Math.round(from + (target - from) * eased)
+        
+        if (progress < 1) {
+          requestAnimationFrame(step)
+        } else {
+          this.displayStats[key] = target
+          if (onComplete) onComplete()
+        }
+      }
+      
+      requestAnimationFrame(step)
+    },
 
     openTaskListModal(type, dayIndex = null) {
       this.taskListModalType = type
@@ -1823,6 +2328,9 @@ export default {
       if (type === 'inProgress') {
         this.taskListModalTitle = `进行中任务 (${this.taskStats.inProgress || 0})`
         this.taskListModalTasks = this.inProgressTasks || []
+      } else if (type === 'reviewing') {
+        this.taskListModalTitle = `待审核任务 (${this.taskStats.reviewing || 0})`
+        this.taskListModalTasks = this.reviewingTasks || []
       } else if (type === 'completed') {
         this.taskListModalTitle = `已完成任务 (${this.taskStats.completed || 0})`
         this.taskListModalTasks = this.completedTasks || []
@@ -1919,6 +2427,103 @@ export default {
         event.preventDefault()
       }
     },
+
+    updateCreatedTaskStats(tasks) {
+      const stats = {
+        total: tasks.length,
+        inProgress: 0,
+        completed: 0,
+        pending: 0
+      }
+      tasks.forEach(task => {
+        const status = this.normalizeStatus(task.status)
+        if (status === 'DONE') {
+          stats.completed += 1
+        } else if (status === 'IN_PROGRESS' || status === 'REVIEWING') {
+          stats.inProgress += 1
+        } else {
+          stats.pending += 1
+        }
+      })
+      this.createdTaskStats = stats
+    },
+    mapCreatedTask(task) {
+      if (!task) {
+        return null
+      }
+
+      const normalizedStatus = this.normalizeStatus(task.status || task.taskStatus || task.statusCode)
+      const prioritySource = (task.priority || task.priorityValue || task.priorityLevel || '').toString().toUpperCase()
+      const priority = this.mapTaskPriority(prioritySource || 'MEDIUM')
+
+      const assigneeList =
+        task.assignees ||
+        task.assigneeList ||
+        task.taskAssignees ||
+        task.assignments ||
+        task.members ||
+        null
+
+      const fallbackAssignee =
+        task.assigneeName ||
+        task.assigneeNames ||
+        task.executorName ||
+        task.executor ||
+        null
+
+      const dueDateRaw =
+        task.dueDate ||
+        task.due_date ||
+        task.taskDueDate ||
+        task.deadline ||
+        task.targetDate ||
+        null
+
+      return {
+        id: task.id || task.taskId || task.task_id,
+        projectId: task.projectId || task.project_id || task.project?.id,
+        projectName: task.projectName || task.project?.title,
+        title: task.title || task.taskTitle || '未命名任务',
+        description: task.description || task.taskDescription || '',
+        status: normalizedStatus,
+        statusClass: `status-${normalizedStatus}`,
+        priority,
+        dueDate: dueDateRaw,
+        assignees: this.formatAssignees(assigneeList || fallbackAssignee),
+        raw: task
+      }
+    },
+    
+    normalizeStatus(status) {
+      if (!status) return 'UNKNOWN'
+      const upper = String(status).toUpperCase()
+      const map = {
+        'NOT_STARTED': 'PENDING',
+        'TODO': 'PENDING',
+        'PENDING_REVIEW': 'REVIEWING',
+        'APPROVED': 'DONE',
+        'COMPLETED': 'DONE'
+      }
+      return map[upper] || upper
+    },
+    
+    formatAssignees(value) {
+      if (!value) return '未分配'
+      if (Array.isArray(value)) {
+        const names = value
+          .map(item => item?.name || item?.nickname || item?.username || item)
+          .filter(Boolean)
+        return names.length ? names.join('、') : '未分配'
+      }
+      if (typeof value === 'string') {
+        return value
+      }
+      if (typeof value === 'object') {
+        return value.name || value.nickname || value.username || '未分配'
+      }
+      return '未分配'
+    },
+    
   }
 }
 </script>
@@ -2006,13 +2611,84 @@ export default {
 
 /* 主要内容区域 */
 .main-content-wrapper {
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding-top: 80px; /* 为固定页眉留出空间 */
+}
+
+.activity-content-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  min-height: calc(100vh - 120px);
+  width: 100%;
+}
+
+.activity-side-nav {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 16px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 100px;
+  height: fit-content;
+}
+
+.activity-nav-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.activity-nav-item:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.activity-nav-item.active {
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px #c7d2fe;
+}
+
+.activity-page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.page-section {
+  width: 100%;
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.page-section > .dashboard-card,
+.page-section > .section-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 欢迎语区域 */
@@ -2369,9 +3045,32 @@ export default {
 
 .review-status-text {
   font-size: 13px;
-  color: #6b7280;
   font-weight: 500;
-  padding: 0 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.review-status-text.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.review-status-text.status-reviewing {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.review-status-text.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.review-status-text.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* 仪表盘网格 */
@@ -2391,7 +3090,8 @@ export default {
 
 .dashboard-card.projects-overview,
 .dashboard-card.task-statistics {
-  height: calc(100vh * 3 / 7); /* 再缩短高度，首屏尽量完整显示 */
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column; /* 让内部可自适应填充并滚动 */
   overflow: hidden; /* 防止整个卡片溢出 */
@@ -2474,7 +3174,8 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 20px;
+  min-height: 80px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   cursor: pointer;
@@ -2696,11 +3397,24 @@ export default {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
+  animation: fadeInUp 2s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .kpi-pending { background: #fef3c7; color: #92400e; }
-.kpi-progress { background: #dbeafe; color: #1e40af; }
-.kpi-done { background: #d1fae5; color: #065f46; }
+.kpi-progress { background: #d1f4e0; color: #065f46; }
+.kpi-reviewing { background: #e9d5ff; color: #6b21a8; }
+.kpi-done { background: #fed7aa; color: #92400e; }
 
 .overview-grid {
   display: grid;
@@ -2738,6 +3452,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   min-height: 150px;
+  max-height: 150px;
   height: 100%;
 }
 
@@ -2923,6 +3638,15 @@ export default {
   width: 220px; /* 缩短长度，形成小块 */
   box-sizing: border-box;
   border: 1px solid #eef2f7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.milestone-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .milestone-info {
@@ -2939,12 +3663,99 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .milestone-countdown {
   font-size: 12px;
   color: #f59e0b;
   font-weight: 500;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* 我发布的任务统计卡片 */
+.created-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.summary-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.summary-total .summary-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.summary-progress .summary-icon {
+  background: linear-gradient(135deg, #7DD3A8 0%, #5fb88f 100%);
+  color: white;
+}
+
+.summary-completed .summary-icon {
+  background: linear-gradient(135deg, #FBBF83 0%, #f59e0b 100%);
+  color: white;
+}
+
+.summary-pending .summary-icon {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.summary-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.summary-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1;
+}
+
+.summary-card:hover .summary-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 /* 操作日志时间轴 */
@@ -3017,6 +3828,21 @@ export default {
   margin-bottom: 4px;
 }
 
+.log-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.log-module {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 .log-type {
   font-size: 13px;
   font-weight: 600;
@@ -3035,19 +3861,40 @@ export default {
   line-height: 1.5;
 }
 
-.log-target {
-  margin-top: 4px;
+.log-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   font-size: 12px;
   color: #9ca3af;
 }
 
-.target-label {
-  margin-right: 4px;
+.log-source,
+.log-operator,
+.log-ip {
+  display: flex;
+  align-items: center;
 }
 
-.target-name {
-  color: #3b82f6;
-  cursor: pointer;
+.source-label,
+.operator-label,
+.ip-label {
+  margin-right: 4px;
+  font-weight: 500;
+}
+
+.source-name {
+  color: #8b5cf6;
+}
+
+.operator-name {
+  color: #6366f1;
+}
+
+.ip-value {
+  color: #64748b;
+  font-family: monospace;
 }
 
 .load-more {

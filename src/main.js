@@ -292,7 +292,21 @@ console.error = function(...args) {
     }, ERROR_DEDUP_DURATION)
     
     // 构建错误对象
-    const error = errorStack ? new Error(errorMessage || '发生错误') : new Error(errorMessage || args.join(' '))
+    // 安全地将 args 转换为字符串，避免对象类型导致的 join 错误
+    const safeArgsString = args.map(arg => {
+      if (arg === null || arg === undefined) return String(arg)
+      if (typeof arg === 'string') return arg
+      if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg)
+        } catch (e) {
+          return String(arg)
+        }
+      }
+      return String(arg)
+    }).join(' ')
+    
+    const error = errorStack ? new Error(errorMessage || '发生错误') : new Error(errorMessage || safeArgsString)
     if (errorStack) {
       error.stack = errorStack
     }
@@ -307,7 +321,7 @@ console.error = function(...args) {
       isErrorDialogShowing = true
       showErrorDialog(error, {
         type: 'Console Error',
-        details: errorDetails || args.join(' ')
+        details: errorDetails || safeArgsString
       })
       
       // 监听弹窗关闭事件，重置标志

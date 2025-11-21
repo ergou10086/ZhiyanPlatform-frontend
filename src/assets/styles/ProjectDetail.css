@@ -1093,10 +1093,6 @@
   background: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
-.task-info-icon.worktime {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8);
-}
-
 .task-info-content {
   flex: 1;
   min-width: 0;
@@ -1113,19 +1109,6 @@
   font-size: 14px;
   color: #111827;
   font-weight: 600;
-}
-
-.worktime-meta {
-  margin-left: 6px;
-  font-size: 12px;
-  font-weight: 400;
-  color: #4b5563;
-}
-
-.task-info-extra {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #6b7280;
 }
 
 .task-status-badge.待接取,

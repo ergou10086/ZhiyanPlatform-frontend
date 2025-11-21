@@ -290,6 +290,82 @@
   transform: none;
 }
 
+/* 第三方登录分隔线 */
+.login-container .divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 24px 0;
+  color: #a0aec0;
+  font-size: 14px;
+}
+
+.login-container .divider::before,
+.login-container .divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.login-container .divider span {
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.dark-mode .login-container .divider {
+  color: #718096;
+}
+
+.dark-mode .login-container .divider::before,
+.dark-mode .login-container .divider::after {
+  border-bottom-color: #4a5568;
+}
+
+/* GitHub登录按钮 */
+.login-container .github-login-btn {
+  width: 100%;
+  padding: 12px 24px;
+  background: #24292e;
+  color: #ffffff;
+  border: 1px solid #24292e;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.login-container .github-login-btn:hover {
+  background: #1b1f23;
+  border-color: #1b1f23;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(36, 41, 46, 0.3);
+}
+
+.login-container .github-login-btn:active {
+  transform: translateY(0);
+}
+
+.login-container .github-icon {
+  flex-shrink: 0;
+}
+
+/* 暗黑模式下的GitHub按钮 */
+.dark-mode .login-container .github-login-btn {
+  background: #ffffff;
+  color: #24292e;
+  border-color: #e2e8f0;
+}
+
+.dark-mode .login-container .github-login-btn:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
 
 /* 响应式设计 */
 @media (max-width: 1024px) {

@@ -1,6 +1,8 @@
 <template>
   <div id="app">
     <router-view/>
+    <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
+    <GlobalMessageNotification v-if="!isAuthPage" />
     <!-- 全局用户信息组件，悬浮在右上角，但在登录相关页面不显示 -->
     <GlobalUserProfile 
       v-if="!isAuthPage" 
@@ -17,12 +19,14 @@
 <script>
 import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
 import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
+import GlobalMessageNotification from '@/components/GlobalMessageNotification.vue'
 
 export default {
   name: 'App',
   components: {
     GlobalUserProfile,
-    GlobalErrorDialog
+    GlobalErrorDialog,
+    GlobalMessageNotification
   },
   data() {
     return {
