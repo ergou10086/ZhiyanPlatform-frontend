@@ -391,6 +391,41 @@
             </div>
           </div>
 
+          <!-- 关联项目任务（可选） -->
+          <div v-if="!isAddingToExisting" class="form-group">
+            <label>关联项目任务（可选）：</label>
+            <div class="task-link-section">
+              <button
+                type="button"
+                class="btn primary"
+                :disabled="!projectId"
+                @click="openTaskLinkDialogForUpload"
+              >
+                从本项目中选择已完成任务
+              </button>
+              <p v-if="!projectId" class="hint-text">当前没有项目ID，无法加载任务。</p>
+
+              <div v-if="achievementForm.linkedTaskSummaries && achievementForm.linkedTaskSummaries.length > 0" class="linked-tasks-list">
+                <div class="linked-tasks-header">
+                  <span>已关联任务 ({{ achievementForm.linkedTaskSummaries.length }})</span>
+                  <button type="button" class="link-btn clear-link" @click="clearUploadLinkedTasks">清空</button>
+                </div>
+                <div class="linked-task-item" v-for="task in achievementForm.linkedTaskSummaries" :key="task.id">
+                  <div class="task-main">
+                    <div class="task-title-row">
+                      <span class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</span>
+                    </div>
+                    <span v-if="task.assignee" class="task-meta">负责人：{{ task.assignee }}</span>
+                  </div>
+                  <button type="button" class="task-remove-btn" @click="removeUploadLinkedTask(task.id)">×</button>
+                </div>
+              </div>
+              <div v-else class="linked-tasks-empty">
+                <p class="hint-text">尚未关联任务，如有需要可从本项目中选择已完成任务。</p>
+              </div>
+            </div>
+          </div>
+
           <!-- 文件上传区域 -->
           <div class="form-group">
             <label>上传文件：</label>
@@ -927,6 +962,26 @@
                   <span class="detail-label">上传时间：</span>
                   <span class="detail-value">{{ viewingFile.time || viewingFile.uploadTime || '未知' }}</span>
                 </div>
+                <div
+                  class="detail-item detail-item-linked-tasks"
+                  v-if="viewingLinkedTasks && viewingLinkedTasks.length > 0"
+                >
+                  <span class="detail-label">关联任务：</span>
+                  <div class="detail-linked-tasks">
+                    <div
+                      class="linked-task-item small"
+                      v-for="task in viewingLinkedTasks"
+                      :key="task.id"
+                    >
+                      <div class="task-main">
+                        <div class="task-title-row">
+                          <span class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</span>
+                        </div>
+                        <div v-if="task.assignee" class="task-meta">负责人：{{ task.assignee }}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             
@@ -1056,6 +1111,14 @@
                 <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               添加文件到此成果
+            </button>
+            <button
+              v-if="projectId && canEditAchievement(viewingFile)"
+              type="button"
+              class="btn secondary"
+              @click.stop="openTaskLinkDialogForExisting"
+            >
+              关联/修改关联任务
             </button>
             <div class="status-selector">
               <label>成果状态：</label>
@@ -1321,6 +1384,111 @@
         </div>
       </div>
     </div>
+
+    <!-- 关联任务选择弹窗（上传成果时使用） -->
+    <div v-if="showTaskLinkDialog" class="modal-overlay" @click="closeTaskLinkDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">选择已完成任务</h3>
+          <button class="modal-close" @click="closeTaskLinkDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-subtitle">从当前项目中选择一个或多个状态为 DONE 的任务，作为成果的关联依据</p>
+          <div v-if="taskLinkLoading" class="loading-container">
+            <div class="loading-spinner-large"></div>
+            <p class="loading-text">正在加载已完成任务...</p>
+          </div>
+          <div v-else-if="candidateDoneTasks.length === 0" class="empty-state">
+            <div class="empty-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="empty-text">当前项目中暂未查询到已完成任务。</p>
+          </div>
+          <div v-else class="file-list-container">
+            <div class="file-list">
+              <div
+                v-for="task in candidateDoneTasks"
+                :key="task.id"
+                class="file-card"
+                :class="{ 'selected': selectedTaskIdsForDialog.includes(task.id) }"
+                @click="toggleTaskSelectionForDialog(task.id)"
+              >
+                <div class="file-card-content">
+                  <div class="file-card-main">
+                    <div class="file-name-wrapper">
+                      <div class="file-name">{{ task.title || '未命名任务' }}</div>
+                      <div class="file-badge-group">
+                        <span class="file-type-badge">DONE</span>
+                        <span v-if="task.assignee" class="file-count-badge">负责人：{{ task.assignee }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="file-select-indicator" :class="{ 'active': selectedTaskIdsForDialog.includes(task.id) }">
+                    <div class="checkmark-circle">
+                      <svg v-if="selectedTaskIdsForDialog.includes(task.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeTaskLinkDialog">取消</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="confirmTaskLinkSelection"
+            :disabled="selectedTaskIdsForDialog.length === 0"
+          >
+            确认选择<span v-if="selectedTaskIdsForDialog.length > 0">（{{ selectedTaskIdsForDialog.length }}）</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除成果确认弹窗 -->
+    <div v-if="deleteConfirmOpen" class="modal-overlay" @click="cancelDeleteFile">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">删除成果</h3>
+          <button class="modal-close" @click="cancelDeleteFile">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要删除成果"{{ fileToDelete ? fileToDelete.name : '' }}"吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelDeleteFile">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmDeleteFile">确认删除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 成功提示弹窗（居中，自动消失） -->
+    <div v-if="successToastVisible" class="success-modal-overlay">
+      <div class="success-modal-content">
+        <div class="success-modal-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="10" stroke="#10b981" stroke-width="2" fill="#d1fae5"/>
+            <path d="M8 12L11 15L16 9" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3 class="success-modal-title">操作成功</h3>
+        <p class="success-modal-message">{{ successToastMessage }}</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1346,7 +1514,8 @@ import { knowledgeAPI, STATUS_DISPLAY, STATUS_CLASS } from '@/api/knowledge'
 import { convertToCreateDTO, convertFromDTO, convertEditFormToFieldUpdates } from '@/utils/achievementHelper'
 import { projectAPI } from '@/api/project'
 import { getCurrentUserId } from '@/utils/auth'
- import { marked } from 'marked'
+import { marked } from 'marked'
+import { getLinkedTasks as apiGetLinkedTasks, linkTasksToAchievement as apiLinkTasks, unlinkTasksFromAchievement as apiUnlinkTasks } from '@/api/taskResult'
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1354,18 +1523,6 @@ export default {
     archiveRows: {
       type: Array,
       default: () => []
-    },
-    
-    // 从 iframe 文本预览切换为纯文本模式
-    switchToPlainText() {
-      if (this.previewFileUrl) {
-        this.previewLoading = true
-        this.previewError = null
-        this.previewFileType = 'text'
-        this.loadTextContentForPreview(this.previewFileUrl).finally(() => {
-          this.previewLoading = false
-        })
-      }
     },
     projectId: {
       type: [String, Number],
@@ -1412,13 +1569,12 @@ export default {
       previewFileType: 'unknown', // image, pdf, text, video, audio, office, code, unknown
       previewLoading: false,
       previewError: null,
-       previewMarkdownHtml: '', // 渲染后的Markdown HTML
+      previewMarkdownHtml: '', // 渲染后的Markdown HTML
       // Office查看器相关
       officeViewerError: false,
       useMicrosoftViewer: false,
       useOnlineViewer: false, // 是否使用在线查看器（false=直接加载，true=使用在线查看器）
       officeIframeLoaded: false, // iframe是否成功加载
-      
       // 编辑模式
       isEditingDescription: false,
       isEditingContent: false,
@@ -1462,7 +1618,10 @@ export default {
         descriptions: [
           { content: '' }
         ],
-        files: []
+        files: [],
+        // 关联任务
+        linkedTaskIds: [],
+        linkedTaskSummaries: []
       },
       // 新增：自定义类型上传表单
       customUploadForm: {
@@ -1472,7 +1631,23 @@ export default {
           { content: '' }
         ],
         files: []
-      }
+      },
+      // 上传成功提示弹窗
+      successToastVisible: false,
+      successToastMessage: '',
+      successToastTimer: null,
+      // 删除成果确认弹窗
+      deleteConfirmOpen: false,
+      fileToDelete: null,
+      // 任务关联选择弹窗
+      showTaskLinkDialog: false,
+      taskLinkLoading: false,
+      candidateDoneTasks: [],
+      selectedTaskIdsForDialog: [],
+      // 查看成果时的已关联任务
+      viewingLinkedTasks: [],
+      // 当前任务关联弹窗作用目标（upload: 上传表单；existing: 已有成果）
+      taskLinkDialogTarget: 'upload'
     }
   },
   computed: {
@@ -1574,6 +1749,126 @@ export default {
     }
   },
   methods: {
+    // 显示上传成功提示（自动消失）
+    showSuccessToast(message) {
+      this.successToastMessage = message
+      this.successToastVisible = true
+      if (this.successToastTimer) {
+        clearTimeout(this.successToastTimer)
+      }
+      this.successToastTimer = setTimeout(() => {
+        this.successToastVisible = false
+        this.successToastMessage = ''
+        this.successToastTimer = null
+      }, 1500)
+    },
+    // === 成果上传/查看时关联任务相关 ===
+    async openTaskLinkDialogForUpload() {
+      if (!this.projectId) {
+        return
+      }
+      this.taskLinkDialogTarget = 'upload'
+      await this.openTaskLinkDialogInternal(this.achievementForm.linkedTaskIds || [])
+    },
+    async openTaskLinkDialogForExisting() {
+      if (!this.projectId || !this.viewingFile || !this.viewingFile.id) {
+        return
+      }
+      this.taskLinkDialogTarget = 'existing'
+      const existingIds = (this.viewingLinkedTasks || []).map(t => t.id)
+      await this.openTaskLinkDialogInternal(existingIds)
+    },
+    async openTaskLinkDialogInternal(initialSelectedIds) {
+      this.showTaskLinkDialog = true
+      this.taskLinkLoading = true
+      this.selectedTaskIdsForDialog = [...initialSelectedIds]
+      try {
+        const resp = await projectAPI.getProjectTasksByStatus(this.projectId, 'DONE', 0, 100)
+        console.log('[KnowledgeBaseCatalog] DONE 任务列表响应:', resp)
+        if (resp && resp.code === 200 && resp.data) {
+          const content = Array.isArray(resp.data.content) ? resp.data.content : []
+          this.candidateDoneTasks = content.map(t => ({
+            id: t.id,
+            title: t.title || t.name || '未命名任务',
+            assignee: t.assigneeNames || t.assigneeName || t.assignee || ''
+          }))
+        } else {
+          this.candidateDoneTasks = []
+        }
+      } catch (e) {
+        console.error('[KnowledgeBaseCatalog] 加载 DONE 任务失败:', e)
+        this.candidateDoneTasks = []
+      } finally {
+        this.taskLinkLoading = false
+      }
+    },
+    closeTaskLinkDialog() {
+      this.showTaskLinkDialog = false
+    },
+    toggleTaskSelectionForDialog(taskId) {
+      const idx = this.selectedTaskIdsForDialog.indexOf(taskId)
+      if (idx >= 0) {
+        this.selectedTaskIdsForDialog.splice(idx, 1)
+      } else {
+        this.selectedTaskIdsForDialog.push(taskId)
+      }
+    },
+    confirmTaskLinkSelection() {
+      const ids = [...this.selectedTaskIdsForDialog]
+      const map = new Map(this.candidateDoneTasks.map(t => [t.id, t]))
+
+      if (this.taskLinkDialogTarget === 'existing' && this.viewingFile && this.viewingFile.id) {
+        // 为已有成果更新关联任务
+        const achievementId = this.viewingFile.id
+        apiLinkTasks(achievementId, ids)
+          .then(resp => {
+            console.log('[KnowledgeBaseCatalog] 更新已有成果关联任务响应:', resp)
+            if (resp && resp.code === 200) {
+              this.viewingLinkedTasks = ids
+                .map(id => map.get(id))
+                .filter(Boolean)
+                .map(t => ({ id: t.id, title: t.title, assignee: t.assignee }))
+              this.showSuccessToast('已更新成果关联任务')
+            } else {
+              alert(resp?.msg || '更新关联任务失败，请重试')
+            }
+          })
+          .catch(e => {
+            console.error('[KnowledgeBaseCatalog] 更新已有成果关联任务失败:', e)
+            alert('更新关联任务失败，请稍后重试')
+          })
+          .finally(() => {
+            this.showTaskLinkDialog = false
+          })
+      } else {
+        // 上传表单场景，仅在前端记录
+        this.achievementForm.linkedTaskIds = ids
+        this.achievementForm.linkedTaskSummaries = ids
+          .map(id => map.get(id))
+          .filter(Boolean)
+          .map(t => ({ id: t.id, title: t.title, assignee: t.assignee }))
+        this.showTaskLinkDialog = false
+      }
+    },
+    clearUploadLinkedTasks() {
+      this.achievementForm.linkedTaskIds = []
+      this.achievementForm.linkedTaskSummaries = []
+    },
+    removeUploadLinkedTask(taskId) {
+      this.achievementForm.linkedTaskIds = (this.achievementForm.linkedTaskIds || []).filter(id => id !== taskId)
+      this.achievementForm.linkedTaskSummaries = (this.achievementForm.linkedTaskSummaries || []).filter(t => t.id !== taskId)
+    },
+    // 从 iframe 文本预览切换为纯文本模式
+    switchToPlainText() {
+      if (this.previewFileUrl) {
+        this.previewLoading = true
+        this.previewError = null
+        this.previewFileType = 'text'
+        this.loadTextContentForPreview(this.previewFileUrl).finally(() => {
+          this.previewLoading = false
+        })
+      }
+    },
     /**
      * 判断当前用户是否可以编辑指定成果
      */
@@ -1905,8 +2200,8 @@ export default {
             this.isAddingToExisting = false
             this.targetAchievementId = null
             this.showUploadDialog = false
-            
-            alert(`已成功添加${files.length}个文件到成果中！`)
+
+            this.showSuccessToast(`已成功添加${files.length}个文件到成果中！`)
             return
           }
           
@@ -1947,8 +2242,8 @@ export default {
           
           // 6. 跳转到最后一页显示新上传的成果
           this.goToLastPage()
-          
-          alert(`成果"${this.achievementForm.name}"创建成功！已上传${files.length}个文件。`)
+
+          this.showSuccessToast(`成果"${this.achievementForm.name}"创建成功！已上传${files.length}个文件。`)
           
         } catch (error) {
           console.error('上传失败:', error)
@@ -2181,6 +2476,11 @@ export default {
           // 转换DTO为前端格式
           const detailData = convertFromDTO(response.data)
           console.log('转换后的成果详情:', detailData)
+
+          // 如果详情中的上传者为空或为“未知用户”，尝试使用列表行中的上传者
+          if ((!detailData.uploader || detailData.uploader === '未知用户') && file && file.uploader) {
+            detailData.uploader = file.uploader
+          }
           
           // 获取文件列表
           const filesResponse = await knowledgeAPI.getAchievementFiles(file.id)
@@ -2203,6 +2503,24 @@ export default {
             console.warn('获取文件列表失败或文件列表为空')
             detailData.files = []
             detailData.fileCount = 0
+          }
+
+          // 获取成果已关联任务
+          try {
+            const linkedResp = await apiGetLinkedTasks(file.id)
+            console.log('[KnowledgeBaseCatalog] 获取成果已关联任务响应:', linkedResp)
+            if (linkedResp && linkedResp.code === 200 && Array.isArray(linkedResp.data)) {
+              this.viewingLinkedTasks = linkedResp.data.map(t => ({
+                id: t.id,
+                title: t.title || t.name || '未命名任务',
+                assignee: t.assigneeNames || t.assigneeName || t.assignee || ''
+              }))
+            } else {
+              this.viewingLinkedTasks = []
+            }
+          } catch (e) {
+            console.error('[KnowledgeBaseCatalog] 获取成果已关联任务失败:', e)
+            this.viewingLinkedTasks = []
           }
           
           this.viewingFile = detailData
@@ -2691,10 +3009,25 @@ export default {
     },
     
     
-    async deleteFile(file) {
-      if (confirm(`确定要删除成果"${file.name}"吗？此操作不可撤销。`)) {
-        try {
-          console.log('删除成果, ID:', file.id, '名称:', file.name)
+    // 打开删除成果确认弹窗
+    deleteFile(file) {
+      this.fileToDelete = file
+      this.deleteConfirmOpen = true
+    },
+    // 取消删除成果
+    cancelDeleteFile() {
+      this.deleteConfirmOpen = false
+      this.fileToDelete = null
+    },
+    // 确认删除成果
+    async confirmDeleteFile() {
+      if (!this.fileToDelete) {
+        this.cancelDeleteFile()
+        return
+      }
+      const file = this.fileToDelete
+      try {
+        console.log('删除成果, ID:', file.id, '名称:', file.name)
           
           // 调用后端API删除成果
           const response = await knowledgeAPI.deleteAchievement(file.id)
@@ -2740,11 +3073,13 @@ export default {
             console.log('✅ 视图更新完成，当前列表数量:', this.uploadedFiles.length)
             console.log('✅ 当前页数据:', this.paginatedFiles)
             
-            alert('成果删除成功！')
+            this.showSuccessToast('成果删除成功！')
+            this.cancelDeleteFile()
           } else {
             const errorMsg = response?.msg || response?.message || '删除失败，服务器返回异常'
             console.error('❌ 删除失败:', errorMsg)
-            throw new Error(errorMsg)
+            this.cancelDeleteFile()
+            alert('删除失败: ' + errorMsg)
           }
         } catch (error) {
           console.error('❌ 删除成果异常:', error)
@@ -2753,9 +3088,9 @@ export default {
             response: error.response,
             stack: error.stack
           })
+          this.cancelDeleteFile()
           alert('删除失败: ' + (error.message || error.toString() || '请重试'))
         }
-      }
     },
     
     // 多文件相关方法
@@ -3554,6 +3889,300 @@ export default {
 @import '@/assets/styles/catalog/panel.css';
 @import '@/assets/styles/catalog/file-view.css';
 
+/* 关联任务 & 删除确认弹窗样式（参考 AI 助手的文件选择弹窗） */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  max-width: 620px;
+  width: 90%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  margin: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.modal-title {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.modal-subtitle {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0044CC;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(241, 245, 249, 0.9);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  transform: rotate(90deg) scale(1.05);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  background: #ffffff;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  gap: 20px;
+}
+
+.loading-spinner-large {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f1f5f9;
+  border-top: 4px solid #0044CC;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  gap: 16px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5EB6E4;
+}
+
+.empty-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.file-list-container {
+  padding: 8px 28px 24px;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 70px;
+}
+
+.file-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 68, 204, 0.03) 0%, rgba(94, 182, 228, 0.03) 100%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.file-card:hover {
+  border-color: #5EB6E4;
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 16px -4px rgba(0, 68, 204, 0.15),
+    0 0 0 1px rgba(94, 182, 228, 0.2);
+}
+
+.file-card:hover::before {
+  opacity: 1;
+}
+
+.file-card.selected {
+  border-color: #0044CC;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2ff 100%);
+  box-shadow:
+    0 4px 12px -2px rgba(0, 68, 204, 0.2),
+    0 0 0 1px rgba(0, 68, 204, 0.15);
+}
+
+.file-card.selected::before {
+  opacity: 1;
+}
+
+.file-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.file-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-card.selected .file-name {
+  color: #0044CC;
+}
+
+.file-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-type-badge {
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  border: 1px solid rgba(30, 64, 175, 0.1);
+}
+
+.file-card.selected .file-type-badge {
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+  color: #1e3a8a;
+  border-color: rgba(30, 64, 175, 0.2);
+}
+
+.file-count-badge {
+  padding: 3px 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.file-select-indicator {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 2px solid #cbd5e1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.file-select-indicator.active {
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  border-color: #0044CC;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+}
+
+.checkmark-circle {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
 /* 文件信息样式覆盖 */
 .file-info {
   margin-bottom: 20px;
@@ -3574,6 +4203,119 @@ export default {
   font-weight: 600;
   color: #111827;
   word-break: break-all;
+}
+
+/* 已关联任务标签样式（上传 & 查看 共用） */
+.linked-tasks-list {
+  margin-top: 8px;
+}
+
+.linked-tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.linked-tasks-header .clear-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.linked-tasks-header .clear-link:hover {
+  color: #ef4444;
+}
+
+.linked-task-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 4px 4px 0 0;
+  border-radius: 999px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  max-width: 100%;
+}
+
+.linked-task-item.small {
+  padding: 3px 8px;
+  margin: 3px 4px 0 0;
+}
+
+.task-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.task-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.task-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-id-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.task-meta {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.task-remove-btn {
+  margin-left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #cbd5f5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.task-remove-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.detail-item-linked-tasks {
+  align-items: flex-start;
+}
+
+.detail-linked-tasks {
+  flex: 1;
 }
 
 /* 状态选择器样式 */
@@ -4024,6 +4766,82 @@ export default {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 成功提示弹窗样式 */
+.success-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.success-modal-content {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  min-width: 320px;
+  max-width: 480px;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.success-modal-icon {
+  margin: 0 auto 20px;
+  animation: checkmarkPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s backwards;
+}
+
+.success-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #10b981;
+  margin: 0 0 12px 0;
+}
+
+.success-modal-message {
+  font-size: 15px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.6;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes checkmarkPop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 </style>

@@ -35,6 +35,41 @@
               <span>AI 赋能</span>
             </div>
           </div>
+          
+          <!-- 文件预览区域 - 显示在选项栏下方 -->
+          <div v-if="activeTab==='ai'" class="sidebar-file-preview">
+            <div class="sidebar-file-header">
+              <span class="sidebar-file-title">已上传文件 ({{ uploadedFiles.length }})</span>
+            </div>
+            <div v-if="uploadedFiles.length === 0" class="sidebar-file-empty">
+              <div class="sidebar-empty-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <p class="sidebar-empty-text">暂无文件</p>
+            </div>
+            <div v-else class="sidebar-file-list">
+              <div v-for="(file, index) in uploadedFiles" :key="index" class="sidebar-file-item">
+                <div class="sidebar-file-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="sidebar-file-info">
+                  <div class="sidebar-file-name">{{ file.name }}</div>
+                  <div class="sidebar-file-size">{{ formatFileSize(file.size) }}</div>
+                </div>
+                <button class="sidebar-file-remove" @click="removeFile(index)" title="移除">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
         </aside>
 
         <!-- 右侧内容主体 -->
@@ -122,7 +157,7 @@
           <KnowledgeBaseCabinet v-else-if="activeTab==='cabinet'" :projectId="projectId" @document-created="handleDocumentCreated" />
 
           <!-- AI 赋能面板 -->
-          <KnowledgeBaseAI v-else :projectId="projectId" />
+          <KnowledgeBaseAI v-else ref="aiComponent" :projectId="projectId" @files-changed="handleFilesChanged" />
         </div>
       </div>
     </div>
@@ -193,7 +228,8 @@ export default {
       activities: [],
       archiveRows: [],
       permissionErrorShown: false, // 标记是否已显示权限错误，防止重复显示
-      showPermissionDialog: false // 控制权限错误弹窗显示
+      showPermissionDialog: false, // 控制权限错误弹窗显示
+      uploadedFiles: [] // AI赋能页面上传的文件列表
     }
   },
   computed: {
@@ -898,6 +934,63 @@ export default {
     // 关闭权限错误弹窗
     closePermissionDialog() {
       this.showPermissionDialog = false
+    },
+    
+    // 格式化文件大小
+    formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    },
+    
+    // 移除文件
+    removeFile(index) {
+      const file = this.uploadedFiles[index]
+      if (!file) return
+      
+      // 调用AI组件的删除方法，同步删除原始数据
+      if (this.$refs.aiComponent) {
+        if (file.type === 'local') {
+          // 删除本地文件，需要在 selectedLocalFiles 中找到实际索引
+          const localFiles = this.$refs.aiComponent.selectedLocalFiles
+          const actualIndex = localFiles.findIndex(f => f.name === file.name && f.size === file.size)
+          if (actualIndex !== -1) {
+            this.$refs.aiComponent.removeLocalFile(actualIndex)
+          }
+        } else if (file.type === 'knowledge') {
+          // 删除知识库文件，使用文件ID
+          this.$refs.aiComponent.removeKnowledgeFile(file.id)
+        }
+      }
+      
+      // 从显示列表中删除（这个操作会被 watch 触发的 handleFilesChanged 覆盖，但保留以防万一）
+      this.uploadedFiles.splice(index, 1)
+    },
+    
+    // 处理AI组件传来的文件变化
+    handleFilesChanged(filesData) {
+      // 合并本地文件和知识库文件为统一格式
+      const localFiles = filesData.localFiles || []
+      const knowledgeFileIds = filesData.knowledgeFileIds || []
+      
+      // 将所有文件转换为统一格式显示在左侧栏
+      this.uploadedFiles = [
+        ...localFiles.map((f, index) => ({
+          name: f.name,
+          size: f.size,
+          type: 'local',
+          originalIndex: index
+        })),
+        ...knowledgeFileIds.map((id, index) => ({
+          name: `知识库文件 ${id}`,
+          size: 0,
+          type: 'knowledge',
+          id: id,
+          originalIndex: index
+        }))
+      ]
     }
   }
 }

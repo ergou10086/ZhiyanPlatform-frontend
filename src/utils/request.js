@@ -1,4 +1,5 @@
 import axios from 'axios'
+import JSONbig from 'json-bigint'
 import config from '@/config'
 import tokenManager from './tokenManager'
 
@@ -16,14 +17,14 @@ let requestsQueue = []
  * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
  * 雪花ID（19位）超过JavaScript Number安全范围（2^53-1）
  */
+const jsonBigParser = JSONbig({ storeAsString: true })
+
 function parseJSONWithBigInt(data) {
-  if (typeof data !== 'string') return data
+  if (typeof data !== 'string' || data === '') return data
   try {
-    // 使用正则表达式将大整数字段（通常是ID）转换为字符串
-    // 匹配所有可能是ID的长整数（大于16位的整数）
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    return jsonBigParser.parse(data)
   } catch (e) {
-    console.error('JSON解析错误:', e)
+    console.error('JSON解析错误:', e, data)
     return data
   }
 }

@@ -16,6 +16,7 @@ import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
 import MyActivity from '../views/MyActivity.vue'
+import OAuth2Callback from '../views/OAuth2Callback.vue'
 
 Vue.use(VueRouter)
 
@@ -38,6 +39,16 @@ const routes = [
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: ForgotPassword
+  },
+  {
+    path: '/auth/oauth2/callback/:provider',
+    name: 'OAuth2Callback',
+    component: OAuth2Callback
+  },
+  {
+    path: '/zhiyan/auth/oauth2/callback/:provider',
+    name: 'OAuth2CallbackWithPrefix',
+    component: OAuth2Callback
   },
   {
     path: '/home',
@@ -143,6 +154,13 @@ router.beforeEach((to, from, next) => {
   // 注册和忘记密码页面 - 允许所有用户访问
   if (to.path === '/register' || to.path === '/forgot-password') {
     console.log('注册/忘记密码页面，允许访问')
+    next()
+    return
+  }
+  
+  // OAuth2回调页面 - 允许所有用户访问
+  if (to.path.startsWith('/auth/oauth2/callback') || to.path.startsWith('/zhiyan/auth/oauth2/callback')) {
+    console.log('OAuth2回调页面，允许访问')
     next()
     return
   }

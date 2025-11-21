@@ -247,13 +247,24 @@ export function addTimestampToUrl(url, timestamp = null) {
   // 使用提供的时间戳或当前时间
   const ts = timestamp || Date.now()
 
-  // 检查URL中是否已有查询参数
-  const separator = url.includes('?') ? '&' : '?'
+  try {
+    // 优先使用 URL 对象安全地管理查询参数
+    const urlObj = new URL(url)
+    urlObj.searchParams.set('t', ts.toString())
+    return urlObj.toString()
+  } catch (e) {
+    // 对于相对路径等不能被 URL 解析的情况，回退到字符串处理
 
-  // 如果URL已经有时间戳参数，先移除
-  const urlWithoutTimestamp = url.replace(/[?&]t=\d+/, '')
+    // 先处理以 ?t= 开头的时间戳，将其保留为单独的 ?
+    let cleaned = url.replace(/\?t=\d+/, '?')
+    // 再移除中间的 &t=xxx
+    cleaned = cleaned.replace(/&t=\d+/, '')
 
-  return `${urlWithoutTimestamp}${separator}t=${ts}`
+    // 根据是否已有其他查询参数决定分隔符
+    const separator = cleaned.includes('?') ? '&' : '?'
+
+    return `${cleaned}${separator}t=${ts}`
+  }
 }
 
 /**

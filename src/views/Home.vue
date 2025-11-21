@@ -23,13 +23,14 @@
           <div class="section-card">
             <h2 class="section-title">快捷操作</h2>
             <div class="action-cards">
-            <div class="action-card" @click="handleNewProject">
+            <div class="action-card" @click="handleMyActivity">
               <div class="card-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 3V8H15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </div>
-              <span class="card-label">新建项目</span>
+              <span class="card-label">我的活动</span>
             </div>
             <div class="action-card" @click="handleProjectSquare">
               <div class="card-icon">
@@ -486,6 +487,19 @@ export default {
         this.$router.push({ path: '/project-create', query: { from: 'home' } })
       } else {
         this.showLoginModal('请先登录才能创建项目')
+      }
+    },
+    handleMyActivity() {
+      console.log('我的活动')
+      // 检查用户是否已登录
+      const token = localStorage.getItem('access_token')
+      const userInfo = localStorage.getItem('user_info')
+      const isAuthenticated = !!(token && userInfo)
+      
+      if (isAuthenticated) {
+        this.$router.push('/my-activity')
+      } else {
+        this.showLoginModal('请先登录才能查看我的活动')
       }
     },
     handleProjectSquare() {

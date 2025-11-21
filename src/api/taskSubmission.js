@@ -383,3 +383,15 @@ export function getDownloadUrl(fileUrl) {
   const encodedUrl = encodeURIComponent(fileUrl)
   return `/zhiyan/projects/tasks/submissions/files/download?fileUrl=${encodedUrl}&token=${token}`
 }
+
+/**
+ * 获取任务提交统计信息
+ * @param {number} taskId - 任务ID
+ * @returns {Promise}
+ */
+export function getTaskSubmissionStats(taskId) {
+  return api({
+    url: `/zhiyan/projects/tasks/submissions/task/${taskId}/stats`,
+    method: 'get'
+  });
+}

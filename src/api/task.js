@@ -7,10 +7,19 @@ import config from '@/config'
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
   try {
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    // 匹配JSON中的大整数（16位以上），将其转换为字符串
+    // 确保不匹配已经是字符串的数字
+    const processed = data.replace(/:\s*(\d{16,})([,\}\]])/g, ':"$1"$2')
+    return JSON.parse(processed)
   } catch (e) {
     console.error('JSON解析错误:', e)
-    return data
+    console.error('原始数据:', data)
+    // 如果解析失败，尝试直接解析
+    try {
+      return JSON.parse(data)
+    } catch (e2) {
+      return data
+    }
   }
 }
 
@@ -152,7 +161,7 @@ export const taskAPI = {
    */
   updateTask(taskId, taskData) {
     console.log('[taskAPI.updateTask] 更新任务, ID:', taskId, '数据:', taskData)
-    return api.put(`/zhiya/projects/tasks/${taskId}`, taskData)
+    return api.put(`/zhiyan/projects/tasks/${taskId}`, taskData)
   },
 
   /**
@@ -231,7 +240,7 @@ export const taskAPI = {
    */
   getMyAssignedTasks(page = 0, size = 20) {
     console.log('[taskAPI.getMyAssignedTasks] 获取我的所有任务')
-    return api.get('/zhiya/projects/tasks/my-assigned', {
+    return api.get('/zhiyan/projects/tasks/my-assigned', {
       params: { page, size }
     })
   },
@@ -327,6 +336,20 @@ export const taskAPI = {
   getOverdueTasks(projectId, page = 0, size = 20) {
     console.log('[taskAPI.getOverdueTasks] 获取已逾期的任务')
     return api.get(`/zhiyan/projects/tasks/projects/${projectId}/overdue`, {
+      params: { page, size }
+    })
+  },
+
+  /**
+   * 根据状态获取项目任务
+   * @param {Number} projectId - 项目ID
+   * @param {String} status - 任务状态 (TODO/IN_PROGRESS/BLOCKED/DONE)
+   * @param {Number} page - 页码
+   * @param {Number} size - 每页数量
+   */
+  getTasksByStatus(projectId, status, page = 0, size = 20) {
+    console.log('[taskAPI.getTasksByStatus] 根据状态获取任务, 项目ID:', projectId, '状态:', status)
+    return api.get(`/zhiyan/projects/tasks/projects/${projectId}/status/${status}`, {
       params: { page, size }
     })
   },

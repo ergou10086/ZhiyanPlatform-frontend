@@ -186,8 +186,9 @@
 }
 
 .profile-container .profile-content {
-  max-width: 50%;
   width: 100%;
+  max-width: 1600px;
+  padding: 0 40px;
   margin: 0 auto;
 }
 
@@ -1081,4 +1082,17 @@
 .dark-mode .profile-container .btn-cancel:hover {
   background: #475569;
   color: #f1f5f9;
+}
+
+/* 响应式设计 - Profile Content */
+@media (max-width: 1200px) {
+  .profile-container .profile-content {
+    padding: 0 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .profile-container .profile-content {
+    padding: 0 16px;
+  }
 }
