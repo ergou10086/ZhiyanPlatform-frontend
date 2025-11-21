@@ -408,11 +408,13 @@
               <div v-if="achievementForm.linkedTaskSummaries && achievementForm.linkedTaskSummaries.length > 0" class="linked-tasks-list">
                 <div class="linked-tasks-header">
                   <span>已关联任务 ({{ achievementForm.linkedTaskSummaries.length }})</span>
-                  <button type="button" class="link-btn" @click="clearUploadLinkedTasks">清空</button>
+                  <button type="button" class="link-btn clear-link" @click="clearUploadLinkedTasks">清空</button>
                 </div>
                 <div class="linked-task-item" v-for="task in achievementForm.linkedTaskSummaries" :key="task.id">
                   <div class="task-main">
-                    <span class="task-title" :title="task.title">[{{ task.id }}] {{ task.title || '未命名任务' }}</span>
+                    <div class="task-title-row">
+                      <span class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</span>
+                    </div>
                     <span v-if="task.assignee" class="task-meta">负责人：{{ task.assignee }}</span>
                   </div>
                   <button type="button" class="task-remove-btn" @click="removeUploadLinkedTask(task.id)">×</button>
@@ -960,16 +962,25 @@
                   <span class="detail-label">上传时间：</span>
                   <span class="detail-value">{{ viewingFile.time || viewingFile.uploadTime || '未知' }}</span>
                 </div>
-                <div class="detail-item" v-if="viewingLinkedTasks && viewingLinkedTasks.length > 0">
+                <div
+                  class="detail-item detail-item-linked-tasks"
+                  v-if="viewingLinkedTasks && viewingLinkedTasks.length > 0"
+                >
                   <span class="detail-label">关联任务：</span>
-                  <span class="detail-value">
-                    <span
+                  <div class="detail-linked-tasks">
+                    <div
+                      class="linked-task-item small"
                       v-for="task in viewingLinkedTasks"
                       :key="task.id"
                     >
-                      [{{ task.id }}] {{ task.title || '未命名任务' }}<span v-if="task.assignee">（负责人：{{ task.assignee }}）</span>
-                    </span>
-                  </span>
+                      <div class="task-main">
+                        <div class="task-title-row">
+                          <span class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</span>
+                        </div>
+                        <div v-if="task.assignee" class="task-meta">负责人：{{ task.assignee }}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3878,6 +3889,300 @@ export default {
 @import '@/assets/styles/catalog/panel.css';
 @import '@/assets/styles/catalog/file-view.css';
 
+/* 关联任务 & 删除确认弹窗样式（参考 AI 助手的文件选择弹窗） */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  max-width: 620px;
+  width: 90%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  margin: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 28px 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.modal-title {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.modal-subtitle {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0044CC;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(241, 245, 249, 0.9);
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  transform: rotate(90deg) scale(1.05);
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  background: #ffffff;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  gap: 20px;
+}
+
+.loading-spinner-large {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f1f5f9;
+  border-top: 4px solid #0044CC;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  gap: 16px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e0f2fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #5EB6E4;
+}
+
+.empty-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.file-list-container {
+  padding: 8px 28px 24px;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 70px;
+}
+
+.file-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 68, 204, 0.03) 0%, rgba(94, 182, 228, 0.03) 100%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.file-card:hover {
+  border-color: #5EB6E4;
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 16px -4px rgba(0, 68, 204, 0.15),
+    0 0 0 1px rgba(94, 182, 228, 0.2);
+}
+
+.file-card:hover::before {
+  opacity: 1;
+}
+
+.file-card.selected {
+  border-color: #0044CC;
+  background: linear-gradient(135deg, #f0f7ff 0%, #e3f2ff 100%);
+  box-shadow:
+    0 4px 12px -2px rgba(0, 68, 204, 0.2),
+    0 0 0 1px rgba(0, 68, 204, 0.15);
+}
+
+.file-card.selected::before {
+  opacity: 1;
+}
+
+.file-card-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.file-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-card.selected .file-name {
+  color: #0044CC;
+}
+
+.file-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.file-type-badge {
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  border: 1px solid rgba(30, 64, 175, 0.1);
+}
+
+.file-card.selected .file-type-badge {
+  background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+  color: #1e3a8a;
+  border-color: rgba(30, 64, 175, 0.2);
+}
+
+.file-count-badge {
+  padding: 3px 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.file-select-indicator {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 2px solid #cbd5e1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.file-select-indicator.active {
+  background: linear-gradient(135deg, #0044CC 0%, #5EB6E4 100%);
+  border-color: #0044CC;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+}
+
+.checkmark-circle {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px 20px;
+  background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
 /* 文件信息样式覆盖 */
 .file-info {
   margin-bottom: 20px;
@@ -3898,6 +4203,119 @@ export default {
   font-weight: 600;
   color: #111827;
   word-break: break-all;
+}
+
+/* 已关联任务标签样式（上传 & 查看 共用） */
+.linked-tasks-list {
+  margin-top: 8px;
+}
+
+.linked-tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.linked-tasks-header .clear-link {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.linked-tasks-header .clear-link:hover {
+  color: #ef4444;
+}
+
+.linked-task-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  margin: 4px 4px 0 0;
+  border-radius: 999px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  max-width: 100%;
+}
+
+.linked-task-item.small {
+  padding: 3px 8px;
+  margin: 3px 4px 0 0;
+}
+
+.task-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.task-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.task-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-id-badge {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.task-meta {
+  font-size: 11px;
+  color: #64748b;
+  margin-left: 4px;
+}
+
+.task-remove-btn {
+  margin-left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #cbd5f5;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.task-remove-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.detail-item-linked-tasks {
+  align-items: flex-start;
+}
+
+.detail-linked-tasks {
+  flex: 1;
 }
 
 /* 状态选择器样式 */
