@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { proxyRequest as request } from '@/utils/request'
 
 /**
  * 消息模块API
@@ -14,7 +14,7 @@ import request from '@/utils/request'
  */
 export function getInboxMessages(params) {
   return request({
-    url: '/zhiyan/message/inbox',
+    url: '/zhiyan/message/list',
     method: 'get',
     params
   })
@@ -25,7 +25,7 @@ export function getInboxMessages(params) {
  */
 export function getUnreadCount() {
   return request({
-    url: '/zhiyan/message/inbox/unread-count',
+    url: '/zhiyan/message/unread/count',
     method: 'get'
   })
 }
@@ -36,7 +36,7 @@ export function getUnreadCount() {
  */
 export function markAsRead(messageId) {
   return request({
-    url: `/zhiyan/message/inbox/${messageId}/read`,
+    url: `/zhiyan/message/read/${messageId}`,
     method: 'put'
   })
 }
@@ -47,7 +47,7 @@ export function markAsRead(messageId) {
  */
 export function batchMarkAsRead(messageIds) {
   return request({
-    url: '/zhiyan/message/inbox/batch-read',
+    url: '/zhiyan/message/read/batch',
     method: 'put',
     data: messageIds
   })
@@ -58,7 +58,7 @@ export function batchMarkAsRead(messageIds) {
  */
 export function markAllAsRead() {
   return request({
-    url: '/zhiyan/message/inbox/read-all',
+    url: '/zhiyan/message/read/all',
     method: 'put'
   })
 }
@@ -69,7 +69,7 @@ export function markAllAsRead() {
  */
 export function deleteMessage(messageId) {
   return request({
-    url: `/zhiyan/message/inbox/${messageId}`,
+    url: `/zhiyan/message/${messageId}`,
     method: 'delete'
   })
 }
@@ -80,7 +80,7 @@ export function deleteMessage(messageId) {
  */
 export function batchDeleteMessages(messageIds) {
   return request({
-    url: '/zhiyan/message/inbox/batch-delete',
+    url: '/zhiyan/message/batch-delete',
     method: 'delete',
     data: messageIds
   })
@@ -92,7 +92,7 @@ export function batchDeleteMessages(messageIds) {
  */
 export function getMessageDetail(messageId) {
   return request({
-    url: `/zhiyan/message/inbox/${messageId}`,
+    url: `/zhiyan/message/${messageId}`,
     method: 'get'
   })
 }
@@ -102,7 +102,7 @@ export function getMessageDetail(messageId) {
  */
 export function getUnreadCountByScene() {
   return request({
-    url: '/zhiyan/message/inbox/unread-count-by-scene',
+    url: '/zhiyan/message/unread/count-by-scene',
     method: 'get'
   })
 }

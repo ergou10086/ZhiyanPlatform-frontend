@@ -281,7 +281,7 @@
           <h2 class="section-title">团队成员</h2>
           <div class="section-actions">
             <!-- 邀请成员按钮：对所有管理员（OWNER和ADMIN）显示 -->
-            <button 
+            <button
               v-if="isProjectManager" 
               class="btn primary admin-action" 
               @click="inviteMember"
