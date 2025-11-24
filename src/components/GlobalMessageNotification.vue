@@ -703,7 +703,7 @@ export default {
 <style scoped>
 .message-notification {
   position: fixed;
-  top: 8px;
+  top: 12px;
   right: 220px;
   z-index: 10003;
   display: block;
