@@ -1,0 +1,614 @@
+/* 智研平台 - 移动端响应式适配 */
+
+/* ==================== 响应式布局基础 ==================== */
+
+/* 移动端优先的断点系统 */
+/* 
+  - xs: < 640px (手机竖屏)
+  - sm: >= 640px (手机横屏/小平板)
+  - md: >= 768px (平板竖屏)
+  - lg: >= 1024px (平板横屏/小屏电脑)
+  - xl: >= 1280px (桌面)
+  - 2xl: >= 1536px (大屏桌面)
+*/
+
+/* ==================== 容器响应式 ==================== */
+.responsive-container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .responsive-container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-container {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-container {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .responsive-container {
+    max-width: 1536px;
+  }
+}
+
+/* ==================== 显示/隐藏工具类 ==================== */
+
+/* 在移动端隐藏 */
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* 在平板及以上隐藏 */
+@media (min-width: 768px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* 仅在移动端显示 */
+.show-mobile {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .show-mobile {
+    display: block !important;
+  }
+}
+
+/* ==================== 文字大小响应式 ==================== */
+@media (max-width: 767px) {
+  html {
+    font-size: 14px; /* 移动端基础字号调小 */
+  }
+  
+  .responsive-title {
+    font-size: var(--text-xl) !important;
+  }
+  
+  .responsive-subtitle {
+    font-size: var(--text-base) !important;
+  }
+  
+  .responsive-text {
+    font-size: var(--text-sm) !important;
+  }
+}
+
+/* ==================== 间距响应式 ==================== */
+@media (max-width: 767px) {
+  .responsive-padding {
+    padding: var(--space-3) !important;
+  }
+  
+  .responsive-margin {
+    margin: var(--space-3) !important;
+  }
+  
+  .responsive-gap {
+    gap: var(--space-3) !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-padding {
+    padding: var(--space-6) !important;
+  }
+  
+  .responsive-margin {
+    margin: var(--space-6) !important;
+  }
+  
+  .responsive-gap {
+    gap: var(--space-6) !important;
+  }
+}
+
+/* ==================== Flex布局响应式 ==================== */
+.responsive-flex {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .responsive-flex {
+    flex-direction: row;
+    gap: var(--space-6);
+  }
+}
+
+.responsive-flex-reverse {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .responsive-flex-reverse {
+    flex-direction: row;
+    gap: var(--space-6);
+  }
+}
+
+/* ==================== Grid布局响应式 ==================== */
+.responsive-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+@media (min-width: 1280px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 2列网格 */
+.responsive-grid-2 {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .responsive-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+/* 3列网格 */
+.responsive-grid-3 {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .responsive-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+/* ==================== 表格响应式 ==================== */
+@media (max-width: 767px) {
+  .responsive-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .responsive-table table {
+    min-width: 600px;
+  }
+}
+
+/* ==================== 卡片响应式 ==================== */
+.responsive-card {
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 768px) {
+  .responsive-card {
+    padding: var(--space-6);
+    border-radius: var(--radius-xl);
+  }
+}
+
+/* ==================== 按钮响应式 ==================== */
+@media (max-width: 767px) {
+  .responsive-button {
+    width: 100%;
+    padding: var(--space-3) var(--space-4) !important;
+  }
+  
+  .responsive-button-group {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .responsive-button-group button {
+    width: 100%;
+  }
+}
+
+/* ==================== 模态框响应式 ==================== */
+@media (max-width: 767px) {
+  .responsive-modal {
+    width: 95vw !important;
+    max-width: 95vw !important;
+    margin: var(--space-2);
+  }
+  
+  .responsive-modal .el-dialog {
+    width: 95vw !important;
+    margin: var(--space-2) auto !important;
+  }
+}
+
+/* ==================== 侧边栏响应式 ==================== */
+@media (max-width: 1023px) {
+  .responsive-sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    transition: left 0.3s ease;
+    z-index: 1000;
+  }
+  
+  .responsive-sidebar.open {
+    left: 0;
+  }
+  
+  .responsive-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+  
+  .responsive-sidebar.open ~ .responsive-sidebar-overlay {
+    display: block;
+  }
+}
+
+/* ==================== 导航栏响应式 ==================== */
+@media (max-width: 767px) {
+  .responsive-nav {
+    padding: var(--space-2) var(--space-4);
+  }
+  
+  .responsive-nav-menu {
+    display: none;
+  }
+  
+  .responsive-nav-mobile {
+    display: flex;
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-nav {
+    padding: var(--space-3) var(--space-6);
+  }
+  
+  .responsive-nav-menu {
+    display: flex;
+  }
+  
+  .responsive-nav-mobile {
+    display: none;
+  }
+}
+
+/* ==================== 图片响应式 ==================== */
+.responsive-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ==================== 视频响应式 ==================== */
+.responsive-video {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 比例 */
+  height: 0;
+  overflow: hidden;
+}
+
+.responsive-video iframe,
+.responsive-video video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==================== 移动端触摸优化 ==================== */
+@media (max-width: 767px) {
+  /* 增大点击区域 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* 禁用长按选择 */
+  .no-select-mobile {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  
+  /* 平滑滚动 */
+  .smooth-scroll-mobile {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+/* ==================== 表单响应式 ==================== */
+@media (max-width: 767px) {
+  .responsive-form {
+    width: 100%;
+  }
+  
+  .responsive-form-group {
+    margin-bottom: var(--space-4);
+  }
+  
+  .responsive-form input,
+  .responsive-form textarea,
+  .responsive-form select {
+    width: 100%;
+    font-size: 16px; /* 防止iOS自动缩放 */
+  }
+  
+  .responsive-form-row {
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+}
+
+@media (min-width: 768px) {
+  .responsive-form-row {
+    flex-direction: row;
+    gap: var(--space-6);
+  }
+}
+
+/* ==================== 宽度工具类 ==================== */
+@media (max-width: 767px) {
+  .w-mobile-full {
+    width: 100% !important;
+  }
+  
+  .max-w-mobile-full {
+    max-width: 100% !important;
+  }
+}
+
+/* ==================== 页面特定适配 ==================== */
+
+/* 登录/注册页面 */
+@media (max-width: 767px) {
+  .auth-container {
+    padding: var(--space-4);
+    min-height: 100vh;
+  }
+  
+  .auth-form {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--space-6);
+  }
+}
+
+/* 项目列表页 */
+@media (max-width: 767px) {
+  .project-card {
+    margin-bottom: var(--space-4);
+  }
+  
+  .project-card-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+}
+
+/* 个人资料页 */
+@media (max-width: 767px) {
+  .profile-container {
+    padding: var(--space-4);
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-avatar {
+    margin: 0 auto var(--space-4);
+  }
+}
+
+/* 知识库页面 */
+@media (max-width: 767px) {
+  .knowledge-sidebar {
+    display: none;
+  }
+  
+  .knowledge-sidebar.mobile-open {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 80%;
+    max-width: 300px;
+    z-index: 1000;
+    background: var(--bg-primary);
+    box-shadow: var(--shadow-xl);
+  }
+}
+
+/* 项目详情页 */
+@media (max-width: 767px) {
+  .project-detail-layout {
+    flex-direction: column;
+  }
+  
+  .project-detail-sidebar {
+    width: 100%;
+    order: 2;
+  }
+  
+  .project-detail-content {
+    width: 100%;
+    order: 1;
+  }
+}
+
+/* ==================== Element UI 组件移动端优化 ==================== */
+@media (max-width: 767px) {
+  /* Dialog */
+  .el-dialog {
+    width: 95% !important;
+    margin: var(--space-2) auto !important;
+  }
+  
+  .el-dialog__header {
+    padding: var(--space-4) !important;
+  }
+  
+  .el-dialog__body {
+    padding: var(--space-4) !important;
+  }
+  
+  /* Drawer */
+  .el-drawer {
+    width: 85% !important;
+  }
+  
+  /* Message Box */
+  .el-message-box {
+    width: 90% !important;
+  }
+  
+  /* Dropdown */
+  .el-dropdown-menu {
+    max-width: calc(100vw - 32px);
+  }
+  
+  /* Table */
+  .el-table {
+    font-size: var(--text-sm);
+  }
+  
+  .el-table th,
+  .el-table td {
+    padding: var(--space-2) var(--space-3);
+  }
+  
+  /* Pagination */
+  .el-pagination {
+    padding: var(--space-3) 0;
+  }
+  
+  .el-pagination button,
+  .el-pagination .el-pager li {
+    min-width: 32px;
+    height: 32px;
+    line-height: 32px;
+  }
+  
+  /* Form */
+  .el-form-item {
+    margin-bottom: var(--space-4);
+  }
+  
+  .el-form-item__label {
+    padding-bottom: var(--space-2);
+    line-height: 1.5;
+  }
+  
+  /* Input */
+  .el-input__inner {
+    font-size: 16px !important; /* 防止iOS缩放 */
+  }
+  
+  /* Select */
+  .el-select-dropdown {
+    max-width: calc(100vw - 32px);
+  }
+  
+  /* Tabs */
+  .el-tabs__nav {
+    font-size: var(--text-sm);
+  }
+  
+  .el-tabs__item {
+    padding: 0 var(--space-3);
+  }
+}
+
+/* ==================== 打印样式 ==================== */
+@media print {
+  .hide-print {
+    display: none !important;
+  }
+  
+  .responsive-container {
+    max-width: 100%;
+    padding: 0;
+  }
+}
+
+/* ==================== 横屏优化 ==================== */
+@media (max-width: 767px) and (orientation: landscape) {
+  .landscape-full-height {
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
+/* ==================== 高 DPI 屏幕优化 ==================== */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .responsive-img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
