@@ -22,149 +22,104 @@
         </svg>
         <span class="back-text">返回</span>
       </button>
-
-      <!-- 左侧边栏：项目任务列表 -->
-      <div class="left-sidebar">
-        <div class="sidebar-panel">
-          <div class="sidebar-header">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h4>项目任务</h4>
-            <span class="sidebar-count">{{ allTasks.length }}</span>
-          </div>
-          <div class="sidebar-content">
-            <div 
-              v-for="task in allTasks" 
-              :key="task.id"
-              class="sidebar-task-item"
-              @click="goToTaskDetail(task)"
-            >
-              <div class="task-status-dot" :class="getTaskStatusClass(task.status)"></div>
-              <div class="task-item-info">
-                <div class="task-item-title">{{ task.title }}</div>
-                <div class="task-item-meta">
-                  <span v-if="task.assigneeName">{{ task.assigneeName }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="allTasks.length === 0" class="sidebar-empty">
-              <p>暂无任务</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 右侧边栏：已完成任务 -->
-      <div class="right-sidebar">
-        <div class="sidebar-panel">
-          <div class="sidebar-header">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h4>已完成</h4>
-            <span class="sidebar-count">{{ completedTasks.length }}</span>
-          </div>
-          <div class="sidebar-content">
-            <div 
-              v-for="task in completedTasks" 
-              :key="task.id"
-              class="sidebar-task-item"
-              @click="goToTaskDetail(task)"
-            >
-              <div class="task-status-dot status-done"></div>
-              <div class="task-item-info">
-                <div class="task-item-title">{{ task.title }}</div>
-                <div class="task-item-meta">
-                  <span v-if="task.assigneeName">{{ task.assigneeName }}</span>
-                </div>
-              </div>
-            </div>
-            <div v-if="completedTasks.length === 0" class="sidebar-empty">
-              <p>暂无已完成任务</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      
+      <!-- 页面标题 -->
+      <h1 class="page-title">项目仪表盘</h1>
 
       <!-- 中心内容区 -->
       <div class="kpi-content">
-        <!-- 标题区 -->
-        <div class="kpi-title-section">
-          <div class="title-decoration"></div>
-          <h1 class="kpi-main-title">项目仪表盘</h1>
-          <p class="kpi-subtitle">实时监控项目进度与数据</p>
-        </div>
-
-        <!-- KPI卡片网格 (2x2) -->
-        <div class="grid kpis">
-      <div class="kpi-card glow gradient-border">
-        <div class="kpi-label">项目总任务数</div>
-        <div 
-          class="kpi-value"
-          @mousemove="showTaskListTooltip($event)"
-          @mouseleave="hideTooltip"
-        >
-          {{ display.totalTasks }}
-        </div>
-      </div>
-      <div class="kpi-card glow gradient-border">
-        <div class="kpi-label">已完成数（完成率）</div>
-        <div 
-          class="kpi-value"
-          @mousemove="showCompletedTasksTooltip($event)"
-          @mouseleave="hideTooltip"
-        >
-          {{ display.completed }} <span class="sub">({{ display.completeRate }}%)</span>
-        </div>
-      </div>
-      <div class="kpi-card glow gradient-border">
-        <div class="kpi-label">延期任务数</div>
-        <div class="kpi-value danger">{{ display.delayed }}</div>
-      </div>
-      <div class="kpi-card glow gradient-border">
-        <div class="kpi-label">本周新增任务数</div>
-        <div class="kpi-value">{{ display.addedThisWeek }}</div>
-      </div>
-        </div>
-
-        <!-- 项目成员区域 -->
-        <div class="project-members-section">
-          <div class="members-header">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <h3>项目成员</h3>
-            <span class="members-count">{{ projectMembers.length }} 人</span>
-          </div>
-          <div class="members-grid" v-if="projectMembers.length > 0">
-            <div 
-              v-for="member in projectMembers" 
-              :key="member.userId"
-              class="member-card glass gradient-border"
-            >
-              <div class="member-avatar">
-                <img v-if="member.avatar" :src="member.avatar" :alt="member.username" />
-                <div v-else class="avatar-placeholder">
-                  {{ member.username ? member.username.charAt(0).toUpperCase() : '?' }}
-                </div>
+        <div class="dashboard-cards-wrapper">
+          <!-- 总任务数卡片 -->
+          <div class="stat-card-modern total-tasks">
+            <div class="stat-icon-wrapper">
+              <svg class="stat-icon" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">项目总任务数</div>
+              <div class="stat-value">{{ display.totalTasks }}</div>
+              <div class="stat-description">所有任务的总数量</div>
+            </div>
+            <!-- 任务列表 -->
+            <div class="task-list-compact" v-if="allTasks.length > 0">
+              <div class="task-list-header">
+                <span class="task-list-title">任务列表</span>
+                <span class="task-list-count">共 {{ allTasks.length }} 个任务</span>
               </div>
-              <div class="member-info">
-                <div class="member-name">{{ member.username || '未知用户' }}</div>
-                <div class="member-role">{{ getRoleLabel(member.role) }}</div>
+              <div class="task-list-items">
+                <div 
+                  v-for="task in allTasks" 
+                  :key="task.id"
+                  class="task-item-compact"
+                  @click="goToTaskDetail(task)"
+                >
+                  <div class="task-item-status" :class="getTaskStatusClass(task.status)"></div>
+                  <div class="task-item-content">
+                    <div class="task-item-name">{{ task.title || '未命名任务' }}</div>
+                    <div class="task-item-assignee">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>{{ getTaskAssigneeName(task) }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <div v-else class="members-empty">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-              <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <p>暂无成员数据</p>
+
+          <!-- 任务状态分布卡片 -->
+          <div class="chart-card-modern status-distribution">
+            <div class="chart-header">
+              <h3 class="chart-title">任务状态分布</h3>
+              <div class="chart-subtitle">实时任务进度概览</div>
+            </div>
+            <div class="chart-body">
+              <div class="pie-chart-wrapper" v-if="pieSegments.length">
+                <svg class="pie-svg" viewBox="0 0 200 200">
+                  <g>
+                    <path
+                      v-for="segment in pieSegments"
+                      :key="segment.key"
+                      :d="getPiePath(segment.animatedStartAngle, segment.animatedEndAngle)"
+                      :fill="segment.color"
+                      @mousemove="showTooltip($event, segment.label, segment.value, `个（${segment.percent}%）`)"
+                      @mouseleave="hideTooltip"
+                    />
+                  </g>
+                </svg>
+              </div>
+              <div class="pie-empty" v-else>暂无任务数据</div>
+              <div class="legend-modern">
+                <div class="legend-item-modern pending-review">
+                  <span class="legend-dot"></span>
+                  <span class="legend-text">待审核</span>
+                  <span class="legend-value">{{ statusCounts.pendingReview }}</span>
+                  <span class="legend-percent">{{ dist.pendingReview }}%</span>
+                </div>
+                <div class="legend-item-modern doing">
+                  <span class="legend-dot"></span>
+                  <span class="legend-text">进行中</span>
+                  <span class="legend-value">{{ statusCounts.doing }}</span>
+                  <span class="legend-percent">{{ dist.doing }}%</span>
+                </div>
+                <div class="legend-item-modern blocked">
+                  <span class="legend-dot"></span>
+                  <span class="legend-text">阻塞</span>
+                  <span class="legend-value">{{ statusCounts.blocked }}</span>
+                  <span class="legend-percent">{{ dist.blocked }}%</span>
+                </div>
+                <div class="legend-item-modern done">
+                  <span class="legend-dot"></span>
+                  <span class="legend-text">已完成</span>
+                  <span class="legend-value">{{ statusCounts.done }}</span>
+                  <span class="legend-percent">{{ dist.done }}%</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -174,41 +129,63 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>向下滚动查看图表</span>
+        <span>向下滚动查看已完成任务统计</span>
       </div>
     </div>
 
-    <!-- 第二屏：图表 -->
+    <!-- 第二屏：已完成任务统计 -->
     <div class="dashboard-section charts-section">
-      <div class="section-header">
-        <h2 class="section-title">数据可视化</h2>
-      </div>
-      
-      <div class="grid charts">
-      <div class="card glass gradient-border">
-        <div class="card-title">任务状态分布</div>
-        <div class="pie-chart" v-if="pieSegments.length">
-          <svg viewBox="0 0 200 200">
-            <g>
-              <path
-                v-for="segment in pieSegments"
-                :key="segment.key"
-                :d="getPiePath(segment.animatedStartAngle, segment.animatedEndAngle)"
-                :fill="segment.color"
-                @mousemove="showTooltip($event, segment.label, segment.value, `个（${segment.percent}%）`)"
-                @mouseleave="hideTooltip"
-              />
-            </g>
-          </svg>
-        </div>
-        <div class="pie-empty" v-else>暂无任务数据</div>
-        <div class="legend">
-          <span class="legend-item todo">待办 {{ statusCounts.todo }} 个 ({{ dist.todo }}%)</span>
-          <span class="legend-item doing">进行中 {{ statusCounts.doing }} 个 ({{ dist.doing }}%)</span>
-          <span class="legend-item blocked">阻塞 {{ statusCounts.blocked }} 个 ({{ dist.blocked }}%)</span>
-          <span class="legend-item done">已完成 {{ statusCounts.done }} 个 ({{ dist.done }}%)</span>
-        </div>
-      </div>
+      <!-- 页面标题 -->
+      <h1 class="page-title">已完成任务统计</h1>
+
+      <!-- 中心内容区 -->
+      <div class="kpi-content">
+        <div class="dashboard-cards-wrapper">
+          <!-- 已完成任务数卡片 -->
+          <div class="stat-card-modern completed-tasks">
+            <div class="stat-icon-wrapper">
+              <svg class="stat-icon" width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="22 4 12 14.01 9 11.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <div class="stat-label">已完成任务数</div>
+              <div class="stat-value">{{ display.completed }}</div>
+              <div class="stat-description">完成率 {{ display.completeRate }}%</div>
+            </div>
+            <!-- 已完成任务列表 -->
+            <div class="task-list-compact" v-if="completedTasks.length > 0">
+              <div class="task-list-header">
+                <span class="task-list-title">已完成任务</span>
+                <span class="task-list-count">共 {{ completedTasks.length }} 个任务</span>
+              </div>
+              <div class="task-list-items">
+                <div 
+                  v-for="task in completedTasks" 
+                  :key="task.id"
+                  class="task-item-compact"
+                  @click="goToTaskDetail(task)"
+                >
+                  <div class="task-item-status status-done"></div>
+                  <div class="task-item-content">
+                    <div class="task-item-name">{{ task.title || '未命名任务' }}</div>
+                    <div class="task-item-assignee">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>{{ getTaskAssigneeName(task) }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 图表区域卡片 -->
+          <div class="chart-card-modern charts-wrapper">
+            <div class="charts-grid">
       <div class="card glass gradient-border">
         <div class="card-title">
           成员任务负载
@@ -278,10 +255,11 @@
           </div>
         </div>
       </div>
+      <!-- 近 30 天完成趋势 -->
       <div class="card glass gradient-border">
         <div class="card-title">近 30 天完成趋势</div>
         <div class="line-chart" v-if="linePoints.length > 0">
-          <svg viewBox="0 0 100 50" preserveAspectRatio="none">
+          <svg viewBox="0 0 100 60" preserveAspectRatio="xMidYMid meet">
             <defs>
               <!-- 填充区域渐变 -->
               <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -324,7 +302,7 @@
               <!-- 显示日期 -->
               <text 
                 :x="p.x" 
-                :y="42" 
+                :y="54" 
                 class="line-date">{{ formatDate(p.date) }}</text>
             </g>
           </svg>
@@ -333,6 +311,9 @@
           <div class="empty-text">暂无完成趋势数据</div>
         </div>
       </div>
+      </div>
+          </div>
+        </div>
       </div>
       
       <!-- 滚动提示 -->
@@ -351,26 +332,61 @@
         <p class="section-subtitle">项目关键节点与进度跟踪</p>
       </div>
       
-      <div class="timeline-content">
-        <div class="timeline card glass gradient-border">
-          <ul class="steps">
-            <li class="done">
-              <div class="name">方案评审</div>
-              <div class="date">2023-10-15</div>
-            </li>
-            <li class="done">
-              <div class="name">数据采集完成</div>
-              <div class="date">2023-10-28</div>
-            </li>
-            <li class="processing">
-              <div class="name">原型设计完成</div>
-              <div class="date">2023-11-05</div>
-            </li>
-            <li class="todo">
-              <div class="name">开发启动</div>
-              <div class="date">2023-11-20</div>
-            </li>
-          </ul>
+      <div class="timeline-dual-layout">
+        <!-- 左侧：里程碑时间线 -->
+        <div class="timeline-left">
+          <div class="timeline card glass gradient-border">
+            <ul class="steps">
+              <li class="done">
+                <div class="name">方案评审</div>
+                <div class="date">2023-10-15</div>
+              </li>
+              <li class="done">
+                <div class="name">数据采集完成</div>
+                <div class="date">2023-10-28</div>
+              </li>
+              <li class="processing">
+                <div class="name">原型设计完成</div>
+                <div class="date">2023-11-05</div>
+              </li>
+              <li class="todo">
+                <div class="name">开发启动</div>
+                <div class="date">2023-11-20</div>
+              </li>
+            </ul>
+          </div>
+        </div>
+        
+        <!-- 右侧：任务提交时间线 -->
+        <div class="timeline-right">
+          <div class="commit-timeline card glass gradient-border">
+            <div class="commit-header">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span class="commit-branch">任务提交记录</span>
+            </div>
+            <ul class="commit-list" v-if="taskSubmissions.length > 0">
+              <li class="commit-item" v-for="submission in taskSubmissions" :key="submission.id">
+                <div class="commit-dot"></div>
+                <div class="commit-content">
+                  <div class="commit-message">{{ submission.taskTitle || submission.title || '未命名任务' }}</div>
+                  <div class="commit-meta">
+                    <span class="commit-author-name">{{ submission.submitterName || submission.assigneeName || '未知' }}</span>
+                    <span class="commit-time">{{ formatDateTime(submission.submitTime || submission.createdAt) }}</span>
+                  </div>
+                </div>
+              </li>
+            </ul>
+            <div v-else class="commit-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <p>暂无任务提交记录</p>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -527,7 +543,7 @@ export default {
       lineKey: Date.now(),
       // 通用提示信息（支持数值和任务列表两种模式）
       tooltip: { show: false, x: 0, y: 0, title: '', value: '', suffix: '', mode: 'value', tasks: [] },
-      statusCounts: { todo: 0, doing: 0, blocked: 0, done: 0 },
+      statusCounts: { pendingReview: 0, doing: 0, blocked: 0, done: 0 },
       // 饼图动画进度 (0-1)
       pieAnimationProgress: 0,
       // 从后端获取的完整任务列表（真实任务数据）
@@ -542,6 +558,8 @@ export default {
       achievements: [], // 成果列表
       // 项目成员（用于解析负责人姓名）
       projectMembers: [],
+      // 任务提交记录
+      taskSubmissions: [],
       // 滚动监听器
       scrollObserver: null,
       // 成员详情弹窗
@@ -583,7 +601,8 @@ export default {
         this.loadMemberWorktimes(allTasks),
         this.loadCompletionTrend(),
         this.loadAchievements(),
-        this.loadProjectMembers()
+        this.loadProjectMembers(),
+        this.loadTaskSubmissions()
       ])
       
       this.loadingProgress = 90
@@ -632,8 +651,8 @@ export default {
       
       // 计算最大值用于归一化
       const maxCount = Math.max(...validDays.map(d => d.count), 1)
-      const minY = 12 // 最小Y值（顶部）
-      const maxY = 38 // 最大Y值（底部）- 增加高度，为日期留出空间
+      const minY = 10 // 最小Y值（顶部）
+      const maxY = 42 // 最大Y值（底部）
       const rangeY = maxY - minY
       
       // 生成数据点（只包含有数据的日期）
@@ -666,7 +685,7 @@ export default {
       }
       
       const points = this.linePoints
-      const maxY = 38 // 底部Y值 - 与linePoints保持一致
+      const maxY = 42 // 底部Y值 - 与linePoints保持一致
       
       // 构建路径：从第一个点开始，经过所有点，然后到底部，再回到起点
       let path = `M ${points[0].x} ${maxY} L ${points[0].x} ${points[0].y}`
@@ -686,7 +705,7 @@ export default {
 
       const segments = []
       const colors = [
-        { key: 'todo', color: '#60a5fa', label: '待办' }, // 明亮的蓝色
+        { key: 'pendingReview', color: '#60a5fa', label: '待审核' }, // 明亮的蓝色
         { key: 'doing', color: '#3b82f6', label: '进行中' }, // 鲜艳的蓝色
         { key: 'blocked', color: '#f59e0b', label: '阻塞' }, // 明亮的橙色
         { key: 'done', color: '#10b981', label: '已完成' } // 鲜艳的绿色
@@ -920,6 +939,27 @@ export default {
         return dateStr
       }
     },
+
+    /**
+     * 格式化日期时间
+     * @param {String} dateTimeStr - 日期时间字符串
+     * @returns {String} 格式化后的日期时间 (YYYY/MM/DD HH:mm)
+     */
+    formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return ''
+      try {
+        const date = new Date(dateTimeStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        return `${year}/${month}/${day} ${hours}:${minutes}`
+      } catch (error) {
+        return dateTimeStr
+      }
+    },
+
     /**
      * 跳转到任务详情
      */
@@ -932,14 +972,14 @@ export default {
      */
     getTaskStatusClass(status) {
       const statusMap = {
-        'TODO': 'status-todo',
+        'TODO': 'status-pending-review',
         'IN_PROGRESS': 'status-doing',
         'BLOCKED': 'status-blocked',
         'DONE': 'status-done',
         'COMPLETED': 'status-done',
-        'PENDING_REVIEW': 'status-review'
+        'PENDING_REVIEW': 'status-pending-review'
       }
-      return statusMap[status] || 'status-todo'
+      return statusMap[status] || 'status-pending-review'
     },
 
     /**
@@ -990,6 +1030,10 @@ export default {
         }
 
         console.log('[ProjectDashboard] 获取到的任务列表:', allTasks.length, '个')
+        // 打印第一个任务的详细信息，用于调试成员字段
+        if (allTasks.length > 0) {
+          console.log('[ProjectDashboard] 第一个任务详情:', allTasks[0])
+        }
         return Array.isArray(allTasks) ? allTasks : []
 
       } catch (error) {
@@ -1032,8 +1076,8 @@ export default {
           delayed: 0,
           addedThisWeek: 0
         }
-        this.dist = { todo: 0, doing: 0, blocked: 0, done: 0 }
-        this.statusCounts = { todo: 0, doing: 0, blocked: 0, done: 0 }
+        this.dist = { pendingReview: 0, doing: 0, blocked: 0, done: 0 }
+        this.statusCounts = { pendingReview: 0, doing: 0, blocked: 0, done: 0 }
         return
       }
 
@@ -1106,7 +1150,7 @@ export default {
 
       // 计算任务状态分布
       const statusCounts = {
-        todo: 0,
+        pendingReview: 0,
         doing: 0,
         blocked: 0,
         done: 0
@@ -1114,14 +1158,17 @@ export default {
 
       tasks.forEach(task => {
         const status = task.status || task.status_value || 'TODO'
-        if (status === 'DONE' || status === '已完成' || status === '完成' || status === 'COMPLETED' || status === 'PENDING_REVIEW' || status === '待审核') {
+        if (status === 'DONE' || status === '已完成' || status === '完成' || status === 'COMPLETED') {
           statusCounts.done++
+        } else if (status === 'PENDING_REVIEW' || status === '待审核') {
+          statusCounts.pendingReview++
         } else if (status === 'IN_PROGRESS' || status === '进行中') {
           statusCounts.doing++
         } else if (status === 'BLOCKED' || status === '阻塞') {
           statusCounts.blocked++
         } else {
-          statusCounts.todo++
+          // 其他未知状态也归为待审核
+          statusCounts.pendingReview++
         }
       })
 
@@ -1130,14 +1177,14 @@ export default {
       // 计算百分比
       if (totalTasks > 0) {
         this.dist = {
-          todo: Math.round((statusCounts.todo / totalTasks) * 100),
+          pendingReview: Math.round((statusCounts.pendingReview / totalTasks) * 100),
           doing: Math.round((statusCounts.doing / totalTasks) * 100),
           blocked: Math.round((statusCounts.blocked / totalTasks) * 100),
           done: Math.round((statusCounts.done / totalTasks) * 100)
         }
       } else {
-        this.dist = { todo: 0, doing: 0, blocked: 0, done: 0 }
-        this.statusCounts = { todo: 0, doing: 0, blocked: 0, done: 0 }
+        this.dist = { pendingReview: 0, doing: 0, blocked: 0, done: 0 }
+        this.statusCounts = { pendingReview: 0, doing: 0, blocked: 0, done: 0 }
       }
 
       console.log('[ProjectDashboard] 统计数据:', {
@@ -1750,6 +1797,57 @@ export default {
       }
     },
 
+    /**
+     * 加载任务提交记录
+     */
+    async loadTaskSubmissions() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        this.taskSubmissions = []
+        return
+      }
+
+      try {
+        // 获取所有任务的提交记录
+        const allSubmissions = []
+        
+        // 遍历所有任务，获取每个任务的提交记录
+        for (const task of this.allTasks) {
+          if (task.id) {
+            try {
+              const response = await getTaskSubmissions(task.id)
+              if (response && response.code === 200 && Array.isArray(response.data)) {
+                // 为每个提交记录添加任务标题
+                const submissions = response.data.map(sub => ({
+                  ...sub,
+                  taskTitle: task.title || task.name
+                }))
+                allSubmissions.push(...submissions)
+              }
+            } catch (error) {
+              // 单个任务获取失败不影响其他任务
+              console.warn(`[ProjectDashboard] 获取任务 ${task.id} 的提交记录失败:`, error)
+            }
+          }
+        }
+        
+        // 按提交时间降序排序
+        allSubmissions.sort((a, b) => {
+          const timeA = new Date(a.submitTime || a.createdAt || 0).getTime()
+          const timeB = new Date(b.submitTime || b.createdAt || 0).getTime()
+          return timeB - timeA
+        })
+        
+        // 只保留最近20条
+        this.taskSubmissions = allSubmissions.slice(0, 20)
+        
+        console.log('[ProjectDashboard] 任务提交记录加载完成:', this.taskSubmissions.length, '条')
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载任务提交记录失败:', error)
+        this.taskSubmissions = []
+      }
+    },
+
     async loadAchievements() {
       const projectId = this.$route.params.id
       if (!projectId) {
@@ -2119,7 +2217,7 @@ export default {
         }
       }
 
-      // 2. 再从“接取/负责人”类字符串字段中获取
+      // 2. 再从"接取/负责人"类字符串字段中获取
       const candidateStrings = [
         task.assigneeName,
         task.assignee,
@@ -2128,7 +2226,11 @@ export default {
         task.executorName,
         task.executor,
         task.handlerName,
-        task.handler
+        task.handler,
+        task.ownerName,
+        task.owner,
+        task.creatorName,
+        task.creator
       ]
 
       for (const c of candidateStrings) {
@@ -2166,7 +2268,7 @@ export default {
      */
     animatePieChart() {
       this.pieAnimationProgress = 0
-      const duration = 1000 // 动画时长1秒
+      const duration = 2000 // 动画时长2秒
       const start = performance.now()
       const step = (now) => {
         const elapsed = now - start
@@ -2417,8 +2519,10 @@ export default {
   scroll-snap-align:start;
   scroll-snap-stop:always;
   padding:24px;
+  padding-bottom:100px;
   display:flex;
   flex-direction:column;
+  overflow:visible;
 }
 
 /* KPI section样式 */
@@ -2431,9 +2535,9 @@ export default {
 
 /* 左上角返回按钮 */
 .back-btn-topleft{
-  position:absolute;
-  top:24px;
-  left:24px;
+  position: absolute;
+  top: 24px;
+  left: 24px;
   display:inline-flex;
   align-items:center;
   gap:8px;
@@ -2449,7 +2553,7 @@ export default {
   font-weight:600;
   transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
   box-shadow:0 4px 12px rgba(59,130,246,0.15),0 2px 4px rgba(0,0,0,0.08);
-  z-index:100;
+  z-index: 100;
 }
 
 .back-btn-topleft:hover{
@@ -2467,16 +2571,464 @@ export default {
   transform:translateX(-3px);
 }
 
+/* 页面标题 */
+.page-title {
+  position: absolute;
+  top: 32px;
+  left: 140px;
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #1e40af !important;
+  letter-spacing: 0.5px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  z-index: 100;
+}
+
 /* KPI内容区 */
 .kpi-content{
-  max-width:1200px;
+  max-width:1400px;
   width:100%;
   display:flex;
-  flex-direction:column;
-  align-items:center;
-  gap:48px;
+  justify-content:center;
+  align-items:flex-start;
   position:relative;
   z-index:1;
+  padding-top: 40px;
+}
+
+/* 仪表盘卡片包装器 */
+.dashboard-cards-wrapper {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 24px;
+  width: 100%;
+  max-width: 1400px;
+}
+
+/* 已完成任务统计页面的卡片包装器 */
+.charts-section .dashboard-cards-wrapper {
+  align-items: stretch;
+}
+
+/* 现代统计卡片 */
+.stat-card-modern {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 24px 24px;
+  box-shadow: 
+    0 20px 40px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(59, 130, 246, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.stat-card-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card-modern:hover {
+  transform: translateY(-8px);
+  box-shadow: 
+    0 28px 56px rgba(15, 23, 42, 0.12),
+    0 8px 20px rgba(59, 130, 246, 0.15);
+}
+
+.stat-card-modern:hover::before {
+  opacity: 1;
+}
+
+/* 图标包装器 */
+.stat-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+}
+
+.stat-icon {
+  color: white;
+  stroke: white;
+}
+
+/* 统计内容 */
+.stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.stat-description {
+  font-size: 14px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* 已完成任务卡片特殊样式 */
+.stat-card-modern.completed-tasks .stat-icon-wrapper {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.stat-card-modern.completed-tasks::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+/* 现代图表卡片 */
+.chart-card-modern {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 
+    0 20px 40px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(59, 130, 246, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.chart-card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 28px 56px rgba(15, 23, 42, 0.12),
+    0 8px 20px rgba(59, 130, 246, 0.15);
+}
+
+/* 图表头部 */
+.chart-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.chart-subtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+/* 图表主体 */
+.chart-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
+/* 饼图包装器 */
+.pie-chart-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.pie-svg {
+  width: 100%;
+  max-width: 280px;
+  height: 280px;
+  filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.1));
+}
+
+.pie-svg path {
+  transition: transform 0.3s ease, filter 0.3s ease;
+  transform-origin: 100px 100px;
+  cursor: pointer;
+}
+
+.pie-svg path:hover {
+  transform: scale(1.08);
+  filter: brightness(1.15);
+}
+
+/* 现代图例 */
+.legend-modern {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.legend-item-modern {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 1px solid transparent;
+}
+
+.legend-item-modern:hover {
+  background: #f1f5f9;
+  transform: translateX(4px);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  flex: 1;
+}
+
+.legend-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.legend-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  padding: 2px 8px;
+  background: white;
+  border-radius: 6px;
+}
+
+/* 不同状态的图例颜色 */
+.legend-item-modern.pending-review .legend-dot {
+  background: #60a5fa;
+  box-shadow: 0 2px 8px rgba(96, 165, 250, 0.3);
+}
+
+.legend-item-modern.doing .legend-dot {
+  background: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.legend-item-modern.blocked .legend-dot {
+  background: #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.legend-item-modern.done .legend-dot {
+  background: #10b981;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+/* 图表内容包装器 */
+.charts-content-wrapper {
+  max-width: 1400px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 图表包装器 */
+.charts-wrapper {
+  padding: 16px !important;
+}
+
+/* 图表网格 */
+.charts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.charts-grid .card {
+  margin: 0;
+}
+
+/* 紧凑任务列表 */
+.task-list-compact {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.task-list-header {
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.task-list-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.task-list-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.task-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.task-list-items::-webkit-scrollbar {
+  width: 4px;
+}
+
+.task-list-items::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.task-list-items::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.task-list-items::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.task-item-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.task-item-compact:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  transform: translateX(4px);
+}
+
+.task-item-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-item-status.status-todo,
+.task-item-status.status-pending-review {
+  background: #60a5fa;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.4);
+}
+
+.task-item-status.status-doing {
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.task-item-status.status-blocked {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+.task-item-status.status-done {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.task-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-item-assignee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.task-item-assignee svg {
+  stroke: #94a3b8;
+  flex-shrink: 0;
+}
+
+.task-list-more {
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
 }
 
 /* 标题区 */
@@ -2514,7 +3066,33 @@ export default {
 
 /* Charts section样式 */
 .charts-section{
-  padding-top:60px;
+  padding-top:50px;
+  padding-bottom:40px;
+  min-height:auto;
+  height:100vh;
+  overflow:hidden;
+}
+
+.charts-section .stat-card-modern {
+  padding: 20px;
+}
+
+.charts-section .stat-icon-wrapper {
+  width: 44px;
+  height: 44px;
+}
+
+.charts-section .stat-value {
+  font-size: 32px;
+}
+
+.charts-section .task-list-compact {
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.charts-section .task-list-items {
+  max-height: 180px;
 }
 
 /* Timeline section样式 */
@@ -2529,6 +3107,164 @@ export default {
   width:100%;
   position:relative;
   z-index:1;
+}
+
+/* 双栏布局 */
+.timeline-dual-layout {
+  max-width: 1400px;
+  width: 100%;
+  display: flex;
+  gap: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.timeline-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.timeline-right {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 提交时间线样式 */
+.commit-timeline {
+  padding: 24px !important;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.commit-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgba(59, 130, 246, 0.2);
+  margin-bottom: 20px;
+}
+
+.commit-header svg {
+  color: #3b82f6;
+}
+
+.commit-branch {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e40af;
+  padding: 4px 12px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.commit-author {
+  font-size: 14px;
+  color: #64748b;
+  margin-left: auto;
+}
+
+.commit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.commit-list::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+}
+
+.commit-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.commit-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.commit-content {
+  flex: 1;
+  padding-bottom: 8px;
+}
+
+.commit-message {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.commit-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.commit-author-name {
+  font-weight: 500;
+  color: #3b82f6;
+}
+
+.commit-time {
+  color: #94a3b8;
+}
+
+.commit-timeline::-webkit-scrollbar {
+  width: 6px;
+}
+
+.commit-timeline::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.commit-timeline::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6 0%, #8b5cf6 100%);
+  border-radius: 3px;
+}
+
+.commit-timeline::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2563eb 0%, #7c3aed 100%);
+}
+
+.commit-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.commit-empty svg {
+  margin-bottom: 16px;
+  opacity: 0.3;
+  color: #94a3b8;
+}
+
+.commit-empty p {
+  font-size: 14px;
+  margin: 0;
+  color: #94a3b8;
 }
 
 /* Achievements section样式 */
@@ -2625,7 +3361,8 @@ export default {
   font-size:14px;
   font-weight:500;
   animation:bounce 2s infinite;
-  z-index:10;
+  z-index:100;
+  pointer-events:none;
 }
 
 .scroll-hint svg{
@@ -2637,140 +3374,6 @@ export default {
   50%{transform:translateX(-50%) translateY(-10px)}
 }
 
-/* 项目成员区域 */
-.project-members-section {
-  width: 100%;
-  max-width: 1200px;
-  margin-top: 24px;
-}
-
-.members-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  color: #fff;
-}
-
-.members-header svg {
-  color: #3b82f6;
-}
-
-.members-header h3 {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0;
-  flex: 1;
-}
-
-.members-count {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.6);
-  background: rgba(59, 130, 246, 0.1);
-  padding: 4px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.members-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.member-card {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.member-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
-.member-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.member-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.member-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.member-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-  margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.member-role {
-  font-size: 12px;
-  color: #fff;
-  padding: 3px 10px;
-  background: rgba(59, 130, 246, 0.35);
-  border-radius: 6px;
-  display: inline-block;
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  font-weight: 500;
-}
-
-.members-empty {
-  text-align: center;
-  padding: 60px 20px;
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.members-empty svg {
-  margin-bottom: 16px;
-  opacity: 0.3;
-}
-
-.members-empty p {
-  font-size: 14px;
-  margin: 0;
-}
-
 /* 左右侧边栏 */
 .left-sidebar,
 .right-sidebar {
@@ -2778,7 +3381,7 @@ export default {
   top: 50%;
   transform: translateY(-50%);
   width: 280px;
-  max-height: 70vh;
+  height: 600px;
   z-index: 100;
   pointer-events: auto;
 }
@@ -2798,6 +3401,9 @@ export default {
   padding: 20px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-header {
@@ -2834,9 +3440,10 @@ export default {
 }
 
 .sidebar-content {
-  max-height: calc(70vh - 80px);
+  flex: 1;
   overflow-y: auto;
   padding-right: 4px;
+  min-height: 0;
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -3099,6 +3706,70 @@ export default {
 .kpi-value.danger:hover{
   color:#dc2626;
 }
+
+/* 大号KPI卡片 */
+.kpi-card-large {
+  background:linear-gradient(135deg,#ffffff 0%,#f8fafc 100%);
+  border:0;
+  border-radius:24px;
+  padding:48px 40px;
+  position:relative;
+  overflow:hidden;
+  transform:translateZ(0);
+  backdrop-filter:blur(10px);
+  transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+  box-shadow:
+    0 20px 40px rgba(15,23,42,0.08),
+    0 4px 12px rgba(59,130,246,0.05),
+    0 1px 0 rgba(255,255,255,0.95) inset,
+    0 -2px 0 rgba(226,232,240,0.8) inset;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 200px;
+}
+
+.kpi-card-large.glow::before{
+  content:'';
+  position:absolute;
+  inset:-2px;
+  border-radius:24px;
+  background:conic-gradient(from 180deg at 50% 50%,#3b82f6,#8b5cf6,#3b82f6);
+  opacity:0;
+  transition:opacity 0.4s ease;
+  z-index:-1;
+}
+
+.kpi-card-large:hover{
+  transform:translateY(-8px) scale(1.02);
+  box-shadow:
+    0 28px 56px rgba(15,23,42,0.12),
+    0 8px 20px rgba(59,130,246,0.15);
+}
+
+.kpi-card-large:hover.glow::before{
+  opacity:0.15;
+}
+
+/* 已完成任务卡片特殊样式 */
+.completed-card {
+  background:linear-gradient(135deg,#d1fae5 0%,#a7f3d0 100%);
+}
+
+.completed-card .kpi-label::before {
+  background:linear-gradient(135deg,#10b981 0%,#059669 100%);
+}
+
+.completed-card .kpi-value {
+  color:#065f46;
+}
+
+/* 图表在KPI区域的样式 */
+.chart-in-kpi {
+  min-height: 400px;
+}
 .charts{grid-template-columns:1fr 1fr 1fr;margin-top:8px;gap:28px} /* 放大卡片间距 */
 .card{
   background: linear-gradient(180deg,#ffffff,#fbfbff);
@@ -3148,12 +3819,11 @@ export default {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  height: 280px;  /* 固定高度，防止跳动 */
+  min-height: 100px;
   padding: 12px;
   align-content: flex-start;
   position: relative;
-  overflow-y: auto;  /* 如果内容超出，显示滚动条 */
-  overflow-x: hidden;
+  overflow: visible;
 }
 
 /* 隐藏滚动条但保留滚动功能 */
@@ -3164,8 +3834,8 @@ export default {
 
 .treemap-block {
   position: relative;
-  border-radius: 10px;  /* 从12px改为10px */
-  padding: 12px;  /* 从16px改为12px，更紧凑 */
+  border-radius: 8px;
+  padding: 10px;
   cursor: pointer;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -3173,8 +3843,9 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  min-width: 80px;  /* 从100px改为80px */
-  animation: treemapFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;  /* backwards应用第一帧样式 */
+  min-width: 70px;
+  min-height: 50px;
+  animation: treemapFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
 /* 为不同位置的方块添加延迟 */
@@ -3196,23 +3867,28 @@ export default {
 /* 选中状态 - 占据整个容器 */
 .treemap-block.selected {
   position: absolute !important;
-  top: 12px;  /* 从0改为12px，留出padding */
-  left: 12px;  /* 从0改为12px，留出padding */
-  width: calc(100% - 24px) !important;
-  height: calc(100% - 24px) !important;  /* 使用calc，自动适应容器 */
-  flex-basis: 100% !important;
-  flex-grow: 1 !important;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  width: auto !important;
+  height: auto !important;
+  min-height: 150px !important;
+  flex-basis: auto !important;
+  flex-grow: 0 !important;
   z-index: 100;
-  margin: 0;  /* 从12px改为0，因为已经用top/left定位 */
-  transform: scale(1);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  margin: 0;
+  transform: none !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  animation: none !important;
 }
 
 /* 隐藏其他方块 */
 .treemap-block.hidden {
   opacity: 0;
-  transform: scale(0.8);
+  transform: none !important;
   pointer-events: none;
+  animation: none !important;
 }
 
 @keyframes treemapFadeIn {
@@ -3260,7 +3936,7 @@ export default {
 }
 
 .treemap-name {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   margin-bottom: 4px;
   white-space: nowrap;
@@ -3272,8 +3948,8 @@ export default {
 
 /* 选中状态下的文字样式 - 大号显示 */
 .treemap-block.selected .treemap-name {
-  font-size: 36px;
-  margin-bottom: 20px;
+  font-size: 28px;
+  margin-bottom: 12px;
   max-width: none;
 }
 
@@ -3285,7 +3961,7 @@ export default {
 
 /* 选中状态下的工时数字 - 超大号 */
 .treemap-block.selected .treemap-value {
-  font-size: 72px;
+  font-size: 48px;
   font-weight: 800;
 }
 
@@ -3345,15 +4021,15 @@ export default {
 .bar-name{font-size:12px;color:#475569;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;max-width:80px;font-weight:600;padding:4px 0;letter-spacing:0.3px}
 .bar-chart-empty{height:200px;display:flex;align-items:center;justify-content:center}
 .empty-text{font-size:14px;color:#94a3b8}
-.line-chart{height:220px;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:20px 20px 10px 20px;position:relative;overflow:visible}
+.line-chart{height:220px;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:20px 20px 30px 20px;position:relative;overflow:visible}
 .line-chart-empty{height:220px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px}
-.line-chart svg{width:100%;height:100%;overflow:visible}
+.line-chart svg{max-width:500px;width:90%;height:160px;overflow:visible;margin:0 auto}
 .line-area{opacity:0.6;transition:opacity 0.3s ease}
 .line{stroke-dasharray:200;stroke-dashoffset:200;animation:dash 1200ms ease forwards;filter:drop-shadow(0 2px 4px rgba(59,130,246,0.2))}
 .line-point{filter:drop-shadow(0 2px 4px rgba(59,130,246,0.3));transition:all 0.3s ease;cursor:pointer}
 .line-point:hover{r:3.5;fill:#2563eb}
-.line-label{font-size:3.5px;fill:#1e40af;font-weight:600;text-anchor:middle;pointer-events:none}
-.line-date{font-size:3px;fill:#64748b;font-weight:500;text-anchor:middle;pointer-events:none}
+.line-label{font-size:5px;fill:#1e40af;font-weight:700;text-anchor:middle;pointer-events:none}
+.line-date{font-size:4.5px;fill:#64748b;font-weight:600;text-anchor:middle;pointer-events:none}
 /* Timeline卡片样式优化 */
 .timeline{
   width:100%;
