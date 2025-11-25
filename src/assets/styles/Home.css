@@ -308,9 +308,10 @@
   padding-top: calc(var(--space-6) + 64px); /* 为固定页眉留出空�?*/
 }
 
-/* 快捷操作 - 宽度限制与三列中的两列对�?*/
+/* 快捷操作 - 宽度限制与三列中的两列对齐 */
 .home-container .quick-actions {
   width: calc(100% - 340px - var(--space-6)); /* 总宽度减去日历宽度和一个gap */
+  margin-right: var(--space-6); /* 添加右边距，防止被日历遮挡 */
 }
 
 /* 三列在同一行：工作项、我参与的项目、日�?*/
@@ -849,7 +850,16 @@
 /* 中等屏幕 - 解决快捷操作区域宽度问题 */
 @media (max-width: 1400px) {
   .home-container .quick-actions {
-    width: 100%;
+    width: calc(100% - 340px - var(--space-6));
+    margin-right: var(--space-6);
+  }
+}
+
+/* 更小屏幕时保持并排但调整宽度 */
+@media (max-width: 1300px) {
+  .home-container .quick-actions {
+    width: calc(100% - 360px);  /* 增加更多空间给日历 */
+    margin-right: 20px;          /* 保持间距 */
   }
 }
 
