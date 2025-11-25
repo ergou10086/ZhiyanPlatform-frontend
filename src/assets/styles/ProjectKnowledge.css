@@ -534,6 +534,55 @@
   }
 }
 
+/* ========== 移动端页眉和标题修复 ========== */
+@media (max-width: 768px) {
+  /* 页眉文字不被遮挡 */
+  .knowledge-base-container .top-header {
+    padding-right: 120px !important;
+  }
+
+  .knowledge-base-container .top-header .header-title {
+    max-width: calc(100vw - 200px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+
+  /* 主内容区域顶部间距 */
+  .knowledge-base-container .main-content {
+    padding-top: 80px !important;
+  }
+
+  /* 标题卡片不出框，内容居中 */
+  .knowledge-base-container .kb-header {
+    overflow: hidden;
+    word-wrap: break-word;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px !important;
+    min-height: 100px;
+  }
+
+  .knowledge-base-container .kb-title {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    font-size: 20px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .knowledge-base-container .kb-subtitle {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    display: none;
+  }
+}
+
 /* ========== 黑暗模式样式 ========== */
 .dark-mode .knowledge-base-container {
   background-color: #0f172a;
