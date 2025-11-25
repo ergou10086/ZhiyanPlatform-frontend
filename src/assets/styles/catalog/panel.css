@@ -196,3 +196,75 @@
   display: inline-block;
 }
 
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .archive-slide-panel {
+    width: 100%;
+    right: -100%;
+  }
+  
+  .panel-header {
+    padding: 14px 16px;
+  }
+  
+  .panel-title {
+    font-size: 16px;
+  }
+  
+  .panel-content {
+    padding: 16px;
+  }
+  
+  .search-container {
+    max-width: 100%;
+  }
+  
+  .search-input {
+    height: 38px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel-header {
+    padding: 12px;
+  }
+  
+  .panel-title {
+    font-size: 15px;
+  }
+  
+  .panel-close-btn {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .panel-close-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .panel-content {
+    padding: 12px;
+  }
+  
+  .search-input {
+    height: 36px;
+    font-size: 13px;
+    padding: 0 36px 0 12px;
+  }
+  
+  .search-icon {
+    right: 36px;
+  }
+  
+  .archive-slide-panel .doc-table thead th {
+    font-size: 11px;
+    padding: 8px 6px;
+  }
+  
+  .archive-slide-panel .doc-table tbody td {
+    font-size: 12px;
+    padding: 8px 6px;
+  }
+}

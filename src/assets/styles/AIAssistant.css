@@ -1340,6 +1340,9 @@
 @media (max-width: 768px) {
   .ai-assistant-container .main-content {
     padding: var(--space-4);
+    height: auto;
+    min-height: auto;
+    overflow: visible;
   }
 
   .ai-assistant-container .project-overview {
@@ -1399,6 +1402,73 @@
 
   .ai-assistant-container .bottom-actions {
     flex-direction: column;
+  }
+
+  /* 移动端文件面板样式 */
+  .ai-assistant-container .uploaded-files-panel.collapsed {
+    width: 60px !important;
+    padding: 16px 12px !important;
+  }
+
+  .ai-assistant-container .uploaded-files-panel:not(.collapsed) {
+    width: 280px !important;
+    padding: 20px !important;
+  }
+
+  .ai-assistant-container .files-panel-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .ai-assistant-container .files-panel-title {
+    font-size: 16px;
+  }
+
+  /* 移动端主布局使用统一滚动 */
+  .ai-assistant-container .main-layout {
+    flex: none;
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .ai-assistant-container .content-wrapper {
+    overflow: visible;
+    min-height: auto;
+  }
+
+  /* 修复移动端输入框和按钮 */
+  .ai-assistant-container .user-input-area {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .ai-assistant-container .file-select-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .ai-assistant-container .send-btn {
+    padding: 12px 20px;
+    min-width: 70px;
+    min-height: 44px;
+    white-space: nowrap;
+    writing-mode: horizontal-tb;
+    flex-shrink: 0;
+  }
+
+  .ai-assistant-container .send-btn span {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  .ai-assistant-container .user-input-area textarea {
+    padding: 12px 16px;
+    min-height: 44px;
+    font-size: 14px;
   }
 }
 
@@ -2426,6 +2496,25 @@
   position: relative;
 }
 
+/* 文件面板折叠状态 */
+.ai-assistant-container .uploaded-files-panel.collapsed {
+  width: 60px;
+  padding: 16px 12px;
+}
+
+.ai-assistant-container .uploaded-files-panel.collapsed .files-panel-title {
+  display: none;
+}
+
+.ai-assistant-container .uploaded-files-panel.collapsed .header-actions {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-assistant-container .uploaded-files-panel.collapsed .files-panel-body {
+  display: none;
+}
+
 .ai-assistant-container .files-panel-header {
   display: flex;
   align-items: center;
@@ -2455,7 +2544,15 @@
   animation: pulse 2s ease-in-out infinite;
 }
 
-.ai-assistant-container .clear-files-btn {
+/* 头部操作按钮容器 */
+.ai-assistant-container .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-assistant-container .clear-files-btn,
+.ai-assistant-container .toggle-panel-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2475,6 +2572,21 @@
   border-color: #ef4444;
   color: #dc2626;
   transform: scale(1.1);
+}
+
+.ai-assistant-container .toggle-panel-btn:hover {
+  background: #e0f2fe;
+  border-color: #5EB6E4;
+  color: #0044CC;
+  transform: scale(1.1);
+}
+
+.ai-assistant-container .toggle-panel-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.ai-assistant-container .toggle-panel-btn svg.rotated {
+  transform: rotate(180deg);
 }
 
 .ai-assistant-container .files-panel-body {
