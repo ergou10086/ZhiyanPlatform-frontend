@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
+import '@/assets/styles/responsive.css'
 import GlobalUserProfile from './components/GlobalUserProfile.vue'
 import Button from './components/Button.vue'
 import Card from './components/Card.vue'
@@ -10,6 +11,7 @@ import Input from './components/Input.vue'
 import authStore from './store/auth'
 import tokenManager from './utils/tokenManager'
 import EventBus, { eventBus } from './utils/eventBus'
+import { responsiveMixin, device, preventIOSBounce } from './utils/responsive'
 
 Vue.config.productionTip = false
 
@@ -348,6 +350,14 @@ Vue.use(EventBus)
 
 // 注册 Element UI
 Vue.use(ElementUI)
+
+// 全局混入响应式支持
+Vue.mixin(responsiveMixin)
+
+// 如果是iOS设备，防止橡皮筋效果
+if (device.isIOS()) {
+  preventIOSBounce()
+}
 
 // 开发环境：启用事件调试
 if (process.env.NODE_ENV === 'development') {

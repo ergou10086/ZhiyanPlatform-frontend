@@ -630,6 +630,7 @@ export default {
 
 .day {
   aspect-ratio: 1;
+  max-height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -639,6 +640,39 @@ export default {
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   font-weight: var(--font-medium);
+}
+
+/* 移动端优化 */
+@media (max-width: 1024px) {
+  .day {
+    aspect-ratio: unset;
+    height: 36px;
+    max-height: 36px;
+  }
+}
+
+@media (max-width: 768px) {
+  .calendar-days {
+    gap: 2px;
+  }
+  
+  .day {
+    aspect-ratio: unset;
+    height: 32px;
+    max-height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-days {
+    gap: 1px;
+  }
+  
+  .day {
+    aspect-ratio: unset;
+    height: 28px;
+    max-height: 28px;
+  }
 }
 
 .day:hover {
@@ -754,19 +788,223 @@ export default {
 }
 
 @media (max-width: 768px) {
+  .right-sidebar {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  .calendar-header h3.widget-title {
+    font-size: 16px !important;
+    margin-bottom: 8px !important;
+    padding: 0 12px !important;
+  }
+  
   .calendar-widget,
-  .stats-widget {
-    padding: var(--space-4);
+  .task-alert-widget {
+    padding: 10px !important;
+    margin-bottom: 10px !important;
   }
 
   .widget-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-3);
+    gap: var(--space-2);
   }
 
   .edit-btn {
     align-self: flex-end;
+  }
+  
+  /* 日历网格优化 */
+  .calendar {
+    max-width: 100% !important;
+  }
+  
+  .calendar-grid {
+    font-size: 12px !important;
+  }
+  
+  .calendar-days {
+    gap: 2px !important;
+  }
+  
+  .weekdays {
+    margin-bottom: 4px !important;
+  }
+  
+  .weekdays span {
+    font-size: 11px !important;
+    padding: 4px 2px !important;
+  }
+  
+  .day {
+    aspect-ratio: unset !important;
+    height: 32px !important;
+    line-height: 32px !important;
+    font-size: 12px !important;
+    padding: 0 !important;
+  }
+  
+  /* 月份导航 */
+  .calendar .calendar-header {
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .calendar-header .month-year {
+    font-size: 14px !important;
+  }
+  
+  .calendar-header .nav-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 16px !important;
+  }
+  
+  /* 任务提醒 */
+  .task-alert-widget {
+    max-height: 200px !important;
+    overflow-y: auto !important;
+  }
+  
+  .task-alert-widget .widget-title {
+    font-size: 14px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .alert-message {
+    padding: 8px !important;
+  }
+  
+  .alert-title {
+    font-size: 12px !important;
+  }
+  
+  .alert-subtitle {
+    font-size: 10px !important;
+  }
+  
+  .urgent-task-item {
+    padding: 8px !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .task-name {
+    font-size: 12px !important;
+  }
+  
+  .task-due {
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .right-sidebar {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  .calendar-header h3.widget-title {
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+    padding: 0 8px !important;
+  }
+  
+  .calendar-widget,
+  .task-alert-widget {
+    padding: 8px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  /* 日历更紧凑 */
+  .calendar {
+    max-width: 100% !important;
+  }
+  
+  .calendar-grid {
+    font-size: 11px !important;
+  }
+  
+  .calendar-days {
+    gap: 1px !important;
+  }
+  
+  .weekdays {
+    margin-bottom: 2px !important;
+  }
+  
+  .weekdays span {
+    font-size: 10px !important;
+    padding: 3px 1px !important;
+  }
+  
+  .day {
+    aspect-ratio: unset !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    font-size: 11px !important;
+    padding: 0 !important;
+  }
+  
+  .calendar .calendar-header {
+    padding: 6px !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .calendar-header .month-year {
+    font-size: 13px !important;
+  }
+  
+  .calendar-header .nav-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 14px !important;
+  }
+  
+  /* 任务提醒更紧凑 */
+  .task-alert-widget {
+    max-height: 150px !important;
+  }
+  
+  .task-alert-widget .widget-title {
+    font-size: 13px !important;
+    margin-bottom: 6px !important;
+  }
+  
+  .alert-message {
+    padding: 6px !important;
+    gap: 6px !important;
+  }
+  
+  .alert-message svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .alert-title {
+    font-size: 11px !important;
+  }
+  
+  .alert-subtitle {
+    font-size: 9px !important;
+  }
+  
+  .urgent-task-item {
+    padding: 6px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  .task-name {
+    font-size: 11px !important;
+  }
+  
+  .task-due {
+    font-size: 9px !important;
+  }
+  
+  .task-badge {
+    font-size: 8px !important;
+    padding: 2px 4px !important;
   }
 }
 

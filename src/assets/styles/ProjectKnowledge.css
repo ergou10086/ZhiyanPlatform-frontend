@@ -444,21 +444,142 @@
 @media (max-width: 900px) {
   .knowledge-base-container .content-layout.leftbar { 
     grid-template-columns: 1fr; 
+    height: auto !important;
+    min-height: auto !important;
   }
   .knowledge-base-container .left-options { 
     position: static; 
     width: 100%;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    height: auto !important;
   }
   .knowledge-base-container .content-right { 
     margin-left: 0; 
     padding: 16px;
   }
   .knowledge-base-container .options-card { 
-    height: auto; 
+    height: auto !important;
   }
   .knowledge-base-container .stats-grid { 
     grid-template-columns: 1fr; 
+  }
+}
+
+@media (max-width: 600px) {
+  .knowledge-base-container .main-content {
+    padding: 0 16px;
+  }
+  
+  .knowledge-base-container .left-options {
+    margin-bottom: 12px;
+  }
+  
+  .knowledge-base-container .content-right {
+    padding: 12px;
+  }
+  
+  .knowledge-base-container .options-card {
+    padding: 16px;
+  }
+  
+  .knowledge-base-container .stats-grid {
+    gap: 12px;
+  }
+  
+  .knowledge-base-container .stat-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .knowledge-base-container .main-content {
+    padding: 0 12px;
+  }
+  
+  .knowledge-base-container .left-options {
+    margin-bottom: 10px;
+  }
+  
+  .knowledge-base-container .content-right {
+    padding: 10px;
+  }
+  
+  .knowledge-base-container .options-card {
+    padding: 12px;
+  }
+  
+  .knowledge-base-container .option-item {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  .knowledge-base-container .stats-grid {
+    gap: 10px;
+  }
+  
+  .knowledge-base-container .stat-card {
+    padding: 12px;
+  }
+  
+  .knowledge-base-container .kb-header {
+    padding: 20px 16px;
+  }
+  
+  .knowledge-base-container .kb-title {
+    font-size: 24px;
+  }
+  
+  .knowledge-base-container .kb-subtitle {
+    font-size: 14px;
+  }
+}
+
+/* ========== 移动端页眉和标题修复 ========== */
+@media (max-width: 768px) {
+  /* 页眉文字不被遮挡 */
+  .knowledge-base-container .top-header {
+    padding-right: 120px !important;
+  }
+
+  .knowledge-base-container .top-header .header-title {
+    max-width: calc(100vw - 200px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+
+  /* 主内容区域顶部间距 */
+  .knowledge-base-container .main-content {
+    padding-top: 80px !important;
+  }
+
+  /* 标题卡片不出框，内容居中 */
+  .knowledge-base-container .kb-header {
+    overflow: hidden;
+    word-wrap: break-word;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 24px 16px !important;
+    min-height: 100px;
+  }
+
+  .knowledge-base-container .kb-title {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    font-size: 20px;
+    line-height: 1.4;
+    margin: 0;
+  }
+
+  .knowledge-base-container .kb-subtitle {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    display: none;
   }
 }
 
