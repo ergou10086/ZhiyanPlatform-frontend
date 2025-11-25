@@ -914,6 +914,7 @@
 @media (max-width: 768px) {
   .home-container .main-content {
     padding: 12px !important;
+    padding-top: 80px !important;  /* 为固定页眉留出空间 */
     gap: 16px !important;
   }
   
@@ -1015,6 +1016,7 @@
 @media (max-width: 480px) {
   .home-container .main-content {
     padding: 8px !important;
+    padding-top: 75px !important;  /* 为固定页眉留出空间 */
     gap: 12px !important;
   }
   
