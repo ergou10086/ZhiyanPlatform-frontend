@@ -666,3 +666,159 @@
   color: #93c5fd;
 }
 
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .upload-dialog {
+    width: 95%;
+    max-height: calc(100vh - 40px);
+    margin: 20px auto;
+  }
+  
+  .dialog-header {
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+  
+  .dialog-header h3 {
+    font-size: 16px;
+  }
+  
+  .close-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+  }
+  
+  .dialog-content {
+    padding: 16px;
+  }
+  
+  .form-group label {
+    font-size: 13px;
+  }
+  
+  .form-group input[type="text"],
+  .form-group textarea,
+  .form-group select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  
+  .file-upload-area {
+    padding: 24px 16px;
+  }
+  
+  .upload-icon {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .upload-text {
+    font-size: 14px;
+  }
+  
+  .upload-hint {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .upload-dialog {
+    width: 98%;
+    max-height: calc(100vh - 20px);
+    margin: 10px auto;
+    border-radius: 8px;
+  }
+  
+  .dialog-header {
+    padding: 12px;
+  }
+  
+  .dialog-title-section {
+    gap: 8px;
+  }
+  
+  .file-type-badge {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+  
+  .dialog-header h3 {
+    font-size: 14px;
+  }
+  
+  .close-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    border-radius: 8px;
+  }
+  
+  .dialog-content {
+    padding: 12px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+  
+  .form-group input[type="text"],
+  .form-group textarea,
+  .form-group select {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+  
+  .file-upload-area {
+    padding: 20px 12px;
+    min-height: 120px;
+  }
+  
+  .upload-icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .upload-text {
+    font-size: 13px;
+  }
+  
+  .upload-hint {
+    font-size: 11px;
+  }
+  
+  .file-list {
+    gap: 8px;
+  }
+  
+  .file-item {
+    padding: 8px;
+  }
+  
+  .dialog-footer {
+    padding: 12px;
+    gap: 8px;
+  }
+  
+  .dialog-footer .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .visibility-option {
+    padding: 12px;
+  }
+  
+  .option-title {
+    font-size: 13px;
+  }
+  
+  .option-desc {
+    font-size: 11px;
+  }
+}
