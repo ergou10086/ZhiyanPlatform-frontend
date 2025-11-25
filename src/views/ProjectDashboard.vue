@@ -49,7 +49,7 @@
                 <span class="task-list-count">共 {{ allTasks.length }} 个任务</span>
               </div>
               <div class="task-list-items">
-                <div 
+                <div   
                   v-for="task in allTasks" 
                   :key="task.id"
                   class="task-item-compact"
@@ -274,7 +274,7 @@
               </linearGradient>
             </defs>
             <!-- 渐变填充区域 -->
-            <path 
+            <path   
               :key="'area-'+lineKey"
               :d="lineAreaPath"
               fill="url(#lineGradient)"
