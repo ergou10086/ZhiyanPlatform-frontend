@@ -457,9 +457,9 @@
 }
 @media (max-width: 768px) {
   .project-square-container .search-input {
-    height: 48px;
-    padding: 0 16px;
-    font-size: 14px;
+    height: 52px;
+    padding: 0 18px;
+    font-size: 15px;
   }
 
   .project-square-container .btn {
@@ -474,9 +474,9 @@
     grid-template-columns: 1fr;
   }
   .project-square-container .search-input {
-    height: 50px;
-    padding: 0 18px;
-    font-size: 15px;
+    height: 100px;
+    padding: 0 20px;
+    font-size: 16px;
   }
   .project-square-container .toolbar { 
     flex-direction: column; 
@@ -484,9 +484,13 @@
     gap: 12px;
   }
   .project-square-container .toolbar-actions { 
-    justify-content: flex-start;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: 8px;
+    width: 100%;
+  }
+  .project-square-container .toolbar-actions .btn-primary {
+    margin-left: auto;
   }
   .project-square-container .btn {
     height: 36px;
@@ -504,9 +508,9 @@
 
 @media (max-width: 480px) {
   .project-square-container .search-input {
-    height: 48px;
-    padding: 0 16px;
-    font-size: 15px;
+    height: 58px;
+    padding: 0 18px;
+    font-size: 16px;
   }
   .project-square-container .btn {
     height: 34px;
