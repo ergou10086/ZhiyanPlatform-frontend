@@ -398,6 +398,7 @@
   .login-container .login-left {
     min-height: 200px;
     padding: 24px 20px;
+    z-index: 1;
   }
   
   .login-container .brand-corner {
@@ -423,6 +424,9 @@
   
   .login-container .login-right {
     padding: 24px 16px;
+    position: relative;
+    z-index: 2;
+    background: white;
   }
   
   .login-container .login-box {
@@ -466,6 +470,7 @@
   .login-container .login-left {
     min-height: 160px;
     padding: 16px;
+    z-index: 1;
   }
   
   .login-container .brand-corner {
@@ -495,6 +500,9 @@
   
   .login-container .login-right {
     padding: 20px 16px 32px;
+    position: relative;
+    z-index: 2;
+    background: white;
   }
   
   .login-container .login-box {
