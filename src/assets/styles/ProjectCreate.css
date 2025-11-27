@@ -702,42 +702,88 @@
   cursor: not-allowed;
 }
 
-/* ��Ӧʽ��� */
+/* 响应式设计 */
 @media (max-width: 1024px) {
-  .main-content {
+  .project-create-container > .main-content {
     flex-direction: column;
   }
   
-  .preview-section {
+  .project-create-container .preview-section {
     order: -1;
     width: 100%;
     position: static;
   }
-}
-
-@media (max-width: 768px) {
-  .main-content {
-    padding: 16px;
-  }
   
-  
-  .visibility-options {
-    grid-template-columns: 1fr;
-  }
-  
-  .footer-actions {
-    flex-direction: column;
-  }
-  
-  .btn {
+  .project-create-container .form-section {
     width: 100%;
   }
 }
 
+@media (max-width: 768px) {
+  .project-create-container > .main-content {
+    padding: 16px;
+    margin-top: 56px;
+    gap: 16px;
+  }
+  
+  .project-create-container .preview-section {
+    padding: 16px;
+  }
+  
+  .project-create-container .form-section {
+    padding: 16px;
+  }
+  
+  .project-create-container .visibility-options {
+    grid-template-columns: 1fr;
+  }
+  
+  .project-create-container .footer-actions {
+    flex-direction: row;
+    padding: 16px;
+    gap: 12px;
+  }
+  
+  .project-create-container .footer-actions .btn {
+    flex: 1;
+  }
+  
+  .project-create-container .top-header {
+    padding: 0 12px;
+    height: 56px;
+  }
+  
+  .project-create-container .page-title {
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 480px) {
-  .form-section,
-  .preview-section {
-    padding: 20px;
+  .project-create-container > .main-content {
+    padding: 12px;
+    gap: 12px;
+  }
+  
+  .project-create-container .form-section,
+  .project-create-container .preview-section {
+    padding: 16px;
+  }
+  
+  .project-create-container .section-title {
+    font-size: 16px;
+  }
+  
+  .project-create-container .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .project-create-container .date-range {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .project-create-container .date-separator {
+    display: none;
   }
 }
 

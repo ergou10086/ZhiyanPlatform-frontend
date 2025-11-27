@@ -1258,24 +1258,99 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 160px;
+    right: 210px;
+    top: 10px;
+    z-index: 10005;
+  }
+
+  .message-button {
+    width: 42px;
+    height: 42px;
+    border: 2px solid #5EB6E4 !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
+    color: #0044CC !important;
+  }
+
+  .message-button:hover {
+    background: #e0f2fe !important;
+    border-color: #0044CC !important;
+  }
+
+  .bell-icon {
+    width: 20px;
+    height: 20px;
+    color: #0044CC;
   }
 
   .message-panel {
     width: 90vw;
-    max-width: 400px;
-    right: -20px;
+    max-width: 360px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    position: fixed;
+    top: 60px;
   }
 }
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 120px;
+    right: 200px;
+    top: 10px;
+    z-index: 10005;
+  }
+
+  .message-button {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #5EB6E4 !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
+    color: #0044CC !important;
+  }
+
+  .message-button:hover {
+    background: #e0f2fe !important;
+    border-color: #0044CC !important;
+  }
+
+  .bell-icon {
+    width: 18px;
+    height: 18px;
+    color: #0044CC;
+  }
+
+  .message-badge {
+    transform: scale(0.9);
   }
 
   .message-panel {
-    width: 95vw;
-    right: -40px;
+    width: 92vw;
+    max-width: 360px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    position: fixed;
+    top: 60px;
+  }
+}
+
+/* 暗色模式移动端 */
+@media (max-width: 768px) {
+  .dark-mode .message-button {
+    background: #1e293b !important;
+    border-color: #5EB6E4 !important;
+    color: #5EB6E4 !important;
+  }
+
+  .dark-mode .message-button:hover {
+    background: #334155 !important;
+    border-color: #60a5fa !important;
+  }
+
+  .dark-mode .bell-icon {
+    color: #5EB6E4;
   }
 }
 </style>

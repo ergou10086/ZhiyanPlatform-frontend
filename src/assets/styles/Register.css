@@ -328,22 +328,27 @@
 @media (max-width: 1024px) {
   .register-container {
     flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
   }
   
   .register-container .register-left {
-    min-height: 300px;
+    min-height: 250px;
     flex: none;
   }
   
   .register-container .register-right {
-    min-height: calc(100vh - 300px);
+    flex: 1;
+    min-height: auto;
+    padding: 30px 20px;
   }
 }
 
 @media (max-width: 768px) {
   .register-container .register-left {
-    min-height: 250px;
-    padding: 30px 20px;
+    min-height: 200px;
+    padding: 24px 20px;
   }
   
   .register-container .logo-placeholder svg {
@@ -360,18 +365,18 @@
   }
   
   .register-container .register-right {
-    padding: 30px 20px;
+    padding: 24px 16px;
   }
   
   .register-container .register-box {
-    padding: 32px 24px;
+    padding: 28px 20px;
   }
 }
 
 @media (max-width: 480px) {
   .register-container .register-left {
-    min-height: 200px;
-    padding: 20px;
+    min-height: 160px;
+    padding: 16px;
   }
   
   .register-container .logo-placeholder svg {
@@ -388,11 +393,11 @@
   }
   
   .register-container .register-right {
-    padding: 20px;
+    padding: 20px 16px 32px;
   }
   
   .register-container .register-box {
-    padding: 24px 20px;
+    padding: 24px 16px;
   }
   
   .register-container .register-title {
