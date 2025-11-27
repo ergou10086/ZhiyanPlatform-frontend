@@ -1285,8 +1285,12 @@ export default {
 
   .message-panel {
     width: 90vw;
-    max-width: 400px;
-    right: -20px;
+    max-width: 360px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    position: fixed;
+    top: 60px;
   }
 }
 
@@ -1322,8 +1326,13 @@ export default {
   }
 
   .message-panel {
-    width: 95vw;
-    right: -40px;
+    width: 92vw;
+    max-width: 360px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    position: fixed;
+    top: 60px;
   }
 }
 

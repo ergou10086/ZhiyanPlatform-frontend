@@ -9,6 +9,15 @@
   }
 }
 
+/* 移动端搜索框加高（不影响桌面端） */
+@media (max-width: 768px) {
+  .knowledge-base-container .search-input {
+    height: 52px;
+    padding: 0 18px;
+    font-size: 15px;
+  }
+}
+
 @keyframes fadeInDown {
   from {
     opacity: 0;
@@ -650,6 +659,9 @@
   
   .knowledge-base-container .search-input {
     width: 100%;
+    height: 52px;
+    padding: 0 18px;
+    font-size: 15px;
   }
   
   .knowledge-base-container .toolbar-actions { 
