@@ -3173,3 +3173,76 @@
   box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
 }
 
+/* ========== 移动端响应式布局 ========== */
+@media (max-width: 768px) {
+  /* 整体布局改为自然流动，不限制高度 */
+  .ai-view {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 聊天框和思维导图改为竖向排列 */
+  .ai-view .main-content-layout {
+    flex-direction: column !important;
+    gap: 16px;
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* 聊天框占满宽度，高度自适应 */
+  .ai-view .main-content-layout .chat-card {
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 聊天窗口不限制高度 */
+  .ai-view .chat-window {
+    height: auto !important;
+    min-height: 300px;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 消息列表不限制高度 */
+  .ai-view .chat-messages {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 思维导图占满宽度，高度自适应 */
+  .ai-view .mindmap-card {
+    flex: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 300px;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 思维导图内容区域 */
+  .ai-view .mindmap-content {
+    height: auto !important;
+    min-height: 250px;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* 思维导图标题横向排列 */
+  .ai-view .mindmap-header {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .ai-view .mindmap-header .mindmap-title {
+    white-space: nowrap;
+  }
+}
+

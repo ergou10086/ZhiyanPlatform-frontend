@@ -1423,7 +1423,8 @@ export default {
         // 计算完成趋势：如果任务已完成，检查updatedAt是否在过去7天内
         if (isCompleted) {
           completedCount++
-          const updatedAt = task.updatedAt || task.updated_at
+          const updatedAt = task.updatedAt || task.updated_at || task.completedAt || task.completed_at
+          console.log('[MyActivity] 检查已完成任务:', task.id, task.title, '状态:', task.status, 'updatedAt:', updatedAt)
           if (updatedAt) {
             const updateDate = new Date(updatedAt)
             updateDate.setHours(0, 0, 0, 0)
@@ -1433,12 +1434,14 @@ export default {
               return d.getTime() === updateDate.getTime()
             })
             
+            console.log('[MyActivity] 任务更新日期:', updateDate.toLocaleDateString('zh-CN'), 'dayIndex:', dayIndex)
+            
             if (dayIndex >= 0) {
               trendData[dayIndex]++
               trendCompletedTasksByDay[dayIndex].push(taskObj)
             }
           } else {
-            console.log('[MyActivity] 已完成任务但无更新时间:', task.id, task.title)
+            console.log('[MyActivity] 已完成任务但无更新时间:', task.id, task.title, '完整任务数据:', JSON.stringify(task))
           }
         }
         
@@ -1633,6 +1636,9 @@ export default {
       // 环形图 - 计算百分比并显示
       const totalForPie = (this.displayStats.inProgress || 0) + (this.displayStats.completed || 0) + (this.displayStats.reviewing || 0)
       
+      // 检测是否移动端
+      const isMobile = window.innerWidth <= 768
+      
       this._charts.pieStatus = create('pieStatus', {
         color: [palette[0], palette[1], palette[2]],
         tooltip: { 
@@ -1640,18 +1646,18 @@ export default {
           formatter: '{b}: {c} ({d}%)'
         },
         legend: { 
-          bottom: 10,
-          itemGap: 12,
+          bottom: isMobile ? 5 : 10,
+          itemGap: isMobile ? 8 : 12,
           textStyle: {
-            fontSize: 12,
+            fontSize: isMobile ? 11 : 12,
             padding: [0, 5, 0, 0]
           }
         },
         series: [{
           name: '状态',
           type: 'pie',
-          radius: ['45%', '70%'],
-          center: ['50%', '45%'],
+          radius: isMobile ? ['35%', '55%'] : ['45%', '70%'],
+          center: ['50%', isMobile ? '35%' : '45%'],
           avoidLabelOverlap: false,
           label: { 
             show: totalForPie > 0,
@@ -3453,7 +3459,8 @@ export default {
   justify-content: space-between;
   min-height: 150px;
   max-height: 150px;
-  height: 100%;
+  height: 150px;
+  box-sizing: border-box;
 }
 
 .mini-bar.clickable-chart {
@@ -4039,6 +4046,399 @@ export default {
   
   .main-content-wrapper {
     padding: 16px;
+    padding-top: 100px !important;  /* 为固定页眉留出足够空间 */
+  }
+
+  /* 移动端侧边导航改为顶部 */
+  .activity-content-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    min-height: auto !important;
+    gap: 0 !important;
+  }
+
+  .page-section {
+    min-height: auto !important;
+  }
+
+  .activity-side-nav {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 0 !important;
+    padding-bottom: 12px !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 12px;
+    background: #f8fafc;
+    position: static !important;  /* 移除sticky定位 */
+    top: auto !important;
+    height: auto !important;
+    box-shadow: none !important;
+  }
+
+  .activity-nav-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-size: 13px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .activity-page-content {
+    width: 100% !important;
+  }
+
+  /* 卡片头部 */
+  .card-header-top {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .card-title {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+
+  /* 审核模式切换按钮 */
+  .review-mode-toggle {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .review-mode-toggle .toggle-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .section-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .sort-select {
+    width: 100%;
+  }
+
+  .dashboard-grid {
+    gap: 16px;
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-card {
+    padding: 16px;
+    width: 100%;
+  }
+
+  /* 任务统计仪表盘 */
+  .dashboard-pro {
+    display: flex !important;
+    flex-direction: column !important;
+    grid-template-columns: none !important;
+    gap: 16px;
+  }
+
+  .chart-column {
+    width: 100% !important;
+  }
+
+  /* 总览框高度 */
+  .card-overview {
+    min-height: 550px !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .overview-grid {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 12px;
+    min-height: 500px;
+  }
+
+  .overview-row {
+    flex-direction: column !important;
+    gap: 16px;
+  }
+
+  /* 左侧：大饼图 + 状态摘要 + 优先级分布 */
+  .overview-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chart-box.medium {
+    height: 280px !important;
+    margin-bottom: 10px;
+  }
+
+  /* 状态摘要横向排列 */
+  .status-summary {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+    padding: 10px 0;
+    clear: both;
+  }
+
+  .status-item {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .status-name,
+  .status-count,
+  .status-percent {
+    display: inline !important;
+  }
+
+  /* 右侧：三个小饼图独立竖向排列 */
+  .overview-right {
+    flex: 1;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px;
+    align-self: flex-start;
+  }
+
+  /* 优先级分布放在左侧底部 */
+  .overview-grid {
+    position: relative;
+  }
+
+  .overview-right .mini-bar {
+    position: absolute !important;
+    left: 0 !important;
+    bottom: 60px !important;
+    width: calc(50% - 6px) !important;
+    display: block !important;
+  }
+
+  .overview-left {
+    padding-bottom: 180px;
+  }
+
+  .mini-gauge {
+    width: 100%;
+    padding: 8px;
+    background: #fafafa;
+    border-radius: 8px;
+  }
+
+  .mini-gauge .mini-title {
+    font-size: 11px;
+    margin-bottom: 4px;
+    text-align: center;
+  }
+
+  .mini-bar {
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 8px;
+  }
+
+  .mini-bar .mini-title {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .chart-box.tiny {
+    height: 80px !important;
+    max-width: 90px;
+    margin: 0 auto;
+  }
+
+  .chart-box.small {
+    height: 140px !important;
+  }
+
+  .chart-box.medium {
+    height: 160px !important;
+  }
+
+  /* 任务卡片 */
+  .task-statistics {
+    width: 100%;
+  }
+
+  .task-list-container {
+    width: 100%;
+  }
+
+  .task-cards-list {
+    width: 100%;
+  }
+
+  .task-card-clean {
+    width: 100%;
+    flex-direction: column !important;
+  }
+
+  .task-content {
+    width: 100% !important;
+  }
+
+  .task-title {
+    white-space: normal !important;
+    overflow: visible !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.4;
+  }
+
+  .task-actions {
+    width: 100%;
+    justify-content: flex-end;
+    border-left: none !important;
+    border-top: 1px solid #f0f0f0;
+    padding: 10px 0 0 0 !important;
+    margin-top: 10px;
+  }
+
+  /* 操作日志 */
+  .activity-log-section {
+    width: 100%;
+  }
+
+  .activity-log-section .section-card {
+    width: 100%;
+  }
+
+  .activity-timeline {
+    max-height: none;
+  }
+}
+
+/* 移动端额外优化 */
+@media (max-width: 600px) {
+  .main-content-wrapper {
+    padding: 12px;
+  }
+
+  .dashboard-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .card-title {
+    font-size: 15px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  .chart-box {
+    height: 180px;
+  }
+
+  .chart-box.large {
+    height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content-wrapper {
+    padding: 10px;
+  }
+
+  .activity-side-nav {
+    padding: 10px 0;
+    gap: 6px;
+  }
+
+  .activity-nav-item {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .dashboard-grid {
+    gap: 12px;
+  }
+
+  .dashboard-card {
+    padding: 12px;
+  }
+
+  .card-header-top {
+    gap: 10px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+
+  .review-mode-toggle .toggle-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .chart-box {
+    height: 160px;
+  }
+
+  .chart-box.large {
+    height: 180px;
+  }
+
+  .chart-box.tiny {
+    height: 80px;
+  }
+
+  .task-card-clean {
+    padding: 12px;
+  }
+
+  .task-title {
+    font-size: 13px;
+  }
+
+  .task-meta {
+    font-size: 11px;
+  }
+
+  .action-btn-review {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .timeline-item {
+    padding: 10px 0;
+    gap: 10px;
+  }
+
+  .log-title {
+    font-size: 12px;
+  }
+
+  .log-description {
+    font-size: 11px;
+  }
+
+  .log-time {
+    font-size: 10px;
   }
 }
 
@@ -4077,6 +4477,37 @@ export default {
   flex-direction: column;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   animation: slideUp 0.3s ease-out;
+}
+
+/* 任务列表弹窗移动端适配 */
+@media (max-width: 768px) {
+  .task-list-modal {
+    width: 90% !important;
+    min-width: auto;
+    max-width: 500px !important;
+    max-height: 85vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-list-modal {
+    width: 95% !important;
+    max-width: none !important;
+    max-height: 90vh;
+    border-radius: 16px;
+  }
+
+  .task-list-modal .modal-header {
+    padding: 16px;
+  }
+
+  .task-list-modal .modal-title {
+    font-size: 16px;
+  }
+
+  .task-list-modal .task-list {
+    padding: 12px;
+  }
 }
 
 @keyframes slideUp {
