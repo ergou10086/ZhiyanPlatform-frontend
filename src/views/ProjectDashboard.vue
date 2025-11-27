@@ -6082,7 +6082,7 @@ export default {
   height: auto;
   max-height: 320px;
 }
-
+  
 .member-task-svg .bar-total,
 .member-task-svg .bar-completed {
   transition: opacity 0.3s ease, filter 0.3s ease;
