@@ -178,19 +178,30 @@
         </div>
 
         <!-- 右侧已上传文件列表 -->
-        <div class="uploaded-files-panel">
+        <div class="uploaded-files-panel" :class="{ 'collapsed': filesPanelCollapsed }">
           <div class="files-panel-header">
             <h3 class="files-panel-title">已上传文件</h3>
-            <button
-              class="clear-files-btn"
-              @click="clearAllFiles"
-              v-if="uploadedFiles.length > 0"
-              title="清空所有文件"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
+            <div class="header-actions">
+              <button
+                class="clear-files-btn"
+                @click="clearAllFiles"
+                v-if="uploadedFiles.length > 0"
+                title="清空所有文件"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <button
+                class="toggle-panel-btn"
+                @click="toggleFilesPanel"
+                :title="filesPanelCollapsed ? '展开文件列表' : '收起文件列表'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" :class="{ 'rotated': filesPanelCollapsed }">
+                  <path d="M18 15L12 9L6 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
           <div class="files-panel-body">
             <div v-if="uploadedFiles.length === 0" class="empty-files">
@@ -757,6 +768,7 @@ export default {
       selectedFiles: [],
       uploadedFiles: [], // 已上传文件列表
       loadingFiles: false,
+      filesPanelCollapsed: false, // 文件面板折叠状态
       showChatHistoryModal: false,
       chatSessions: [], // 聊天会话列表
       currentChatSessionId: null, // 当前聊天会话ID
@@ -830,6 +842,9 @@ export default {
     }
   },
   mounted() {
+    // 根据屏幕宽度设置文件面板初始折叠状态（移动端默认收起）
+    this.filesPanelCollapsed = window.innerWidth <= 768
+    
     document.addEventListener('click', this.handleClickOutside)
     
     // 调试localStorage数据
@@ -2187,6 +2202,11 @@ export default {
       if (confirm('确定要清空所有已上传的文件吗？')) {
         this.uploadedFiles = []
       }
+    },
+
+    // 切换文件面板折叠状态
+    toggleFilesPanel() {
+      this.filesPanelCollapsed = !this.filesPanelCollapsed
     },
 
     // 查看聊天记录

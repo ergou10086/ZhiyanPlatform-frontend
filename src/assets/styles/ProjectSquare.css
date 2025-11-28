@@ -130,6 +130,10 @@
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   transition: all var(--transition-normal);
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .project-square-container .btn:hover {
@@ -451,15 +455,72 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+@media (max-width: 768px) {
+  .project-square-container .search-input {
+    height: 52px;
+    padding: 0 18px;
+    font-size: 15px;
+  }
+
+  .project-square-container .btn {
+    height: 38px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
+
 @media (max-width: 600px) {
   .project-square-container .grid { 
     grid-template-columns: 1fr;
   }
-  .project-square-container .toolbar { flex-direction: column; align-items: stretch; }
-  .project-square-container .toolbar-actions { justify-content: flex-end; }
-  .project-square-container .card { height: 260px; } /* 移动端稍微缩�?*/
+  .project-square-container .search-input {
+    height: 100px;
+    padding: 0 20px;
+    font-size: 16px;
+  }
+  .project-square-container .toolbar { 
+    flex-direction: column; 
+    align-items: stretch;
+    gap: 12px;
+  }
+  .project-square-container .toolbar-actions { 
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .project-square-container .toolbar-actions .btn-primary {
+    margin-left: auto;
+  }
+  .project-square-container .btn {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    min-width: auto;
+  }
+  .project-square-container .btn span {
+    white-space: nowrap;
+  }
+  .project-square-container .card { height: 260px; } /* 移动端稍微缩小 */
   .project-square-container .card-media { height: 150px; }
   .project-square-container .card-body { padding: 12px; }
+}
+
+@media (max-width: 480px) {
+  .project-square-container .search-input {
+    height: 58px;
+    padding: 0 18px;
+    font-size: 16px;
+  }
+  .project-square-container .btn {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+  .project-square-container .btn svg {
+    width: 12px;
+    height: 12px;
+  }
 }
 
 /* 加载状态样�?*/

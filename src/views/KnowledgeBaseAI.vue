@@ -23,7 +23,7 @@
         </div>
       </div>
       <p class="page-subtitle">
-        <svg class="subtitle-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg class="subtitle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -31,7 +31,10 @@
       </p>
     </div>
 
-    <div class="chat-card">
+    <!-- 主内容区域：聊天框 + 思维导图 -->
+    <div class="main-content-layout">
+      <!-- 左侧聊天框 -->
+      <div class="chat-card">
       <div class="chat-window" ref="chatWindow">
         <div class="bubble left">
           您好！我是您的AI助手，可以帮您生成文档结构提纲、关键词摘要，也可以结合知识库回答问题。请问您有什么要协助的吗？
@@ -94,74 +97,8 @@
           </button>
         </div>
       </div>
+      
       <div class="composer">
-        <!-- 文件预览卡片区域 -->
-        <div v-if="selectedLocalFiles.length > 0 || selectedKnowledgeFileIds.length > 0" class="file-preview-section">
-          <div class="file-preview-header">
-            <span class="file-preview-title">仅识别附件中的文字</span>
-          </div>
-          <div class="file-preview-list">
-            <!-- 本地文件预览 -->
-            <div 
-              v-for="(file, index) in selectedLocalFiles" 
-              :key="'local-' + index"
-              class="file-preview-card"
-            >
-              <div class="file-preview-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="file-preview-info">
-                <div class="file-preview-name">{{ file.name }}</div>
-                <div class="file-preview-meta">
-                  <span class="file-preview-type">{{ getFileType(file.name) }}</span>
-                  <span class="file-preview-size">{{ formatFileSize(file.size) }}</span>
-                </div>
-              </div>
-              <button 
-                class="file-remove-btn" 
-                @click="removeLocalFile(index)"
-                title="移除文件"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-            <!-- 知识库文件预览 -->
-            <div 
-              v-for="(fileId, index) in selectedKnowledgeFileIds"
-              :key="'kb-' + fileId + '-' + index"
-              class="file-preview-card"
-            >
-              <div class="file-preview-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="file-preview-info">
-                <div class="file-preview-name">{{ getKnowledgeFileName(fileId) }}</div>
-                <div class="file-preview-meta">
-                  <span class="file-preview-type">{{ getKnowledgeFileType(fileId) }}</span>
-                  <span class="file-preview-size">{{ getKnowledgeFileSize(fileId) }}</span>
-                </div>
-              </div>
-              <button 
-                class="file-remove-btn" 
-                @click="removeKnowledgeFile(fileId)"
-                title="移除文件"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
         <div class="composer-input-wrapper">
         <div class="file-menu-wrapper">
           <button 
@@ -303,10 +240,9 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 聊天历史记录弹窗 -->
-    <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
+      <!-- 聊天历史记录弹窗 -->
+      <div v-if="showChatHistoryModal" class="chat-history-sidebar-overlay" @click="closeChatHistoryModal">
       <div class="chat-history-sidebar" @click.stop>
         <!-- 侧边栏头部 -->
         <div class="sidebar-header">
@@ -364,6 +300,57 @@
             </svg>
             <span>新建对话</span>
           </button>
+        </div>
+      </div>
+    </div>
+    </div>
+      
+      <!-- 右侧思维导图 -->
+      <div class="mindmap-card" :class="{ 'collapsed': !showMindmap }">
+        <div class="mindmap-header">
+          <h3 class="mindmap-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+              <circle cx="19" cy="5" r="2" stroke="currentColor" stroke-width="2"/>
+              <circle cx="19" cy="19" r="2" stroke="currentColor" stroke-width="2"/>
+              <circle cx="5" cy="19" r="2" stroke="currentColor" stroke-width="2"/>
+              <path d="M13.5 10.5L17.5 6.5M13.5 13.5L17.5 17.5M10.5 13.5L6.5 17.5" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            思维导图
+          </h3>
+          <div class="mindmap-actions">
+            <button class="mindmap-refresh-btn" @click="generateMindmap" title="生成思维导图">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21.5 2V8M21.5 8H15.5M21.5 8L18 4.5C16.7429 3.24286 15.12 2.49965 13.3852 2.40322C11.6504 2.30679 9.95806 2.86285 8.62 4C6.00001 6.26 5.20001 9.67 6.16001 12.82" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2.5 22V16M2.5 16H8.5M2.5 16L6 19.5C7.25714 20.7571 8.88002 21.5004 10.6148 21.5968C12.3496 21.6932 14.0419 21.1372 15.38 20C18 17.74 18.8 14.33 17.84 11.18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <button class="mindmap-toggle-btn" @click="toggleMindmap" :title="showMindmap ? '收起' : '展开'">
+              <svg v-if="showMindmap" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="mindmap-content">
+          <div v-if="!mindmapData" class="mindmap-empty">
+            <div class="empty-mindmap-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="19" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="19" cy="19" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="5" cy="19" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="5" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/>
+                <path d="M14 10L16.5 7M14 14L16.5 17M10 14L7.5 17M10 10L7.5 7" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <p class="empty-mindmap-text">暂无思维导图</p>
+            <p class="empty-mindmap-hint">点击右上角刷新按钮，由AI根据对话内容生成思维导图</p>
+          </div>
+          <div v-else class="mindmap-display" v-html="mindmapData"></div>
         </div>
       </div>
     </div>
@@ -435,7 +422,10 @@ export default {
       chatSessions: [], // 所有对话会话列表
       currentChatSessionId: null, // 当前对话会话ID
       // ⭐ 复制功能状态
-      copiedMsgIndex: null // 当前已复制的消息索引
+      copiedMsgIndex: null, // 当前已复制的消息索引
+      // 思维导图相关
+      mindmapData: null, // 思维导图数据
+      showMindmap: true // 思维导图展开/收起状态
     }
   },
   mounted() {
@@ -467,6 +457,27 @@ export default {
     this.saveLastChatSessionId()
     // 移除事件监听
     document.removeEventListener('click', this.handleClickOutside)
+  },
+  watch: {
+    // 监听文件变化，通知父组件更新左侧栏显示
+    selectedLocalFiles: {
+      handler(newFiles) {
+        this.$emit('files-changed', {
+          localFiles: newFiles,
+          knowledgeFileIds: this.selectedKnowledgeFileIds
+        })
+      },
+      deep: true
+    },
+    selectedKnowledgeFileIds: {
+      handler(newIds) {
+        this.$emit('files-changed', {
+          localFiles: this.selectedLocalFiles,
+          knowledgeFileIds: newIds
+        })
+      },
+      deep: true
+    }
   },
   methods: {
     /**
@@ -1784,6 +1795,38 @@ export default {
       const month = date.getMonth() + 1
       const day = date.getDate()
       return `${month}月${day}日`
+    },
+    
+    /**
+     * 生成思维导图 - 调用后端API
+     */
+    async generateMindmap() {
+      try {
+        // TODO: 调用后端API生成思维导图
+        // 示例：根据当前对话内容生成思维导图
+        // const response = await cozeAPI.generateMindmap({
+        //   conversationId: this.conversationId,
+        //   messages: this.messages
+        // })
+        // this.mindmapData = response.data.mindmapHtml
+        
+        // 临时提示：等待后端接口
+        console.log('等待后端AI生成思维导图...')
+        alert('思维导图生成功能需要后端API支持，请联系后端开发人员实现')
+        
+        // 清空当前数据，显示空状态
+        this.mindmapData = null
+      } catch (error) {
+        console.error('生成思维导图失败:', error)
+        alert('生成思维导图失败，请稍后重试')
+      }
+    },
+    
+    /**
+     * 切换思维导图显示/隐藏
+     */
+    toggleMindmap() {
+      this.showMindmap = !this.showMindmap
     }
   }
 }

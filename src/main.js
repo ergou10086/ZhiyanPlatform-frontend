@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router'
 import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
+import '@/assets/styles/responsive.css'
 import GlobalUserProfile from './components/GlobalUserProfile.vue'
 import Button from './components/Button.vue'
 import Card from './components/Card.vue'
@@ -10,6 +11,7 @@ import Input from './components/Input.vue'
 import authStore from './store/auth'
 import tokenManager from './utils/tokenManager'
 import EventBus, { eventBus } from './utils/eventBus'
+import { responsiveMixin, device, preventIOSBounce } from './utils/responsive'
 
 Vue.config.productionTip = false
 
@@ -292,7 +294,21 @@ console.error = function(...args) {
     }, ERROR_DEDUP_DURATION)
     
     // 构建错误对象
-    const error = errorStack ? new Error(errorMessage || '发生错误') : new Error(errorMessage || args.join(' '))
+    // 安全地将 args 转换为字符串，避免对象类型导致的 join 错误
+    const safeArgsString = args.map(arg => {
+      if (arg === null || arg === undefined) return String(arg)
+      if (typeof arg === 'string') return arg
+      if (typeof arg === 'object') {
+        try {
+          return JSON.stringify(arg)
+        } catch (e) {
+          return String(arg)
+        }
+      }
+      return String(arg)
+    }).join(' ')
+    
+    const error = errorStack ? new Error(errorMessage || '发生错误') : new Error(errorMessage || safeArgsString)
     if (errorStack) {
       error.stack = errorStack
     }
@@ -307,7 +323,7 @@ console.error = function(...args) {
       isErrorDialogShowing = true
       showErrorDialog(error, {
         type: 'Console Error',
-        details: errorDetails || args.join(' ')
+        details: errorDetails || safeArgsString
       })
       
       // 监听弹窗关闭事件，重置标志
@@ -334,6 +350,14 @@ Vue.use(EventBus)
 
 // 注册 Element UI
 Vue.use(ElementUI)
+
+// 全局混入响应式支持
+Vue.mixin(responsiveMixin)
+
+// 如果是iOS设备，防止橡皮筋效果
+if (device.isIOS()) {
+  preventIOSBounce()
+}
 
 // 开发环境：启用事件调试
 if (process.env.NODE_ENV === 'development') {

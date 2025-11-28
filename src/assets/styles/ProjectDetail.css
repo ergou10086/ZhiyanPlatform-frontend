@@ -2279,6 +2279,33 @@
   .section-actions {
     justify-content: flex-start;
   }
+
+  /* 仪表盘按钮移动端样式 */
+  .project-title .dashboard-btn {
+    white-space: nowrap;
+    padding: 0 12px;
+    min-width: fit-content;
+  }
+
+  /* 任务筛选按钮移动端样式 */
+  .filter-group,
+  .type-filters,
+  .status-filters {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .filter-group .filter-btn,
+  .type-filters .filter-btn,
+  .status-filters .filter-btn,
+  .filter-group button,
+  .type-filters button,
+  .status-filters button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 }
 
 /* 成功提示Toast样式 */

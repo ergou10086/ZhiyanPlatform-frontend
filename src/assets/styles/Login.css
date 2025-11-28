@@ -1,12 +1,19 @@
 .login-container {
   min-height: 100vh;
-  height: 100vh;
+  height: auto;
   background: #ffffff;
   display: flex;
   margin: 0;
   padding: 0;
   position: relative;
-  overflow: hidden;
+  overflow: auto;
+}
+
+@media (min-width: 1025px) {
+  .login-container {
+    height: 100vh;
+    overflow: hidden;
+  }
 }
 
 .login-container .login-left {
@@ -371,81 +378,201 @@
 @media (max-width: 1024px) {
   .login-container {
     flex-direction: column;
+    height: auto;
+    min-height: 100vh;
   }
   
   .login-container .login-left {
-    min-height: 300px;
+    min-height: 250px;
     flex: none;
   }
   
   .login-container .login-right {
-    min-height: calc(100vh - 300px);
+    flex: 1;
+    min-height: auto;
+    padding: 30px 20px;
   }
 }
 
 @media (max-width: 768px) {
   .login-container .login-left {
-    min-height: 250px;
-    padding: 30px 20px;
+    min-height: 200px;
+    padding: 24px 20px;
+    z-index: 1;
   }
   
-  .login-container .logo-placeholder svg {
+  .login-container .brand-corner {
+    font-size: 24px;
+    top: 16px;
+    left: 20px;
+  }
+  
+  .login-container .logo-placeholder svg,
+  .login-container .logo-img {
     width: 60px;
     height: 60px;
   }
   
   .login-container .system-title {
-    font-size: 24px;
+    font-size: 22px;
+    margin-bottom: 8px;
   }
   
   .login-container .system-subtitle {
-    font-size: 14px;
+    font-size: 13px;
   }
   
   .login-container .login-right {
-    padding: 30px 20px;
+    padding: 24px 16px;
+    position: relative;
+    z-index: 2;
+    background: white;
   }
   
   .login-container .login-box {
-    padding: 32px 24px;
+    padding: 28px 20px;
+    max-width: 100%;
+  }
+  
+  .login-container .login-title {
+    font-size: 24px;
+  }
+  
+  .login-container .login-subtitle {
+    font-size: 13px;
+  }
+  
+  .login-container .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .login-container .form-group input {
+    padding: 10px 14px;
+    font-size: 14px;
+  }
+  
+  .login-container .login-btn {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+  
+  .login-container .github-login-btn {
+    padding: 10px 20px;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 480px) {
-  .login-container .login-left {
-    min-height: 200px;
-    padding: 20px;
+  .login-container {
+    overflow-y: auto;
   }
   
-  .login-container .logo-placeholder svg {
+  .login-container .login-left {
+    min-height: 160px;
+    padding: 16px;
+    z-index: 1;
+  }
+  
+  .login-container .brand-corner {
+    font-size: 20px;
+    top: 12px;
+    left: 16px;
+  }
+  
+  .login-container .logo-placeholder {
+    margin-bottom: 12px;
+  }
+  
+  .login-container .logo-placeholder svg,
+  .login-container .logo-img {
     width: 50px;
     height: 50px;
   }
   
   .login-container .system-title {
-    font-size: 20px;
+    font-size: 18px;
+    margin-bottom: 6px;
   }
   
   .login-container .system-subtitle {
-    font-size: 12px;
+    font-size: 11px;
   }
   
   .login-container .login-right {
-    padding: 20px;
+    padding: 20px 16px 32px;
+    position: relative;
+    z-index: 2;
+    background: white;
   }
   
   .login-container .login-box {
-    padding: 24px 20px;
+    padding: 24px 16px;
+    box-shadow: none;
+  }
+  
+  .login-container .login-header {
+    margin-bottom: 24px;
   }
   
   .login-container .login-title {
-    font-size: 22px;
+    font-size: 20px;
+  }
+  
+  .login-container .login-subtitle {
+    font-size: 12px;
+  }
+  
+  .login-container .form-group {
+    margin-bottom: 14px;
+  }
+  
+  .login-container .form-group label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+  
+  .login-container .form-group input {
+    padding: 10px 12px;
+    font-size: 14px;
   }
   
   .login-container .form-options {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .login-container .checkbox-option,
+  .login-container .forgot-password {
+    font-size: 13px;
+  }
+  
+  .login-container .login-btn {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+  
+  .login-container .divider {
+    margin: 20px 0;
+    font-size: 12px;
+  }
+  
+  .login-container .github-login-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  
+  .login-container .github-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .login-container .register-link {
+    margin-top: 20px;
+    font-size: 13px;
   }
 }
 

@@ -453,24 +453,45 @@ export default {
     formatTime(timestamp) {
       if (!timestamp) return ''
       
-      const now = new Date()
-      const time = new Date(timestamp)
-      const diff = now - time
-      
-      const minute = 60 * 1000
-      const hour = 60 * minute
-      const day = 24 * hour
-      
-      if (diff < minute) {
-        return '刚刚'
-      } else if (diff < hour) {
-        return Math.floor(diff / minute) + '分钟前'
-      } else if (diff < day) {
-        return Math.floor(diff / hour) + '小时前'
-      } else if (diff < 7 * day) {
-        return Math.floor(diff / day) + '天前'
-      } else {
-        return time.toLocaleDateString()
+      try {
+        const now = new Date()
+        // 确保 timestamp 是有效的 Date 对象或可转换的值
+        let time
+        if (timestamp instanceof Date) {
+          time = timestamp
+        } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+          time = new Date(timestamp)
+        } else {
+          console.warn('formatTime: 无效的时间格式', timestamp)
+          return ''
+        }
+        
+        // 检查日期是否有效
+        if (isNaN(time.getTime())) {
+          console.warn('formatTime: 无效的日期', timestamp)
+          return ''
+        }
+        
+        const diff = now - time
+        
+        const minute = 60 * 1000
+        const hour = 60 * minute
+        const day = 24 * hour
+        
+        if (diff < minute) {
+          return '刚刚'
+        } else if (diff < hour) {
+          return Math.floor(diff / minute) + '分钟前'
+        } else if (diff < day) {
+          return Math.floor(diff / hour) + '小时前'
+        } else if (diff < 7 * day) {
+          return Math.floor(diff / day) + '天前'
+        } else {
+          return time.toLocaleDateString()
+        }
+      } catch (error) {
+        console.error('formatTime 错误:', error, timestamp)
+        return ''
       }
     },
 
@@ -498,16 +519,40 @@ export default {
      * 将后端消息数据转换为前端可用结构
      */
     transformMessages(messageList) {
-      return messageList.map(item => ({
-        id: item.recipientId,
-        title: item.title,
-        content: item.content,
-        isRead: item.readFlag,
-        createdAt: item.triggerTime,
-        scene: item.scene,
-        businessId: item.businessId,
-        businessType: item.businessType
-      }))
+      if (!Array.isArray(messageList)) {
+        console.warn('transformMessages: messageList 不是数组', messageList)
+        return []
+      }
+      
+      return messageList.map(item => {
+        // 安全处理时间字段
+        let createdAt = item.triggerTime
+        if (createdAt) {
+          // 如果是字符串，尝试转换为 Date
+          if (typeof createdAt === 'string') {
+            createdAt = new Date(createdAt)
+          } else if (typeof createdAt === 'object' && createdAt !== null) {
+            // 如果是对象，尝试提取时间戳或转换为字符串
+            if (createdAt instanceof Date) {
+              createdAt = createdAt
+            } else {
+              // 尝试从对象中提取时间值
+              createdAt = new Date(createdAt.toString())
+            }
+          }
+        }
+        
+        return {
+          id: item.recipientId || item.id,
+          title: item.title || '',
+          content: item.content || '',
+          isRead: item.readFlag || false,
+          createdAt: createdAt,
+          scene: item.scene || '',
+          businessId: item.businessId,
+          businessType: item.businessType
+        }
+      })
     },
 
     /**
@@ -552,30 +597,104 @@ export default {
     }
   },
   components: {
-    // 场景图标组件
+    // 场景图标组件 - 使用 render 函数以兼容运行时构建
     TaskIcon: {
-      template: `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `
+      render(h) {
+        return h('svg', {
+          attrs: {
+            width: '20',
+            height: '20',
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            xmlns: 'http://www.w3.org/2000/svg'
+          }
+        }, [
+          h('path', {
+            attrs: {
+              d: 'M9 11L12 14L22 4',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          }),
+          h('path', {
+            attrs: {
+              d: 'M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          })
+        ])
+      }
     },
     ProjectIcon: {
-      template: `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `
+      render(h) {
+        return h('svg', {
+          attrs: {
+            width: '20',
+            height: '20',
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            xmlns: 'http://www.w3.org/2000/svg'
+          }
+        }, [
+          h('path', {
+            attrs: {
+              d: 'M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          })
+        ])
+      }
     },
     NoticeIcon: {
-      template: `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 16V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 8H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `
+      render(h) {
+        return h('svg', {
+          attrs: {
+            width: '20',
+            height: '20',
+            viewBox: '0 0 24 24',
+            fill: 'none',
+            xmlns: 'http://www.w3.org/2000/svg'
+          }
+        }, [
+          h('circle', {
+            attrs: {
+              cx: '12',
+              cy: '12',
+              r: '10',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          }),
+          h('path', {
+            attrs: {
+              d: 'M12 16V12',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          }),
+          h('path', {
+            attrs: {
+              d: 'M12 8H12.01',
+              stroke: 'currentColor',
+              'stroke-width': '2',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round'
+            }
+          })
+        ])
+      }
     }
   }
 }
@@ -584,7 +703,7 @@ export default {
 <style scoped>
 .message-notification {
   position: fixed;
-  top: 8px;
+  top: 12px;
   right: 220px;
   z-index: 10003;
   display: block;
@@ -1139,24 +1258,99 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 160px;
+    right: 210px;
+    top: 10px;
+    z-index: 10005;
+  }
+
+  .message-button {
+    width: 42px;
+    height: 42px;
+    border: 2px solid #5EB6E4 !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
+    color: #0044CC !important;
+  }
+
+  .message-button:hover {
+    background: #e0f2fe !important;
+    border-color: #0044CC !important;
+  }
+
+  .bell-icon {
+    width: 20px;
+    height: 20px;
+    color: #0044CC;
   }
 
   .message-panel {
     width: 90vw;
-    max-width: 400px;
-    right: -20px;
+    max-width: 360px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    position: fixed;
+    top: 60px;
   }
 }
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 120px;
+    right: 200px;
+    top: 10px;
+    z-index: 10005;
+  }
+
+  .message-button {
+    width: 40px;
+    height: 40px;
+    border: 2px solid #5EB6E4 !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
+    color: #0044CC !important;
+  }
+
+  .message-button:hover {
+    background: #e0f2fe !important;
+    border-color: #0044CC !important;
+  }
+
+  .bell-icon {
+    width: 18px;
+    height: 18px;
+    color: #0044CC;
+  }
+
+  .message-badge {
+    transform: scale(0.9);
   }
 
   .message-panel {
-    width: 95vw;
-    right: -40px;
+    width: 92vw;
+    max-width: 360px;
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+    position: fixed;
+    top: 60px;
+  }
+}
+
+/* 暗色模式移动端 */
+@media (max-width: 768px) {
+  .dark-mode .message-button {
+    background: #1e293b !important;
+    border-color: #5EB6E4 !important;
+    color: #5EB6E4 !important;
+  }
+
+  .dark-mode .message-button:hover {
+    background: #334155 !important;
+    border-color: #60a5fa !important;
+  }
+
+  .dark-mode .bell-icon {
+    color: #5EB6E4;
   }
 }
 </style>
