@@ -211,7 +211,11 @@ export const taskAPI = {
    */
   updateTaskStatus(taskId, status) {
     console.log('[taskAPI.updateTaskStatus] 更新任务状态, ID:', taskId, '状态:', status)
-    return api.patch(`/zhiyan/projects/tasks/${taskId}/status`, { status })
+    // 后端接口签名为 @RequestParam("status") TaskStatus status
+    // 因此需要通过查询参数传递，而不是 JSON body
+    return api.patch(`/zhiyan/projects/tasks/${taskId}/status`, null, {
+      params: { status }
+    })
   },
 
   /**

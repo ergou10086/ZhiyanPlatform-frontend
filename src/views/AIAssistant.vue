@@ -1011,40 +1011,60 @@ export default {
       this.taskListLoading = true
 
       try {
-        // 调用后端接口获取已完成的任务（状态为 DONE）
-        console.log('[任务选择] 正在加载项目已完成任务, 项目ID:', this.taskResultProjectId)
-        const response = await taskAPI.getTasksByStatus(this.taskResultProjectId, 'DONE', 0, 100)
-        
-        console.log('[任务选择] 后端返回数据:', response)
-        
+        // 调用带执行者信息的项目任务接口，前端筛选状态为 DONE 的任务
+        console.log('[任务选择] 正在加载项目任务列表(含负责人), 项目ID:', this.taskResultProjectId)
+        const response = await taskAPI.getProjectTasks(this.taskResultProjectId, 0, 100)
+
+        console.log('[任务选择] getProjectTasks 后端返回数据:', response)
+
         // 处理返回的数据
         let tasks = []
-        if (response && response.code === 200) {
-          // 成功响应
-          if (response.data) {
-            if (Array.isArray(response.data)) {
-              tasks = response.data
-            } else if (response.data.content && Array.isArray(response.data.content)) {
-              // Spring分页数据
-              tasks = response.data.content
-            } else if (response.data.list && Array.isArray(response.data.list)) {
-              tasks = response.data.list
-            }
+        if (response && response.code === 200 && response.data) {
+          const data = response.data
+          if (Array.isArray(data)) {
+            tasks = data
+          } else if (Array.isArray(data.content)) {
+            // Spring 分页数据
+            tasks = data.content
+          } else if (Array.isArray(data.list)) {
+            tasks = data.list
           }
+        } else if (response && response.data && Array.isArray(response.data.content)) {
+          // 兼容返回 Page 包在 data 里的情况
+          tasks = response.data.content
         } else if (Array.isArray(response)) {
           // 直接返回数组
           tasks = response
         }
-        
-        // 转换为前端需要的格式
-        this.availableDoneTasks = tasks.map(t => ({
-          id: t.id || t.taskId,
-          title: t.title || t.taskTitle || '未命名任务',
-          assignee: t.assigneeName || t.assignee || '未分配',
-          raw: t
-        }))
-        
-        console.log('[任务选择] 成功加载', this.availableDoneTasks.length, '个已完成任务')
+
+        // 仅保留已完成的任务（后端 TaskStatus 为枚举 DONE）
+        const doneTasks = (tasks || []).filter(t => {
+          const status = t.status || t.taskStatus
+          if (!status) return false
+          if (typeof status === 'string') {
+            return status === 'DONE' || status === '已完成'
+          }
+          // 如果是对象，尝试读取 name / value
+          return status.name === 'DONE' || status.value === 'DONE'
+        })
+
+        // 转换为前端需要的格式，拼接负责人名称
+        this.availableDoneTasks = doneTasks.map(t => {
+          const assignees = Array.isArray(t.assignees) ? t.assignees : []
+          const assigneeNames = assignees
+            .map(a => a.userName || a.username || a.name)
+            .filter(Boolean)
+            .join('、') || '未分配'
+
+          return {
+            id: t.id || t.taskId,
+            title: t.title || t.taskTitle || '未命名任务',
+            assignee: assigneeNames,
+            raw: t
+          }
+        })
+
+        console.log('[任务选择] 成功加载', this.availableDoneTasks.length, '个已完成任务(含负责人)')
       } catch (error) {
         console.error('[任务选择] 加载已完成任务失败:', error)
         // 失败时降级到本地筛选
@@ -1081,11 +1101,17 @@ export default {
       if (this.selectedTaskIds.length === 0) return
 
       const selected = this.availableDoneTasks.filter(t => this.selectedTaskIds.includes(t.id))
+      // 根据成果生成面板中选择的项目ID，确定项目名称
+      const projectForTaskResult = this.availableProjects.find(p => String(p.id) === String(this.taskResultProjectId))
+      const projectTitle = projectForTaskResult
+        ? (projectForTaskResult.title || projectForTaskResult.name || '未命名项目')
+        : (this.currentProject ? (this.currentProject.title || this.currentProject.name || '当前项目') : '')
+
       this.selectedTaskSummaries = selected.map(t => ({
         id: t.id,
         title: t.title,
         assignee: t.assignee,
-        projectTitle: this.currentProject ? (this.currentProject.title || this.currentProject.name || '当前项目') : ''
+        projectTitle
       }))
 
       this.showTaskSelectDialog = false
