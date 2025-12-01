@@ -1,6 +1,40 @@
 // 图片URL处理工具函数
 import { API_BASE_URL, MINIO_BASE_URL } from '@/config'
 
+const apiHost = (API_BASE_URL || '').replace(/\/$/, '')
+const minioHost = (MINIO_BASE_URL || apiHost || '').replace(/\/$/, '')
+const browserOrigin = typeof window !== 'undefined' ? window.location.origin : ''
+const fallbackHost = apiHost || minioHost || browserOrigin
+
+function toAbsoluteUrl(path) {
+  if (!path || typeof path !== 'string') {
+    return null
+  }
+
+  const trimmed = path.trim()
+  if (!trimmed) return null
+
+  // Data URI or already absolute http(s)
+  if (trimmed.startsWith('data:') || /^https?:\/\//i.test(trimmed)) {
+    return trimmed
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `${window?.location?.protocol || 'https:'}${trimmed}`
+  }
+
+  const base = fallbackHost
+  if (!base) {
+    return trimmed
+  }
+
+  if (trimmed.startsWith('/')) {
+    return `${base}${trimmed}`
+  }
+
+  return `${base}/${trimmed}`
+}
+
 /**
  * 规范化项目封面图片URL
  * 将相对路径或部分路径转换为完整的MinIO URL
@@ -12,47 +46,29 @@ export function normalizeProjectCoverUrl(url) {
     return null
   }
 
-  // 如果是 Data URI（base64 图片），直接返回，不做任何处理
   if (url.startsWith('data:')) {
     return url
   }
 
-  // 如果已经是完整的HTTP/HTTPS URL
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    // 过滤掉无效的URL
-    if (url.includes('localhost')) {
-      console.warn('检测到无效URL:', url, '- 将返回null使用默认图片')
-      return null
-    }
-    if (url.includes('10.7.10.98:9000')) {
-      const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-      return url.replace('http://10.7.10.98:9000', minioBaseUrl)
-    }
+  if (/^https?:\/\//i.test(url) || url.startsWith('//')) {
     return url
   }
 
-  // 如果是相对路径（以 / 开头或不包含协议），转换为MinIO完整URL
+  // 后端现在返回 /zhiyan/... 形式的相对路径
   if (url.startsWith('/')) {
-    // 移除开头的斜杠
-    url = url.substring(1)
+    return toAbsoluteUrl(url)
   }
 
-  // 如果URL以 zhiyan/ 开头，说明是MinIO的对象键
+  // 旧数据：MinIO 对象键或文件名
   if (url.startsWith('zhiyan/')) {
-    // 构建完整的MinIO URL
-    const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-    return `${minioBaseUrl}/${url}`
+    return `${minioHost}/${url}`
   }
 
-  // 如果只是文件名，假设在 zhiyan/project-covers/ 目录下
   if (!url.includes('/')) {
-    const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-    return `${minioBaseUrl}/zhiyan/project-covers/${url}`
+    return `${minioHost}/zhiyan/project-covers/${url}`
   }
 
-  // 其他情况，尝试构建MinIO URL
-  const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-  return `${minioBaseUrl}/${url}`
+  return toAbsoluteUrl(`/${url}`)
 }
 
 /**
@@ -67,39 +83,23 @@ export function normalizeImageUrl(url, defaultBucket = 'zhiyan') {
     return null
   }
 
-  // 如果是 Data URI（base64 图片），直接返回，不做任何处理
   if (url.startsWith('data:')) {
     return url
   }
 
-  // 如果已经是完整的HTTP/HTTPS URL，直接返回
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    // 但如果包含localhost，则认为是错误的URL，返回null
-    if (url.includes('localhost')) {
-      console.warn('检测到包含localhost的无效URL:', url)
-      return null
-    }
-    if (url.includes('10.7.10.98:9000')) {
-      const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-      return url.replace('http://10.7.10.98:9000', minioBaseUrl)
-    }
+  if (/^https?:\/\//i.test(url) || url.startsWith('//')) {
     return url
   }
 
-  // 如果是相对路径（以 / 开头），移除开头的斜杠
   if (url.startsWith('/')) {
-    url = url.substring(1)
+    return toAbsoluteUrl(url)
   }
 
-  // 如果URL已经包含bucket名称，直接构建完整URL
   if (url.startsWith(`${defaultBucket}/`)) {
-    const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-    return `${minioBaseUrl}/${url}`
+    return `${minioHost}/${url}`
   }
 
-  // 否则，添加默认bucket
-  const minioBaseUrl = MINIO_BASE_URL || 'http://152.136.245.180:9000'
-  return `${minioBaseUrl}/${defaultBucket}/${url}`
+  return `${minioHost}/${defaultBucket}/${url}`
 }
 
 /**

@@ -53,7 +53,6 @@
                   v-for="task in allTasks" 
                   :key="task.id"
                   class="task-item-compact"
-                  @click="goToTaskDetail(task)"
                 >
                   <div class="task-item-status" :class="getTaskStatusClass(task.status)"></div>
                   <div class="task-item-content">
@@ -165,7 +164,6 @@
                   v-for="task in completedTasks" 
                   :key="task.id"
                   class="task-item-compact"
-                  @click="goToTaskDetail(task)"
                 >
                   <div class="task-item-status status-done"></div>
                   <div class="task-item-content">
@@ -321,11 +319,377 @@
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
+        <span>向下滚动查看成果统计</span>
+      </div>
+    </div>
+
+    <!-- 第三屏：成果统计 -->
+    <div class="dashboard-section achievements-section">
+      <!-- 页面标题 -->
+      <h1 class="page-title">成果统计</h1>
+
+      <!-- 中心内容区 -->
+      <div class="kpi-content">
+        <div class="dashboard-cards-wrapper">
+        <!-- 左侧：成果列表卡片 -->
+        <div class="stat-card-modern achievements-list-card">
+          <div class="stat-icon-wrapper" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+            <svg class="stat-icon" width="32" height="32" viewBox="0 0 24 24" fill="none">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <div class="stat-label">成果列表</div>
+            <div class="stat-value">{{ achievements.length }}</div>
+            <div class="stat-description">项目交付成果</div>
+          </div>
+          <!-- 成果列表 -->
+          <div class="task-list-compact" v-if="achievements.length > 0">
+            <div class="task-list-header">
+              <span class="task-list-title">成果详情</span>
+              <span class="task-list-count">共 {{ achievements.length }} 个成果</span>
+            </div>
+            <div class="task-list-items">
+              <div 
+                v-for="achievement in achievements" 
+                :key="achievement.id"
+                class="task-item-compact"
+              >
+                <div class="task-item-status" :class="getAchievementStatusClass(achievement.type)"></div>
+                <div class="task-item-content">
+                  <div class="task-item-name">{{ achievement.title || '未命名成果' }}</div>
+                  <div class="task-item-assignee">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>{{ achievement.responsibleName || '未知' }}</span>
+                  </div>
+                </div>
+                <div class="achievement-type-badge-small" :class="getTypeBadgeClass(achievement.type)">
+                  {{ achievement.typeName || getTypeDisplay(achievement.type) }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="achievement-list-empty">
+            <div class="empty-text">暂无成果数据</div>
+          </div>
+        </div>
+
+        <!-- 右侧：可视化图表卡片 -->
+        <div class="chart-card-modern member-contribution-chart">
+          <div class="chart-header">
+            <h3 class="chart-title">成员贡献统计</h3>
+            <div class="chart-subtitle">Wiki文档与成果上传数量对比</div>
+          </div>
+          <div class="chart-body">
+            <!-- 堆叠面积图 -->
+            <div class="stacked-area-chart" :class="{ 'chart-animated': contributionChartAnimated }" v-if="memberContributionData.length > 0">
+              <svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet" class="contribution-svg">
+                <defs>
+                  <!-- Wiki文档渐变（上层） -->
+                  <linearGradient id="wikiGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0.3" />
+                  </linearGradient>
+                  <!-- 成果渐变（下层） -->
+                  <linearGradient id="achievementGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:0.8" />
+                    <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0.3" />
+                  </linearGradient>
+                  <!-- 高亮渐变 -->
+                  <linearGradient id="wikiGradientHover" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:0.95" />
+                    <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:0.5" />
+                  </linearGradient>
+                  <linearGradient id="achievementGradientHover" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:0.95" />
+                    <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:0.5" />
+                  </linearGradient>
+                </defs>
+                
+                <!-- Y轴网格线 -->
+                <g class="grid-lines">
+                  <line x1="50" y1="30" x2="380" y2="30" stroke="#e2e8f0" stroke-dasharray="4"/>
+                  <line x1="50" y1="70" x2="380" y2="70" stroke="#e2e8f0" stroke-dasharray="4"/>
+                  <line x1="50" y1="110" x2="380" y2="110" stroke="#e2e8f0" stroke-dasharray="4"/>
+                  <line x1="50" y1="150" x2="380" y2="150" stroke="#e2e8f0" stroke-dasharray="4"/>
+                </g>
+                
+                <!-- Wiki文档区域（上层，紫色） -->
+                <path 
+                  :d="wikiAreaPath"
+                  :fill="contributionHoverType === 'wiki' ? 'url(#wikiGradientHover)' : 'url(#wikiGradient)'"
+                  :class="['area-path', 'wiki-area', { 'active': contributionHoverType === 'wiki', 'dimmed': contributionHoverType === 'achievement' }]"
+                  @mousemove="showContributionTooltip($event, 'wiki')"
+                  @mouseleave="hideContributionTooltip"
+                />
+                
+                <!-- 成果区域（下层，蓝色） -->
+                <path 
+                  :d="achievementAreaPath"
+                  :fill="contributionHoverType === 'achievement' ? 'url(#achievementGradientHover)' : 'url(#achievementGradient)'"
+                  :class="['area-path', 'achievement-area', { 'active': contributionHoverType === 'achievement', 'dimmed': contributionHoverType === 'wiki' }]"
+                  @mousemove="showContributionTooltip($event, 'achievement')"
+                  @mouseleave="hideContributionTooltip"
+                />
+                
+                <!-- X轴成员名称 -->
+                <g class="x-axis-labels">
+                  <text 
+                    v-for="(member, index) in memberContributionData" 
+                    :key="'label-' + index"
+                    :x="getContributionX(index)"
+                    y="190"
+                    text-anchor="middle"
+                    class="axis-label"
+                  >{{ truncateName(member.name) }}</text>
+                </g>
+                
+                <!-- Y轴刻度 -->
+                <g class="y-axis-labels">
+                  <text x="45" y="34" text-anchor="end" class="axis-label">{{ maxContribution }}</text>
+                  <text x="45" y="74" text-anchor="end" class="axis-label">{{ Math.round(maxContribution * 0.75) }}</text>
+                  <text x="45" y="114" text-anchor="end" class="axis-label">{{ Math.round(maxContribution * 0.5) }}</text>
+                  <text x="45" y="154" text-anchor="end" class="axis-label">{{ Math.round(maxContribution * 0.25) }}</text>
+                </g>
+              </svg>
+            </div>
+            <div class="chart-empty" v-else>
+              <div class="empty-text">暂无成员贡献数据</div>
+            </div>
+            
+            <!-- 图例 -->
+            <div class="contribution-legend">
+              <div class="legend-item-modern wiki-legend">
+                <span class="legend-dot" style="background: #8b5cf6;"></span>
+                <span class="legend-text">Wiki文档</span>
+                <span class="legend-value">{{ totalWikiCount }}</span>
+              </div>
+              <div class="legend-item-modern achievement-legend">
+                <span class="legend-dot" style="background: #3b82f6;"></span>
+                <span class="legend-text">成果上传</span>
+                <span class="legend-value">{{ achievements.length }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+      
+      <!-- 滚动提示 -->
+      <div class="scroll-hint">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>向下滚动查看成员任务统计</span>
+      </div>
+    </div>
+
+    <!-- 第四屏：成员任务统计 -->
+    <div class="dashboard-section member-submission-section">
+      <!-- 页面标题 -->
+      <h1 class="page-title">成员任务统计</h1>
+
+      <!-- 中心内容区 -->
+      <div class="kpi-content">
+        <div class="dashboard-cards-wrapper">
+          <!-- 左侧：成员任务列表卡片 -->
+          <div class="stat-card-modern member-tasks-list-card">
+            <div class="member-list-header">
+              <div class="stat-icon-wrapper small" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="stat-content compact">
+                <div class="stat-label">成员任务分配</div>
+                <div class="stat-value-row">
+                  <span class="stat-value small">{{ memberTaskStats.length }}</span>
+                  <span class="stat-description">位成员</span>
+                </div>
+              </div>
+            </div>
+            <!-- 成员任务列表 -->
+            <div class="task-list-compact" v-if="memberTaskStats.length > 0">
+              <div class="task-list-items">
+                <div 
+                  v-for="(member, index) in memberTaskStats" 
+                  :key="'member-stat-' + index"
+                  class="task-item-compact member-task-item"
+                >
+                  <div class="member-avatar" :style="{ background: getMemberColor(index) }">
+                    {{ member.name ? member.name.charAt(0) : '?' }}
+                  </div>
+                  <div class="task-item-content">
+                    <div class="task-item-name">{{ member.name || '未知成员' }}</div>
+                    <div class="task-item-stats">
+                      <span class="stat-badge total">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        参与 {{ member.totalTasks }}
+                      </span>
+                      <span class="stat-badge completed">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        完成 {{ member.completedTasks }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="completion-rate" :class="getCompletionRateClass(member)">
+                    {{ getCompletionRate(member) }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="member-list-empty">
+              <div class="empty-text">暂无成员数据</div>
+            </div>
+          </div>
+
+          <!-- 右侧：图表区域（上下两个图表） -->
+          <div class="chart-card-modern charts-wrapper">
+            <div class="charts-grid">
+              <!-- 上方：双向柱状图 -->
+              <div class="card glass gradient-border chart-item">
+                <div class="card-title">成员任务分布</div>
+                <div class="bidirectional-bar-chart" v-if="memberTaskStats.length > 0">
+                  <svg viewBox="0 0 700 200" preserveAspectRatio="xMidYMid meet" class="member-task-svg">
+                    <defs>
+                      <linearGradient id="totalTaskGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.9" />
+                        <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:0.7" />
+                      </linearGradient>
+                      <linearGradient id="completedTaskGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.9" />
+                        <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.7" />
+                      </linearGradient>
+                    </defs>
+                    <g class="y-axis-top">
+                      <line x1="45" y1="85" x2="655" y2="85" stroke="#475569" stroke-width="2"/>
+                      <line x1="45" y1="60" x2="655" y2="60" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="35" x2="655" y2="35" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="10" x2="655" y2="10" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <text x="40" y="89" text-anchor="end" class="axis-label">0</text>
+                      <text x="40" y="64" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount / 3) }}</text>
+                      <text x="40" y="39" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount * 2 / 3) }}</text>
+                      <text x="40" y="14" text-anchor="end" class="axis-label">{{ maxMemberTaskCount }}</text>
+                    </g>
+                    <g class="y-axis-bottom">
+                      <line x1="45" y1="110" x2="655" y2="110" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="135" x2="655" y2="135" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="160" x2="655" y2="160" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <text x="40" y="114" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount / 3) }}</text>
+                      <text x="40" y="139" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount * 2 / 3) }}</text>
+                      <text x="40" y="164" text-anchor="end" class="axis-label">{{ maxMemberTaskCount }}</text>
+                    </g>
+                    <g class="bars" :class="{ 'hover-total': memberTaskHoverType === 'total', 'hover-completed': memberTaskHoverType === 'completed', 'bars-animated': memberTaskBarsAnimated }">
+                      <g v-for="(member, index) in memberTaskStats" :key="'bar-' + index" :style="{ '--delay': `${index * 0.12}s` }">
+                        <rect :x="getMemberBarX(index)" :y="85 - getMemberBarHeightSmall(member.totalTasks)" :width="barWidth" :height="Math.max(getMemberBarHeightSmall(member.totalTasks), 2)" fill="url(#totalTaskGradient)" class="bar-total" rx="3" ry="3" @mouseenter="showMemberTaskTooltip($event, member, 'total')" @mousemove="updateMemberTaskTooltip($event)" @mouseleave="hideMemberTaskTooltip"/>
+                        <rect :x="getMemberBarX(index)" y="85" :width="barWidth" :height="Math.max(getMemberBarHeightSmall(member.completedTasks), 2)" fill="url(#completedTaskGradient)" class="bar-completed" rx="3" ry="3" @mouseenter="showMemberTaskTooltip($event, member, 'completed')" @mousemove="updateMemberTaskTooltip($event)" @mouseleave="hideMemberTaskTooltip"/>
+                        <text :x="getMemberBarX(index) + barWidth / 2" y="190" text-anchor="middle" class="axis-label member-name-label">{{ truncateMemberName(member.name) }}</text>
+                      </g>
+                    </g>
+                  </svg>
+                  <div v-if="memberTaskTooltip.show" class="member-task-tooltip" :style="{ left: memberTaskTooltip.x + 'px', top: memberTaskTooltip.y + 'px' }">
+                    <div class="tooltip-header">{{ memberTaskTooltip.name }}</div>
+                    <div class="tooltip-content">
+                      <span class="tooltip-label">{{ memberTaskTooltip.label }}</span>
+                      <span class="tooltip-value">{{ memberTaskTooltip.value }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="chart-empty" v-else>
+                  <div class="empty-text">暂无成员任务数据</div>
+                </div>
+                <div class="member-task-legend">
+                  <div class="legend-item-modern">
+                    <span class="legend-dot" style="background: #f59e0b;"></span>
+                    <span class="legend-text">参与任务数</span>
+                  </div>
+                  <div class="legend-item-modern">
+                    <span class="legend-dot" style="background: #ef4444;"></span>
+                    <span class="legend-text">已完成任务数</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 下方：任务完成时间线散点图 -->
+              <div class="card glass gradient-border chart-item timeline-chart-item">
+                <div class="card-title timeline-title">任务完成时间线</div>
+                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0">
+                  <svg viewBox="0 0 700 160" preserveAspectRatio="xMidYMid meet" class="timeline-scatter-svg">
+                    <defs>
+                      <radialGradient id="bubbleGradient1" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#b0a4d4;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#8a7eb8;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient2" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#d6b0c6;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#b891a8;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient3" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#8db8d6;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#6d99b8;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient4" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#e0c8a8;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#c8ab88;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient5" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#a0c8d8;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#80a8b8;stop-opacity:0.75" />
+                      </radialGradient>
+                    </defs>
+                    <g class="grid-lines">
+                      <line v-for="i in 5" :key="'h-' + i" x1="60" :y1="35 + (i-1) * 22" x2="680" :y2="35 + (i-1) * 22" stroke="#e2e8f0" stroke-dasharray="4"/>
+                    </g>
+                    <g class="y-axis-dates">
+                      <text v-for="(date, i) in timelineDateLabels" :key="'date-' + i" x="55" :y="40 + i * 22" text-anchor="end" class="axis-label date-label">{{ date }}</text>
+                    </g>
+                    <g class="x-axis-members">
+                      <text v-for="(member, i) in timelineMemberNames" :key="'member-' + i" :x="getTimelineMemberX(i)" y="155" text-anchor="middle" class="axis-label member-label">{{ truncateMemberName(member) }}</text>
+                    </g>
+                    <g class="scatter-bubbles" :class="{ 'bubbles-animated': timelineScatterAnimated }">
+                      <circle v-for="(point, i) in taskCompletionTimeline" :key="'bubble-' + i" :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)" :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)" :r="getBubbleRadius(i, point)" :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`" :class="['task-bubble', `bubble-float-${(i % 3) + 1}`]" :style="{ '--delay': `${i * 0.1}s` }" @mouseenter="showTimelineTooltip($event, point)" @mousemove="updateTimelineTooltip($event)" @mouseleave="hideTimelineTooltip"/>
+                    </g>
+                  </svg>
+                  <div v-if="timelineTooltip.show" class="timeline-scatter-tooltip" :style="{ left: timelineTooltip.x + 'px', top: timelineTooltip.y + 'px' }">
+                    <div class="tooltip-header">{{ timelineTooltip.memberName }}</div>
+                    <div class="tooltip-content">
+                      <div class="tooltip-row">
+                        <span class="tooltip-label">任务名称</span>
+                        <span class="tooltip-value">{{ timelineTooltip.taskTitle }}</span>
+                      </div>
+                      <div class="tooltip-row">
+                        <span class="tooltip-label">完成日期</span>
+                        <span class="tooltip-value">{{ timelineTooltip.completedDate }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="no-data-hint">暂无已完成任务数据</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 滚动提示 -->
+      <div class="scroll-hint">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         <span>向下滚动查看里程碑</span>
       </div>
     </div>
 
-    <!-- 第三屏：里程碑时间线 -->
+    <!-- 第五屏：里程碑时间线 -->
     <div class="dashboard-section timeline-section">
       <div class="section-header">
         <h2 class="section-title">里程碑时间线</h2>
@@ -393,91 +757,9 @@
       <!-- 滚动提示 -->
       <div class="scroll-hint">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 19V5M12 5L5 12M12 5L19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span>向下滚动查看成果</span>
-      </div>
-    </div>
-
-    <!-- 第四屏：成果统计 -->
-    <div class="dashboard-section achievements-section">
-      <div class="section-header">
-        <h2 class="section-title">成果统计</h2>
-        <p class="section-subtitle">项目交付成果与进展情况</p>
-      </div>
-      
-      <div class="achievements-content">
-        <!-- 统计概览卡片 -->
-        <div class="stats-overview">
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="stat-info">
-              <div class="stat-label">总成果数</div>
-              <div class="stat-value">{{ achievements.length }}</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="stat-info">
-              <div class="stat-label">最近更新</div>
-              <div class="stat-value stat-value-small">{{ achievements.length > 0 ? formatDate(achievements[0].updatedAt || achievements[0].createdAt) : '-' }}</div>
-            </div>
-          </div>
-          
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <div class="stat-info">
-              <div class="stat-label">参与人数</div>
-              <div class="stat-value">{{ new Set(achievements.map(a => a.responsibleName)).size }}</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 成果卡片网格 -->
-        <div v-if="achievements.length > 0" class="achievements-grid">
-          <div v-for="achievement in achievements" :key="achievement.id" class="achievement-card">
-            <div class="achievement-header">
-              <div class="achievement-type-badge" :class="getTypeBadgeClass(achievement.type)">
-                {{ achievement.typeName || getTypeDisplay(achievement.type) }}
-              </div>
-              <div class="achievement-date">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                {{ formatDate(achievement.updatedAt || achievement.createdAt) }}
-              </div>
-            </div>
-            
-            <h3 class="achievement-title">{{ achievement.title }}</h3>
-            
-            <div class="achievement-footer">
-              <div class="achievement-owner">
-                <div class="owner-avatar">{{ (achievement.responsibleName || '未知').charAt(0) }}</div>
-                <span class="owner-name">{{ achievement.responsibleName || '未知' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div v-else class="achievement-empty">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <div class="empty-text">暂无成果数据</div>
-        </div>
+        <span>向上滚动查看成果统计</span>
       </div>
     </div>
 
@@ -556,10 +838,51 @@ export default {
       completionTrend: [], // [{ date: '2025-11-01', count: 3 }, ...]
       // 成果统计数据
       achievements: [], // 成果列表
+      // Wiki统计数据
+      wikiStatistics: null, // Wiki统计信息
+      memberContributionData: [], // 成员贡献数据 [{name, wikiCount, achievementCount}]
+      totalWikiCount: 0, // Wiki文档总数
+      contributionHoverType: null, // 当前悬停的类型 'wiki' | 'achievement' | null
       // 项目成员（用于解析负责人姓名）
       projectMembers: [],
       // 任务提交记录
       taskSubmissions: [],
+      // 成员任务统计数据 [{name, totalTasks, completedTasks}]
+      memberTaskStats: [],
+      // 双向柱状图配置
+      barWidth: 50,
+      // 成员任务统计tooltip
+      memberTaskTooltip: {
+        show: false,
+        x: 0,
+        y: 0,
+        name: '',
+        label: '',
+        value: 0
+      },
+      // 当前悬停的柱状图类型
+      memberTaskHoverType: null,
+      // 柱状图动画是否已触发
+      memberTaskBarsAnimated: false,
+      // 成员贡献图表动画是否已触发
+      contributionChartAnimated: false,
+      // 任务完成时间线数据
+      taskCompletionTimeline: [],
+      // 时间线成员名称列表
+      timelineMemberNames: [],
+      // 时间线日期范围
+      timelineDateRange: { min: null, max: null },
+      // 时间线tooltip
+      timelineTooltip: {
+        show: false,
+        x: 0,
+        y: 0,
+        memberName: '',
+        taskTitle: '',
+        completedDate: ''
+      },
+      // 任务完成时间线散点图动画是否已触发
+      timelineScatterAnimated: false,
       // 滚动监听器
       scrollObserver: null,
       // 成员详情弹窗
@@ -602,7 +925,8 @@ export default {
         this.loadCompletionTrend(),
         this.loadAchievements(),
         this.loadProjectMembers(),
-        this.loadTaskSubmissions()
+        this.loadTaskSubmissions(),
+        this.loadWikiStatistics()
       ])
       
       this.loadingProgress = 90
@@ -742,6 +1066,128 @@ export default {
         startAngle += angle
       })
       return segments
+    },
+    // 计算成员任务统计的最大值（用于Y轴刻度）
+    maxMemberTaskCount() {
+      if (!this.memberTaskStats || this.memberTaskStats.length === 0) {
+        return 10
+      }
+      const maxTotal = Math.max(...this.memberTaskStats.map(m => Math.max(m.totalTasks, m.completedTasks)))
+      // 向上取整到合适的刻度
+      return Math.max(Math.ceil(maxTotal / 3) * 3, 3)
+    },
+    // 双向柱状图宽度
+    chartWidth() {
+      return Math.max(800, this.memberTaskStats.length * 80)
+    },
+    // 时间线Y轴日期标签（从下到上：早 -> 晚）
+    timelineDateLabels() {
+      if (!this.timelineDateRange.min || !this.timelineDateRange.max) {
+        return []
+      }
+      const labels = []
+      const minDate = new Date(this.timelineDateRange.min)
+      const maxDate = new Date(this.timelineDateRange.max)
+      const daysDiff = Math.ceil((maxDate - minDate) / (1000 * 60 * 60 * 24))
+      const step = Math.max(1, Math.ceil(daysDiff / 4))
+      
+      // 从最新日期开始往早的日期排列（上面是新的，下面是旧的）
+      for (let i = 0; i < 5; i++) {
+        const date = new Date(maxDate)
+        date.setDate(date.getDate() - i * step)
+        if (date >= minDate) {
+          labels.push(`${date.getMonth() + 1}/${date.getDate()}`)
+        }
+      }
+      return labels
+    },
+    // 计算成员贡献的最大值（用于Y轴刻度）
+    maxContribution() {
+      if (!this.memberContributionData || this.memberContributionData.length === 0) {
+        return 10
+      }
+      const maxTotal = Math.max(...this.memberContributionData.map(m => m.wikiCount + m.achievementCount))
+      // 向上取整到合适的刻度
+      return Math.max(Math.ceil(maxTotal / 5) * 5, 5)
+    },
+    // 计算Wiki文档区域的SVG路径（堆叠在成果之上）
+    wikiAreaPath() {
+      if (!this.memberContributionData || this.memberContributionData.length === 0) {
+        return ''
+      }
+      const data = this.memberContributionData
+      const maxY = this.maxContribution || 1
+      const chartHeight = 140 // 图表高度（从y=30到y=170）
+      const chartBottom = 170
+      const chartLeft = 50 // 图表左边界
+      const chartRight = 380 // 图表右边界
+      
+      // 构建路径点
+      let pathPoints = []
+      data.forEach((member, index) => {
+        const x = this.getContributionX(index)
+        // Wiki + Achievement 的总高度（从底部开始）
+        const totalValue = member.wikiCount + member.achievementCount
+        const totalY = chartBottom - (totalValue / maxY) * chartHeight
+        pathPoints.push({ x, y: totalY })
+      })
+      
+      // 构建SVG路径
+      if (pathPoints.length === 0) return ''
+      
+      // 如果只有一个数据点，从左边界画到右边界形成面积图
+      if (pathPoints.length === 1) {
+        const p = pathPoints[0]
+        return `M ${chartLeft} ${chartBottom} L ${chartLeft} ${p.y} L ${chartRight} ${p.y} L ${chartRight} ${chartBottom} Z`
+      }
+      
+      // 多个数据点时，使用平滑曲线
+      let path = `M ${chartLeft} ${chartBottom} L ${pathPoints[0].x} ${chartBottom}`
+      pathPoints.forEach(p => {
+        path += ` L ${p.x} ${p.y}`
+      })
+      path += ` L ${pathPoints[pathPoints.length - 1].x} ${chartBottom} L ${chartRight} ${chartBottom} Z`
+      
+      return path
+    },
+    // 计算成果区域的SVG路径（底层）
+    achievementAreaPath() {
+      if (!this.memberContributionData || this.memberContributionData.length === 0) {
+        return ''
+      }
+      const data = this.memberContributionData
+      const maxY = this.maxContribution || 1
+      const chartHeight = 140 // 图表高度
+      const chartBottom = 170
+      const chartLeft = 50 // 图表左边界
+      const chartRight = 380 // 图表右边界
+      
+      // 构建路径点
+      let pathPoints = []
+      data.forEach((member, index) => {
+        const x = this.getContributionX(index)
+        // 只有成果的高度
+        const achievementY = chartBottom - (member.achievementCount / maxY) * chartHeight
+        pathPoints.push({ x, y: achievementY })
+      })
+      
+      // 构建SVG路径
+      if (pathPoints.length === 0) return ''
+      
+      // 如果只有一个数据点，从左边界画到右边界形成面积图
+      if (pathPoints.length === 1) {
+        const p = pathPoints[0]
+        return `M ${chartLeft} ${chartBottom} L ${chartLeft} ${p.y} L ${chartRight} ${p.y} L ${chartRight} ${chartBottom} Z`
+      }
+      
+      // 多个数据点时
+      let path = `M ${chartLeft} ${chartBottom} L ${pathPoints[0].x} ${chartBottom}`
+      pathPoints.forEach(p => {
+        path += ` L ${p.x} ${p.y}`
+      })
+      path += ` L ${pathPoints[pathPoints.length - 1].x} ${chartBottom} L ${chartRight} ${chartBottom} Z`
+      
+      return path
     }
   },
   methods: {
@@ -758,10 +1204,34 @@ export default {
 
       this.scrollObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
-          if (entry.isIntersecting && entry.target.classList.contains('charts-section')) {
-            console.log('[ProjectDashboard] 图表section进入视口，触发动画')
-            // 重新播放图表动画
-            this.playChartsAnimation()
+          if (entry.target.classList.contains('charts-section')) {
+            if (entry.isIntersecting) {
+              console.log('[ProjectDashboard] 图表section进入视口，触发动画')
+              this.playChartsAnimation()
+            }
+          }
+          // 监听成果统计section
+          if (entry.target.classList.contains('achievements-section')) {
+            if (entry.isIntersecting) {
+              console.log('[ProjectDashboard] 成果统计section进入视口，触发贡献图表动画')
+              this.contributionChartAnimated = true
+            } else {
+              // 离开视口时重置动画状态
+              this.contributionChartAnimated = false
+            }
+          }
+          // 监听成员任务统计section
+          if (entry.target.classList.contains('member-submission-section')) {
+            if (entry.isIntersecting) {
+              console.log('[ProjectDashboard] 成员任务统计section进入视口，触发柱状图和散点图动画')
+              this.memberTaskBarsAnimated = true
+              // 触发散点图动画
+              this.triggerTimelineScatterAnimation()
+            } else {
+              // 离开视口时重置动画状态
+              this.memberTaskBarsAnimated = false
+              this.timelineScatterAnimated = false
+            }
           }
         })
       }, options)
@@ -771,6 +1241,16 @@ export default {
         const chartsSection = this.$el.querySelector('.charts-section')
         if (chartsSection) {
           this.scrollObserver.observe(chartsSection)
+        }
+        // 监听成果统计section
+        const achievementsSection = this.$el.querySelector('.achievements-section')
+        if (achievementsSection) {
+          this.scrollObserver.observe(achievementsSection)
+        }
+        // 监听成员任务统计section
+        const memberSection = this.$el.querySelector('.member-submission-section')
+        if (memberSection) {
+          this.scrollObserver.observe(memberSection)
         }
       })
     },
@@ -830,6 +1310,23 @@ export default {
           block.classList.remove('no-animation')
         })
       }, 50)
+    },
+
+    /**
+     * 触发任务完成时间线散点图动画
+     */
+    triggerTimelineScatterAnimation() {
+      console.log('[ProjectDashboard] 触发散点图动画')
+      // 先重置动画状态
+      this.timelineScatterAnimated = false
+      
+      // 强制重排后重新触发动画
+      this.$nextTick(() => {
+        // 短暂延迟后启动动画，确保DOM已更新
+        setTimeout(() => {
+          this.timelineScatterAnimated = true
+        }, 50)
+      })
     },
 
     /**
@@ -1057,6 +1554,9 @@ export default {
 
         // 计算统计数据
         this.calculateStatistics(allTasks)
+        
+        // 更新成员任务统计数据
+        this.updateMemberTaskStats()
 
       } catch (error) {
         console.error('[ProjectDashboard] 加载任务统计数据失败:', error)
@@ -1370,11 +1870,30 @@ export default {
                 continue
               }
 
-              const submitterName = getSubmissionSubmitterName(submission)
-              const submitterId = getSubmissionSubmitterId(submission)
-              const key = ensureMemberEntry(submitterId, submitterName)
-              const item = memberWorktimeMap.get(key)
-              item.worktime += numericWorktime
+              // 获取任务的所有参与人员（assignees）
+              const assignees = task.assignees || []
+              
+              if (assignees.length > 0) {
+                // 将工时分配给任务的所有参与人员
+                // 每个参与人员都获得完整的工时（因为他们都参与了这个任务）
+                assignees.forEach(assignee => {
+                  const assigneeName = assignee.userName || assignee.username || assignee.name || '未知成员'
+                  const assigneeId = assignee.userId || assignee.id
+                  const key = ensureMemberEntry(assigneeId, assigneeName)
+                  const item = memberWorktimeMap.get(key)
+                  if (item) {
+                    item.worktime += numericWorktime
+                    console.log('[ProjectDashboard] 工时分配给参与人员:', assigneeName, '+', numericWorktime, 'h')
+                  }
+                })
+              } else {
+                // 如果没有assignees，回退到提交者
+                const submitterName = getSubmissionSubmitterName(submission)
+                const submitterId = getSubmissionSubmitterId(submission)
+                const key = ensureMemberEntry(submitterId, submitterName)
+                const item = memberWorktimeMap.get(key)
+                item.worktime += numericWorktime
+              }
             } else {
               console.log('[ProjectDashboard] 最新工时接口无数据或返回非200, taskId=', taskId, 'resp=', response)
             }
@@ -1687,6 +2206,9 @@ export default {
             return isCompleted
           })
         console.log('[ProjectDashboard] 保存已完成任务列表:', this.completedTasks.length, '个（仅状态为"完成"的任务）')
+        
+        // 更新任务完成时间线散点图
+        this.updateTaskCompletionTimeline()
 
         // 3. 计算近30天的日期范围（使用本地时区）
         const today = new Date()
@@ -1788,6 +2310,10 @@ export default {
           
           this.projectMembers = memberList
           console.log('[ProjectDashboard] 项目成员加载完成:', memberList.length, '人')
+          console.log('[ProjectDashboard] 成员详情:', memberList.map(m => ({ id: m.id, name: m.name, userId: m.userId, nickname: m.nickname, username: m.username })))
+          // 成员加载完成后，重新更新统计数据
+          this.updateMemberTaskStats()
+          this.updateMemberContributionData()
         } else {
           this.projectMembers = []
         }
@@ -1892,6 +2418,8 @@ export default {
           }
           // 解析负责人姓名
           this.updateAchievementOwners()
+          // 更新成员贡献数据
+          this.updateMemberContributionData()
         } else {
           // 响应失败或没有数据时，静默处理，设置为空数组
           // 不输出错误日志，避免干扰用户体验
@@ -1903,6 +2431,732 @@ export default {
         this.achievements = []
         this.updateAchievementOwners()
       }
+    },
+
+    /**
+     * 加载Wiki统计数据
+     */
+    async loadWikiStatistics() {
+      const projectId = this.$route.params.id
+      if (!projectId) {
+        this.wikiStatistics = null
+        this.totalWikiCount = 0
+        return
+      }
+
+      try {
+        const { wikiPageAPI } = await import('@/api/wiki')
+        
+        // 获取Wiki树结构，从中统计每个成员的贡献
+        const treeResponse = await wikiPageAPI.getProjectWikiTree(projectId)
+        
+        console.log('[ProjectDashboard] Wiki树响应:', treeResponse)
+        
+        if (treeResponse && treeResponse.code === 200 && treeResponse.data) {
+          const wikiTree = treeResponse.data
+          
+          // 统计每个成员的Wiki文档数量
+          const memberWikiCount = new Map()
+          let totalCount = 0
+          
+          // 构建成员ID到名称的映射
+          const memberIdToName = new Map()
+          if (Array.isArray(this.projectMembers)) {
+            this.projectMembers.forEach(m => {
+              const id = String(m.userId || m.id)
+              const name = m.nickname || m.username || m.name
+              if (id && name) {
+                memberIdToName.set(id, name)
+              }
+            })
+          }
+          
+          // 递归遍历Wiki树，只统计文档类型的页面
+          const countWikiByCreator = (pages) => {
+            if (!Array.isArray(pages)) return
+            
+            pages.forEach(page => {
+              const pageType = page.pageType || page.type || ''
+              // 判断是否为文档：pageType为DOCUMENT，或者没有子节点
+              const hasChildren = page.children && Array.isArray(page.children) && page.children.length > 0
+              const isDocument = pageType === 'DOCUMENT' || pageType === 'document' || !hasChildren
+              
+              // 打印完整的页面信息用于调试
+              console.log('[ProjectDashboard] Wiki页面详情:', JSON.stringify({
+                title: page.title,
+                pageType: pageType,
+                isDocument: isDocument,
+                hasChildren: hasChildren,
+                creatorId: page.creatorId,
+                createdBy: page.createdBy,
+                creatorName: page.creatorName,
+                authorId: page.authorId,
+                authorName: page.authorName
+              }))
+              
+              // 只统计文档类型，不统计目录/节点
+              if (isDocument) {
+                totalCount++
+                
+                // 获取创建者ID和名称
+                const creatorId = String(page.creatorId || page.createdBy || page.authorId || '')
+                const creatorName = page.creatorName || page.createdByName || page.authorName || null
+                
+                let memberName = null
+                
+                // 优先使用创建者名称
+                if (creatorName && creatorName !== '未知') {
+                  memberName = creatorName
+                } else if (creatorId && creatorId !== '' && creatorId !== 'undefined') {
+                  // 从成员映射中查找
+                  memberName = memberIdToName.get(creatorId)
+                  console.log('[ProjectDashboard] 查找成员ID:', creatorId, '结果:', memberName)
+                }
+                
+                if (memberName && memberName !== '未知') {
+                  memberWikiCount.set(memberName, (memberWikiCount.get(memberName) || 0) + 1)
+                  console.log('[ProjectDashboard] 统计Wiki:', page.title, '-> 成员:', memberName)
+                } else {
+                  console.log('[ProjectDashboard] 无法确定创建者:', page.title, 'creatorId:', creatorId)
+                }
+              }
+              
+              // 递归处理子页面
+              if (hasChildren) {
+                countWikiByCreator(page.children)
+              }
+            })
+          }
+          
+          // 处理树结构
+          if (Array.isArray(wikiTree)) {
+            countWikiByCreator(wikiTree)
+          } else if (wikiTree.children) {
+            countWikiByCreator(wikiTree.children)
+          } else if (wikiTree.pages) {
+            countWikiByCreator(wikiTree.pages)
+          }
+          
+          // 保存统计结果
+          this.wikiStatistics = {
+            totalPages: totalCount,
+            memberStats: Array.from(memberWikiCount.entries()).map(([name, count]) => ({
+              memberName: name,
+              documentCount: count
+            }))
+          }
+          this.totalWikiCount = totalCount
+          
+          console.log('[ProjectDashboard] Wiki统计数据加载完成:', this.wikiStatistics)
+          console.log('[ProjectDashboard] 成员Wiki统计:', Array.from(memberWikiCount.entries()))
+          
+          // 更新成员贡献数据
+          this.updateMemberContributionData()
+        } else {
+          this.wikiStatistics = null
+          this.totalWikiCount = 0
+          this.updateMemberContributionData()
+        }
+      } catch (error) {
+        console.warn('[ProjectDashboard] 加载Wiki统计数据失败:', error)
+        this.wikiStatistics = null
+        this.totalWikiCount = 0
+        // 即使Wiki加载失败，也尝试更新成员贡献数据（只显示成果数据）
+        this.updateMemberContributionData()
+      }
+    },
+
+    /**
+     * 更新成员贡献数据（合并Wiki和成果数据）
+     */
+    updateMemberContributionData() {
+      const memberMap = new Map()
+      
+      console.log('[ProjectDashboard] 开始更新成员贡献数据')
+      console.log('[ProjectDashboard] 成果数据:', this.achievements)
+      console.log('[ProjectDashboard] Wiki统计:', this.wikiStatistics)
+      console.log('[ProjectDashboard] 项目成员:', this.projectMembers)
+      
+      // 记录没有成员名称的成果数量
+      let unassignedAchievements = 0
+      
+      // 从成果数据中统计每个成员的成果数量
+      if (Array.isArray(this.achievements) && this.achievements.length > 0) {
+        this.achievements.forEach(achievement => {
+          // 尝试多种方式获取成员名称
+          let memberName = achievement.creatorName || achievement.responsibleName || achievement.ownerName || null
+          
+          // 如果没有名称，尝试从项目成员中查找
+          if (!memberName) {
+            const memberId = achievement.creatorId || achievement.responsibleId
+            if (memberId && this.projectMembers.length > 0) {
+              const member = this.projectMembers.find(m => 
+                String(m.userId) === String(memberId) || 
+                String(m.id) === String(memberId) ||
+                String(m.user?.id) === String(memberId)
+              )
+              if (member) {
+                memberName = member.nickname || member.username || member.name || member.realName || member.user?.nickname || member.user?.username
+              }
+            }
+          }
+          
+          // 如果还是没有名称，记录为未分配
+          if (!memberName) {
+            unassignedAchievements++
+          } else {
+            if (!memberMap.has(memberName)) {
+              memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
+            }
+            memberMap.get(memberName).achievementCount++
+          }
+        })
+      }
+      
+      // 如果所有成果都没有成员名称，按项目成员均分
+      if (unassignedAchievements > 0 && memberMap.size === 0 && this.projectMembers.length > 0) {
+        console.log('[ProjectDashboard] 成果无成员信息，按项目成员分配')
+        const achievementCount = this.achievements.length
+        const memberCount = Math.min(this.projectMembers.length, 5) // 最多显示5个成员
+        const perMember = Math.ceil(achievementCount / memberCount)
+        let remaining = achievementCount
+        
+        for (let i = 0; i < memberCount && remaining > 0; i++) {
+          const member = this.projectMembers[i]
+          const memberName = member.nickname || member.username || member.name || member.realName || `成员${i + 1}`
+          const count = Math.min(perMember, remaining)
+          memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: count })
+          remaining -= count
+        }
+      }
+      
+      // 从Wiki统计中获取成员贡献
+      if (this.wikiStatistics && this.wikiStatistics.memberStats && this.wikiStatistics.memberStats.length > 0) {
+        console.log('[ProjectDashboard] Wiki成员统计:', this.wikiStatistics.memberStats)
+        this.wikiStatistics.memberStats.forEach(stat => {
+          const memberName = stat.memberName || stat.name
+          const wikiCount = stat.documentCount || stat.count || 0
+          console.log('[ProjectDashboard] Wiki成员:', memberName, 'Wiki数量:', wikiCount)
+          if (memberName && wikiCount > 0) {
+            if (!memberMap.has(memberName)) {
+              memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
+            }
+            memberMap.get(memberName).wikiCount = wikiCount
+          }
+        })
+      }
+      
+      // 如果Wiki有数据但没有分配到任何成员，按比例分配给有成果的成员
+      const totalWikiAssigned = Array.from(memberMap.values()).reduce((sum, m) => sum + m.wikiCount, 0)
+      if (this.totalWikiCount > 0 && totalWikiAssigned === 0 && memberMap.size > 0) {
+        console.log('[ProjectDashboard] Wiki数据未分配到成员，按比例分配')
+        const members = Array.from(memberMap.values())
+        const totalAchievements = members.reduce((sum, m) => sum + m.achievementCount, 0) || 1
+        
+        members.forEach(member => {
+          // 按成果比例分配Wiki数量
+          const ratio = member.achievementCount / totalAchievements
+          member.wikiCount = Math.max(1, Math.round(this.totalWikiCount * ratio))
+        })
+      }
+      
+      // 转换为数组并排序（按总贡献降序）
+      this.memberContributionData = Array.from(memberMap.values())
+        .filter(m => m.name && (m.achievementCount > 0 || m.wikiCount > 0))
+        .sort((a, b) => (b.wikiCount + b.achievementCount) - (a.wikiCount + a.achievementCount))
+        .slice(0, 8) // 最多显示8个成员
+      
+      console.log('[ProjectDashboard] 成员贡献数据更新完成:', this.memberContributionData)
+      console.log('[ProjectDashboard] 各成员数据:', this.memberContributionData.map(m => `${m.name}: wiki=${m.wikiCount}, achievement=${m.achievementCount}`))
+    },
+
+    /**
+     * 获取成员在图表中的X坐标
+     */
+    getContributionX(index) {
+      const data = this.memberContributionData
+      if (!data || data.length === 0) return 50
+      
+      const chartLeft = 60
+      const chartRight = 370
+      const chartWidth = chartRight - chartLeft
+      
+      if (data.length === 1) {
+        return chartLeft + chartWidth / 2
+      }
+      
+      return chartLeft + (index / (data.length - 1)) * chartWidth
+    },
+
+    /**
+     * 截断成员名称（用于X轴显示）
+     */
+    truncateName(name) {
+      if (!name) return ''
+      return name.length > 4 ? name.substring(0, 4) + '..' : name
+    },
+
+    /**
+     * 获取提交记录的颜色（用于时间线）
+     */
+    getSubmissionColor(index) {
+      const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16']
+      return colors[index % colors.length]
+    },
+
+    /**
+     * 获取成员柱状图的X坐标（居中显示，紧密连接）
+     */
+    getMemberBarX(index) {
+      const chartWidth = 610 // 可用宽度 (655 - 45)
+      const memberCount = this.memberTaskStats.length
+      const totalBarsWidth = memberCount * this.barWidth // 无间距，紧密连接
+      const startX = 45 + (chartWidth - totalBarsWidth) / 2 // 居中起始位置
+      return startX + index * this.barWidth
+    },
+
+    /**
+     * 获取柱状图高度
+     */
+    getMemberBarHeight(value) {
+      if (!value || this.maxMemberTaskCount === 0) return 0
+      const maxHeight = 105 // 最大高度105px (120 - 15)
+      return (value / this.maxMemberTaskCount) * maxHeight
+    },
+
+    /**
+     * 获取柱状图高度（缩小版）
+     */
+    getMemberBarHeightSmall(value) {
+      if (!value || this.maxMemberTaskCount === 0) return 0
+      const maxHeight = 75 // 最大高度75px (85 - 10)
+      return (value / this.maxMemberTaskCount) * maxHeight
+    },
+
+    /**
+     * 截断成员名称（用于双向柱状图X轴显示）
+     */
+    truncateMemberName(name) {
+      if (!name) return ''
+      return name.length > 5 ? name.substring(0, 5) + '..' : name
+    },
+
+    /**
+     * 获取成员颜色（用于头像背景）
+     */
+    getMemberColor(index) {
+      const colors = [
+        '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', 
+        '#10b981', '#06b6d4', '#6366f1', '#f97316',
+        '#14b8a6', '#a855f7', '#ef4444', '#84cc16'
+      ]
+      return colors[index % colors.length]
+    },
+
+    /**
+     * 计算成员完成率
+     */
+    getCompletionRate(member) {
+      if (!member.totalTasks || member.totalTasks === 0) return 0
+      return Math.round((member.completedTasks / member.totalTasks) * 100)
+    },
+
+    /**
+     * 获取完成率的样式类
+     */
+    getCompletionRateClass(member) {
+      const rate = this.getCompletionRate(member)
+      if (rate >= 80) return 'rate-high'
+      if (rate >= 50) return 'rate-medium'
+      return 'rate-low'
+    },
+
+    /**
+     * 显示成员任务统计tooltip
+     */
+    showMemberTaskTooltip(event, member, type) {
+      const rect = event.target.closest('.bidirectional-bar-chart').getBoundingClientRect()
+      this.memberTaskHoverType = type
+      this.memberTaskTooltip = {
+        show: true,
+        x: event.clientX - rect.left + 10,
+        y: event.clientY - rect.top - 60,
+        name: member.name,
+        label: type === 'total' ? '参与任务数' : '已完成任务数',
+        value: type === 'total' ? member.totalTasks : member.completedTasks
+      }
+    },
+
+    /**
+     * 更新成员任务统计tooltip位置
+     */
+    updateMemberTaskTooltip(event) {
+      if (!this.memberTaskTooltip.show) return
+      const rect = event.target.closest('.bidirectional-bar-chart').getBoundingClientRect()
+      this.memberTaskTooltip.x = event.clientX - rect.left + 10
+      this.memberTaskTooltip.y = event.clientY - rect.top - 60
+    },
+
+    /**
+     * 隐藏成员任务统计tooltip
+     */
+    hideMemberTaskTooltip() {
+      this.memberTaskTooltip.show = false
+      this.memberTaskHoverType = null
+    },
+
+    /**
+     * 获取气泡随机半径（基于索引生成伪随机大小）
+     */
+    getBubbleRadius(index, point) {
+      // 使用索引和任务ID生成伪随机数，确保每次渲染结果一致
+      const seed = index * 17 + (point.taskId ? parseInt(point.taskId.slice(-4), 16) || 0 : 0)
+      const random = ((seed * 9301 + 49297) % 233280) / 233280 // 伪随机数 0-1
+      // 半径范围：8-22px，随机分布
+      return 8 + random * 14
+    },
+
+    /**
+     * 获取气泡X方向偏移（避免同一位置的气泡重叠）
+     */
+    getBubbleOffsetX(index, point) {
+      // 统计同一成员同一日期的气泡数量和当前索引
+      const samePositionBubbles = this.taskCompletionTimeline.filter(
+        (p, i) => i < index && p.memberIndex === point.memberIndex && p.completedDate === point.completedDate
+      )
+      const positionIndex = samePositionBubbles.length
+      
+      // 根据位置索引计算偏移，形成更分散的分布
+      const offsetPatterns = [0, -60, 60, -30, 30, -80, 80, -45, 45]
+      return offsetPatterns[positionIndex % offsetPatterns.length]
+    },
+
+    /**
+     * 获取气泡Y方向偏移（避免同一位置的气泡重叠）
+     */
+    getBubbleOffsetY(index, point) {
+      // 统计同一成员同一日期的气泡数量和当前索引
+      const samePositionBubbles = this.taskCompletionTimeline.filter(
+        (p, i) => i < index && p.memberIndex === point.memberIndex && p.completedDate === point.completedDate
+      )
+      const positionIndex = samePositionBubbles.length
+      
+      // 根据位置索引计算偏移，交错分布
+      const offsetPatterns = [0, -20, 20, -10, 10, -15, 15, -5, 5]
+      return offsetPatterns[positionIndex % offsetPatterns.length]
+    },
+
+    /**
+     * 获取时间线成员X坐标
+     */
+    getTimelineMemberX(index) {
+      const chartWidth = 620 // 可用宽度 (680 - 60)
+      const memberCount = this.timelineMemberNames.length
+      if (memberCount === 0) return 60
+      const gap = chartWidth / (memberCount + 1)
+      return 60 + gap * (index + 1)
+    },
+
+    /**
+     * 获取时间线日期Y坐标（早的日期在下面，晚的日期在上面）
+     */
+    getTimelineDateY(dateStr) {
+      if (!this.timelineDateRange.min || !this.timelineDateRange.max) return 75
+      const date = new Date(dateStr)
+      const minDate = new Date(this.timelineDateRange.min)
+      const maxDate = new Date(this.timelineDateRange.max)
+      const totalDays = Math.max(1, (maxDate - minDate) / (1000 * 60 * 60 * 24))
+      const dayOffset = (date - minDate) / (1000 * 60 * 60 * 24)
+      // Y轴从123到35，早的日期在下面（123），晚的日期在上面（35）
+      return 123 - (dayOffset / totalDays) * 88
+    },
+
+    /**
+     * 显示时间线tooltip
+     */
+    showTimelineTooltip(event, point) {
+      const rect = event.target.closest('.task-timeline-scatter').getBoundingClientRect()
+      this.timelineTooltip = {
+        show: true,
+        x: event.clientX - rect.left + 15,
+        y: event.clientY - rect.top - 70,
+        memberName: point.memberName,
+        taskTitle: point.taskTitle,
+        completedDate: point.completedDate
+      }
+    },
+
+    /**
+     * 更新时间线tooltip位置
+     */
+    updateTimelineTooltip(event) {
+      if (!this.timelineTooltip.show) return
+      const rect = event.target.closest('.task-timeline-scatter').getBoundingClientRect()
+      this.timelineTooltip.x = event.clientX - rect.left + 15
+      this.timelineTooltip.y = event.clientY - rect.top - 70
+    },
+
+    /**
+     * 隐藏时间线tooltip
+     */
+    hideTimelineTooltip() {
+      this.timelineTooltip.show = false
+    },
+
+    /**
+     * 更新任务完成时间线数据
+     */
+    updateTaskCompletionTimeline() {
+      console.log('[ProjectDashboard] 开始更新任务完成时间线')
+      
+      if (!this.completedTasks || this.completedTasks.length === 0) {
+        this.taskCompletionTimeline = []
+        this.timelineMemberNames = []
+        console.log('[ProjectDashboard] 没有已完成任务数据')
+        return
+      }
+
+      const memberIndexMap = new Map()
+      const timelineData = []
+      let minDate = null
+      let maxDate = null
+
+      // 遍历已完成任务，为每个任务的所有参与人员创建数据点
+      this.completedTasks.forEach(task => {
+        // 获取完成日期
+        let completedDate = task.completedAt || task.completionDate || task.updatedAt || task.createdAt
+        if (!completedDate) return
+        
+        // 格式化日期
+        const dateObj = new Date(completedDate)
+        if (isNaN(dateObj.getTime())) return
+        
+        const dateStr = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`
+        
+        // 更新日期范围
+        if (!minDate || dateObj < minDate) minDate = dateObj
+        if (!maxDate || dateObj > maxDate) maxDate = dateObj
+
+        // 获取任务的所有参与人员
+        const assignees = task.assignees || []
+        
+        if (assignees.length > 0) {
+          // 为每个参与人员创建数据点
+          assignees.forEach(assignee => {
+            const memberName = assignee.userName || assignee.username || assignee.name || '未知成员'
+            
+            // 记录成员索引
+            if (!memberIndexMap.has(memberName)) {
+              memberIndexMap.set(memberName, memberIndexMap.size)
+            }
+            
+            timelineData.push({
+              memberName,
+              memberIndex: memberIndexMap.get(memberName),
+              taskTitle: task.title || '未命名任务',
+              taskId: task.id,
+              completedDate: dateStr,
+              taskCount: 1
+            })
+          })
+        } else {
+          // 如果没有assignees，尝试使用其他字段
+          const memberName = task.assigneeName || task.creatorName || '未知成员'
+          
+          if (!memberIndexMap.has(memberName)) {
+            memberIndexMap.set(memberName, memberIndexMap.size)
+          }
+          
+          timelineData.push({
+            memberName,
+            memberIndex: memberIndexMap.get(memberName),
+            taskTitle: task.title || '未命名任务',
+            taskId: task.id,
+            completedDate: dateStr,
+            taskCount: 1
+          })
+        }
+      })
+
+      // 设置日期范围（如果只有一天，扩展范围）
+      if (minDate && maxDate) {
+        if (minDate.getTime() === maxDate.getTime()) {
+          minDate = new Date(minDate)
+          minDate.setDate(minDate.getDate() - 3)
+          maxDate = new Date(maxDate)
+          maxDate.setDate(maxDate.getDate() + 3)
+        }
+        this.timelineDateRange = { min: minDate, max: maxDate }
+      }
+
+      // 更新成员名称列表
+      this.timelineMemberNames = Array.from(memberIndexMap.keys())
+      
+      // 更新时间线数据（重新计算memberIndex）
+      this.taskCompletionTimeline = timelineData.map(point => ({
+        ...point,
+        memberIndex: memberIndexMap.get(point.memberName)
+      }))
+
+      console.log('[ProjectDashboard] 任务完成时间线更新完成:', this.taskCompletionTimeline.length, '个数据点')
+      console.log('[ProjectDashboard] 成员列表:', this.timelineMemberNames)
+    },
+
+    /**
+     * 更新成员任务统计数据
+     */
+    updateMemberTaskStats() {
+      console.log('[ProjectDashboard] 开始更新成员任务统计, allTasks:', this.allTasks?.length)
+      
+      if (!this.allTasks || this.allTasks.length === 0) {
+        this.memberTaskStats = []
+        console.log('[ProjectDashboard] 没有任务数据')
+        return
+      }
+
+      const memberMap = new Map()
+
+      // 遍历所有任务，统计每个成员的任务数
+      this.allTasks.forEach(task => {
+        // 检查任务是否已完成
+        const status = task.status || task.status_value
+        const isCompleted = status === 'DONE' || status === '已完成' || status === '完成' || 
+                           status === 'COMPLETED' || status === 'PENDING_REVIEW' || status === '待审核'
+        
+        // 后端返回的任务数据中，执行者在 assignees 数组中
+        // 每个 assignee 有 userId 和 userName 字段
+        const assignees = task.assignees || []
+        
+        if (assignees.length > 0) {
+          // 遍历所有执行者
+          assignees.forEach(assignee => {
+            const userName = assignee.userName || assignee.username || assignee.name || '未知成员'
+            
+            // 初始化成员数据
+            if (!memberMap.has(userName)) {
+              memberMap.set(userName, {
+                name: userName,
+                totalTasks: 0,
+                completedTasks: 0
+              })
+            }
+
+            const memberData = memberMap.get(userName)
+            memberData.totalTasks++
+
+            if (isCompleted) {
+              memberData.completedTasks++
+            }
+          })
+        } else {
+          // 如果没有 assignees，尝试其他字段
+          let assigneeName = task.assigneeName || task.assignee_name || task.creatorName || task.creator_name
+          
+          // 如果还是没有，尝试从项目成员中查找
+          if (!assigneeName) {
+            const assigneeId = task.assigneeId || task.assignee_id || task.createdBy
+            if (assigneeId && this.projectMembers.length > 0) {
+              const member = this.projectMembers.find(m => 
+                String(m.id) === String(assigneeId) || 
+                String(m.userId) === String(assigneeId)
+              )
+              if (member) {
+                assigneeName = member.name || member.username || member.nickname || member.realName
+              }
+            }
+          }
+          
+          if (!assigneeName) {
+            assigneeName = '未分配'
+          }
+
+          // 初始化成员数据
+          if (!memberMap.has(assigneeName)) {
+            memberMap.set(assigneeName, {
+              name: assigneeName,
+              totalTasks: 0,
+              completedTasks: 0
+            })
+          }
+
+          const memberData = memberMap.get(assigneeName)
+          memberData.totalTasks++
+
+          if (isCompleted) {
+            memberData.completedTasks++
+          }
+        }
+      })
+
+      // 转换为数组并排序（按总任务数降序），过滤掉"未分配"
+      this.memberTaskStats = Array.from(memberMap.values())
+        .filter(m => m.name !== '未分配')
+        .sort((a, b) => b.totalTasks - a.totalTasks)
+        .slice(0, 12) // 最多显示12个成员
+
+      console.log('[ProjectDashboard] 成员任务统计更新完成:', this.memberTaskStats)
+    },
+
+    /**
+     * 显示贡献图表的tooltip
+     */
+    showContributionTooltip(event, type) {
+      this.contributionHoverType = type
+      
+      // 找到鼠标位置对应的成员
+      const svg = event.target.closest('svg')
+      if (!svg) return
+      
+      const rect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - rect.left
+      const svgWidth = rect.width
+      const chartLeft = 60 * (svgWidth / 400)
+      const chartRight = 370 * (svgWidth / 400)
+      const chartWidth = chartRight - chartLeft
+      
+      // 计算鼠标位置对应的成员索引
+      const relativeX = mouseX - chartLeft
+      const memberIndex = Math.round((relativeX / chartWidth) * (this.memberContributionData.length - 1))
+      const clampedIndex = Math.max(0, Math.min(this.memberContributionData.length - 1, memberIndex))
+      
+      const member = this.memberContributionData[clampedIndex]
+      if (!member) return
+      
+      const value = type === 'wiki' ? member.wikiCount : member.achievementCount
+      const label = type === 'wiki' ? 'Wiki文档数量' : '成果上传数量'
+      
+      this.tooltip = {
+        show: true,
+        x: event.clientX + 10,
+        y: event.clientY - 30,
+        title: `${member.name} - ${label}`,
+        value: value,
+        suffix: ' 个',
+        mode: 'value'
+      }
+    },
+
+    /**
+     * 隐藏贡献图表的tooltip
+     */
+    hideContributionTooltip() {
+      this.contributionHoverType = null
+      this.tooltip.show = false
+    },
+
+    /**
+     * 获取成果状态样式类（根据类型）
+     */
+    getAchievementStatusClass(type) {
+      const typeClassMap = {
+        'paper': 'status-paper',
+        'patent': 'status-patent',
+        'dataset': 'status-dataset',
+        'model': 'status-model',
+        'report': 'status-report',
+        'custom': 'status-custom'
+      }
+      return typeClassMap[type] || 'status-default'
     },
 
     /**
@@ -2925,7 +4179,7 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 200px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
@@ -2954,7 +4208,6 @@ export default {
   padding: 10px 12px;
   background: #f8fafc;
   border-radius: 10px;
-  cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid transparent;
 }
@@ -2962,7 +4215,6 @@ export default {
 .task-item-compact:hover {
   background: #f1f5f9;
   border-color: #e2e8f0;
-  transform: translateX(4px);
 }
 
 .task-item-status {
@@ -3092,7 +4344,7 @@ export default {
 }
 
 .charts-section .task-list-items {
-  max-height: 180px;
+  max-height: 350px;
 }
 
 /* Timeline section样式 */
@@ -3271,7 +4523,10 @@ export default {
 .achievements-section{
   justify-content:center;
   align-items:center;
-  padding:60px 40px;
+  padding:40px 40px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .achievements-content{
@@ -3283,11 +4538,20 @@ export default {
 
 /* Section副标题样式 */
 .section-subtitle{
-  font-size:16px;
+  font-size:14px;
   color:#64748b;
-  margin:8px 0 0;
+  margin:6px 0 0;
   font-weight:500;
   text-align:center;
+}
+
+/* 成果统计section标题调整 */
+.achievements-section .section-header {
+  margin-bottom: 20px;
+}
+
+.achievements-section .section-title {
+  font-size: 24px;
 }
 
 .bg-canvas{position:fixed;inset:0;z-index:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:normal}
@@ -4110,24 +5374,24 @@ export default {
 .achievements-content{
   display:flex;
   flex-direction:column;
-  gap:40px;
+  gap:24px;
 }
 
 /* 统计概览卡片 */
 .stats-overview{
   display:grid;
   grid-template-columns:repeat(3, 1fr);
-  gap:24px;
+  gap:16px;
 }
 
 .stat-card{
   background:linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-radius:20px;
-  padding:24px;
+  border-radius:16px;
+  padding:16px 20px;
   display:flex;
   align-items:center;
-  gap:20px;
-  box-shadow:0 8px 24px rgba(15, 23, 42, 0.08);
+  gap:16px;
+  box-shadow:0 6px 20px rgba(15, 23, 42, 0.06);
   transition:all 0.3s ease;
   position:relative;
   overflow:hidden;
@@ -4154,9 +5418,9 @@ export default {
 }
 
 .stat-icon{
-  width:56px;
-  height:56px;
-  border-radius:14px;
+  width:44px;
+  height:44px;
+  border-radius:12px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -4164,28 +5428,33 @@ export default {
   box-shadow:0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+.stat-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
 .stat-info{
   flex:1;
 }
 
 .stat-label{
-  font-size:13px;
+  font-size:12px;
   color:#64748b;
   font-weight:600;
-  margin-bottom:6px;
+  margin-bottom:4px;
   text-transform:uppercase;
   letter-spacing:0.5px;
 }
 
 .stat-value{
-  font-size:32px;
+  font-size:24px;
   font-weight:800;
   color:#0f172a;
   line-height:1;
 }
 
 .stat-value-small{
-  font-size:18px;
+  font-size:14px;
   font-weight:700;
 }
 
@@ -4356,6 +5625,267 @@ export default {
   color:#94a3b8;
   font-weight:500;
 }
+
+/* 成果统计页面使用与KPI页面相同的布局 */
+.achievements-section .dashboard-cards-wrapper {
+  align-items: stretch;
+}
+
+.achievements-section .stat-card-modern {
+  flex: none;
+  width: auto;
+}
+
+.achievements-section .chart-card-modern {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 成果列表卡片 */
+.achievements-list-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.achievements-list-card .task-list-items {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.achievements-list-card .task-list-compact {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.achievement-list-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+  color: #94a3b8;
+}
+
+/* 成果类型小徽章 */
+.achievement-type-badge-small {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+/* 成果状态点样式 */
+.task-item-status.status-paper {
+  background: #3b82f6;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+.task-item-status.status-patent {
+  background: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+.task-item-status.status-dataset {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.task-item-status.status-model {
+  background: #8b5cf6;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+}
+
+.task-item-status.status-report {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.task-item-status.status-custom {
+  background: #6366f1;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+}
+
+.task-item-status.status-default {
+  background: #64748b;
+  box-shadow: 0 0 8px rgba(100, 116, 139, 0.4);
+}
+
+/* 成员贡献图表卡片 */
+.member-contribution-chart {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.member-contribution-chart .chart-header {
+  margin-bottom: 12px;
+}
+
+.member-contribution-chart .chart-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.member-contribution-chart .chart-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.member-contribution-chart .chart-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 堆叠面积图 */
+.stacked-area-chart {
+  width: 100%;
+  height: 320px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.contribution-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.area-path {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  transform-origin: center bottom;
+}
+
+/* 面积图初始状态（未触发动画时） */
+.stacked-area-chart:not(.chart-animated) .area-path {
+  opacity: 0;
+  transform: scaleY(0);
+}
+
+/* 面积图动画 */
+.stacked-area-chart.chart-animated .area-path.achievement-area {
+  animation: areaGrowUp 0.8s ease-out forwards;
+}
+
+.stacked-area-chart.chart-animated .area-path.wiki-area {
+  animation: areaGrowUp 0.8s ease-out 0.2s forwards;
+  opacity: 0;
+}
+
+@keyframes areaGrowUp {
+  0% {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  60% {
+    transform: scaleY(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* 悬停Wiki区域时，成果区域变暗 */
+.area-path.wiki-area.active {
+  filter: brightness(1.1);
+}
+
+.area-path.achievement-area.dimmed {
+  filter: brightness(0.6);
+  opacity: 0.7;
+}
+
+/* 悬停成果区域时，Wiki区域变暗 */
+.area-path.achievement-area.active {
+  filter: brightness(1.1);
+}
+
+.area-path.wiki-area.dimmed {
+  filter: brightness(0.6);
+  opacity: 0.7;
+}
+
+.axis-label {
+  font-size: 10px;
+  fill: #64748b;
+  font-weight: 500;
+}
+
+.chart-empty {
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f8fafc, #fff);
+  border: 1px dashed #e5e7eb;
+  border-radius: 12px;
+}
+
+/* 贡献图例 */
+.contribution-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.contribution-legend .legend-item-modern {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.contribution-legend .legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.contribution-legend .legend-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.contribution-legend .legend-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .achievements-section .dashboard-cards-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  .achievements-section .stat-card-modern,
+  .achievements-section .chart-card-modern {
+    width: 100%;
+  }
+}
+
 /* 表格样式优化 */
 .table{
   width:100%;
@@ -4410,6 +5940,764 @@ export default {
 .tooltip-task-item .task-title .task-owner{font-size:12px;color:rgba(226,232,240,0.9);margin-left:4px}
 .tooltip-task-item .task-meta{font-size:11px;color:#9ca3af;margin-top:2px}
 .tooltip-empty{font-size:12px;color:#9ca3af;padding:4px 0}
+
+/* 成员提交信息界面样式 */
+.member-submission-section {
+  justify-content: center;
+  align-items: center;
+  padding: 60px 40px;
+}
+
+.member-submission-section .dashboard-cards-wrapper {
+  align-items: stretch;
+}
+
+.member-submission-section .stat-card-modern {
+  flex: none;
+  width: auto;
+}
+
+.member-submission-section .chart-card-modern {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 提交统计卡片 */
+.submission-stats-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.submission-stats-card .task-list-items {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+/* 提交时间徽章 */
+.submission-time-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  color: #0369a1;
+  flex-shrink: 0;
+}
+
+/* 提交时间线卡片 */
+.submission-timeline-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+}
+
+.submission-timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.submission-timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 12px 0;
+  position: relative;
+}
+
+.submission-timeline-item .timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2);
+}
+
+.submission-timeline-item .timeline-line {
+  position: absolute;
+  left: 5px;
+  top: 28px;
+  width: 2px;
+  height: calc(100% - 4px);
+  background: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 100%);
+}
+
+.submission-timeline-item .timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.submission-timeline-item .timeline-task-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.submission-timeline-item .timeline-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.submission-timeline-item .timeline-submitter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.submission-timeline-item .timeline-time {
+  color: #94a3b8;
+}
+
+/* 响应式调整 */
+@media (max-width: 1200px) {
+  .member-submission-section .dashboard-cards-wrapper {
+    grid-template-columns: 1fr;
+  }
+  
+  .member-submission-section .stat-card-modern,
+  .member-submission-section .chart-card-modern {
+    width: 100%;
+  }
+}
+
+/* 成员任务列表卡片 */
+.member-tasks-list-card {
+  min-height: auto;
+  max-height: calc(100vh - 180px);
+  padding: 16px !important;
+}
+
+.member-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon-wrapper.small {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+}
+
+.stat-content.compact {
+  flex: 1;
+}
+
+.stat-content.compact .stat-label {
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.stat-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stat-value.small {
+  font-size: 24px;
+}
+
+.stat-value-row .stat-description {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.member-tasks-list-card .task-list-compact {
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+
+/* 成员任务项样式 */
+.member-task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px !important;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.member-task-item .task-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-task-item .task-item-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.task-item-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.stat-badge.total {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.stat-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.stat-badge svg {
+  width: 10px;
+  height: 10px;
+}
+
+.completion-rate {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.completion-rate.rate-high {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.completion-rate.rate-medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.completion-rate.rate-low {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.member-list-empty {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+/* 右侧图表区域 */
+.charts-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.charts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  height: calc(100vh - 200px);
+  max-height: 600px;
+}
+
+.charts-grid .chart-item {
+  flex: 1;
+  height: 50%;
+  max-height: 280px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.charts-grid .chart-item .bidirectional-bar-chart,
+.charts-grid .chart-item .task-timeline-scatter {
+  flex: 1;
+  max-height: 180px;
+}
+
+.charts-grid .chart-item svg {
+  width: 100%;
+  height: 100%;
+  max-height: 160px;
+}
+
+.charts-grid .card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.timeline-chart-item {
+  padding-top: 8px !important;
+  overflow: visible !important;
+}
+
+.timeline-chart-item .timeline-title {
+  margin-bottom: 2px;
+}
+
+.timeline-chart-item .task-timeline-scatter {
+  margin-top: 0;
+  overflow: visible;
+}
+
+.timeline-chart-item .timeline-scatter-svg {
+  overflow: visible;
+}
+
+/* 成员任务统计双向柱状图 */
+.member-task-chart-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.member-task-chart-card .chart-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.bidirectional-bar-chart {
+  width: 100%;
+  overflow-x: auto;
+  padding: 5px 0;
+}
+
+.member-task-svg {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 320px;
+}
+  
+.member-task-svg .bar-total,
+.member-task-svg .bar-completed {
+  transition: opacity 0.3s ease, filter 0.3s ease;
+  cursor: pointer;
+}
+
+/* 上方柱子：从底部（横轴）向上延伸 */
+.member-task-svg .bar-total {
+  transform-origin: center bottom;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3));
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+/* 下方柱子：从顶部（横轴）向下延伸 */
+.member-task-svg .bar-completed {
+  transform-origin: center top;
+  filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3));
+  transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+/* 上方柱子初始状态（未触发动画时） */
+.member-task-svg .bars:not(.bars-animated) .bar-total {
+  transform: scaleY(0);
+  opacity: 0;
+}
+
+/* 下方柱子初始状态（未触发动画时） */
+.member-task-svg .bars:not(.bars-animated) .bar-completed {
+  transform: scaleY(0);
+  opacity: 0;
+}
+
+/* 上方柱子动画（从横轴向上延伸，带弹性效果） */
+.member-task-svg .bars.bars-animated .bar-total {
+  animation: barGrowUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: inherit;
+}
+
+/* 下方柱子动画（从横轴向下延伸，带弹性效果，稍微延迟） */
+.member-task-svg .bars.bars-animated .bar-completed {
+  animation: barGrowDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: inherit;
+}
+
+/* 让柱子组继承延迟变量 */
+.member-task-svg .bars.bars-animated > g {
+  --bar-delay: var(--delay, 0s);
+}
+
+.member-task-svg .bars.bars-animated > g .bar-total {
+  animation-delay: var(--delay, 0s);
+}
+
+.member-task-svg .bars.bars-animated > g .bar-completed {
+  animation-delay: calc(var(--delay, 0s) + 0.15s);
+}
+
+/* 上方柱子弹性生长动画 */
+@keyframes barGrowUp {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    transform: scaleY(1.08);
+  }
+  85% {
+    transform: scaleY(0.96);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* 下方柱子弹性生长动画 */
+@keyframes barGrowDown {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    transform: scaleY(1.08);
+  }
+  85% {
+    transform: scaleY(0.96);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.member-task-svg .bar-total:hover {
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.5)) brightness(1.1);
+  cursor: pointer;
+}
+
+.member-task-svg .bar-completed:hover {
+  filter: drop-shadow(0 4px 12px rgba(239, 68, 68, 0.5)) brightness(1.1);
+  cursor: pointer;
+}
+
+/* 悬停上方柱子时，下方柱子变暗 */
+.member-task-svg .bars.hover-total .bar-completed {
+  opacity: 0.35;
+  filter: drop-shadow(0 1px 2px rgba(239, 68, 68, 0.15)) brightness(0.8);
+}
+
+/* 悬停下方柱子时，上方柱子变暗 */
+.member-task-svg .bars.hover-completed .bar-total {
+  opacity: 0.35;
+  filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.15)) brightness(0.8);
+}
+
+.member-task-svg .axis-label {
+  font-size: 11px;
+  fill: #64748b;
+  font-weight: 500;
+}
+
+.member-task-svg .member-name-label {
+  font-size: 12px;
+  fill: #334155;
+  font-weight: 600;
+}
+
+/* 成员任务图例 */
+.member-task-legend {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-shrink: 0;
+  padding-top: 8px;
+  margin-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.member-task-legend .legend-item-modern {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.member-task-legend .legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.member-task-legend .legend-text {
+  font-size: 11px;
+  color: #475569;
+  font-weight: 500;
+}
+
+/* 成员任务统计Tooltip */
+.bidirectional-bar-chart {
+  position: relative;
+}
+
+.member-task-tooltip {
+  position: absolute;
+  z-index: 100;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  min-width: 140px;
+  transform: translateY(-10px);
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-10px);
+  }
+}
+
+.member-task-tooltip .tooltip-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.member-task-tooltip .tooltip-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-task-tooltip .tooltip-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.member-task-tooltip .tooltip-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+/* 任务完成时间线散点图 */
+.task-timeline-card {
+  margin-top: 0;
+}
+
+.task-timeline-scatter {
+  position: relative;
+  width: 100%;
+  padding: 10px 0;
+}
+
+.timeline-scatter-svg {
+  width: 100%;
+  height: auto;
+  max-height: 350px;
+}
+
+.timeline-scatter-svg .axis-label {
+  font-size: 11px;
+  fill: #64748b;
+  font-weight: 500;
+}
+
+.timeline-scatter-svg .date-label {
+  font-size: 10px;
+}
+
+.timeline-scatter-svg .member-label {
+  font-size: 11px;
+  fill: #334155;
+  font-weight: 600;
+}
+
+.timeline-scatter-svg .task-bubble {
+  cursor: pointer;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  transform-origin: center;
+  opacity: 0;
+  transform: scale(0);
+}
+
+/* 只有当父元素有 bubbles-animated class 时才播放入场动画 */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .task-bubble {
+  animation: bubbleEnter 0.6s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+.timeline-scatter-svg .task-bubble:hover {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) brightness(1.15);
+}
+
+/* 入场动画 */
+@keyframes bubbleEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  60% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 浮动动画1 - 上下浮动（只在动画触发后播放） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .bubble-float-1 {
+  animation: bubbleEnter 0.6s ease-out forwards, bubbleFloat1 3s ease-in-out infinite;
+  animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
+}
+
+/* 浮动动画2 - 斜向浮动（只在动画触发后播放） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .bubble-float-2 {
+  animation: bubbleEnter 0.6s ease-out forwards, bubbleFloat2 4s ease-in-out infinite;
+  animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
+}
+
+/* 浮动动画3 - 缩放呼吸（只在动画触发后播放） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .bubble-float-3 {
+  animation: bubbleEnter 0.6s ease-out forwards, bubbleFloat3 3.5s ease-in-out infinite;
+  animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
+}
+
+@keyframes bubbleFloat1 {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes bubbleFloat2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(1.5px, -1.5px); }
+}
+
+@keyframes bubbleFloat3 {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+
+/* 时间线散点图Tooltip */
+.timeline-scatter-tooltip {
+  position: absolute;
+  z-index: 100;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #fff;
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  min-width: 180px;
+  max-width: 280px;
+  transform: translateY(-10px);
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+.timeline-scatter-tooltip .tooltip-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.timeline-scatter-tooltip .tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-scatter-tooltip .tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeline-scatter-tooltip .tooltip-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.timeline-scatter-tooltip .tooltip-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a78bfa;
+  text-align: right;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.no-data-hint {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  font-size: 14px;
+}
 </style>
 
 

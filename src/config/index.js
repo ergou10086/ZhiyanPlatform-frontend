@@ -1,46 +1,30 @@
-// 应用配置文件
+// 应用配置文件，带有安全的默认值和可选的运行时覆盖
 
-const config = {
-  // API配置
+const DEFAULT_HOST =
+  (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://your-production-api.com'
+    : 'http://localhost:9006')
+
+const DEFAULTS = {
   api: {
-    // 默认API基础URL
-    baseURL: process.env.NODE_ENV === 'production' 
-      ? 'https://your-production-api.com' 
-      : 'http://localhost:8091', // 默认端口8091（认证服务）
-    timeout: 60000, // 默认30秒，对于列表查询等操作可能需要更长时间
-    // 多端口配置（微服务架构）
+    baseURL: DEFAULT_HOST,
+    timeout: 60000,
     endpoints: {
-      // 认证服务 (8091)
-      auth: process.env.NODE_ENV === 'production' 
-        ? 'https://your-production-api.com' 
-        : 'http://localhost:8091',
-      // 知识库服务 (8093)
-      knowledge: process.env.NODE_ENV === 'production' 
-        ? 'https://your-production-api.com' 
-        : 'http://localhost:8093',
-      // 项目服务 (8095)
-      project: process.env.NODE_ENV === 'production' 
-        ? 'https://your-production-api.com' 
-        : 'http://localhost:8095'
+      auth: DEFAULT_HOST,
+      knowledge: DEFAULT_HOST,
+      project: DEFAULT_HOST
     }
   },
-  
-  // MinIO配置
   minio: {
-    // MinIO服务基础URL
-    baseURL: process.env.NODE_ENV === 'production'
-      ? 'http://152.136.245.180:9000'  // 生产环境MinIO地址
-      : 'http://152.136.245.180:9000',  // 开发环境MinIO地址
+    // 当不再使用 MinIO 时，复用 API 主机，仍保留配置项以兼容旧代码
+    baseURL: DEFAULT_HOST,
     bucket: 'zhiyan'
   },
-  
-  // 应用配置
   app: {
     name: '智研平台',
     version: '1.0.0'
   },
-  
-  // 存储配置
   storage: {
     tokenKey: 'access_token',
     refreshTokenKey: 'refresh_token',
@@ -49,14 +33,43 @@ const config = {
   }
 }
 
-// 导出常用的配置项
-export const API_BASE_URL = config.api.baseURL
-export const MINIO_BASE_URL = config.minio.baseURL
-export const MINIO_BUCKET = config.minio.bucket
+// 允许通过 window.__ZHIYAN_APP_CONFIG__ 在运行时注入配置
+const runtimeConfig = (typeof window !== 'undefined' && window.__ZHIYAN_APP_CONFIG__) || {}
+
+// 合并默认配置和运行时配置（逐层覆盖）
+const config = {
+  ...DEFAULTS,
+  ...runtimeConfig,
+  api: {
+    ...DEFAULTS.api,
+    ...(runtimeConfig.api || {}),
+    endpoints: {
+      ...DEFAULTS.api.endpoints,
+      ...(runtimeConfig.api?.endpoints || {})
+    }
+  },
+  minio: {
+    ...DEFAULTS.minio,
+    ...(runtimeConfig.minio || {})
+  },
+  app: {
+    ...DEFAULTS.app,
+    ...(runtimeConfig.app || {})
+  },
+  storage: {
+    ...DEFAULTS.storage,
+    ...(runtimeConfig.storage || {})
+  }
+}
+
+// 导出常用的配置项，带兜底避免 undefined
+export const API_BASE_URL = config.api?.baseURL || DEFAULTS.api.baseURL
+export const MINIO_BASE_URL = config.minio?.baseURL || DEFAULTS.minio.baseURL
+export const MINIO_BUCKET = config.minio?.bucket || DEFAULTS.minio.bucket
 
 // 导出各个服务的端点
-export const AUTH_API_URL = config.api.endpoints.auth
-export const KNOWLEDGE_API_URL = config.api.endpoints.knowledge
-export const PROJECT_API_URL = config.api.endpoints.project
+export const AUTH_API_URL = config.api?.endpoints?.auth || DEFAULTS.api.endpoints.auth
+export const KNOWLEDGE_API_URL = config.api?.endpoints?.knowledge || DEFAULTS.api.endpoints.knowledge
+export const PROJECT_API_URL = config.api?.endpoints?.project || DEFAULTS.api.endpoints.project
 
 export default config

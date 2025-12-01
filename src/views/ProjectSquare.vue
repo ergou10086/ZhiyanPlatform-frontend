@@ -406,9 +406,12 @@ export default {
               // 规范化图片 URL（转换为完整的 MinIO URL）
               imageUrl = normalizeProjectCoverUrl(imageUrl)
               
-              // 调试日志已移除以提升性能（仅在开发环境需要时启用）
-              // console.log(`项目 ${project.id} 图片URL处理:`, {...})
-              // console.log('项目成员字段检查:', project.id, {...})
+              // 调试：检查后端返回的创建者信息
+              console.log(`[ProjectSquare] 项目 ${project.id} (${project.name}) 创建者信息:`, {
+                creatorId: project.creatorId,
+                creatorName: project.creatorName,
+                原始project对象: project
+              })
 
               return {
                 id: project.id,
