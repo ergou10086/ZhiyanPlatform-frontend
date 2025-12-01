@@ -2300,6 +2300,16 @@ export default {
         const response = await projectAPI.getProjectById(projectId)
         if (response && response.code === 200 && response.data) {
           const apiProject = response.data
+          
+          // 调试：检查后端返回的项目数据
+          console.log('[ProjectDetail] 后端返回的项目数据:', {
+            projectId: apiProject.id,
+            projectName: apiProject.name,
+            creatorId: apiProject.creatorId,
+            creatorName: apiProject.creatorName,
+            完整数据: apiProject
+          })
+          
           // 使用API返回的最新数据
           this.project = {
             id: apiProject.id,
