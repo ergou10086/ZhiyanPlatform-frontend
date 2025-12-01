@@ -2300,6 +2300,16 @@ export default {
         const response = await projectAPI.getProjectById(projectId)
         if (response && response.code === 200 && response.data) {
           const apiProject = response.data
+          
+          // 调试：检查后端返回的项目数据
+          console.log('[ProjectDetail] 后端返回的项目数据:', {
+            projectId: apiProject.id,
+            projectName: apiProject.name,
+            creatorId: apiProject.creatorId,
+            creatorName: apiProject.creatorName,
+            完整数据: apiProject
+          })
+          
           // 使用API返回的最新数据
           this.project = {
             id: apiProject.id,
@@ -2699,13 +2709,15 @@ export default {
           // 处理成员数据
           if (response.data && response.data.content) {
             this.teamMembers = response.data.content.map(member => {
+              const userId = String(member.userId || member.id || '')
               const mapped = {
-                id: String(member.userId || member.id || ''),  // 使用userId作为id
-                userId: String(member.userId || member.id || ''), // 同时保存userId
+                id: userId,  // 使用userId作为id
+                userId: userId, // 同时保存userId
               name: member.username || member.name || '未知用户',
               role: member.roleName || member.role || '成员',
                 roleCode: member.roleCode || this.getRoleCodeFromName(member.roleName || member.role), // 保存角色代码
-              avatar: this.parseAvatarUrl(member.avatar)
+              // 先设置为null，后续异步加载头像
+              avatar: null
               }
               console.log('[loadTeamMembers] 映射成员数据:', {
                 原始: { userId: member.userId, roleCode: member.roleCode, roleName: member.roleName },
@@ -2713,15 +2725,19 @@ export default {
               })
               return mapped
             })
+            // 异步加载每个成员的头像
+            this.loadMemberAvatars()
           } else if (Array.isArray(response.data)) {
             this.teamMembers = response.data.map(member => {
+              const userId = String(member.userId || member.id || '')
               const mapped = {
-                id: String(member.userId || member.id || ''),
-                userId: String(member.userId || member.id || ''),
+                id: userId,
+                userId: userId,
               name: member.username || member.name || '未知用户',
               role: member.roleName || member.role || '成员',
                 roleCode: member.roleCode || this.getRoleCodeFromName(member.roleName || member.role),
-              avatar: this.parseAvatarUrl(member.avatar)
+              // 先设置为null，后续异步加载头像
+              avatar: null
               }
               console.log('[loadTeamMembers] 映射成员数据:', {
                 原始: { userId: member.userId, roleCode: member.roleCode, roleName: member.roleName },
@@ -2729,6 +2745,8 @@ export default {
               })
               return mapped
             })
+            // 异步加载每个成员的头像
+            this.loadMemberAvatars()
           }
           const currentUserId = this.getCurrentUserId()
           console.log('[loadTeamMembers] 团队成员加载完成:', {
@@ -2919,6 +2937,39 @@ export default {
       } catch (error) {
         console.error('加载团队成员失败:', error)
         // 失败时保留原有数据
+      }
+    },
+    /**
+     * 异步加载所有成员的头像
+     */
+    async loadMemberAvatars() {
+      const { avatarAPI } = await import('@/api/avatar')
+      for (const member of this.teamMembers) {
+        if (!member.userId) continue
+        try {
+          const response = await avatarAPI.getAvatarInfoById(member.userId)
+          if (response && response.code === 200 && response.data) {
+            const avatarData = response.data
+            let avatarUrl = null
+            // 优先使用 dataUrl（Base64格式，可直接用于img src）
+            if (avatarData.dataUrl) {
+              avatarUrl = avatarData.dataUrl
+            } else if (avatarData.sizes) {
+              avatarUrl = avatarData.sizes.original || avatarData.sizes['256'] || avatarData.sizes['512']
+            } else if (avatarData.minio_url) {
+              avatarUrl = avatarData.minio_url
+            } else if (avatarData.cdn_url) {
+              avatarUrl = avatarData.cdn_url
+            }
+            if (avatarUrl) {
+              this.$set(member, 'avatar', avatarUrl)
+              console.log(`[loadMemberAvatars] 加载成员 ${member.name} 头像成功`)
+            }
+          }
+        } catch (error) {
+          // 用户可能没有设置头像，忽略错误
+          console.log(`[loadMemberAvatars] 成员 ${member.name} 没有头像或加载失败`)
+        }
       }
     },
     handleAvatarUpdated({ userId, avatarUrl }) {

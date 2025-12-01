@@ -283,7 +283,14 @@ export const projectAPI = {
    */
   inviteMember(projectId, data) {
     console.log('[projectAPI.inviteMember] 邀请成员, 项目ID:', projectId, '数据:', data)
-    return api.post(`/zhiyan/projects/${projectId}/invite`, data)
+    // 后端接口使用 @RequestParam，需要通过 params 传递参数
+    const role = data.role || data.roleCode || 'MEMBER'
+    return api.post(`/zhiyan/projects/${projectId}/members`, null, {
+      params: { 
+        userId: data.userId, 
+        role: role 
+      }
+    })
   },
 
   /**
@@ -329,7 +336,8 @@ export const projectAPI = {
    */
   searchUsers(keyword, page = 0, size = 10) {
     console.log('[projectAPI.searchUsers] 搜索用户, 关键词:', keyword, '页码:', page, '每页:', size)
-    return api.get(`/zhiyan/projects/users/search`, {
+    // 用户搜索接口在auth模块，路径为 /zhiyan/auth/users/search
+    return api.get(`/zhiyan/auth/users/search`, {
       params: { keyword, page, size }
     })
   },
@@ -360,7 +368,10 @@ export const projectAPI = {
    */
   updateMemberRole(projectId, userId, role) {
     console.log('[projectAPI.updateMemberRole] 更新成员角色, 项目ID:', projectId, '用户ID:', userId, '角色:', role)
-    return api.put(`/zhiyan/projects/${projectId}/members/${userId}/role`, { newRole: role })
+    // 后端使用 @RequestParam，需要通过 params 传递参数
+    return api.put(`/zhiyan/projects/${projectId}/members/${userId}/role`, null, {
+      params: { newRole: role }
+    })
   },
 
   getProjectTasksByStatus(projectId, status = 'DONE', page = 0, size = 20) {

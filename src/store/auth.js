@@ -1,6 +1,6 @@
 // 简单的认证状态管理
 import { authAPI } from '@/api/auth'
-import { saveLoginData, clearAuthData, getCurrentUser, isLoggedIn } from '@/utils/auth'
+import { saveLoginData, clearAuthData, getCurrentUser, isLoggedIn, normalizeUserInfo } from '@/utils/auth'
 
 const state = {
   user: null,
@@ -38,7 +38,8 @@ const actions = {
       const response = await authAPI.login(loginData)
       if (response.code === 200 && response.data) {
         saveLoginData(response.data)
-        commit('SET_USER', response.data.userInfo)
+        const normalizedUser = normalizeUserInfo(response.data.userInfo || response.data.user)
+        commit('SET_USER', normalizedUser)
         return { success: true, data: response.data }
       } else {
         return { success: false, message: response.msg || '登录失败' }
@@ -100,7 +101,8 @@ const actions = {
                 refreshToken: refreshResponse.data.refreshToken,
                 userInfo: refreshResponse.data.user
               })
-              commit('SET_USER', refreshResponse.data.user)
+              const normalizedUser = normalizeUserInfo(refreshResponse.data.user)
+              commit('SET_USER', normalizedUser)
               console.log('✅ 通过RefreshToken自动登录成功')
               return true
             }
