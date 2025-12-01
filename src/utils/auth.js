@@ -13,7 +13,8 @@ export function normalizeUserInfo(userInfo) {
   const normalized = { ...userInfo }
   
   // 处理 avatarUrl/avatar 字段
-  let avatarUrl = userInfo.avatar || userInfo.avatarUrl || ''
+  let avatarUrl = userInfo.avatar || userInfo.avatarUrl || userInfo.avatar_data || userInfo.avatarData || ''
+  const avatarContentType = userInfo.avatarContentType || userInfo.avatar_content_type || 'image/jpeg'
   
   // 如果 avatarUrl 是 JSON 字符串，提取实际的 URL
   if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.startsWith('{')) {
@@ -27,6 +28,11 @@ export function normalizeUserInfo(userInfo) {
     }
   }
   
+  // 如果来自后端的字段是单纯的Base64字符串，需要补全 Data URL 前缀
+  if (avatarUrl && typeof avatarUrl === 'string' && !avatarUrl.startsWith('data:') && /^[A-Za-z0-9+/=]+$/.test(avatarUrl.trim())) {
+    avatarUrl = `data:${avatarContentType};base64,${avatarUrl.trim()}`
+  }
+
   // 使用 normalizeAvatarUrl 规范化头像URL
   avatarUrl = normalizeAvatarUrl(avatarUrl) || ''
   
@@ -51,7 +57,8 @@ export function normalizeUserInfo(userInfo) {
  * @param {Object} loginData - 登录返回的数据
  */
 export function saveLoginData(loginData) {
-  const { accessToken, refreshToken, rememberMeToken, userInfo } = loginData
+  const { accessToken, refreshToken, rememberMeToken } = loginData
+  const rawUserInfo = loginData.userInfo || loginData.user || loginData.userinfo || null
   
   // 保存token
   if (accessToken) {
@@ -65,8 +72,8 @@ export function saveLoginData(loginData) {
   }
   
   // 保存用户信息，确保字段名称一致
-  if (userInfo) {
-    const normalizedUserInfo = normalizeUserInfo(userInfo)
+  if (rawUserInfo) {
+    const normalizedUserInfo = normalizeUserInfo(rawUserInfo)
     localStorage.setItem('user_info', JSON.stringify(normalizedUserInfo))
   }
 }

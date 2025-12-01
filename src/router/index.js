@@ -153,7 +153,7 @@ router.beforeEach((to, from, next) => {
   
   // 注册和忘记密码页面 - 允许所有用户访问
   if (to.path === '/register' || to.path === '/forgot-password') {
-    console.log('注册/忘记密码页面，允许访问')
+    console.log('注册/忘记密码页允许访问')
     next()
     return
   }

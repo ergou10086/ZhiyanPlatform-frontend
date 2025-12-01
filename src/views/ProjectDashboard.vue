@@ -493,211 +493,189 @@
       <h1 class="page-title">成员任务统计</h1>
 
       <!-- 中心内容区 -->
-      <div class="kpi-content member-task-charts-container">
-        <!-- 双向柱状图卡片 -->
-        <div class="member-task-chart-card">
-          <div class="chart-header">
-            <h3 class="chart-title">成员任务分布</h3>
-            <div class="chart-subtitle">上方：参与任务数 | 下方：已完成任务数</div>
-          </div>
-          <div class="chart-body">
-            <!-- 双向柱状图 -->
-            <div class="bidirectional-bar-chart" v-if="memberTaskStats.length > 0">
-              <svg viewBox="0 0 700 280" preserveAspectRatio="xMidYMid meet" class="member-task-svg">
-                <defs>
-                  <!-- 参与任务渐变（上方，橙色） -->
-                  <linearGradient id="totalTaskGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                    <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.9" />
-                    <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:0.7" />
-                  </linearGradient>
-                  <!-- 已完成任务渐变（下方，红色） -->
-                  <linearGradient id="completedTaskGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.9" />
-                    <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.7" />
-                  </linearGradient>
-                </defs>
-                
-                <!-- Y轴刻度线和标签（上方） -->
-                <g class="y-axis-top">
-                  <line x1="45" y1="120" x2="655" y2="120" stroke="#475569" stroke-width="2"/>
-                  <line x1="45" y1="85" x2="655" y2="85" stroke="#e2e8f0" stroke-dasharray="4"/>
-                  <line x1="45" y1="50" x2="655" y2="50" stroke="#e2e8f0" stroke-dasharray="4"/>
-                  <line x1="45" y1="15" x2="655" y2="15" stroke="#e2e8f0" stroke-dasharray="4"/>
-                  <text x="40" y="124" text-anchor="end" class="axis-label">0</text>
-                  <text x="40" y="89" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount / 3) }}</text>
-                  <text x="40" y="54" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount * 2 / 3) }}</text>
-                  <text x="40" y="19" text-anchor="end" class="axis-label">{{ maxMemberTaskCount }}</text>
-                </g>
-                
-                <!-- Y轴刻度线和标签（下方） -->
-                <g class="y-axis-bottom">
-                  <line x1="45" y1="155" x2="655" y2="155" stroke="#e2e8f0" stroke-dasharray="4"/>
-                  <line x1="45" y1="190" x2="655" y2="190" stroke="#e2e8f0" stroke-dasharray="4"/>
-                  <line x1="45" y1="225" x2="655" y2="225" stroke="#e2e8f0" stroke-dasharray="4"/>
-                  <text x="40" y="159" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount / 3) }}</text>
-                  <text x="40" y="194" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount * 2 / 3) }}</text>
-                  <text x="40" y="229" text-anchor="end" class="axis-label">{{ maxMemberTaskCount }}</text>
-                </g>
-                
-                <!-- 柱状图 -->
-                <g class="bars" :class="{ 'hover-total': memberTaskHoverType === 'total', 'hover-completed': memberTaskHoverType === 'completed', 'bars-animated': memberTaskBarsAnimated }">
-                  <g v-for="(member, index) in memberTaskStats" :key="'bar-' + index">
-                    <!-- 上方柱子：参与任务数（橙色） -->
-                    <rect 
-                      :x="getMemberBarX(index)"
-                      :y="120 - getMemberBarHeight(member.totalTasks)"
-                      :width="barWidth"
-                      :height="Math.max(getMemberBarHeight(member.totalTasks), 2)"
-                      fill="url(#totalTaskGradient)"
-                      class="bar-total"
-                      :style="{ animationDelay: `${index * 0.08}s` }"
-                      @mouseenter="showMemberTaskTooltip($event, member, 'total')"
-                      @mousemove="updateMemberTaskTooltip($event)"
-                      @mouseleave="hideMemberTaskTooltip"
-                    />
-                    
-                    <!-- 下方柱子：已完成任务数（红色） -->
-                    <rect 
-                      :x="getMemberBarX(index)"
-                      y="120"
-                      :width="barWidth"
-                      :height="Math.max(getMemberBarHeight(member.completedTasks), 2)"
-                      fill="url(#completedTaskGradient)"
-                      class="bar-completed"
-                      :style="{ animationDelay: `${index * 0.08}s` }"
-                      @mouseenter="showMemberTaskTooltip($event, member, 'completed')"
-                      @mousemove="updateMemberTaskTooltip($event)"
-                      @mouseleave="hideMemberTaskTooltip"
-                    />
-                    
-                    <!-- X轴成员名称 -->
-                    <text 
-                      :x="getMemberBarX(index) + barWidth / 2"
-                      y="260"
-                      text-anchor="middle"
-                      class="axis-label member-name-label"
-                    >{{ truncateMemberName(member.name) }}</text>
-                  </g>
-                </g>
-              </svg>
-              
-              <!-- 自定义Tooltip -->
-              <div 
-                v-if="memberTaskTooltip.show" 
-                class="member-task-tooltip"
-                :style="{ left: memberTaskTooltip.x + 'px', top: memberTaskTooltip.y + 'px' }"
-              >
-                <div class="tooltip-header">{{ memberTaskTooltip.name }}</div>
-                <div class="tooltip-content">
-                  <span class="tooltip-label">{{ memberTaskTooltip.label }}</span>
-                  <span class="tooltip-value">{{ memberTaskTooltip.value }}</span>
+      <div class="kpi-content">
+        <div class="dashboard-cards-wrapper">
+          <!-- 左侧：成员任务列表卡片 -->
+          <div class="stat-card-modern member-tasks-list-card">
+            <div class="member-list-header">
+              <div class="stat-icon-wrapper small" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                <svg class="stat-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="stat-content compact">
+                <div class="stat-label">成员任务分配</div>
+                <div class="stat-value-row">
+                  <span class="stat-value small">{{ memberTaskStats.length }}</span>
+                  <span class="stat-description">位成员</span>
                 </div>
               </div>
             </div>
-            <div class="chart-empty" v-else>
-              <div class="empty-text">暂无成员任务数据</div>
+            <!-- 成员任务列表 -->
+            <div class="task-list-compact" v-if="memberTaskStats.length > 0">
+              <div class="task-list-items">
+                <div 
+                  v-for="(member, index) in memberTaskStats" 
+                  :key="'member-stat-' + index"
+                  class="task-item-compact member-task-item"
+                >
+                  <div class="member-avatar" :style="{ background: getMemberColor(index) }">
+                    {{ member.name ? member.name.charAt(0) : '?' }}
+                  </div>
+                  <div class="task-item-content">
+                    <div class="task-item-name">{{ member.name || '未知成员' }}</div>
+                    <div class="task-item-stats">
+                      <span class="stat-badge total">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        参与 {{ member.totalTasks }}
+                      </span>
+                      <span class="stat-badge completed">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        完成 {{ member.completedTasks }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="completion-rate" :class="getCompletionRateClass(member)">
+                    {{ getCompletionRate(member) }}%
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <!-- 图例 -->
-            <div class="member-task-legend">
-              <div class="legend-item-modern">
-                <span class="legend-dot" style="background: #f59e0b;"></span>
-                <span class="legend-text">参与任务数</span>
-              </div>
-              <div class="legend-item-modern">
-                <span class="legend-dot" style="background: #ef4444;"></span>
-                <span class="legend-text">已完成任务数</span>
-              </div>
+            <div v-else class="member-list-empty">
+              <div class="empty-text">暂无成员数据</div>
             </div>
           </div>
-        </div>
 
-        <!-- 任务完成时间线散点图 -->
-        <div class="member-task-chart-card task-timeline-card">
-          <div class="chart-header">
-            <h3 class="chart-title">任务完成时间线</h3>
-            <div class="chart-subtitle">成员任务完成日期分布（每个圆点代表一个已完成任务）</div>
-          </div>
-          <div class="chart-body">
-            <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0">
-              <svg viewBox="0 0 700 350" preserveAspectRatio="xMidYMid meet" class="timeline-scatter-svg">
-                <defs>
-                  <!-- 圆点渐变色（柔和稍亮） -->
-                  <radialGradient id="bubbleGradient1" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#b0a4d4;stop-opacity:0.92" />
-                    <stop offset="100%" style="stop-color:#8a7eb8;stop-opacity:0.75" />
-                  </radialGradient>
-                  <radialGradient id="bubbleGradient2" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#d6b0c6;stop-opacity:0.92" />
-                    <stop offset="100%" style="stop-color:#b891a8;stop-opacity:0.75" />
-                  </radialGradient>
-                  <radialGradient id="bubbleGradient3" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#8db8d6;stop-opacity:0.92" />
-                    <stop offset="100%" style="stop-color:#6d99b8;stop-opacity:0.75" />
-                  </radialGradient>
-                  <radialGradient id="bubbleGradient4" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#e0c8a8;stop-opacity:0.92" />
-                    <stop offset="100%" style="stop-color:#c8ab88;stop-opacity:0.75" />
-                  </radialGradient>
-                  <radialGradient id="bubbleGradient5" cx="30%" cy="30%">
-                    <stop offset="0%" style="stop-color:#a0c8d8;stop-opacity:0.92" />
-                    <stop offset="100%" style="stop-color:#80a8b8;stop-opacity:0.75" />
-                  </radialGradient>
-                </defs>
-                
-                <!-- 背景网格 -->
-                <g class="grid-lines">
-                  <line v-for="i in 5" :key="'h-' + i" x1="60" :y1="70 + (i-1) * 50" x2="680" :y2="70 + (i-1) * 50" stroke="#e2e8f0" stroke-dasharray="4"/>
-                </g>
-                
-                <!-- Y轴日期标签 -->
-                <g class="y-axis-dates">
-                  <text v-for="(date, i) in timelineDateLabels" :key="'date-' + i" x="55" :y="75 + i * 50" text-anchor="end" class="axis-label date-label">{{ date }}</text>
-                </g>
-                
-                <!-- X轴成员名称 -->
-                <g class="x-axis-members">
-                  <text v-for="(member, i) in timelineMemberNames" :key="'member-' + i" :x="getTimelineMemberX(i)" y="320" text-anchor="middle" class="axis-label member-label">{{ truncateMemberName(member) }}</text>
-                </g>
-                
-                <!-- 散点（任务完成气泡） -->
-                <g class="scatter-bubbles">
-                  <circle 
-                    v-for="(point, i) in taskCompletionTimeline" 
-                    :key="'bubble-' + i"
-                    :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)"
-                    :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)"
-                    :r="getBubbleRadius(i, point)"
-                    :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`"
-                    :class="['task-bubble', `bubble-float-${(i % 3) + 1}`]"
-                    :style="{ animationDelay: `${i * 0.1}s` }"
-                    @mouseenter="showTimelineTooltip($event, point)"
-                    @mousemove="updateTimelineTooltip($event)"
-                    @mouseleave="hideTimelineTooltip"
-                  />
-                </g>
-              </svg>
-              
-              <!-- Tooltip -->
-              <div 
-                v-if="timelineTooltip.show" 
-                class="timeline-scatter-tooltip"
-                :style="{ left: timelineTooltip.x + 'px', top: timelineTooltip.y + 'px' }"
-              >
-                <div class="tooltip-header">{{ timelineTooltip.memberName }}</div>
-                <div class="tooltip-content">
-                  <div class="tooltip-row">
-                    <span class="tooltip-label">任务名称</span>
-                    <span class="tooltip-value">{{ timelineTooltip.taskTitle }}</span>
+          <!-- 右侧：图表区域（上下两个图表） -->
+          <div class="chart-card-modern charts-wrapper">
+            <div class="charts-grid">
+              <!-- 上方：双向柱状图 -->
+              <div class="card glass gradient-border chart-item">
+                <div class="card-title">成员任务分布</div>
+                <div class="bidirectional-bar-chart" v-if="memberTaskStats.length > 0">
+                  <svg viewBox="0 0 700 200" preserveAspectRatio="xMidYMid meet" class="member-task-svg">
+                    <defs>
+                      <linearGradient id="totalTaskGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                        <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.9" />
+                        <stop offset="100%" style="stop-color:#fbbf24;stop-opacity:0.7" />
+                      </linearGradient>
+                      <linearGradient id="completedTaskGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" style="stop-color:#ef4444;stop-opacity:0.9" />
+                        <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0.7" />
+                      </linearGradient>
+                    </defs>
+                    <g class="y-axis-top">
+                      <line x1="45" y1="85" x2="655" y2="85" stroke="#475569" stroke-width="2"/>
+                      <line x1="45" y1="60" x2="655" y2="60" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="35" x2="655" y2="35" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="10" x2="655" y2="10" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <text x="40" y="89" text-anchor="end" class="axis-label">0</text>
+                      <text x="40" y="64" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount / 3) }}</text>
+                      <text x="40" y="39" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount * 2 / 3) }}</text>
+                      <text x="40" y="14" text-anchor="end" class="axis-label">{{ maxMemberTaskCount }}</text>
+                    </g>
+                    <g class="y-axis-bottom">
+                      <line x1="45" y1="110" x2="655" y2="110" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="135" x2="655" y2="135" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <line x1="45" y1="160" x2="655" y2="160" stroke="#e2e8f0" stroke-dasharray="4"/>
+                      <text x="40" y="114" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount / 3) }}</text>
+                      <text x="40" y="139" text-anchor="end" class="axis-label">{{ Math.round(maxMemberTaskCount * 2 / 3) }}</text>
+                      <text x="40" y="164" text-anchor="end" class="axis-label">{{ maxMemberTaskCount }}</text>
+                    </g>
+                    <g class="bars" :class="{ 'hover-total': memberTaskHoverType === 'total', 'hover-completed': memberTaskHoverType === 'completed', 'bars-animated': memberTaskBarsAnimated }">
+                      <g v-for="(member, index) in memberTaskStats" :key="'bar-' + index" :style="{ '--delay': `${index * 0.12}s` }">
+                        <rect :x="getMemberBarX(index)" :y="85 - getMemberBarHeightSmall(member.totalTasks)" :width="barWidth" :height="Math.max(getMemberBarHeightSmall(member.totalTasks), 2)" fill="url(#totalTaskGradient)" class="bar-total" rx="3" ry="3" @mouseenter="showMemberTaskTooltip($event, member, 'total')" @mousemove="updateMemberTaskTooltip($event)" @mouseleave="hideMemberTaskTooltip"/>
+                        <rect :x="getMemberBarX(index)" y="85" :width="barWidth" :height="Math.max(getMemberBarHeightSmall(member.completedTasks), 2)" fill="url(#completedTaskGradient)" class="bar-completed" rx="3" ry="3" @mouseenter="showMemberTaskTooltip($event, member, 'completed')" @mousemove="updateMemberTaskTooltip($event)" @mouseleave="hideMemberTaskTooltip"/>
+                        <text :x="getMemberBarX(index) + barWidth / 2" y="190" text-anchor="middle" class="axis-label member-name-label">{{ truncateMemberName(member.name) }}</text>
+                      </g>
+                    </g>
+                  </svg>
+                  <div v-if="memberTaskTooltip.show" class="member-task-tooltip" :style="{ left: memberTaskTooltip.x + 'px', top: memberTaskTooltip.y + 'px' }">
+                    <div class="tooltip-header">{{ memberTaskTooltip.name }}</div>
+                    <div class="tooltip-content">
+                      <span class="tooltip-label">{{ memberTaskTooltip.label }}</span>
+                      <span class="tooltip-value">{{ memberTaskTooltip.value }}</span>
+                    </div>
                   </div>
-                  <div class="tooltip-row">
-                    <span class="tooltip-label">完成日期</span>
-                    <span class="tooltip-value">{{ timelineTooltip.completedDate }}</span>
+                </div>
+                <div class="chart-empty" v-else>
+                  <div class="empty-text">暂无成员任务数据</div>
+                </div>
+                <div class="member-task-legend">
+                  <div class="legend-item-modern">
+                    <span class="legend-dot" style="background: #f59e0b;"></span>
+                    <span class="legend-text">参与任务数</span>
+                  </div>
+                  <div class="legend-item-modern">
+                    <span class="legend-dot" style="background: #ef4444;"></span>
+                    <span class="legend-text">已完成任务数</span>
                   </div>
                 </div>
               </div>
+
+              <!-- 下方：任务完成时间线散点图 -->
+              <div class="card glass gradient-border chart-item timeline-chart-item">
+                <div class="card-title timeline-title">任务完成时间线</div>
+                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0">
+                  <svg viewBox="0 0 700 160" preserveAspectRatio="xMidYMid meet" class="timeline-scatter-svg">
+                    <defs>
+                      <radialGradient id="bubbleGradient1" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#b0a4d4;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#8a7eb8;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient2" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#d6b0c6;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#b891a8;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient3" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#8db8d6;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#6d99b8;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient4" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#e0c8a8;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#c8ab88;stop-opacity:0.75" />
+                      </radialGradient>
+                      <radialGradient id="bubbleGradient5" cx="30%" cy="30%">
+                        <stop offset="0%" style="stop-color:#a0c8d8;stop-opacity:0.92" />
+                        <stop offset="100%" style="stop-color:#80a8b8;stop-opacity:0.75" />
+                      </radialGradient>
+                    </defs>
+                    <g class="grid-lines">
+                      <line v-for="i in 5" :key="'h-' + i" x1="60" :y1="35 + (i-1) * 22" x2="680" :y2="35 + (i-1) * 22" stroke="#e2e8f0" stroke-dasharray="4"/>
+                    </g>
+                    <g class="y-axis-dates">
+                      <text v-for="(date, i) in timelineDateLabels" :key="'date-' + i" x="55" :y="40 + i * 22" text-anchor="end" class="axis-label date-label">{{ date }}</text>
+                    </g>
+                    <g class="x-axis-members">
+                      <text v-for="(member, i) in timelineMemberNames" :key="'member-' + i" :x="getTimelineMemberX(i)" y="155" text-anchor="middle" class="axis-label member-label">{{ truncateMemberName(member) }}</text>
+                    </g>
+                    <g class="scatter-bubbles" :class="{ 'bubbles-animated': timelineScatterAnimated }">
+                      <circle v-for="(point, i) in taskCompletionTimeline" :key="'bubble-' + i" :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)" :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)" :r="getBubbleRadius(i, point)" :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`" :class="['task-bubble', `bubble-float-${(i % 3) + 1}`]" :style="{ '--delay': `${i * 0.1}s` }" @mouseenter="showTimelineTooltip($event, point)" @mousemove="updateTimelineTooltip($event)" @mouseleave="hideTimelineTooltip"/>
+                    </g>
+                  </svg>
+                  <div v-if="timelineTooltip.show" class="timeline-scatter-tooltip" :style="{ left: timelineTooltip.x + 'px', top: timelineTooltip.y + 'px' }">
+                    <div class="tooltip-header">{{ timelineTooltip.memberName }}</div>
+                    <div class="tooltip-content">
+                      <div class="tooltip-row">
+                        <span class="tooltip-label">任务名称</span>
+                        <span class="tooltip-value">{{ timelineTooltip.taskTitle }}</span>
+                      </div>
+                      <div class="tooltip-row">
+                        <span class="tooltip-label">完成日期</span>
+                        <span class="tooltip-value">{{ timelineTooltip.completedDate }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="no-data-hint">暂无已完成任务数据</div>
+              </div>
             </div>
-            <div v-else class="no-data-hint">暂无已完成任务数据</div>
           </div>
         </div>
       </div>
@@ -903,6 +881,8 @@ export default {
         taskTitle: '',
         completedDate: ''
       },
+      // 任务完成时间线散点图动画是否已触发
+      timelineScatterAnimated: false,
       // 滚动监听器
       scrollObserver: null,
       // 成员详情弹窗
@@ -1243,11 +1223,14 @@ export default {
           // 监听成员任务统计section
           if (entry.target.classList.contains('member-submission-section')) {
             if (entry.isIntersecting) {
-              console.log('[ProjectDashboard] 成员任务统计section进入视口，触发柱状图动画')
+              console.log('[ProjectDashboard] 成员任务统计section进入视口，触发柱状图和散点图动画')
               this.memberTaskBarsAnimated = true
+              // 触发散点图动画
+              this.triggerTimelineScatterAnimation()
             } else {
               // 离开视口时重置动画状态
               this.memberTaskBarsAnimated = false
+              this.timelineScatterAnimated = false
             }
           }
         })
@@ -1327,6 +1310,23 @@ export default {
           block.classList.remove('no-animation')
         })
       }, 50)
+    },
+
+    /**
+     * 触发任务完成时间线散点图动画
+     */
+    triggerTimelineScatterAnimation() {
+      console.log('[ProjectDashboard] 触发散点图动画')
+      // 先重置动画状态
+      this.timelineScatterAnimated = false
+      
+      // 强制重排后重新触发动画
+      this.$nextTick(() => {
+        // 短暂延迟后启动动画，确保DOM已更新
+        setTimeout(() => {
+          this.timelineScatterAnimated = true
+        }, 50)
+      })
     },
 
     /**
@@ -2725,11 +2725,50 @@ export default {
     },
 
     /**
+     * 获取柱状图高度（缩小版）
+     */
+    getMemberBarHeightSmall(value) {
+      if (!value || this.maxMemberTaskCount === 0) return 0
+      const maxHeight = 75 // 最大高度75px (85 - 10)
+      return (value / this.maxMemberTaskCount) * maxHeight
+    },
+
+    /**
      * 截断成员名称（用于双向柱状图X轴显示）
      */
     truncateMemberName(name) {
       if (!name) return ''
       return name.length > 5 ? name.substring(0, 5) + '..' : name
+    },
+
+    /**
+     * 获取成员颜色（用于头像背景）
+     */
+    getMemberColor(index) {
+      const colors = [
+        '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', 
+        '#10b981', '#06b6d4', '#6366f1', '#f97316',
+        '#14b8a6', '#a855f7', '#ef4444', '#84cc16'
+      ]
+      return colors[index % colors.length]
+    },
+
+    /**
+     * 计算成员完成率
+     */
+    getCompletionRate(member) {
+      if (!member.totalTasks || member.totalTasks === 0) return 0
+      return Math.round((member.completedTasks / member.totalTasks) * 100)
+    },
+
+    /**
+     * 获取完成率的样式类
+     */
+    getCompletionRateClass(member) {
+      const rate = this.getCompletionRate(member)
+      if (rate >= 80) return 'rate-high'
+      if (rate >= 50) return 'rate-medium'
+      return 'rate-low'
     },
 
     /**
@@ -2788,7 +2827,7 @@ export default {
       const positionIndex = samePositionBubbles.length
       
       // 根据位置索引计算偏移，形成更分散的分布
-      const offsetPatterns = [0, -40, 40, -20, 20, -55, 55, -30, 30]
+      const offsetPatterns = [0, -60, 60, -30, 30, -80, 80, -45, 45]
       return offsetPatterns[positionIndex % offsetPatterns.length]
     },
 
@@ -2803,7 +2842,7 @@ export default {
       const positionIndex = samePositionBubbles.length
       
       // 根据位置索引计算偏移，交错分布
-      const offsetPatterns = [0, -35, 15, 35, -15, -50, 50, -25, 25]
+      const offsetPatterns = [0, -20, 20, -10, 10, -15, 15, -5, 5]
       return offsetPatterns[positionIndex % offsetPatterns.length]
     },
 
@@ -2822,14 +2861,14 @@ export default {
      * 获取时间线日期Y坐标（早的日期在下面，晚的日期在上面）
      */
     getTimelineDateY(dateStr) {
-      if (!this.timelineDateRange.min || !this.timelineDateRange.max) return 170
+      if (!this.timelineDateRange.min || !this.timelineDateRange.max) return 75
       const date = new Date(dateStr)
       const minDate = new Date(this.timelineDateRange.min)
       const maxDate = new Date(this.timelineDateRange.max)
       const totalDays = Math.max(1, (maxDate - minDate) / (1000 * 60 * 60 * 24))
       const dayOffset = (date - minDate) / (1000 * 60 * 60 * 24)
-      // Y轴从270到70，早的日期在下面（270），晚的日期在上面（70）
-      return 270 - (dayOffset / totalDays) * 200
+      // Y轴从123到35，早的日期在下面（123），晚的日期在上面（35）
+      return 123 - (dayOffset / totalDays) * 88
     },
 
     /**
@@ -6038,18 +6077,212 @@ export default {
   }
 }
 
-/* 成员任务统计图表容器 */
-.member-task-charts-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  align-items: stretch;
+/* 成员任务列表卡片 */
+.member-tasks-list-card {
+  min-height: auto;
+  max-height: calc(100vh - 180px);
+  padding: 16px !important;
 }
 
-@media (max-width: 1200px) {
-  .member-task-charts-container {
-    grid-template-columns: 1fr;
-  }
+.member-list-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon-wrapper.small {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+}
+
+.stat-content.compact {
+  flex: 1;
+}
+
+.stat-content.compact .stat-label {
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.stat-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stat-value.small {
+  font-size: 24px;
+}
+
+.stat-value-row .stat-description {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.member-tasks-list-card .task-list-compact {
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+}
+
+/* 成员任务项样式 */
+.member-task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px !important;
+}
+
+.member-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.member-task-item .task-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.member-task-item .task-item-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.task-item-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.stat-badge.total {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.stat-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.stat-badge svg {
+  width: 10px;
+  height: 10px;
+}
+
+.completion-rate {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.completion-rate.rate-high {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.completion-rate.rate-medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.completion-rate.rate-low {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.member-list-empty {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+/* 右侧图表区域 */
+.charts-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.charts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  height: calc(100vh - 200px);
+  max-height: 600px;
+}
+
+.charts-grid .chart-item {
+  flex: 1;
+  height: 50%;
+  max-height: 280px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.charts-grid .chart-item .bidirectional-bar-chart,
+.charts-grid .chart-item .task-timeline-scatter {
+  flex: 1;
+  max-height: 180px;
+}
+
+.charts-grid .chart-item svg {
+  width: 100%;
+  height: 100%;
+  max-height: 160px;
+}
+
+.charts-grid .card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.timeline-chart-item {
+  padding-top: 8px !important;
+  overflow: visible !important;
+}
+
+.timeline-chart-item .timeline-title {
+  margin-bottom: 2px;
+}
+
+.timeline-chart-item .task-timeline-scatter {
+  margin-top: 0;
+  overflow: visible;
+}
+
+.timeline-chart-item .timeline-scatter-svg {
+  overflow: visible;
 }
 
 /* 成员任务统计双向柱状图 */
@@ -6092,60 +6325,116 @@ export default {
 /* 上方柱子：从底部（横轴）向上延伸 */
 .member-task-svg .bar-total {
   transform-origin: center bottom;
+  filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.3));
+  transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 /* 下方柱子：从顶部（横轴）向下延伸 */
 .member-task-svg .bar-completed {
   transform-origin: center top;
+  filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3));
+  transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 /* 上方柱子初始状态（未触发动画时） */
 .member-task-svg .bars:not(.bars-animated) .bar-total {
   transform: scaleY(0);
+  opacity: 0;
 }
 
 /* 下方柱子初始状态（未触发动画时） */
 .member-task-svg .bars:not(.bars-animated) .bar-completed {
   transform: scaleY(0);
+  opacity: 0;
 }
 
-/* 上方柱子动画（从横轴向上延伸） */
+/* 上方柱子动画（从横轴向上延伸，带弹性效果） */
 .member-task-svg .bars.bars-animated .bar-total {
-  animation: barGrow 0.6s ease-out forwards;
+  animation: barGrowUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: inherit;
 }
 
-/* 下方柱子动画（从横轴向下延伸） */
+/* 下方柱子动画（从横轴向下延伸，带弹性效果，稍微延迟） */
 .member-task-svg .bars.bars-animated .bar-completed {
-  animation: barGrow 0.6s ease-out forwards;
+  animation: barGrowDown 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: inherit;
 }
 
-@keyframes barGrow {
+/* 让柱子组继承延迟变量 */
+.member-task-svg .bars.bars-animated > g {
+  --bar-delay: var(--delay, 0s);
+}
+
+.member-task-svg .bars.bars-animated > g .bar-total {
+  animation-delay: var(--delay, 0s);
+}
+
+.member-task-svg .bars.bars-animated > g .bar-completed {
+  animation-delay: calc(var(--delay, 0s) + 0.15s);
+}
+
+/* 上方柱子弹性生长动画 */
+@keyframes barGrowUp {
   0% {
     transform: scaleY(0);
+    opacity: 0;
   }
-  60% {
-    transform: scaleY(1.05);
+  20% {
+    opacity: 1;
+  }
+  70% {
+    transform: scaleY(1.08);
+  }
+  85% {
+    transform: scaleY(0.96);
   }
   100% {
     transform: scaleY(1);
+    opacity: 1;
   }
 }
 
-.member-task-svg .bar-total:hover,
+/* 下方柱子弹性生长动画 */
+@keyframes barGrowDown {
+  0% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    transform: scaleY(1.08);
+  }
+  85% {
+    transform: scaleY(0.96);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.member-task-svg .bar-total:hover {
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.5)) brightness(1.1);
+  cursor: pointer;
+}
+
 .member-task-svg .bar-completed:hover {
-  filter: brightness(1.1);
+  filter: drop-shadow(0 4px 12px rgba(239, 68, 68, 0.5)) brightness(1.1);
+  cursor: pointer;
 }
 
 /* 悬停上方柱子时，下方柱子变暗 */
 .member-task-svg .bars.hover-total .bar-completed {
-  opacity: 0.3;
-  filter: brightness(0.7);
+  opacity: 0.35;
+  filter: drop-shadow(0 1px 2px rgba(239, 68, 68, 0.15)) brightness(0.8);
 }
 
 /* 悬停下方柱子时，上方柱子变暗 */
 .member-task-svg .bars.hover-completed .bar-total {
-  opacity: 0.3;
-  filter: brightness(0.7);
+  opacity: 0.35;
+  filter: drop-shadow(0 1px 2px rgba(245, 158, 11, 0.15)) brightness(0.8);
 }
 
 .member-task-svg .axis-label {
@@ -6163,30 +6452,31 @@ export default {
 /* 成员任务图例 */
 .member-task-legend {
   display: flex;
-  gap: 24px;
+  gap: 16px;
   justify-content: center;
-  padding-top: 16px;
-  margin-top: 16px;
+  flex-shrink: 0;
+  padding-top: 8px;
+  margin-top: 8px;
   border-top: 1px solid #e2e8f0;
 }
 
 .member-task-legend .legend-item-modern {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 4px 10px;
   background: #f8fafc;
   border-radius: 10px;
 }
 
 .member-task-legend .legend-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
 }
 
 .member-task-legend .legend-text {
-  font-size: 13px;
+  font-size: 11px;
   color: #475569;
   font-weight: 500;
 }
@@ -6286,8 +6576,14 @@ export default {
   transition: filter 0.3s ease, opacity 0.3s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
   transform-origin: center;
-  animation: bubbleEnter 0.6s ease-out forwards;
   opacity: 0;
+  transform: scale(0);
+}
+
+/* 只有当父元素有 bubbles-animated class 时才播放入场动画 */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .task-bubble {
+  animation: bubbleEnter 0.6s ease-out forwards;
+  animation-delay: var(--delay, 0s);
 }
 
 .timeline-scatter-svg .task-bubble:hover {
@@ -6309,20 +6605,20 @@ export default {
   }
 }
 
-/* 浮动动画1 - 上下浮动 */
-.timeline-scatter-svg .bubble-float-1 {
+/* 浮动动画1 - 上下浮动（只在动画触发后播放） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .bubble-float-1 {
   animation: bubbleEnter 0.6s ease-out forwards, bubbleFloat1 3s ease-in-out infinite;
   animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
 }
 
-/* 浮动动画2 - 斜向浮动 */
-.timeline-scatter-svg .bubble-float-2 {
+/* 浮动动画2 - 斜向浮动（只在动画触发后播放） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .bubble-float-2 {
   animation: bubbleEnter 0.6s ease-out forwards, bubbleFloat2 4s ease-in-out infinite;
   animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
 }
 
-/* 浮动动画3 - 缩放呼吸 */
-.timeline-scatter-svg .bubble-float-3 {
+/* 浮动动画3 - 缩放呼吸（只在动画触发后播放） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .bubble-float-3 {
   animation: bubbleEnter 0.6s ease-out forwards, bubbleFloat3 3.5s ease-in-out infinite;
   animation-delay: var(--delay, 0s), calc(var(--delay, 0s) + 0.6s);
 }
