@@ -21,7 +21,7 @@ module.exports = {
     
     proxy: {
       '/zhiyan/message': {
-        target: 'http://localhost:8088',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -32,7 +32,7 @@ module.exports = {
       // 包含：创建项目、更新项目、删除项目、获取项目列表等
       // URL示例：/zhiyan/projects/* → http://localhost:8095/zhiyan/projects/*
       '/zhiyan/projects': {
-        target: 'http://localhost:8095',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -50,7 +50,7 @@ module.exports = {
       // ✅ 用户搜索API - 转发到8095端口（通过项目服务调用认证服务）
       // URL示例：/zhiyan/api/users/search → http://localhost:8095/api/users/search
       '/zhiyan/api/users': {
-        target: 'http://localhost:8095',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -63,7 +63,7 @@ module.exports = {
       // URL示例：/api/wiki/* → http://localhost:8234/api/wiki/*
       // 包含：Wiki页面管理、版本控制、搜索、导入导出等
       '/zhiyan/wiki': {
-        target: 'http://localhost:8234',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -74,7 +74,7 @@ module.exports = {
       // URL示例：/zhiyan/achievement/file/* → http://localhost:8093/zhiyan/achievement/file/*
       // 包含：上传文件、下载文件、删除文件等
       '/zhiyan/achievement/file': {
-        target: 'http://localhost:8093',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -83,7 +83,7 @@ module.exports = {
       // ✅ 知识库成果详情API - 转发到8093端口（知识库服务）
       // URL示例：/zhiyan/achievement/detail/* → http://localhost:8093/zhiyan/achievement/detail/*
       '/zhiyan/achievement/detail': {
-        target: 'http://localhost:8093',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -92,7 +92,7 @@ module.exports = {
       // ✅ 知识库成果搜索API - 转发到8093端口（知识库服务）
       // URL示例：/zhiyan/achievement/search/* → http://localhost:8093/zhiyan/achievement/search/*
       '/zhiyan/achievement/search': {
-        target: 'http://localhost:8093',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -102,7 +102,7 @@ module.exports = {
       // URL示例：/zhiyan/achievement/* → http://localhost:8093/zhiyan/achievement/*
       // 注意：这个规则必须放在其他 /zhiyan/achievement/* 规则之后，作为默认规则
       '/zhiyan/achievement': {
-        target: 'http://localhost:8093',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -111,7 +111,7 @@ module.exports = {
       // ✅ Coze AI相关API - 转发到8094端口（Coze AI服务）
       // URL示例：/zhiyan/api/coze/* → http://localhost:8094/api/coze/*
       '/zhiyan/ai/coze': {
-        target: 'http://localhost:8094',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -173,7 +173,7 @@ module.exports = {
       // ✅ Dify AI相关API - 转发到8096端口（Dify AI服务）
       // URL示例：/zhiyan/api/ai/* → http://localhost:8096/api/ai/*
       '/zhiyan/ai/dify': {
-        target: 'http://localhost:8096',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -235,7 +235,7 @@ module.exports = {
       // ✅ 认证相关API - 转发到8091端口（认证服务）
       // URL示例：/zhiyan/auth/* → http://localhost:8091/zhiyan/auth/*
       '/zhiyan/auth': {
-        target: 'http://localhost:8091',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,
@@ -246,7 +246,7 @@ module.exports = {
       // ⚠️ 默认规则 - 转发到8091端口（认证服务）
       // 注意：这个规则必须放在最后，作为其他未匹配路径的默认规则
       '/zhiyan': {
-        target: 'http://localhost:8091',
+        target: 'http://localhost:9006',
         changeOrigin: true,
         secure: false,
         ws: true,

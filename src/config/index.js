@@ -6,22 +6,22 @@ const config = {
     // 默认API基础URL
     baseURL: process.env.NODE_ENV === 'production' 
       ? 'https://your-production-api.com' 
-      : 'http://localhost:8091', // 默认端口8091（认证服务）
+      : 'http://localhost:9006', // 默认端口8091（认证服务）
     timeout: 60000, // 默认30秒，对于列表查询等操作可能需要更长时间
     // 多端口配置（微服务架构）
     endpoints: {
       // 认证服务 (8091)
       auth: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
-        : 'http://localhost:8091',
+        : 'http://localhost:9006',
       // 知识库服务 (8093)
       knowledge: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
-        : 'http://localhost:8093',
+        : 'http://localhost:9006',
       // 项目服务 (8095)
       project: process.env.NODE_ENV === 'production' 
         ? 'https://your-production-api.com' 
-        : 'http://localhost:8095'
+        : 'http://localhost:9006'
     }
   },
   
