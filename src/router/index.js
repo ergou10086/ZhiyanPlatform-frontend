@@ -17,6 +17,9 @@ import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
 import MyActivity from '../views/MyActivity.vue'
 import OAuth2Callback from '../views/OAuth2Callback.vue'
+import OAuth2Bind from '../views/OAuth2Bind.vue'
+import OAuth2Supplement from '../views/OAuth2Supplement.vue'
+import OAuth2Error from '../views/OAuth2Error.vue'
 
 Vue.use(VueRouter)
 
@@ -49,6 +52,21 @@ const routes = [
     path: '/zhiyan/auth/oauth2/callback/:provider',
     name: 'OAuth2CallbackWithPrefix',
     component: OAuth2Callback
+  },
+  {
+    path: '/oauth2/bind',
+    name: 'OAuth2Bind',
+    component: OAuth2Bind
+  },
+  {
+    path: '/oauth2/supplement',
+    name: 'OAuth2Supplement',
+    component: OAuth2Supplement
+  },
+  {
+    path: '/oauth2/error',
+    name: 'OAuth2Error',
+    component: OAuth2Error
   },
   {
     path: '/home',
@@ -158,9 +176,11 @@ router.beforeEach((to, from, next) => {
     return
   }
   
-  // OAuth2回调页面 - 允许所有用户访问
-  if (to.path.startsWith('/auth/oauth2/callback') || to.path.startsWith('/zhiyan/auth/oauth2/callback')) {
-    console.log('OAuth2回调页面，允许访问')
+  // OAuth2相关页面 - 允许所有用户访问
+  if (to.path.startsWith('/auth/oauth2/callback') || 
+      to.path.startsWith('/zhiyan/auth/oauth2/callback') ||
+      to.path.startsWith('/oauth2/')) {
+    console.log('OAuth2相关页面，允许访问, 路径:', to.path)
     next()
     return
   }

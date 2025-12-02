@@ -1952,6 +1952,28 @@
   color: #6ee7b7 !important;
 }
 
+/* OAuth2授权成功提示 */
+.oauth2-success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 99999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
 
+/* 淡入淡出动画 */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
 
-
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}

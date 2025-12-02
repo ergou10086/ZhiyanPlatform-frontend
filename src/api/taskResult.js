@@ -18,7 +18,7 @@ import api from './knowledge'
  */
 export function generateTaskResultDraft(request) {
   console.log('[taskResultAPI.generateTaskResultDraft] 生成任务成果草稿, 数据:', request)
-  return api.post('/zhiyan/achievement/ai-generate/draft', request)
+  return api.post('/zhiyan/ai/achievement/generate/draft', request)
 }
 
 /**
@@ -28,7 +28,7 @@ export function generateTaskResultDraft(request) {
  */
 export function getGenerateStatus(jobId) {
   console.log('[taskResultAPI.getGenerateStatus] 查询生成状态, jobId:', jobId)
-  return api.get(`/zhiyan/achievement/ai-generate/status/${jobId}`)
+  return api.get(`/zhiyan/ai/achievement/generate/status/${jobId}`)
 }
 
 /**
@@ -38,7 +38,7 @@ export function getGenerateStatus(jobId) {
  */
 export function cancelGenerate(jobId) {
   console.log('[taskResultAPI.cancelGenerate] 取消生成, jobId:', jobId)
-  return api.delete(`/zhiyan/achievement/ai-generate/cancel/${jobId}`)
+  return api.delete(`/zhiyan/ai/achievement/generate/cancel/${jobId}`)
 }
 
 /**
@@ -75,14 +75,11 @@ export function getLinkedTasks(achievementId) {
 
 /**
  * 获取用户的AI草稿列表
- * @param {Number} userId - 用户ID
  * @returns {Promise} 返回草稿列表
  */
-export function getAIDrafts(userId) {
-  console.log('[taskResultAPI.getAIDrafts] 获取AI草稿列表, userId:', userId)
-  return api.get(`/zhiyan/achievement/ai-drafts`, {
-    params: { userId }
-  })
+export function getAIDrafts() {
+  console.log('[taskResultAPI.getAIDrafts] 获取AI草稿列表(当前登录用户)')
+  return api.get('/zhiyan/ai/achievement/generate/drafts')
 }
 
 /**

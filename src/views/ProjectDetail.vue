@@ -248,7 +248,10 @@
               <!-- 当前用户已接取 -->
               <template v-else-if="isCurrentUserAssignee(task)">
                 <span class="assign-status-badge assigned-by-me">已接取</span>
-                <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                <!-- 逾期显示已逾期标识 -->
+                <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
+                <!-- 未逾期显示提交按钮 -->
+                <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -487,6 +490,13 @@
               min="1"
               step="1"
             />
+          </div>
+          <div class="form-field form-field-switch">
+            <label class="form-label">里程碑任务</label>
+            <label class="switch-toggle">
+              <input type="checkbox" v-model="newTask.isMilestone" />
+              <span class="switch-slider"></span>
+            </label>
           </div>
         </div>
         <div class="modal-footer">
@@ -797,7 +807,10 @@
                 <!-- 当前用户已接取 -->
                 <template v-else-if="isCurrentUserAssignee(task)">
                   <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                  <!-- 逾期显示已逾期标识 -->
+                  <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
+                  <!-- 未逾期显示提交按钮 -->
+                  <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1092,7 +1105,10 @@
               </div>
               <div class="task-info-content">
                 <div class="task-info-label">截止日期</div>
-                <div class="task-info-value">截止日期：{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
+                <div class="task-info-value">
+                  截止日期：{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}
+                  <span v-if="isTaskOverdue(selectedTask)" class="overdue-badge">已逾期</span>
+                </div>
               </div>
             </div>
             <!-- 提交工时 -->
@@ -1155,6 +1171,25 @@
                 </div>
               </div>
             </div>
+            <!-- 里程碑任务 -->
+            <div class="task-info-card milestone-card">
+              <div class="task-info-icon milestone">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="task-info-content milestone-content">
+                <div class="task-info-label">里程碑任务</div>
+                <div class="task-info-value milestone-switch-wrapper">
+                  <label class="switch-toggle" v-if="isProjectManager">
+                    <input type="checkbox" :checked="selectedTask.isMilestone" @change="toggleMilestone(selectedTask)" />
+                    <span class="switch-slider"></span>
+                  </label>
+                  <span v-else class="milestone-status-text">{{ selectedTask.isMilestone ? '是' : '否' }}</span>
+                </div>
+              </div>
+            </div>
             <!-- 统计信息 - 可点击查看详情 -->
             <div class="task-info-card clickable" @click="openTaskStatisticsModal(selectedTask)">
               <div class="task-info-icon statistics">
@@ -1196,6 +1231,18 @@
               <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             接取任务
+          </button>
+          <!-- 更改提交按钮 - 已接取且未逾期时显示 -->
+          <button 
+            v-if="isCurrentUserAssignee(selectedTask) && !isTaskOverdue(selectedTask)" 
+            @click="openTaskSubmissionModal(selectedTask)" 
+            class="btn btn-success" 
+            style="margin-right: 12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ (selectedTask.hasSubmission || selectedTask.status === '待审核' || selectedTask.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
           </button>
           <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
@@ -1481,7 +1528,8 @@ export default {
         dueDate: '',
         priority: '中',
         status: '待接取',
-        dateError: ''
+        dateError: '',
+        isMilestone: false
       },
       editProjectData: {
         name: '',
@@ -1884,6 +1932,33 @@ export default {
       this.selectedTaskWorktimeLoading = false
     },
     /**
+     * 切换任务的里程碑状态
+     */
+    async toggleMilestone(task) {
+      const newValue = !task.isMilestone
+      try {
+        const { taskAPI } = await import('@/api/task')
+        const response = await taskAPI.updateTask(task.id, {
+          isMilestone: newValue
+        })
+        if (response && response.code === 200) {
+          // 更新本地任务数据
+          task.isMilestone = newValue
+          // 同步更新任务列表中的数据
+          const taskInList = this.tasks.find(t => t.id === task.id)
+          if (taskInList) {
+            taskInList.isMilestone = newValue
+          }
+          this.showSuccessToast(newValue ? '已设为里程碑任务' : '已取消里程碑任务')
+        } else {
+          this.showSuccessToast('更新失败：' + (response.msg || '未知错误'))
+        }
+      } catch (error) {
+        console.error('切换里程碑状态失败:', error)
+        this.showSuccessToast('操作失败，请稍后重试')
+      }
+    },
+    /**
      * 打开任务统计详情弹窗
      */
     async openTaskStatisticsModal(task) {
@@ -2109,7 +2184,9 @@ export default {
               created_by_name: task.creatorName === '未知用户' ? currentUserName : (task.creatorName || currentUserName),
               showStatusMenu: false, // 初始化状态菜单为关闭
               // 如果任务状态是"待审核"，说明已经有提交了
-              hasSubmission: task.status === 'PENDING_REVIEW' || this.getStatusDisplay(task.status || 'TODO') === '待审核' || task.hasSubmission || false
+              hasSubmission: task.status === 'PENDING_REVIEW' || this.getStatusDisplay(task.status || 'TODO') === '待审核' || task.hasSubmission || false,
+              // 是否为里程碑任务
+              isMilestone: task.isMilestone || false
             }
           })
           console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
@@ -3289,7 +3366,8 @@ export default {
         priority: '中',
         status: '待接取',
         dateError: '',
-        participantCount: null
+        participantCount: null,
+        isMilestone: false
       }
     },
     closeTaskModal() {
@@ -3323,7 +3401,8 @@ export default {
           priority: this.getPriorityValue(this.newTask.priority), // 转换为英文枚举值
           dueDate: this.newTask.dueDate || null,
           assigneeIds: [], // 新任务默认没有执行者
-          requiredPeople: this.newTask.participantCount || 1 // 发送任务人数限制到后端
+          requiredPeople: this.newTask.participantCount || 1, // 发送任务人数限制到后端
+          isMilestone: this.newTask.isMilestone || false // 是否为里程碑任务
         }
         console.log('[saveNewTask] 创建任务，数据:', taskData)
         // 调用后端API创建任务
@@ -5044,6 +5123,17 @@ export default {
   font-weight: 500;
 }
 
+.overdue-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
 .task-info-icon.participants {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
@@ -5374,5 +5464,92 @@ export default {
   padding: 32px;
   color: #9ca3af;
   font-size: 14px;
+}
+
+/* 里程碑开关样式 */
+.form-field-switch {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
+}
+
+.switch-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.switch-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e5e7eb;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.switch-toggle input:checked + .switch-slider {
+  background-color: #3b82f6;
+}
+
+.switch-toggle input:checked + .switch-slider::before {
+  transform: translateX(20px);
+}
+
+.switch-toggle input:focus + .switch-slider {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* 里程碑任务卡片样式 */
+.milestone-card {
+  grid-column: span 2;
+}
+
+.milestone-card .task-info-icon.milestone {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.milestone-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.milestone-switch-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.milestone-status-text {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
 }
 </style>
