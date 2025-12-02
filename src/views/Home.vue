@@ -1,5 +1,12 @@
 <template>
   <div class="home-container">
+    <!-- OAuth2授权成功提示 -->
+    <transition name="fade">
+      <div v-if="showOAuth2SuccessToast" class="oauth2-success-toast">
+        ✓ 授权登录成功
+      </div>
+    </transition>
+
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
@@ -363,7 +370,8 @@ export default {
       myTasks: [], // 我的任务列表
       isLoadingTasks: false, // 是否正在加载任务
       taskDetailModalOpen: false, // 任务详情弹窗是否打开
-      selectedTask: null // 选中的任务
+      selectedTask: null, // 选中的任务
+      showOAuth2SuccessToast: false // OAuth2授权成功提示
     }
   },
   mounted() {
@@ -412,6 +420,12 @@ export default {
         const cleanUrl = window.location.origin + window.location.pathname
         window.history.replaceState({}, document.title, cleanUrl)
 
+        // 显示授权成功提示
+        this.showOAuth2SuccessToast = true
+        setTimeout(() => {
+          this.showOAuth2SuccessToast = false
+        }, 1000)
+
         // 获取用户信息
         this.fetchUserInfoAfterOAuth2Login()
       }
@@ -421,10 +435,29 @@ export default {
       try {
         // 导入authAPI
         const { authAPI } = await import('@/api/auth')
+        const { avatarAPI } = await import('@/api/avatar')
+        
         const response = await authAPI.getCurrentUserInfo()
         
         if (response.code === 200 && response.data) {
-          // 保存用户信息
+          console.log('📦 OAuth2获取到的用户信息:', response.data)
+          
+          // 获取用户头像
+          try {
+            const avatarResponse = await avatarAPI.getMyAvatarInfo()
+            console.log('🖼️ 获取头像信息:', avatarResponse)
+            
+            if (avatarResponse.code === 200 && avatarResponse.data && avatarResponse.data.dataUrl) {
+              // 将头像数据添加到用户信息中
+              response.data.dataUrl = avatarResponse.data.dataUrl
+              response.data.avatar = avatarResponse.data.dataUrl
+              console.log('✅ 已添加头像数据到用户信息')
+            }
+          } catch (avatarError) {
+            console.warn('获取头像失败，使用默认头像:', avatarError)
+          }
+          
+          // 保存用户信息（包含头像）
           localStorage.setItem('user_info', JSON.stringify(response.data))
           
           // 触发用户信息更新事件
