@@ -367,6 +367,9 @@ export default {
     }
   },
   mounted() {
+    // 检查是否是OAuth2回调（后端直接重定向到首页的情况）
+    this.handleOAuth2Callback()
+    
     // 页面加载时尝试获取用户头像
     this.loadUserAvatar()
     
@@ -389,6 +392,55 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    handleOAuth2Callback() {
+      // 检查URL参数中是否有OAuth2回调标记
+      const urlParams = new URLSearchParams(window.location.search)
+      const oauth2Status = urlParams.get('oauth2')
+      const token = urlParams.get('token')
+      const refreshToken = urlParams.get('refreshToken')
+
+      if (oauth2Status === 'success' && token) {
+        console.log('✅ 检测到OAuth2登录成功回调，处理token')
+        
+        // 保存token
+        localStorage.setItem('access_token', token)
+        if (refreshToken) {
+          localStorage.setItem('refresh_token', refreshToken)
+        }
+
+        // 清除URL参数
+        const cleanUrl = window.location.origin + window.location.pathname
+        window.history.replaceState({}, document.title, cleanUrl)
+
+        // 获取用户信息
+        this.fetchUserInfoAfterOAuth2Login()
+      }
+    },
+
+    async fetchUserInfoAfterOAuth2Login() {
+      try {
+        // 导入authAPI
+        const { authAPI } = await import('@/api/auth')
+        const response = await authAPI.getCurrentUserInfo()
+        
+        if (response.code === 200 && response.data) {
+          // 保存用户信息
+          localStorage.setItem('user_info', JSON.stringify(response.data))
+          
+          // 触发用户信息更新事件
+          this.$root.$emit('userInfoUpdated')
+          
+          // 刷新页面数据
+          this.loadGlobalUserInfo()
+          this.loadUserAvatar()
+          
+          console.log('✅ OAuth2登录成功，用户信息已保存')
+        }
+      } catch (error) {
+        console.error('❌ 获取用户信息失败:', error)
+      }
+    },
+
     loadUserAvatar() {
       // 从localStorage或API获取用户头像
       const savedAvatar = localStorage.getItem('userAvatar')

@@ -244,7 +244,7 @@ export const authAPI = {
    */
   getCurrentUserInfo() {
     console.log('[authAPI.getCurrentUserInfo] 获取当前用户信息')
-    return api.get('/zhiyan/users/me')
+    return api.get('/zhiyan/auth/users/me')
   },
 
   // ==================== OAuth2 第三方登录 ====================
