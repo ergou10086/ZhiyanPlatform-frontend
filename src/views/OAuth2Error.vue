@@ -3,10 +3,9 @@
     <div class="error-content">
       <!-- 错误图标 -->
       <div class="error-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="45" stroke="#f56565" stroke-width="6" fill="none"></circle>
+          <text x="50" y="70" font-size="60" font-weight="bold" fill="#f56565" text-anchor="middle">!</text>
         </svg>
       </div>
 
@@ -86,7 +85,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #89a8c1 0%, #b8d4e6 100%);
   padding: 20px;
 }
 
