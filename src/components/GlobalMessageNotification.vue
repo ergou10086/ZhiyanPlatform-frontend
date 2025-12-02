@@ -24,25 +24,31 @@
             <span class="title-text">消息通知</span>
             <span v-if="unreadCount > 0" class="unread-count">{{ unreadCount }}</span>
           </div>
-          <div class="header-right">
-            <button 
-              class="action-btn send-btn" 
-              type="button"
-              @click.stop="openSendDialog('USER')"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>发送消息</span>
-            </button>
-            <button class="action-btn" @click="markAllRead" :disabled="unreadCount === 0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>全部已读</span>
-            </button>
-          </div>
+        </div>
+
+        <div class="panel-toolbar">
+          <button 
+            class="toolbar-btn primary" 
+            type="button"
+            @click.stop="openSendDialog('USER')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>发送消息</span>
+          </button>
+
+          <button 
+            class="toolbar-btn"
+            @click="markAllRead"
+            :disabled="unreadCount === 0"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>全部已读</span>
+          </button>
         </div>
 
         <!-- 标签页切换 -->
@@ -99,16 +105,32 @@
             v-for="message in displayedMessages" 
             :key="message.id" 
             class="message-item"
-            :class="{ 'unread': !message.isRead }"
+            :class="{ 'unread': !message.isRead, 'has-sender': message.senderUsername }"
             @click="handleMessageClick(message)"
           >
-            <!-- 消息图标 -->
-            <div class="message-icon" :class="`scene-${message.scene}`">
+            <!-- 发送者头像（如果有发送者信息） -->
+            <div v-if="message.senderUsername" class="sender-avatar">
+              <img 
+                v-if="message.senderAvatar" 
+                :src="message.senderAvatar" 
+                :alt="message.senderUsername"
+                class="avatar-img"
+                @error="handleAvatarError($event)"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ getAvatarInitial(message.senderUsername) }}
+              </div>
+            </div>
+            <!-- 消息图标（如果没有发送者信息） -->
+            <div v-else class="message-icon" :class="`scene-${message.scene}`">
               <component :is="getSceneIcon(message.scene)" />
             </div>
 
             <!-- 消息内容 -->
             <div class="message-content">
+              <div class="message-header-row" v-if="message.senderUsername">
+                <span class="sender-name">{{ message.senderUsername }}</span>
+              </div>
               <div class="message-title">{{ message.title }}</div>
               <div class="message-body">{{ message.content }}</div>
               <div class="message-time">{{ formatTime(message.createdAt) }}</div>
@@ -149,40 +171,72 @@
         @click.self="closeMessageDetail"
       >
         <div class="message-detail-modal">
-          <div class="detail-header">
-            <div>
-              <div class="detail-scene">{{ detailMessage?.scene || '消息详情' }}</div>
-              <div class="detail-title">{{ detailMessage?.title }}</div>
+          <!-- 头部 -->
+          <div class="detail-header-new">
+            <div class="detail-header-icon" :class="getSceneClass(detailMessage?.scene)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
-            <button class="detail-close" @click="closeMessageDetail">
-              <span>&times;</span>
+            <div class="detail-header-text">
+              <span class="detail-scene-tag">{{ getSceneName(detailMessage?.scene) }}</span>
+              <h3 class="detail-title-new">{{ detailMessage?.title }}</h3>
+            </div>
+            <button class="detail-close-new" @click="closeMessageDetail">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </button>
           </div>
 
-          <div class="detail-body">
-            <div class="detail-section">
-              <div class="section-label">内容</div>
-              <div class="section-content">{{ detailMessage?.content }}</div>
+          <!-- 发送者信息 -->
+          <div class="detail-sender" v-if="detailMessage?.senderUsername">
+            <div class="sender-avatar-detail">
+              <img v-if="detailMessage?.senderAvatar" :src="detailMessage.senderAvatar" alt="" />
+              <span v-else>{{ getAvatarInitial(detailMessage.senderUsername) }}</span>
             </div>
-
-            <div class="detail-section">
-              <div class="section-label">触发时间</div>
-              <div class="section-content">{{ detailMessage?.createdAt || detailMessage?.triggerTime }}</div>
-            </div>
-
-            <div class="detail-section" v-if="detailMessage?.businessType">
-              <div class="section-label">业务类型</div>
-              <div class="section-content">{{ detailMessage.businessType }}</div>
-            </div>
-
-            <div class="detail-section" v-if="detailMessage?.extendData">
-              <div class="section-label">扩展信息</div>
-              <pre class="section-extend">{{ formatExtendData(detailMessage.extendData) }}</pre>
+            <div class="sender-info-detail">
+              <span class="sender-name-detail">{{ detailMessage.senderUsername }}</span>
+              <span class="sender-time-detail">{{ formatDetailTime(detailMessage?.createdAt) }}</span>
             </div>
           </div>
 
-          <div class="detail-footer">
-            <button class="detail-btn" @click="closeMessageDetail">关闭</button>
+          <!-- 内容区域 -->
+          <div class="detail-body-new">
+            <div class="detail-content-card">
+              <p>{{ detailMessage?.content }}</p>
+            </div>
+
+            <!-- 附加信息 -->
+            <div class="detail-meta" v-if="!detailMessage?.senderUsername">
+              <div class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>{{ formatDetailTime(detailMessage?.createdAt) }}</span>
+              </div>
+            </div>
+
+            <div class="detail-meta" v-if="detailMessage?.businessType">
+              <div class="meta-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>{{ getBusinessTypeName(detailMessage.businessType) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部 -->
+          <div class="detail-footer-new">
+            <button class="detail-btn-new" @click="closeMessageDetail">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              知道了
+            </button>
           </div>
         </div>
       </div>
@@ -190,43 +244,84 @@
 
     <!-- 发送消息对话框 -->
     <el-dialog
-      title="发送站内消息"
       :visible.sync="sendDialogVisible"
-      width="520px"
+      width="480px"
       class="send-message-dialog"
       append-to-body
+      :show-close="false"
     >
-      <div class="send-mode-switch">
-        <button
-          type="button"
-          class="mode-btn"
-          :class="{ active: sendMode === 'USER' }"
-          @click="sendMode = 'USER'"
-        >
-          私信用户
-        </button>
-        <button
-          type="button"
-          class="mode-btn"
-          :class="{ active: sendMode === 'PROJECT' }"
-          @click="openSendDialog('PROJECT')"
-        >
-          项目群发
+      <!-- 自定义头部 -->
+      <div slot="title" class="dialog-custom-header">
+        <div class="header-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h3>发送消息</h3>
+          <p>向用户或项目成员发送站内消息</p>
+        </div>
+        <button class="header-close" @click="sendDialogVisible = false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
       </div>
 
-      <div class="send-form">
-        <div v-if="sendMode === 'USER'" class="form-row">
-          <label class="form-label">接收者用户名</label>
+      <!-- 模式切换 -->
+      <div class="send-mode-tabs">
+        <div 
+          class="mode-tab" 
+          :class="{ active: sendMode === 'USER' }"
+          @click="sendMode = 'USER'"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>私信用户</span>
+        </div>
+        <div 
+          class="mode-tab" 
+          :class="{ active: sendMode === 'PROJECT' }"
+          @click="openSendDialog('PROJECT')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>项目群发</span>
+        </div>
+      </div>
+
+      <!-- 表单内容 -->
+      <div class="send-form-content">
+        <div v-if="sendMode === 'USER'" class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            接收者
+          </label>
           <el-input
             v-model="sendForm.receiverUsername"
-            placeholder="请输入对方的用户名（登录账号）"
+            placeholder="请输入对方的用户名"
             clearable
+            prefix-icon="el-icon-search"
           />
         </div>
 
-        <div v-else class="form-row">
-          <label class="form-label">选择项目</label>
+        <div v-else class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            选择项目
+          </label>
           <el-select
             v-model="sendForm.projectId"
             placeholder="请选择要群发消息的项目"
@@ -242,40 +337,67 @@
               :value="project.id"
             />
           </el-select>
-          <p v-if="myProjectsLoaded && myProjects.length === 0" class="helper-text">
-            当前没有参与的项目，无法进行项目群发。
+          <p v-if="myProjectsLoaded && myProjects.length === 0" class="empty-tip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            当前没有参与的项目
           </p>
         </div>
 
-        <div class="form-row">
-          <label class="form-label">标题</label>
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18.5 2.5C18.8978 2.10217 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10217 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            消息标题
+          </label>
           <el-input
             v-model="sendForm.title"
-            placeholder="请输入消息标题"
+            placeholder="给消息起个标题吧"
             maxlength="100"
             show-word-limit
           />
         </div>
 
-        <div class="form-row">
-          <label class="form-label">内容</label>
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            消息内容
+          </label>
           <el-input
             type="textarea"
             v-model="sendForm.content"
-            placeholder="请输入要发送的消息内容"
-            :rows="5"
+            placeholder="写下你想说的话..."
+            :rows="4"
             maxlength="500"
             show-word-limit
+            resize="none"
           />
         </div>
       </div>
 
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="sendDialogVisible = false">取 消</el-button>
-        <el-button type="primary" :loading="sendLoading" @click="submitSendMessage">
-          {{ sendMode === 'USER' ? '发送私信' : '发送给项目成员' }}
-        </el-button>
-      </span>
+      <!-- 底部按钮 -->
+      <div slot="footer" class="dialog-custom-footer">
+        <button class="btn-cancel" @click="sendDialogVisible = false">取消</button>
+        <button 
+          class="btn-send" 
+          :class="{ loading: sendLoading }"
+          :disabled="sendLoading"
+          @click="submitSendMessage"
+        >
+          <svg v-if="!sendLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="loading-spinner" v-else></span>
+          {{ sendLoading ? '发送中...' : (sendMode === 'USER' ? '发送私信' : '群发消息') }}
+        </button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -291,6 +413,8 @@ import {
   sendMessageToProject
 } from '@/api/message'
 import { projectAPI } from '@/api/project'
+import { authAPI } from '@/api/auth'
+import { avatarAPI } from '@/api/avatar'
 
 export default {
   name: 'GlobalMessageNotification',
@@ -319,7 +443,9 @@ export default {
       },
       sendLoading: false,
       myProjects: [],
-      myProjectsLoaded: false
+      myProjectsLoaded: false,
+      // 发送者信息缓存
+      senderCache: {}
     }
   },
   mounted() {
@@ -437,7 +563,7 @@ export default {
         console.log('📨 消息列表响应:', response)
 
         if (response && response.code === 200 && response.data) {
-          const newMessages = this.transformMessages(response.data.content || [])
+          const newMessages = await this.transformMessages(response.data.content || [])
 
           if (reset) {
             this.messages = newMessages
@@ -680,6 +806,120 @@ export default {
     },
 
     /**
+     * 获取头像首字母
+     */
+    getAvatarInitial(username) {
+      if (!username) return '?'
+      return username.charAt(0).toUpperCase()
+    },
+
+    /**
+     * 处理头像加载错误
+     */
+    handleAvatarError(event) {
+      // 隐藏加载失败的图片
+      event.target.style.display = 'none'
+      // 显示占位符（通过父元素的 CSS 处理）
+      const parent = event.target.parentElement
+      if (parent) {
+        parent.classList.add('avatar-error')
+      }
+    },
+
+    /**
+     * 获取场景中文名称
+     */
+    getSceneName(scene) {
+      const sceneMap = {
+        // 任务相关
+        'TASK_ASSIGN': '任务分配',
+        'TASK_STATUS_CHANGED': '任务状态变更',
+        'TASK_REVIEW_REQUEST': '任务审核请求',
+        'TASK_REVIEW_RESULT': '任务审核结果',
+        'TASK_DEADLINE_REMIND': '任务截止提醒',
+        'TASK_OVERDUE': '任务逾期',
+        // 项目相关
+        'PROJECT_CREATED': '项目创建',
+        'PROJECT_ARCHIVED': '项目归档',
+        'PROJECT_DELETED': '项目删除',
+        'PROJECT_MEMBER_APPLY': '成员申请',
+        'PROJECT_MEMBER_INVITED': '成员邀请',
+        'PROJECT_MEMBER_REMOVED': '成员移除',
+        'PROJECT_MEMBER_APPROVAL': '成员审批',
+        'PROJECT_ROLE_CHANGED': '角色变更',
+        'PROJECT_STATUS_CHANGED': '项目状态变更',
+        // 成果相关
+        'ACHIEVEMENT_FILE_UPLOADED': '成果上传',
+        'ACHIEVEMENT_CREATED': '成果创建',
+        'ACHIEVEMENT_DELETED': '成果删除',
+        'ACHIEVEMENT_FILE_DELETED': '成果文件删除',
+        'ACHIEVEMENT_REVIEW_REQUEST': '成果审核请求',
+        'ACHIEVEMENT_STATUS_CHANGED': '成果状态变更',
+        'ACHIEVEMENT_PUBLISHED': '成果发布',
+        // 系统相关
+        'SYSTEM_SECURITY_ALERT': '安全提醒',
+        'SYSTEM_BROADCAST': '系统公告',
+        // 用户消息
+        'USER_CUSTOM_MESSAGE': '用户私信',
+        // Wiki相关
+        'WIKI_PAGE_CREATED': 'Wiki页面创建',
+        'WIKI_PAGE_UPDATED': 'Wiki页面更新',
+        'WIKI_PAGE_DELETED': 'Wiki页面删除'
+      }
+      return sceneMap[scene] || '消息通知'
+    },
+
+    /**
+     * 获取场景样式类
+     */
+    getSceneClass(scene) {
+      if (!scene) return 'scene-default'
+      if (scene.startsWith('TASK')) return 'scene-task'
+      if (scene.startsWith('PROJECT')) return 'scene-project'
+      if (scene.startsWith('ACHIEVEMENT')) return 'scene-achievement'
+      if (scene.startsWith('SYSTEM')) return 'scene-system'
+      if (scene.startsWith('USER')) return 'scene-user'
+      if (scene.startsWith('WIKI')) return 'scene-wiki'
+      return 'scene-default'
+    },
+
+    /**
+     * 获取业务类型中文名称
+     */
+    getBusinessTypeName(type) {
+      const typeMap = {
+        'TASK': '任务',
+        'PROJECT': '项目',
+        'ACHIEVEMENT': '成果',
+        'USER': '用户消息',
+        'WIKI': 'Wiki文档',
+        'SYSTEM': '系统'
+      }
+      return typeMap[type] || type
+    },
+
+    /**
+     * 格式化详情时间
+     */
+    formatDetailTime(timestamp) {
+      if (!timestamp) return ''
+      try {
+        let time = timestamp instanceof Date ? timestamp : new Date(timestamp)
+        if (isNaN(time.getTime())) return ''
+        
+        const year = time.getFullYear()
+        const month = String(time.getMonth() + 1).padStart(2, '0')
+        const day = String(time.getDate()).padStart(2, '0')
+        const hour = String(time.getHours()).padStart(2, '0')
+        const minute = String(time.getMinutes()).padStart(2, '0')
+        
+        return `${year}年${month}月${day}日 ${hour}:${minute}`
+      } catch (error) {
+        return ''
+      }
+    },
+
+    /**
      * 格式化时间
      */
     formatTime(timestamp) {
@@ -750,13 +990,13 @@ export default {
     /**
      * 将后端消息数据转换为前端可用结构
      */
-    transformMessages(messageList) {
+    async transformMessages(messageList) {
       if (!Array.isArray(messageList)) {
         console.warn('transformMessages: messageList 不是数组', messageList)
         return []
       }
       
-      return messageList.map(item => {
+      const messages = await Promise.all(messageList.map(async item => {
         // 安全处理时间字段
         let createdAt = item.triggerTime
         if (createdAt) {
@@ -774,6 +1014,17 @@ export default {
           }
         }
         
+        // 获取发送者信息
+        let senderUsername = ''
+        let senderAvatar = ''
+        if (item.senderId) {
+          const senderInfo = await this.getSenderInfo(item.senderId)
+          if (senderInfo) {
+            senderUsername = senderInfo.name || senderInfo.username || ''
+            senderAvatar = senderInfo.avatarUrl || ''
+          }
+        }
+        
         return {
           id: item.recipientId || item.id,
           title: item.title || '',
@@ -782,9 +1033,61 @@ export default {
           createdAt: createdAt,
           scene: item.scene || '',
           businessId: item.businessId,
-          businessType: item.businessType
+          businessType: item.businessType,
+          senderId: item.senderId,
+          senderUsername: senderUsername,
+          senderAvatar: senderAvatar
         }
-      })
+      }))
+      
+      return messages
+    },
+
+    /**
+     * 获取发送者信息（带缓存）
+     */
+    async getSenderInfo(senderId) {
+      if (!senderId) return null
+      
+      // 检查缓存
+      if (this.senderCache[senderId]) {
+        return this.senderCache[senderId]
+      }
+      
+      try {
+        // 并行获取用户信息和头像
+        const [userResponse, avatarResponse] = await Promise.all([
+          authAPI.getUserById(senderId),
+          avatarAPI.getAvatarInfoById(senderId).catch(() => null)
+        ])
+        
+        let senderInfo = null
+        if (userResponse && userResponse.code === 200 && userResponse.data) {
+          senderInfo = { ...userResponse.data }
+          
+          // 处理头像
+          if (avatarResponse && avatarResponse.code === 200 && avatarResponse.data) {
+            const avatarData = avatarResponse.data
+            // 优先使用 dataUrl（Base64格式）
+            if (avatarData.dataUrl) {
+              senderInfo.avatarUrl = avatarData.dataUrl
+            } else if (avatarData.sizes) {
+              senderInfo.avatarUrl = avatarData.sizes.original || avatarData.sizes['256'] || avatarData.sizes['512']
+            } else if (avatarData.minio_url) {
+              senderInfo.avatarUrl = avatarData.minio_url
+            } else if (avatarData.cdn_url) {
+              senderInfo.avatarUrl = avatarData.cdn_url
+            }
+          }
+          
+          this.senderCache[senderId] = senderInfo
+          return senderInfo
+        }
+      } catch (error) {
+        console.warn('获取发送者信息失败:', senderId, error)
+      }
+      
+      return null
     },
 
     /**
@@ -1066,6 +1369,55 @@ export default {
   gap: 4px;
 }
 
+.panel-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+}
+
+.toolbar-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5eb6e4 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.25);
+}
+
+.toolbar-btn.primary:hover {
+  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.35);
+  transform: translateY(-1px);
+}
+
+.toolbar-btn:not(.primary):hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--primary-lightest);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .action-btn {
   display: flex;
   flex-direction: row;
@@ -1250,6 +1602,68 @@ export default {
   color: white;
 }
 
+/* 发送者头像样式 */
+.sender-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+}
+
+.sender-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.sender-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sender-avatar.avatar-error::after {
+  content: attr(data-initial);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 发送者名称样式 */
+.message-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.sender-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary-color);
+}
+
 .message-icon.scene-TASK_ASSIGN,
 .message-icon.scene-TASK_STATUS_CHANGED,
 .message-icon.scene-TASK_REVIEW_REQUEST,
@@ -1391,7 +1805,8 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1400,16 +1815,231 @@ export default {
 }
 
 .message-detail-modal {
-  width: 520px;
+  width: 480px;
   max-width: 100%;
   background: var(--bg-primary);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  overflow: hidden;
 }
 
+/* 新版详情头部 - 蓝白配色 */
+.detail-header-new {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.detail-header-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+}
+
+.detail-header-icon.scene-task {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.detail-header-icon.scene-project {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.detail-header-icon.scene-user {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.detail-header-icon.scene-system {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.detail-header-icon.scene-wiki {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.detail-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-scene-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.detail-title-new {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.detail-close-new {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.detail-close-new:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* 发送者信息 - 蓝白配色 */
+.detail-sender {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+  background: #f0f7ff;
+  border-bottom: 1px solid #e0edff;
+}
+
+.sender-avatar-detail {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.sender-avatar-detail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sender-info-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sender-name-detail {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.sender-time-detail {
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* 内容区域 - 蓝白配色 */
+.detail-body-new {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  background: #ffffff;
+}
+
+.detail-content-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.detail-content-card p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #64748b;
+  padding: 6px 12px;
+  background: #f1f5f9;
+  border-radius: 20px;
+}
+
+.meta-item svg {
+  color: #3b82f6;
+}
+
+/* 底部按钮 - 蓝白配色 */
+.detail-footer-new {
+  padding: 18px 24px 22px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detail-btn-new {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.detail-btn-new:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+/* 保留旧样式兼容 */
 .detail-header {
   display: flex;
   justify-content: space-between;
@@ -1496,60 +2126,246 @@ export default {
 }
 
 /* 发送消息对话框 */
+.send-message-dialog ::v-deep .el-dialog {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.send-message-dialog ::v-deep .el-dialog__header {
+  padding: 0;
+  margin: 0;
+}
+
 .send-message-dialog ::v-deep .el-dialog__body {
-  padding-top: 10px;
+  padding: 0;
 }
 
-.send-mode-switch {
+.send-message-dialog ::v-deep .el-dialog__footer {
+  padding: 0;
+}
+
+/* 自定义头部 - 蓝白配色 */
+.dialog-custom-header {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
 }
 
-.mode-btn {
+.header-icon {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-icon svg {
+  color: white;
+}
+
+.header-text {
   flex: 1;
-  padding: 8px 0;
-  border-radius: 6px;
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-secondary);
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
 }
 
-.mode-btn.active {
-  border-color: var(--primary-color);
-  background: var(--primary-lightest);
-  color: var(--primary-color);
+.header-text h3 {
+  margin: 0;
+  font-size: 20px;
   font-weight: 600;
 }
 
-.mode-btn:hover {
-  border-color: var(--primary-color);
-}
-
-.send-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
+.header-text p {
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--text-secondary);
+  opacity: 0.9;
 }
 
-.helper-text {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--text-tertiary);
+.header-close {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.header-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* 模式切换标签 - 蓝白配色 */
+.send-mode-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 18px 24px;
+  background: #f0f7ff;
+  border-bottom: 1px solid #e0edff;
+}
+
+.mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.25s ease;
+}
+
+.mode-tab:hover {
+  color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.mode-tab.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.mode-tab svg {
+  flex-shrink: 0;
+}
+
+/* 表单内容 - 蓝白配色 */
+.send-form-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #ffffff;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group .form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-group .form-label svg {
+  color: #3b82f6;
+}
+
+.form-group ::v-deep .el-input__inner,
+.form-group ::v-deep .el-textarea__inner {
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.form-group ::v-deep .el-input__inner:focus,
+.form-group ::v-deep .el-textarea__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.form-group ::v-deep .el-textarea__inner {
+  min-height: 100px;
+}
+
+.empty-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* 底部按钮 - 蓝白配色 */
+.dialog-custom-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 24px 22px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-cancel {
+  padding: 12px 24px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  border-color: #cbd5e1;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.btn-send {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-send:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.btn-send:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-send .loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 
