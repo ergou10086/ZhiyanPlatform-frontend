@@ -1547,6 +1547,10 @@ export default {
     isNotMember: {
       type: Boolean,
       default: false
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -1765,6 +1769,20 @@ export default {
     }
   },
   methods: {
+    checkNotArchived(actionDesc) {
+      if (this.isArchived) {
+        const msg = actionDesc
+          ? `项目已归档，仅支持查看，不能${actionDesc}`
+          : '项目已归档，仅支持查看，不能修改成果目录'
+        if (this.$message) {
+          this.$message.error(msg)
+        } else {
+          alert(msg)
+        }
+        return false
+      }
+      return true
+    },
     // 显示上传成功提示（自动消失）
     showSuccessToast(message) {
       this.successToastMessage = message
@@ -2091,8 +2109,11 @@ export default {
     },
     
     uploadFile(type) {
-      // 如果不是项目成员，禁止上传
+      // 如果不是项目成员或项目已归档，禁止上传
       if (this.isNotMember) {
+        return
+      }
+      if (!this.checkNotArchived('上传成果文件')) {
         return
       }
       this.currentFileType = type
@@ -2142,6 +2163,10 @@ export default {
           })
         } else if (this.isAddingToExisting && this.targetAchievementId) {
           // 如果不在对话框中，但标记为添加文件到现有成果，直接处理（兼容旧逻辑）
+          if (!this.checkNotArchived('为成果添加文件')) {
+            this.$refs.fileInput.value = ''
+            return
+          }
           console.log('为现有成果添加文件，直接处理')
           await this.addFilesToExistingAchievement(files)
         }
@@ -2199,6 +2224,9 @@ export default {
     async confirmUpload() {
       if ((this.isAddingToExisting || this.achievementForm.name.trim()) && this.achievementForm.files.length > 0) {
         try {
+          if (!this.checkNotArchived(this.isAddingToExisting ? '为成果添加文件' : '创建成果并上传文件')) {
+            return
+          }
           // 检查是否为现有成果添加文件
           if (this.isAddingToExisting && this.targetAchievementId) {
             // 为现有成果添加文件
@@ -2983,6 +3011,9 @@ export default {
     
     // 为现有成果添加文件
     async addFilesToExistingAchievement(files) {
+      if (!this.checkNotArchived('为成果添加文件')) {
+        return
+      }
       try {
         console.log('为现有成果添加文件:', {
           achievementId: this.viewingFile.id,
