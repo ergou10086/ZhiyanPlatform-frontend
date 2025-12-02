@@ -1,5 +1,12 @@
 <template>
   <div class="home-container">
+    <!-- OAuth2授权成功提示 -->
+    <transition name="fade">
+      <div v-if="showOAuth2SuccessToast" class="oauth2-success-toast">
+        ✓ 授权登录成功
+      </div>
+    </transition>
+
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
@@ -363,10 +370,14 @@ export default {
       myTasks: [], // 我的任务列表
       isLoadingTasks: false, // 是否正在加载任务
       taskDetailModalOpen: false, // 任务详情弹窗是否打开
-      selectedTask: null // 选中的任务
+      selectedTask: null, // 选中的任务
+      showOAuth2SuccessToast: false // OAuth2授权成功提示
     }
   },
   mounted() {
+    // 检查是否是OAuth2回调（后端直接重定向到首页的情况）
+    this.handleOAuth2Callback()
+    
     // 页面加载时尝试获取用户头像
     this.loadUserAvatar()
     
@@ -389,6 +400,80 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    handleOAuth2Callback() {
+      // 检查URL参数中是否有OAuth2回调标记
+      const urlParams = new URLSearchParams(window.location.search)
+      const oauth2Status = urlParams.get('oauth2')
+      const token = urlParams.get('token')
+      const refreshToken = urlParams.get('refreshToken')
+
+      if (oauth2Status === 'success' && token) {
+        console.log('✅ 检测到OAuth2登录成功回调，处理token')
+        
+        // 保存token
+        localStorage.setItem('access_token', token)
+        if (refreshToken) {
+          localStorage.setItem('refresh_token', refreshToken)
+        }
+
+        // 清除URL参数
+        const cleanUrl = window.location.origin + window.location.pathname
+        window.history.replaceState({}, document.title, cleanUrl)
+
+        // 显示授权成功提示
+        this.showOAuth2SuccessToast = true
+        setTimeout(() => {
+          this.showOAuth2SuccessToast = false
+        }, 1000)
+
+        // 获取用户信息
+        this.fetchUserInfoAfterOAuth2Login()
+      }
+    },
+
+    async fetchUserInfoAfterOAuth2Login() {
+      try {
+        // 导入authAPI
+        const { authAPI } = await import('@/api/auth')
+        const { avatarAPI } = await import('@/api/avatar')
+        
+        const response = await authAPI.getCurrentUserInfo()
+        
+        if (response.code === 200 && response.data) {
+          console.log('📦 OAuth2获取到的用户信息:', response.data)
+          
+          // 获取用户头像
+          try {
+            const avatarResponse = await avatarAPI.getMyAvatarInfo()
+            console.log('🖼️ 获取头像信息:', avatarResponse)
+            
+            if (avatarResponse.code === 200 && avatarResponse.data && avatarResponse.data.dataUrl) {
+              // 将头像数据添加到用户信息中
+              response.data.dataUrl = avatarResponse.data.dataUrl
+              response.data.avatar = avatarResponse.data.dataUrl
+              console.log('✅ 已添加头像数据到用户信息')
+            }
+          } catch (avatarError) {
+            console.warn('获取头像失败，使用默认头像:', avatarError)
+          }
+          
+          // 保存用户信息（包含头像）
+          localStorage.setItem('user_info', JSON.stringify(response.data))
+          
+          // 触发用户信息更新事件
+          this.$root.$emit('userInfoUpdated')
+          
+          // 刷新页面数据
+          this.loadGlobalUserInfo()
+          this.loadUserAvatar()
+          
+          console.log('✅ OAuth2登录成功，用户信息已保存')
+        }
+      } catch (error) {
+        console.error('❌ 获取用户信息失败:', error)
+      }
+    },
+
     loadUserAvatar() {
       // 从localStorage或API获取用户头像
       const savedAvatar = localStorage.getItem('userAvatar')

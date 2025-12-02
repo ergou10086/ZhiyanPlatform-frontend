@@ -296,6 +296,39 @@
               </p>
             </div>
 
+            <div class="control-item">
+              <label class="control-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                附件设置
+              </label>
+              <div class="attachment-options">
+                <label class="attachment-switch">
+                  <input type="checkbox" v-model="includeAttachments">
+                  <span>包含相关附件参与生成</span>
+                </label>
+                <div v-if="includeAttachments" class="attachment-filters">
+                  <div class="filters-label">附件类型</div>
+                  <div class="filters-list">
+                    <label
+                      v-for="opt in attachmentFilterOptions"
+                      :key="opt.value"
+                      class="filter-item"
+                    >
+                      <input
+                        type="checkbox"
+                        :value="opt.value"
+                        v-model="attachmentFilters"
+                      >
+                      <span>{{ opt.label }}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- 生成按钮 -->
             <div class="control-item control-action">
               <button
@@ -310,6 +343,13 @@
                 <span v-if="!isGeneratingTaskResult">生成成果草稿</span>
                 <span v-else>正在生成...</span>
               </button>
+              <button
+                v-if="isGeneratingTaskResult && taskResultJobId"
+                class="control-cancel-btn"
+                @click="cancelTaskResultGenerate"
+              >
+                取消生成
+              </button>
             </div>
           </div>
 
@@ -319,18 +359,7 @@
             <div class="content-section">
               <div class="section-header">
                 <h3 class="section-title">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  已选任务列表
-                  <span class="task-count" v-if="selectedTaskSummaries.length > 0">({{ selectedTaskSummaries.length }})</span>
                 </h3>
-                <button class="clear-all-btn" @click="clearSelectedTasks" v-if="selectedTaskSummaries.length > 0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  清空全部
-                </button>
               </div>
               <div class="section-body">
                 <div class="tasks-grid" v-if="selectedTaskSummaries.length > 0">
@@ -678,6 +707,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
 import { taskAPI } from '@/api/task'
+import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate } from '@/api/taskResult'
 import difyAPI from '@/api/dify'
 import vSelect from 'vue-select'
 import 'vue-select/dist/vue-select.css'
@@ -698,7 +728,7 @@ marked.setOptions({
       try {
         return hljs.highlight(code, { language: lang }).value
       } catch (err) {
-        console.error('代码高亮失败:', err)
+        onsole.error('代码高亮失败:', err)
       }
     }
     return hljs.highlightAuto(code).value
@@ -758,6 +788,17 @@ export default {
       taskResultPrompt: '',
       taskResultOutput: '',
       isGeneratingTaskResult: false,
+      includeAttachments: true,
+      attachmentFilters: ['pdf', 'docx'],
+      attachmentFilterOptions: [
+        { value: 'pdf', label: 'PDF (.pdf)' },
+        { value: 'docx', label: 'Word (.docx)' },
+        { value: 'pptx', label: 'PPT (.pptx)' }
+      ],
+      taskResultJobId: null,
+      taskResultStatus: '',
+      taskResultProgress: 0,
+      taskResultStatusTimer: null,
       // ⭐ 打字机效果相关
       typewriterTimer: null, // 打字机定时器
       typewriterQueue: '', // 打字机字符队列
@@ -918,6 +959,10 @@ export default {
       clearInterval(this.typewriterTimer)
       this.typewriterTimer = null
     }
+    if (this.taskResultStatusTimer) {
+      clearInterval(this.taskResultStatusTimer)
+      this.taskResultStatusTimer = null
+    }
   },
   methods: {
     reduceProjectOption(project) {
@@ -966,40 +1011,60 @@ export default {
       this.taskListLoading = true
 
       try {
-        // 调用后端接口获取已完成的任务（状态为 DONE）
-        console.log('[任务选择] 正在加载项目已完成任务, 项目ID:', this.taskResultProjectId)
-        const response = await taskAPI.getTasksByStatus(this.taskResultProjectId, 'DONE', 0, 100)
-        
-        console.log('[任务选择] 后端返回数据:', response)
-        
+        // 调用带执行者信息的项目任务接口，前端筛选状态为 DONE 的任务
+        console.log('[任务选择] 正在加载项目任务列表(含负责人), 项目ID:', this.taskResultProjectId)
+        const response = await taskAPI.getProjectTasks(this.taskResultProjectId, 0, 100)
+
+        console.log('[任务选择] getProjectTasks 后端返回数据:', response)
+
         // 处理返回的数据
         let tasks = []
-        if (response && response.code === 200) {
-          // 成功响应
-          if (response.data) {
-            if (Array.isArray(response.data)) {
-              tasks = response.data
-            } else if (response.data.content && Array.isArray(response.data.content)) {
-              // Spring分页数据
-              tasks = response.data.content
-            } else if (response.data.list && Array.isArray(response.data.list)) {
-              tasks = response.data.list
-            }
+        if (response && response.code === 200 && response.data) {
+          const data = response.data
+          if (Array.isArray(data)) {
+            tasks = data
+          } else if (Array.isArray(data.content)) {
+            // Spring 分页数据
+            tasks = data.content
+          } else if (Array.isArray(data.list)) {
+            tasks = data.list
           }
+        } else if (response && response.data && Array.isArray(response.data.content)) {
+          // 兼容返回 Page 包在 data 里的情况
+          tasks = response.data.content
         } else if (Array.isArray(response)) {
           // 直接返回数组
           tasks = response
         }
-        
-        // 转换为前端需要的格式
-        this.availableDoneTasks = tasks.map(t => ({
-          id: t.id || t.taskId,
-          title: t.title || t.taskTitle || '未命名任务',
-          assignee: t.assigneeName || t.assignee || '未分配',
-          raw: t
-        }))
-        
-        console.log('[任务选择] 成功加载', this.availableDoneTasks.length, '个已完成任务')
+
+        // 仅保留已完成的任务（后端 TaskStatus 为枚举 DONE）
+        const doneTasks = (tasks || []).filter(t => {
+          const status = t.status || t.taskStatus
+          if (!status) return false
+          if (typeof status === 'string') {
+            return status === 'DONE' || status === '已完成'
+          }
+          // 如果是对象，尝试读取 name / value
+          return status.name === 'DONE' || status.value === 'DONE'
+        })
+
+        // 转换为前端需要的格式，拼接负责人名称
+        this.availableDoneTasks = doneTasks.map(t => {
+          const assignees = Array.isArray(t.assignees) ? t.assignees : []
+          const assigneeNames = assignees
+            .map(a => a.userName || a.username || a.name)
+            .filter(Boolean)
+            .join('、') || '未分配'
+
+          return {
+            id: t.id || t.taskId,
+            title: t.title || t.taskTitle || '未命名任务',
+            assignee: assigneeNames,
+            raw: t
+          }
+        })
+
+        console.log('[任务选择] 成功加载', this.availableDoneTasks.length, '个已完成任务(含负责人)')
       } catch (error) {
         console.error('[任务选择] 加载已完成任务失败:', error)
         // 失败时降级到本地筛选
@@ -1036,11 +1101,17 @@ export default {
       if (this.selectedTaskIds.length === 0) return
 
       const selected = this.availableDoneTasks.filter(t => this.selectedTaskIds.includes(t.id))
+      // 根据成果生成面板中选择的项目ID，确定项目名称
+      const projectForTaskResult = this.availableProjects.find(p => String(p.id) === String(this.taskResultProjectId))
+      const projectTitle = projectForTaskResult
+        ? (projectForTaskResult.title || projectForTaskResult.name || '未命名项目')
+        : (this.currentProject ? (this.currentProject.title || this.currentProject.name || '当前项目') : '')
+
       this.selectedTaskSummaries = selected.map(t => ({
         id: t.id,
         title: t.title,
         assignee: t.assignee,
-        projectTitle: this.currentProject ? (this.currentProject.title || this.currentProject.name || '当前项目') : ''
+        projectTitle
       }))
 
       this.showTaskSelectDialog = false
@@ -1058,35 +1129,137 @@ export default {
       this.selectedTaskSummaries = this.selectedTaskSummaries.filter(t => t.id !== taskId)
     },
 
-    // 模拟生成任务成果草稿（后续接入真实 AI 调用）
+    // 生成任务成果草稿（调用后端 AI 接口）
     async generateTaskResultDraft() {
-      if (this.selectedTaskIds.length === 0 || this.isGeneratingTaskResult) {
+      if (!this.taskResultProjectId || this.selectedTaskIds.length === 0 || this.isGeneratingTaskResult) {
         return
       }
 
       this.isGeneratingTaskResult = true
+      this.taskResultOutput = ''
+      this.taskResultJobId = null
+      this.taskResultStatus = ''
+      this.taskResultProgress = 0
 
-      // 简单占位：根据已选任务和提示词拼一段说明，方便先看交互效果
-      const taskTitles = this.selectedTaskSummaries.map(t => `- [${t.id}] ${t.title || '未命名任务'}`).join('\n')
-      const promptText = this.taskResultPrompt && this.taskResultPrompt.trim()
-        ? this.taskResultPrompt.trim()
-        : '请根据下列任务的提交信息、附件和审核意见，生成一份结构化的实验成果记录。'
+      const payload = {
+        projectId: this.taskResultProjectId,
+        taskIds: this.selectedTaskIds,
+        achievementTitle: '',
+        targetAudience: '',
+        additionalRequirements: this.taskResultPrompt && this.taskResultPrompt.trim() ? this.taskResultPrompt.trim() : undefined,
+        includeAttachments: this.includeAttachments,
+        attachmentFilters: this.includeAttachments ? this.attachmentFilters : []
+      }
 
-      const mockContent = `### 生成说明（占位）\n\n` +
-        `> 这里会展示由后端 + AI 生成的正式成果文稿。当前仅为前端占位文本，用于验证交互流程。\n\n` +
-        `**选中的项目 ID：** ${this.taskResultProjectId || '（未指定）'}\n\n` +
-        `**选中的任务：**\n${taskTitles || '- 暂无任务'}\n\n` +
-        `**你的补充要求：**\n${promptText}\n\n` +
-        `---\n\n` +
-        `> 下一步将接入：\n` +
-        `> 1. 后端 ProjectTaskClient 查询 DONE 任务详情及提交记录\n` +
-        `> 2. 知识模块 TaskResultDetailDTO 组装任务 + 人员 + 附件信息\n` +
-        `> 3. Dify 模块调用 AI 生成正式成果内容。`
+      try {
+        console.log('[任务成果] 提交AI生成请求:', payload)
+        const resp = await generateTaskResultDraftApi(payload)
 
-      // 模拟一点生成延迟
-      await new Promise(resolve => setTimeout(resolve, 600))
-      this.taskResultOutput = mockContent
-      this.isGeneratingTaskResult = false
+        let data = resp
+        if (data && typeof data.code !== 'undefined' && data.data) {
+          data = data.data
+        } else if (data && data.data) {
+          data = data.data
+        }
+
+        const jobId = data && data.jobId ? data.jobId : null
+
+        if (!jobId) {
+          console.error('[任务成果] 未获取到 jobId，响应:', resp)
+          this.taskResultOutput = 'AI 生成任务提交失败：未返回任务ID'
+          this.isGeneratingTaskResult = false
+          return
+        }
+
+        this.taskResultJobId = jobId
+        this.taskResultStatus = data.status || 'PENDING'
+        this.taskResultProgress = typeof data.progress === 'number' ? data.progress : 0
+
+        this.startTaskResultStatusPolling()
+      } catch (error) {
+        console.error('[任务成果] 提交AI生成请求失败:', error)
+        const message = (error && error.message) || '请求异常'
+        this.taskResultOutput = `AI 生成失败：${message}`
+        this.isGeneratingTaskResult = false
+      }
+    },
+
+    async startTaskResultStatusPolling() {
+      if (!this.taskResultJobId) {
+        return
+      }
+
+      if (this.taskResultStatusTimer) {
+        clearInterval(this.taskResultStatusTimer)
+        this.taskResultStatusTimer = null
+      }
+
+      const poll = async () => {
+        try {
+          console.log('[任务成果] 轮询生成状态, jobId:', this.taskResultJobId)
+          const resp = await getGenerateStatus(this.taskResultJobId)
+
+          let data = resp
+          if (data && typeof data.code !== 'undefined' && data.data) {
+            data = data.data
+          } else if (data && data.data) {
+            data = data.data
+          }
+
+          if (!data) {
+            return
+          }
+
+          this.taskResultStatus = data.status || this.taskResultStatus
+          this.taskResultProgress = typeof data.progress === 'number' ? data.progress : this.taskResultProgress
+
+          if (data.draftContent && data.draftContent.markdown) {
+            this.taskResultOutput = data.draftContent.markdown
+          }
+
+          if (this.taskResultStatus === 'COMPLETED' || this.taskResultStatus === 'FAILED' || this.taskResultStatus === 'CANCELLED') {
+            if (this.taskResultStatusTimer) {
+              clearInterval(this.taskResultStatusTimer)
+              this.taskResultStatusTimer = null
+            }
+            this.isGeneratingTaskResult = false
+
+            if (this.taskResultStatus === 'FAILED' && data.errorMessage) {
+              this.taskResultOutput = `生成失败：${data.errorMessage}`
+            }
+          }
+        } catch (error) {
+          console.error('[任务成果] 查询生成状态失败:', error)
+          if (this.taskResultStatusTimer) {
+            clearInterval(this.taskResultStatusTimer)
+            this.taskResultStatusTimer = null
+          }
+          this.isGeneratingTaskResult = false
+        }
+      }
+
+      await poll()
+      this.taskResultStatusTimer = setInterval(poll, 2000)
+    },
+
+    async cancelTaskResultGenerate() {
+      if (!this.taskResultJobId || !this.isGeneratingTaskResult) {
+        return
+      }
+
+      try {
+        console.log('[任务成果] 取消AI生成, jobId:', this.taskResultJobId)
+        await cancelGenerate(this.taskResultJobId)
+      } catch (error) {
+        console.error('[任务成果] 取消AI生成失败:', error)
+      } finally {
+        if (this.taskResultStatusTimer) {
+          clearInterval(this.taskResultStatusTimer)
+          this.taskResultStatusTimer = null
+        }
+        this.isGeneratingTaskResult = false
+        this.taskResultStatus = 'CANCELLED'
+      }
     },
 
     // 同步任务状态变化
