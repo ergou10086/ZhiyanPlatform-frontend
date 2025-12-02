@@ -469,23 +469,23 @@
   .knowledge-base-container .main-content {
     padding: 0 16px;
   }
-  
+
   .knowledge-base-container .left-options {
     margin-bottom: 12px;
   }
-  
+
   .knowledge-base-container .content-right {
     padding: 12px;
   }
-  
+
   .knowledge-base-container .options-card {
     padding: 16px;
   }
-  
+
   .knowledge-base-container .stats-grid {
     gap: 12px;
   }
-  
+
   .knowledge-base-container .stat-card {
     padding: 16px;
   }
@@ -495,40 +495,40 @@
   .knowledge-base-container .main-content {
     padding: 0 12px;
   }
-  
+
   .knowledge-base-container .left-options {
     margin-bottom: 10px;
   }
-  
+
   .knowledge-base-container .content-right {
     padding: 10px;
   }
-  
+
   .knowledge-base-container .options-card {
     padding: 12px;
   }
-  
+
   .knowledge-base-container .option-item {
     padding: 10px 12px;
     font-size: 14px;
   }
-  
+
   .knowledge-base-container .stats-grid {
     gap: 10px;
   }
-  
+
   .knowledge-base-container .stat-card {
     padding: 12px;
   }
-  
+
   .knowledge-base-container .kb-header {
     padding: 20px 16px;
   }
-  
+
   .knowledge-base-container .kb-title {
     font-size: 24px;
   }
-  
+
   .knowledge-base-container .kb-subtitle {
     font-size: 14px;
   }
@@ -573,7 +573,7 @@
     margin-bottom: 8px !important;
     padding: 8px !important;
   }
-  
+
   .knowledge-base-container .grid {
     gap: 8px !important;
   }

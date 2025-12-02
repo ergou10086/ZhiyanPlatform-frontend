@@ -2,60 +2,24 @@
   <div class="oauth2-callback-container">
     <div class="callback-content">
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-state">
+      <div class="loading-state">
         <div class="spinner"></div>
         <h2>正在处理授权...</h2>
         <p>请稍候，我们正在验证您的身份</p>
       </div>
-
-      <!-- 错误状态 -->
-      <div v-else-if="error" class="error-state">
-        <div class="error-icon">❌</div>
-        <h2>授权失败</h2>
-        <p class="error-message">{{ errorMessage }}</p>
-        <button @click="backToLogin" class="back-btn">返回登录</button>
-      </div>
     </div>
-
-    <!-- 绑定/创建账号弹窗 -->
-    <OAuth2BindDialog
-      v-if="showBindDialog"
-      :oauth2-user-info="oauth2UserInfo"
-      @bind-success="handleBindSuccess"
-      @create-success="handleCreateSuccess"
-      @cancel="handleCancel"
-    />
-
-    <!-- 补充信息弹窗 -->
-    <OAuth2SupplementDialog
-      v-if="showSupplementDialog"
-      :oauth2-user-info="oauth2UserInfo"
-      @supplement-success="handleSupplementSuccess"
-      @cancel="handleCancel"
-    />
   </div>
 </template>
 
 <script>
 import { authAPI } from '@/api/auth'
 import { saveLoginData } from '@/utils/auth'
-import OAuth2BindDialog from '@/components/OAuth2BindDialog.vue'
-import OAuth2SupplementDialog from '@/components/OAuth2SupplementDialog.vue'
 
 export default {
   name: 'OAuth2Callback',
-  components: {
-    OAuth2BindDialog,
-    OAuth2SupplementDialog
-  },
   data() {
     return {
-      loading: true,
-      error: false,
-      errorMessage: '',
-      showBindDialog: false,
-      showSupplementDialog: false,
-      oauth2UserInfo: null
+      loading: true
     }
   },
   mounted() {
@@ -88,12 +52,14 @@ export default {
 
           // 处理登录成功
           if (status === 'SUCCESS' && token) {
-            console.log('✅ 登录成功，直接跳转')
-            const loginResponse = {
-              accessToken: token,
-              refreshToken: refreshToken || null
+            console.log('✅ 登录成功，但需要获取用户信息')
+            // 虽然有token，但是需要调用后端API获取完整的登录响应（包括用户信息）
+            const response = await authAPI.handleOAuth2Callback(provider, code, state)
+            if (response.code === 200 && response.data) {
+              this.handleCallbackResponse(response.data)
+            } else {
+              throw new Error(response.msg || '获取用户信息失败')
             }
-            this.handleLoginSuccess(loginResponse)
             return
           }
 
@@ -152,9 +118,11 @@ export default {
         }
       } catch (error) {
         console.error('❌ OAuth2回调处理失败:', error)
-        this.error = true
-        this.errorMessage = error.message || '授权处理失败，请重试'
-        this.loading = false
+        
+        // 重定向到错误页面
+        const errorMessage = encodeURIComponent(error.message || '授权处理失败，请重试')
+        const provider = this.$route.params.provider || sessionStorage.getItem('oauth2_provider') || 'unknown'
+        this.$router.replace(`/oauth2/error?message=${errorMessage}&provider=${provider}`)
       }
     },
 
@@ -171,19 +139,17 @@ export default {
           break
 
         case 'NEED_BIND':
-          // 需要绑定或创建账号
-          console.log('⚠️ 需要绑定或创建账号')
-          this.loading = false
-          this.oauth2UserInfo = oauth2UserInfo
-          this.showBindDialog = true
+          // 需要绑定或创建账号 - 重定向到独立页面
+          console.log('⚠️ 需要绑定或创建账号，重定向到绑定页面')
+          sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
+          this.$router.replace('/oauth2/bind')
           break
 
         case 'NEED_SUPPLEMENT':
-          // 需要补充信息
-          console.log('⚠️ 需要补充信息')
-          this.loading = false
-          this.oauth2UserInfo = oauth2UserInfo
-          this.showSupplementDialog = true
+          // 需要补充信息 - 重定向到独立页面
+          console.log('⚠️ 需要补充信息，重定向到补充信息页面')
+          sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
+          this.$router.replace('/oauth2/supplement')
           break
 
         default:
@@ -206,45 +172,13 @@ export default {
       // 清除OAuth2相关的sessionStorage
       sessionStorage.removeItem('oauth2_state')
       sessionStorage.removeItem('oauth2_provider')
+      sessionStorage.removeItem('oauth2_user_info')
 
       // 触发用户信息更新事件
       this.$root.$emit('userInfoUpdated')
 
       // 跳转到首页
       this.$router.replace('/home')
-    },
-
-    handleBindSuccess(loginResponse) {
-      console.log('✅ 绑定成功')
-      this.showBindDialog = false
-      this.handleLoginSuccess(loginResponse)
-    },
-
-    handleCreateSuccess(loginResponse) {
-      console.log('✅ 创建账号成功')
-      this.showBindDialog = false
-      this.handleLoginSuccess(loginResponse)
-    },
-
-    handleSupplementSuccess(loginResponse) {
-      console.log('✅ 补充信息成功')
-      this.showSupplementDialog = false
-      this.handleLoginSuccess(loginResponse)
-    },
-
-    handleCancel() {
-      console.log('❌ 用户取消操作')
-      this.showBindDialog = false
-      this.showSupplementDialog = false
-      this.backToLogin()
-    },
-
-    backToLogin() {
-      // 清除OAuth2相关的sessionStorage
-      sessionStorage.removeItem('oauth2_state')
-      sessionStorage.removeItem('oauth2_provider')
-      
-      this.$router.replace('/login')
     }
   }
 }
@@ -300,55 +234,16 @@ export default {
   }
 }
 
-/* 错误状态 */
-.error-state .error-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.error-state h2 {
-  margin: 16px 0 12px;
-  color: #e53e3e;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.error-message {
-  color: #718096;
-  font-size: 16px;
-  margin: 0 0 32px;
-  line-height: 1.6;
-}
-
-.back-btn {
-  padding: 12px 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.back-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
-}
-
 /* 暗黑模式 */
 .dark-mode .callback-content {
   background: #1a202c;
 }
 
-.dark-mode .loading-state h2,
-.dark-mode .error-state h2 {
+.dark-mode .loading-state h2 {
   color: #f7fafc;
 }
 
-.dark-mode .loading-state p,
-.dark-mode .error-message {
+.dark-mode .loading-state p {
   color: #a0aec0;
 }
 
@@ -363,13 +258,11 @@ export default {
     padding: 32px 24px;
   }
 
-  .loading-state h2,
-  .error-state h2 {
+  .loading-state h2 {
     font-size: 20px;
   }
 
-  .loading-state p,
-  .error-message {
+  .loading-state p {
     font-size: 14px;
   }
 }

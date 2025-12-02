@@ -133,8 +133,8 @@ export default {
         try {
           const userData = JSON.parse(savedUserInfo)
           
-          // 优先使用 avatar，其次使用 avatarUrl
-          const avatarUrl = userData.avatar || userData.avatarUrl || ''
+          // 优先使用 avatar，其次 avatarUrl，最后 dataUrl（Base64格式）
+          const avatarUrl = userData.avatar || userData.avatarUrl || userData.dataUrl || ''
           
           this.globalUserInfo = {
             nickname: userData.nickname || userData.name || '用户',
@@ -145,7 +145,8 @@ export default {
             nickname: this.globalUserInfo.nickname,
             avatar: this.globalUserInfo.avatar,
             hasAvatar: !!this.globalUserInfo.avatar,
-            avatarLength: this.globalUserInfo.avatar.length
+            avatarLength: this.globalUserInfo.avatar.length,
+            avatarType: userData.dataUrl ? 'dataUrl(Base64)' : userData.avatarUrl ? 'avatarUrl' : userData.avatar ? 'avatar' : 'none'
           })
         } catch (error) {
           console.error('解析用户信息失败:', error)
