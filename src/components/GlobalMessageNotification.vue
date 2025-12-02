@@ -27,8 +27,8 @@
         </div>
 
         <div class="panel-toolbar">
-          <button 
-            class="toolbar-btn primary" 
+          <button
+            class="toolbar-btn primary"
             type="button"
             @click.stop="openSendDialog('USER')"
           >
@@ -38,7 +38,7 @@
             <span>发送消息</span>
           </button>
 
-          <button 
+          <button
             class="toolbar-btn"
             @click="markAllRead"
             :disabled="unreadCount === 0"
@@ -110,9 +110,9 @@
           >
             <!-- 发送者头像（如果有发送者信息） -->
             <div v-if="message.senderUsername" class="sender-avatar">
-              <img 
-                v-if="message.senderAvatar" 
-                :src="message.senderAvatar" 
+              <img
+                v-if="message.senderAvatar"
+                :src="message.senderAvatar"
                 :alt="message.senderUsername"
                 class="avatar-img"
                 @error="handleAvatarError($event)"
@@ -218,24 +218,32 @@
               </div>
             </div>
 
-            <div class="detail-meta" v-if="detailMessage?.businessType">
-              <div class="meta-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22 19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H4C3.46957 21 2.96086 20.7893 2.58579 20.4142C2.21071 20.0391 2 19.5304 2 19V5C2 4.46957 2.21071 3.96086 2.58579 3.58579C2.96086 3.21071 3.46957 3 4 3H9L11 6H20C20.5304 6 21.0391 6.21071 21.4142 6.58579C21.7893 6.96086 22 7.46957 22 8V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>{{ getBusinessTypeName(detailMessage.businessType) }}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 底部 -->
-          <div class="detail-footer-new">
-            <button class="detail-btn-new" @click="closeMessageDetail">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              知道了
+          <div class="detail-footer">
+            <template v-if="detailActionType">
+              <button
+                class="detail-btn"
+                :disabled="detailActionLoading"
+                @click="handleDetailAction('accept')"
+              >
+                同意
+              </button>
+              <button
+                class="detail-btn outline"
+                :disabled="detailActionLoading"
+                @click="handleDetailAction('reject')"
+              >
+                拒绝
+              </button>
+              <button class="detail-btn ghost" @click="closeMessageDetail">
+                关闭
+              </button>
+            </template>
+            <button
+              v-else
+              class="detail-btn"
+              @click="closeMessageDetail"
+            >
+              关闭
             </button>
           </div>
         </div>
@@ -271,8 +279,8 @@
 
       <!-- 模式切换 -->
       <div class="send-mode-tabs">
-        <div 
-          class="mode-tab" 
+        <div
+          class="mode-tab"
           :class="{ active: sendMode === 'USER' }"
           @click="sendMode = 'USER'"
         >
@@ -282,8 +290,8 @@
           </svg>
           <span>私信用户</span>
         </div>
-        <div 
-          class="mode-tab" 
+        <div
+          class="mode-tab"
           :class="{ active: sendMode === 'PROJECT' }"
           @click="openSendDialog('PROJECT')"
         >
@@ -384,8 +392,8 @@
       <!-- 底部按钮 -->
       <div slot="footer" class="dialog-custom-footer">
         <button class="btn-cancel" @click="sendDialogVisible = false">取消</button>
-        <button 
-          class="btn-send" 
+        <button
+          class="btn-send"
           :class="{ loading: sendLoading }"
           :disabled="sendLoading"
           @click="submitSendMessage"
@@ -410,7 +418,11 @@ import {
   markAllAsRead,
   deleteMessage,
   sendMessageToUser,
-  sendMessageToProject
+  sendMessageToProject,
+  acceptProjectInvitation,
+  rejectProjectInvitation,
+  approveProjectJoin,
+  rejectProjectJoin
 } from '@/api/message'
 import { projectAPI } from '@/api/project'
 import { authAPI } from '@/api/auth'
@@ -432,6 +444,7 @@ export default {
       pollingTimer: null,
       detailDialogVisible: false,
       detailMessage: null,
+      detailActionLoading: false,
       // 发送消息对话框
       sendDialogVisible: false,
       sendMode: 'USER', // USER or PROJECT
@@ -636,9 +649,9 @@ export default {
      * 打开消息详情弹窗
      */
     openMessageDetail(message) {
-      this.detailMessage = { ...message }
-      this.detailDialogVisible = true
-    },
+        this.detailMessage = { ...message }
+        this.detailDialogVisible = true
+      },
 
     /**
      * 关闭消息详情弹窗
@@ -752,6 +765,77 @@ export default {
           this.$message.error('发送消息失败，请稍后重试')
         } finally {
           this.sendLoading = false
+        }
+      },
+
+      /**
+       * 解析扩展数据为对象
+       */
+      parseExtendDataObject(extendData) {
+        if (!extendData) return null
+        try {
+          if (typeof extendData === 'string') {
+            return JSON.parse(extendData)
+          }
+          return extendData
+        } catch (e) {
+          console.warn('parseExtendDataObject 失败:', e, extendData)
+          return null
+        }
+      },
+
+      /**
+       * 处理项目邀请/加入申请的同意/拒绝
+       * @param {'accept'|'reject'} action
+       */
+      async handleDetailAction(action) {
+        const message = this.detailMessage
+        if (!message) return
+
+        const extend = this.parseExtendDataObject(message.extendData)
+        if (!extend) {
+          this.$message.error('消息数据异常，无法处理')
+          return
+        }
+
+        this.detailActionLoading = true
+
+        try {
+          let res
+          const recipientId = message.id
+
+          if (this.detailActionType === 'INVITATION') {
+            if (action === 'accept') {
+              res = await acceptProjectInvitation(recipientId)
+            } else {
+              res = await rejectProjectInvitation(recipientId)
+            }
+          } else if (this.detailActionType === 'JOIN_APPLY') {
+            if (action === 'accept') {
+              res = await approveProjectJoin(recipientId)
+            } else {
+              res = await rejectProjectJoin(recipientId)
+            }
+          } else {
+            return
+          }
+
+          if (res && res.code === 200) {
+            this.$message.success(res.msg || '操作成功')
+            // 刷新列表和未读数
+            await this.fetchUnreadCount()
+            if (this.showPanel) {
+              await this.loadMessages(true)
+            }
+            this.closeMessageDetail()
+          } else {
+            this.$message.error(res?.msg || '操作失败')
+          }
+        } catch (error) {
+          console.error('处理消息操作失败:', error)
+          this.$message.error('操作失败，请稍后重试')
+        } finally {
+          this.detailActionLoading = false
         }
       },
 
@@ -906,13 +990,13 @@ export default {
       try {
         let time = timestamp instanceof Date ? timestamp : new Date(timestamp)
         if (isNaN(time.getTime())) return ''
-        
+
         const year = time.getFullYear()
         const month = String(time.getMonth() + 1).padStart(2, '0')
         const day = String(time.getDate()).padStart(2, '0')
         const hour = String(time.getHours()).padStart(2, '0')
         const minute = String(time.getMinutes()).padStart(2, '0')
-        
+
         return `${year}年${month}月${day}日 ${hour}:${minute}`
       } catch (error) {
         return ''
@@ -1013,7 +1097,7 @@ export default {
             }
           }
         }
-        
+
         // 获取发送者信息
         let senderUsername = ''
         let senderAvatar = ''
@@ -1024,7 +1108,7 @@ export default {
             senderAvatar = senderInfo.avatarUrl || ''
           }
         }
-        
+
         return {
           id: item.recipientId || item.id,
           title: item.title || '',
@@ -1034,12 +1118,14 @@ export default {
           scene: item.scene || '',
           businessId: item.businessId,
           businessType: item.businessType,
+          extendData: item.extendData
+          businessType: item.businessType,
           senderId: item.senderId,
           senderUsername: senderUsername,
           senderAvatar: senderAvatar
         }
       }))
-      
+
       return messages
     },
 
@@ -1048,23 +1134,23 @@ export default {
      */
     async getSenderInfo(senderId) {
       if (!senderId) return null
-      
+
       // 检查缓存
       if (this.senderCache[senderId]) {
         return this.senderCache[senderId]
       }
-      
+
       try {
         // 并行获取用户信息和头像
         const [userResponse, avatarResponse] = await Promise.all([
           authAPI.getUserById(senderId),
           avatarAPI.getAvatarInfoById(senderId).catch(() => null)
         ])
-        
+
         let senderInfo = null
         if (userResponse && userResponse.code === 200 && userResponse.data) {
           senderInfo = { ...userResponse.data }
-          
+
           // 处理头像
           if (avatarResponse && avatarResponse.code === 200 && avatarResponse.data) {
             const avatarData = avatarResponse.data
@@ -1079,14 +1165,14 @@ export default {
               senderInfo.avatarUrl = avatarData.cdn_url
             }
           }
-          
+
           this.senderCache[senderId] = senderInfo
           return senderInfo
         }
       } catch (error) {
         console.warn('获取发送者信息失败:', senderId, error)
       }
-      
+
       return null
     },
 
@@ -1104,6 +1190,27 @@ export default {
         return this.messages
       }
       return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
+    },
+
+    /**
+     * 当前详情消息的动作类型：
+     * - INVITATION: 项目邀请
+     * - JOIN_APPLY: 项目加入申请
+     * - null: 无需操作
+     */
+    detailActionType() {
+      if (!this.detailMessage) return null
+      const { scene, extendData } = this.detailMessage
+      const extend = this.parseExtendDataObject(extendData)
+      const kind = extend && extend.kind
+
+      if (scene === 'PROJECT_MEMBER_INVITED' && kind === 'PROJECT_INVITATION') {
+        return 'INVITATION'
+      }
+      if (scene === 'PROJECT_MEMBER_APPLY' && kind === 'PROJECT_JOIN_APPLY') {
+        return 'JOIN_APPLY'
+      }
+      return null
     }
   },
   directives: {
@@ -2123,6 +2230,19 @@ export default {
   color: #fff;
   cursor: pointer;
   font-size: 14px;
+}
+
+.detail-btn.outline {
+  background: transparent;
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.detail-btn.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  margin-left: 8px;
 }
 
 /* 发送消息对话框 */
