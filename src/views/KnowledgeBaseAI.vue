@@ -394,6 +394,10 @@ export default {
     projectId: {
       type: [String, Number],
       default: null
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -516,6 +520,14 @@ export default {
     },
     
     async sendMessage() {
+      if (this.isArchived) {
+        if (this.$message) {
+          this.$message.warning('项目已归档，仅支持查看知识库，不能使用AI赋能对话')
+        } else {
+          alert('项目已归档，仅支持查看知识库，不能使用AI赋能对话')
+        }
+        return
+      }
       // 如果没有输入消息且没有文件，则不允许发送
       if ((!this.inputMessage.trim() && this.selectedLocalFiles.length === 0 && this.selectedKnowledgeFileIds.length === 0) || this.isSending) return
       
