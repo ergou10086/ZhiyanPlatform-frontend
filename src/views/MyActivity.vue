@@ -967,10 +967,11 @@ export default {
     },
     
     getSubmitterName(task) {
-      if (task.submitter) {
-        return task.submitter.name || task.submitter.username || task.submitter.nickname || '未知'
+      // 从 submitter 对象获取提交人姓名
+      if (task.submitter && task.submitter.name) {
+        return task.submitter.name
       }
-      return task.submitterName || '未知'
+      return '未知'
     },
     
     formatDueDate(dateStr) {
