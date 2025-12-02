@@ -269,6 +269,7 @@
                   class="project-select"
                   placeholder="请选择项目"
                   :clearable="false"
+                  :searchable="false"
                 />
               </div>
             </div>
@@ -359,6 +360,11 @@
             <div class="content-section">
               <div class="section-header">
                 <h3 class="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 7H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  已选择的任务 <span v-if="selectedTaskSummaries.length > 0" class="task-count">({{ selectedTaskSummaries.length }})</span>
                 </h3>
               </div>
               <div class="section-body">
@@ -368,6 +374,11 @@
                     :key="task.id"
                     class="task-item"
                   >
+                    <button class="remove-btn" @click="removeSelectedTask(task.id)" title="移除">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
                     <div class="task-info">
                       <div class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</div>
                       <div class="task-meta">
@@ -385,11 +396,6 @@
                         </span>
                       </div>
                     </div>
-                    <button class="remove-btn" @click="removeSelectedTask(task.id)" title="移除">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </button>
                   </div>
                 </div>
                 <div v-else class="empty-state-inline">
@@ -431,6 +437,24 @@
                   </svg>
                   生成结果
                 </h3>
+                <div class="section-actions" v-if="taskResultOutput">
+                  <button class="result-action-btn" @click="downloadTaskResult">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M17 8L12 13L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 3V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>下载</span>
+                  </button>
+                  <button class="result-action-btn primary" @click="uploadTaskResult">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M7 10L12 5L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 5V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>上传成果</span>
+                  </button>
+                </div>
               </div>
               <div class="section-body result-body">
                 <div v-if="taskResultOutput" class="result-content">
@@ -918,6 +942,19 @@ export default {
         }
       }
     })
+
+    // 如果从知识库成果目录跳转而来，并指定了任务成果模式，则自动切换
+    try {
+      const { mode, projectId } = this.$route.query || {}
+      if (mode === 'taskResult') {
+        this.currentMode = 'taskResult'
+        if (projectId) {
+          this.taskResultProjectId = projectId
+        }
+      }
+    } catch (e) {
+      console.warn('[AIAssistant] 解析路由参数失败:', e)
+    }
 
     // 【临时禁用】自动同步功能，避免日志刷屏
     // 用户可以手动点击"同步任务状态"按钮进行同步

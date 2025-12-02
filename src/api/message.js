@@ -136,3 +136,47 @@ export function sendMessageToProject(data) {
     data
   })
 }
+
+/**
+ * 同意项目邀请（受邀人点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function acceptProjectInvitation(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/invite/${recipientId}/accept`,
+    method: 'post'
+  })
+}
+
+/**
+ * 拒绝项目邀请（受邀人点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function rejectProjectInvitation(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/invite/${recipientId}/reject`,
+    method: 'post'
+  })
+}
+
+/**
+ * 同意项目加入申请（管理员点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function approveProjectJoin(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/apply/${recipientId}/approve`,
+    method: 'post'
+  })
+}
+
+/**
+ * 拒绝项目加入申请（管理员点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function rejectProjectJoin(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/apply/${recipientId}/reject`,
+    method: 'post'
+  })
+}
