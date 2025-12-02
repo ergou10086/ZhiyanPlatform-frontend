@@ -2104,6 +2104,121 @@ export default {
   transform: none;
 }
 
+/* 夜间模式适配 */
+.dark-mode .message-panel {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .panel-header,
+.dark-mode .tabs,
+.dark-mode .message-footer {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .title-text {
+  color: #e5e7eb;
+}
+
+.dark-mode .unread-count {
+  background: #ef4444;
+}
+
+.dark-mode .tab-item {
+  color: #9ca3af;
+}
+
+.dark-mode .tab-item.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+.dark-mode .message-item {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-item:hover {
+  background: #0f172a;
+}
+
+.dark-mode .message-item.unread {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.dark-mode .message-item.unread:hover {
+  background: rgba(37, 99, 235, 0.22);
+}
+
+.dark-mode .message-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .message-body {
+  color: #9ca3af;
+}
+
+.dark-mode .message-time {
+  color: #6b7280;
+}
+
+.dark-mode .empty-state,
+.dark-mode .loading-state {
+  color: #9ca3af;
+}
+
+.dark-mode .message-detail-overlay {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.dark-mode .message-detail-modal {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .detail-header {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .detail-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .detail-scene,
+.dark-mode .section-label {
+  color: #6b7280;
+}
+
+.dark-mode .section-content {
+  color: #e5e7eb;
+}
+
+.dark-mode .section-extend {
+  background: #020617;
+  border-color: #1f2937;
+  color: #9ca3af;
+}
+
+.dark-mode .detail-footer {
+  border-top-color: #1f2937;
+}
+
+.dark-mode .detail-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.dark-mode .detail-btn.outline {
+  background: transparent;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dark-mode .detail-btn.ghost {
+  background: transparent;
+  color: #9ca3af;
+}
+
 /* 发送消息对话框 */
 .send-message-dialog ::v-deep .el-dialog {
   border-radius: 16px;
