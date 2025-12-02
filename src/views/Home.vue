@@ -599,7 +599,15 @@ export default {
       const isAuthenticated = !!(token && userInfo)
       
       if (isAuthenticated) {
-        this.$router.push('/knowledge-base')
+        // 避免重复导航到当前路由导致 NavigationDuplicated 错误
+        if (this.$route.path !== '/knowledge-base') {
+          this.$router.push('/knowledge-base').catch(err => {
+            // 忽略重复导航错误，其它错误仍然在控制台可见
+            if (err && err.name !== 'NavigationDuplicated') {
+              console.error('导航到知识库失败:', err)
+            }
+          })
+        }
       } else {
         this.showLoginModal('请先登录才能访问知识库')
       }

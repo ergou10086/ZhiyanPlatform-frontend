@@ -75,6 +75,22 @@
           <div class="add-desc">创建自定义成果类型</div>
           <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="createCustomType">新建类型</button>
         </div>
+        <!-- 任务成果（AI助手联动） -->
+        <div class="add-card">
+          <div class="add-head">
+            <span class="dot dot-task"></span>
+            <span class="add-name">任务成果</span>
+          </div>
+          <div class="add-desc">跳转到 AI 实验分析助手 · 任务成果草稿页面，生成并上传任务成果</div>
+          <button
+            class="add-btn"
+            :class="{ 'disabled': isNotMember }"
+            :disabled="isNotMember"
+            @click="openTaskResultAssistant"
+          >
+            打开任务成果面板
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1868,6 +1884,32 @@ export default {
           this.previewLoading = false
         })
       }
+    },
+
+    // 从成果目录跳转到 AI 实验分析助手的「任务成果草稿」模式
+    openTaskResultAssistant() {
+      const projectId = this.projectId || this.$route.params.id
+      console.log('[任务成果] 点击打开任务成果面板, projectId:', projectId)
+      
+      if (!projectId) {
+        console.warn('[任务成果] 项目ID为空，无法跳转')
+        alert('项目ID无效，无法打开任务成果面板')
+        return
+      }
+      
+      console.log('[任务成果] 准备跳转到 AIAssistant 页面')
+      this.$router.push({
+        name: 'AIAssistant',
+        query: {
+          projectId: projectId || '',
+          mode: 'taskResult',
+          from: 'knowledgeCatalog'
+        }
+      }).then(() => {
+        console.log('[任务成果] 路由跳转成功')
+      }).catch(err => {
+        console.error('[任务成果] 路由跳转失败:', err)
+      })
     },
     /**
      * 判断当前用户是否可以编辑指定成果
