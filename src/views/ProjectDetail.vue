@@ -248,7 +248,10 @@
               <!-- 当前用户已接取 -->
               <template v-else-if="isCurrentUserAssignee(task)">
                 <span class="assign-status-badge assigned-by-me">已接取</span>
-                <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                <!-- 逾期显示已逾期标识 -->
+                <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
+                <!-- 未逾期显示提交按钮 -->
+                <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -804,7 +807,10 @@
                 <!-- 当前用户已接取 -->
                 <template v-else-if="isCurrentUserAssignee(task)">
                   <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <button @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                  <!-- 逾期显示已逾期标识 -->
+                  <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
+                  <!-- 未逾期显示提交按钮 -->
+                  <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1099,7 +1105,10 @@
               </div>
               <div class="task-info-content">
                 <div class="task-info-label">截止日期</div>
-                <div class="task-info-value">截止日期：{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}</div>
+                <div class="task-info-value">
+                  截止日期：{{ selectedTask.date || selectedTask.dueDate || selectedTask.due_date }}
+                  <span v-if="isTaskOverdue(selectedTask)" class="overdue-badge">已逾期</span>
+                </div>
               </div>
             </div>
             <!-- 提交工时 -->
@@ -1222,6 +1231,18 @@
               <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             接取任务
+          </button>
+          <!-- 更改提交按钮 - 已接取且未逾期时显示 -->
+          <button 
+            v-if="isCurrentUserAssignee(selectedTask) && !isTaskOverdue(selectedTask)" 
+            @click="openTaskSubmissionModal(selectedTask)" 
+            class="btn btn-success" 
+            style="margin-right: 12px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ (selectedTask.hasSubmission || selectedTask.status === '待审核' || selectedTask.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
           </button>
           <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
@@ -5097,6 +5118,17 @@ export default {
   padding: 2px 8px;
   background-color: #fef3c7;
   color: #92400e;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.overdue-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #fee2e2;
+  color: #991b1b;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
