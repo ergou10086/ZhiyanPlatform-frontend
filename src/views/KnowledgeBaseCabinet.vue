@@ -98,7 +98,7 @@
         </div>
         
         <!-- 附件区域 -->
-        <div class="attachments-section" v-if="activeDoc">
+        <div class="attachments-section">
           <div class="attachments-header">
             <div class="attachments-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3116,6 +3116,171 @@ export default {
         console.error('[exportDocument] 导出文档失败:', error)
         this.$message?.error('导出文档失败，请重试')
       }
+    },
+
+    // ========== 附件相关方法 ==========
+
+    /**
+     * 触发附件上传
+     */
+    triggerAttachmentUpload() {
+      this.$refs.attachmentInput?.click()
+    },
+
+    /**
+     * 处理附件上传
+     */
+    async handleAttachmentUpload(event) {
+      const files = event.target.files
+      if (!files || files.length === 0) return
+
+      this.uploadingAttachment = true
+
+      try {
+        for (const file of files) {
+          if (file.size > 10 * 1024 * 1024) {
+            this.$message?.warning(`文件 ${file.name} 超过10MB限制`)
+            continue
+          }
+
+          const attachment = {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            uploadedAt: new Date().toISOString(),
+            url: URL.createObjectURL(file),
+            file: file
+          }
+
+          this.docAttachments.push(attachment)
+        }
+
+        this.saveAttachmentsToStorage()
+        this.$message?.success('附件上传成功')
+      } catch (error) {
+        console.error('[handleAttachmentUpload] 上传失败:', error)
+        this.$message?.error('附件上传失败')
+      } finally {
+        this.uploadingAttachment = false
+        event.target.value = ''
+      }
+    },
+
+    /**
+     * 下载附件
+     */
+    downloadAttachment(file) {
+      try {
+        const link = document.createElement('a')
+        link.href = file.url
+        link.download = file.name
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } catch (error) {
+        console.error('[downloadAttachment] 下载失败:', error)
+        this.$message?.error('下载失败')
+      }
+    },
+
+    /**
+     * 删除附件
+     */
+    deleteAttachment(index) {
+      const file = this.docAttachments[index]
+      if (file.url) {
+        URL.revokeObjectURL(file.url)
+      }
+      this.docAttachments.splice(index, 1)
+      this.saveAttachmentsToStorage()
+      this.$message?.success('附件已删除')
+    },
+
+    /**
+     * 保存附件到本地存储
+     */
+    saveAttachmentsToStorage() {
+      if (!this.activeId) return
+      const key = `wiki_attachments_${this.projectId}_${this.activeId}`
+      const data = this.docAttachments.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        uploadedAt: f.uploadedAt
+      }))
+      localStorage.setItem(key, JSON.stringify(data))
+    },
+
+    /**
+     * 从本地存储加载附件
+     */
+    loadAttachmentsFromStorage() {
+      if (!this.activeId) {
+        this.docAttachments = []
+        return
+      }
+      const key = `wiki_attachments_${this.projectId}_${this.activeId}`
+      try {
+        const data = localStorage.getItem(key)
+        this.docAttachments = data ? JSON.parse(data) : []
+      } catch (e) {
+        this.docAttachments = []
+      }
+    },
+
+    /**
+     * 判断是否为图片文件
+     */
+    isImageFile(filename) {
+      if (!filename) return false
+      const ext = filename.split('.').pop()?.toLowerCase()
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)
+    },
+
+    /**
+     * 判断是否为PDF文件
+     */
+    isPdfFile(filename) {
+      if (!filename) return false
+      return filename.toLowerCase().endsWith('.pdf')
+    },
+
+    /**
+     * 获取文件图标样式类
+     */
+    getFileIconClass(filename) {
+      if (this.isImageFile(filename)) return 'icon-image'
+      if (this.isPdfFile(filename)) return 'icon-pdf'
+      const ext = filename?.split('.').pop()?.toLowerCase()
+      if (['doc', 'docx'].includes(ext)) return 'icon-word'
+      if (['xls', 'xlsx'].includes(ext)) return 'icon-excel'
+      if (['ppt', 'pptx'].includes(ext)) return 'icon-ppt'
+      if (['zip', 'rar', '7z'].includes(ext)) return 'icon-zip'
+      return 'icon-file'
+    },
+
+    /**
+     * 格式化附件日期
+     */
+    formatAttachmentDate(dateStr) {
+      if (!dateStr) return ''
+      try {
+        const date = new Date(dateStr)
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hour = String(date.getHours()).padStart(2, '0')
+        const minute = String(date.getMinutes()).padStart(2, '0')
+        return `${month}-${day} ${hour}:${minute}`
+      } catch (e) {
+        return ''
+      }
+    }
+  },
+  watch: {
+    activeId(newId) {
+      if (newId) {
+        this.loadAttachmentsFromStorage()
+      }
     }
   }
 }
@@ -5184,4 +5349,231 @@ export default {
   border-radius: 0 0 12px 12px;
   flex-shrink: 0;
 }
+
+/* ========== 附件区域样式 ========== */
+.attachments-section {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.attachments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.attachments-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.attachments-title svg {
+  width: 16px;
+  height: 16px;
+  color: #3b82f6;
+}
+
+.attachments-count {
+  font-weight: 400;
+  color: #64748b;
+}
+
+.upload-attachment-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+}
+
+.upload-attachment-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.upload-attachment-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.upload-attachment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.attachment-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attachment-icon.icon-image {
+  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  color: white;
+}
+
+.attachment-icon.icon-pdf {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.attachment-icon.icon-word {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.attachment-icon.icon-excel {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.attachment-icon.icon-ppt {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+}
+
+.attachment-icon.icon-zip {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+.attachment-icon.icon-file {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: white;
+}
+
+.attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.attachment-size,
+.attachment-date {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.attachment-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.attachment-action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.attachment-action-btn.download {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.attachment-action-btn.download:hover {
+  background: #3b82f6;
+  color: white;
+}
+
+.attachment-action-btn.delete {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.attachment-action-btn.delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.attachments-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  color: #94a3b8;
+}
+
+.attachments-empty svg {
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+}
+
+.attachments-empty p {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.attachments-empty span {
+  display: none;
+}
+
 </style>

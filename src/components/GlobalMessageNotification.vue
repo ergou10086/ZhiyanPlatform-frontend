@@ -217,6 +217,7 @@
                 <span>{{ formatDetailTime(detailMessage?.createdAt) }}</span>
               </div>
             </div>
+          </div>
 
           <div class="detail-footer">
             <template v-if="detailActionType">
@@ -1118,8 +1119,7 @@ export default {
           scene: item.scene || '',
           businessId: item.businessId,
           businessType: item.businessType,
-          extendData: item.extendData
-          businessType: item.businessType,
+          extendData: item.extendData,
           senderId: item.senderId,
           senderUsername: senderUsername,
           senderAvatar: senderAvatar
@@ -1204,10 +1204,16 @@ export default {
       const extend = this.parseExtendDataObject(extendData)
       const kind = extend && extend.kind
 
-      if (scene === 'PROJECT_MEMBER_INVITED' && kind === 'PROJECT_INVITATION') {
+      // 项目邀请：需要同意/拒绝
+      if (scene === 'PROJECT_MEMBER_INVITED' || scene === 'MEMBER_INVITATION') {
         return 'INVITATION'
       }
-      if (scene === 'PROJECT_MEMBER_APPLY' && kind === 'PROJECT_JOIN_APPLY') {
+      // 通过kind判断
+      if (kind === 'PROJECT_INVITATION') {
+        return 'INVITATION'
+      }
+      // 项目加入申请
+      if (scene === 'PROJECT_MEMBER_APPLY' || kind === 'PROJECT_JOIN_APPLY') {
         return 'JOIN_APPLY'
       }
       return null
