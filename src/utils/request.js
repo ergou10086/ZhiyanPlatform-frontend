@@ -87,8 +87,25 @@ export function createAxiosInstance(useProxy = false) {
   // ==================== 响应拦截器 ====================
   instance.interceptors.response.use(
     response => {
+      const data = response.data
+
+      // 后端使用统一的 R 对象时，非 200 业务码视为失败
+      if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'code')) {
+        const isSuccess = Number(data.code) === 200
+        if (!isSuccess) {
+          const bizError = new Error(data.msg || data.message || '业务异常')
+          bizError.isBusinessError = true
+          bizError.response = {
+            status: data.code,
+            data,
+            config: response.config
+          }
+          return Promise.reject(bizError)
+        }
+      }
+
       // 直接返回 response.data（后端的 R 对象）
-      return response.data
+      return data
     },
     async error => {
       const originalRequest = error.config
