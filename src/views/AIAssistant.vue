@@ -1742,8 +1742,6 @@ export default {
             this.isSending = false
             this.currentStreamController = null
             this.currentAbortController = null
-            // 发送成功后清空已上传文件列表
-            this.uploadedFiles = []
             this.$nextTick(() => {
               this.scrollToBottom()
             })

@@ -73,7 +73,15 @@ function parseAndHandleSSEMessage(dataLines, eventType, onMessage, onError, onCo
   try {
     // 将多行data内容合并（通常只有一行）
     const jsonStr = dataLines.join('')
-    const message = JSON.parse(jsonStr)
+    const trimmedStr = jsonStr.trim()
+
+    // 如果不是 JSON（例如 "连接成功"、"对话完成" 这类纯文本），直接跳过
+    if (!trimmedStr.startsWith('{')) {
+      console.log('[Dify API] 📄 非JSON SSE消息，跳过解析:', trimmedStr)
+      return
+    }
+
+    const message = JSON.parse(trimmedStr)
     
     // ⭐ 详细日志：显示完整消息结构
     console.log('[Dify API] ✅ 解析消息 (新版):', {
@@ -186,8 +194,8 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
       conversationId
     })
     
-    // 构建URL
-    let url = `${baseUrl}${BACKEND_DIFY_CONFIG.baseUrl}/chatflow/stream?query=${encodeURIComponent(query)}`
+    // 构建URL，调用后端已有的 /chat/stream SSE 接口
+    let url = `${baseUrl}${BACKEND_DIFY_CONFIG.baseUrl}/chat/stream?query=${encodeURIComponent(query)}`
     if (conversationId) {
       url += `&conversationId=${encodeURIComponent(conversationId)}`
     }
@@ -404,9 +412,12 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
       timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`
     })
 
-    // 发送请求到后端（/
-    // zhiyan/ai/dify/chatflow/upload-and-chat）
-    const url = `${BACKEND_DIFY_CONFIG.baseUrl}/chatflow/upload-and-chat`
+    // 发送请求到后端 /zhiyan/ai/dify/chat/stream，复用现有 SSE 流式对话接口
+    // query / conversationId 走查询参数，文件相关通过 form-data 传递
+    let url = `${BACKEND_DIFY_CONFIG.baseUrl}/chat/stream?query=${encodeURIComponent(query)}`
+    if (conversationId) {
+      url += `&conversationId=${encodeURIComponent(conversationId)}`
+    }
     const response = await fetch(url, {
       method: 'POST',
       headers: {
