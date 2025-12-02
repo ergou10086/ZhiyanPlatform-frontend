@@ -70,8 +70,24 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   response => {
-    console.log('知识库API响应:', response.status, response.data)
-    return response.data
+    const data = response.data
+    console.log('知识库API响应:', response.status, data)
+
+    if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'code')) {
+      const isSuccess = Number(data.code) === 200
+      if (!isSuccess) {
+        const bizError = new Error(data.msg || data.message || '知识库业务异常')
+        bizError.isBusinessError = true
+        bizError.response = {
+          status: data.code,
+          data,
+          config: response.config
+        }
+        return Promise.reject(bizError)
+      }
+    }
+
+    return data
   },
   error => {
     console.error('知识库API错误:', error)

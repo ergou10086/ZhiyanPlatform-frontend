@@ -134,6 +134,13 @@
 
     <!-- 第二屏：已完成任务统计 -->
     <div class="dashboard-section charts-section">
+      <!-- 左上角返回按钮 -->
+      <button class="back-btn-topleft" @click="$router.back()">
+        <svg class="back-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="back-text">返回</span>
+      </button>
       <!-- 页面标题 -->
       <h1 class="page-title">已完成任务统计</h1>
 
@@ -325,6 +332,13 @@
 
     <!-- 第三屏：成果统计 -->
     <div class="dashboard-section achievements-section">
+      <!-- 左上角返回按钮 -->
+      <button class="back-btn-topleft" @click="$router.back()">
+        <svg class="back-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="back-text">返回</span>
+      </button>
       <!-- 页面标题 -->
       <h1 class="page-title">成果统计</h1>
 
@@ -489,6 +503,13 @@
 
     <!-- 第四屏：成员任务统计 -->
     <div class="dashboard-section member-submission-section">
+      <!-- 左上角返回按钮 -->
+      <button class="back-btn-topleft" @click="$router.back()">
+        <svg class="back-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="back-text">返回</span>
+      </button>
       <!-- 页面标题 -->
       <h1 class="page-title">成员任务统计</h1>
 
@@ -596,13 +617,6 @@
                       </g>
                     </g>
                   </svg>
-                  <div v-if="memberTaskTooltip.show" class="member-task-tooltip" :style="{ left: memberTaskTooltip.x + 'px', top: memberTaskTooltip.y + 'px' }">
-                    <div class="tooltip-header">{{ memberTaskTooltip.name }}</div>
-                    <div class="tooltip-content">
-                      <span class="tooltip-label">{{ memberTaskTooltip.label }}</span>
-                      <span class="tooltip-value">{{ memberTaskTooltip.value }}</span>
-                    </div>
-                  </div>
                 </div>
                 <div class="chart-empty" v-else>
                   <div class="empty-text">暂无成员任务数据</div>
@@ -691,37 +705,48 @@
 
     <!-- 第五屏：里程碑时间线 -->
     <div class="dashboard-section timeline-section">
+      <!-- 左上角返回按钮 -->
+      <button class="back-btn-topleft" @click="$router.back()">
+        <svg class="back-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="back-text">返回</span>
+      </button>
       <div class="section-header">
         <h2 class="section-title">里程碑时间线</h2>
         <p class="section-subtitle">项目关键节点与进度跟踪</p>
       </div>
       
       <div class="timeline-dual-layout">
-        <!-- 左侧：里程碑时间线 -->
+        <!-- 左侧：里程碑任务列表 -->
         <div class="timeline-left">
           <div class="timeline card glass gradient-border">
-            <ul class="steps">
-              <li class="done">
-                <div class="name">方案评审</div>
-                <div class="date">2023-10-15</div>
-              </li>
-              <li class="done">
-                <div class="name">数据采集完成</div>
-                <div class="date">2023-10-28</div>
-              </li>
-              <li class="processing">
-                <div class="name">原型设计完成</div>
-                <div class="date">2023-11-05</div>
-              </li>
-              <li class="todo">
-                <div class="name">开发启动</div>
-                <div class="date">2023-11-20</div>
+            <ul class="steps" v-if="milestoneTasks.length > 0">
+              <li v-for="task in milestoneTasks" :key="task.id" :class="getMilestoneStatusClass(task.status)">
+                <div class="milestone-task-info">
+                  <div class="name">{{ task.title }}</div>
+                  <div class="milestone-members" v-if="task.memberNames">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>{{ task.memberNames }}</span>
+                  </div>
+                </div>
+                <div class="date">{{ task.dueDate || '未设置截止日期' }}</div>
               </li>
             </ul>
+            <div v-else class="milestone-empty">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+                <line x1="4" y1="22" x2="4" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+              </svg>
+              <p>暂无里程碑任务</p>
+            </div>
           </div>
         </div>
         
-        <!-- 右侧：任务提交时间线 -->
+        <!-- 右侧：已提交的里程碑任务时间线 -->
         <div class="timeline-right">
           <div class="commit-timeline card glass gradient-border">
             <div class="commit-header">
@@ -729,16 +754,16 @@
                 <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span class="commit-branch">任务提交记录</span>
+              <span class="commit-branch">里程碑提交记录</span>
             </div>
-            <ul class="commit-list" v-if="taskSubmissions.length > 0">
-              <li class="commit-item" v-for="submission in taskSubmissions" :key="submission.id">
+            <ul class="commit-list" v-if="milestoneSubmissions.length > 0">
+              <li class="commit-item" v-for="submission in milestoneSubmissions" :key="submission.taskId">
                 <div class="commit-dot"></div>
                 <div class="commit-content">
-                  <div class="commit-message">{{ submission.taskTitle || submission.title || '未命名任务' }}</div>
+                  <div class="commit-message">{{ submission.taskTitle }}</div>
                   <div class="commit-meta">
-                    <span class="commit-author-name">{{ submission.submitterName || submission.assigneeName || '未知' }}</span>
-                    <span class="commit-time">{{ formatDateTime(submission.submitTime || submission.createdAt) }}</span>
+                    <span class="commit-author-name">提交人：{{ submission.submitterName }}</span>
+                    <span class="commit-time">{{ formatDateTime(submission.submitTime) }}</span>
                   </div>
                 </div>
               </li>
@@ -748,7 +773,7 @@
                 <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.3"/>
                 <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
               </svg>
-              <p>暂无任务提交记录</p>
+              <p>暂无里程碑提交记录</p>
             </div>
           </div>
         </div>
@@ -779,6 +804,15 @@
             </div>
           </li>
         </ul>
+      </div>
+    </div>
+    
+    <!-- 成员任务统计 Tooltip（放在根级别避免被父容器裁剪） -->
+    <div v-if="memberTaskTooltip.show" class="member-task-tooltip-fixed" :style="{ left: memberTaskTooltip.x + 'px', top: memberTaskTooltip.y + 'px' }">
+      <div class="tooltip-header">{{ memberTaskTooltip.name }}</div>
+      <div class="tooltip-content">
+        <span class="tooltip-label">{{ memberTaskTooltip.label }}</span>
+        <span class="tooltip-value">{{ memberTaskTooltip.value }}</span>
       </div>
     </div>
   </div>
@@ -847,6 +881,10 @@ export default {
       projectMembers: [],
       // 任务提交记录
       taskSubmissions: [],
+      // 里程碑任务列表
+      milestoneTasks: [],
+      // 已提交的里程碑任务
+      milestoneSubmissions: [],
       // 成员任务统计数据 [{name, totalTasks, completedTasks}]
       memberTaskStats: [],
       // 双向柱状图配置
@@ -926,7 +964,8 @@ export default {
         this.loadAchievements(),
         this.loadProjectMembers(),
         this.loadTaskSubmissions(),
-        this.loadWikiStatistics()
+        this.loadWikiStatistics(),
+        this.loadMilestoneTasks()
       ])
       
       this.loadingProgress = 90
@@ -1462,6 +1501,25 @@ export default {
      */
     goToTaskDetail(task) {
       this.$router.push(`/project/${this.$route.params.id}/tasks/${task.id}`)
+    },
+
+    /**
+     * 获取里程碑任务状态样式类
+     */
+    getMilestoneStatusClass(status) {
+      const statusMap = {
+        'DONE': 'done',
+        '已完成': 'done',
+        '完成': 'done',
+        'IN_PROGRESS': 'processing',
+        '进行中': 'processing',
+        'PENDING_REVIEW': 'processing',
+        '待审核': 'processing',
+        'TODO': 'todo',
+        '待接取': 'todo',
+        '待办': 'todo'
+      }
+      return statusMap[status] || 'todo'
     },
 
     /**
@@ -2374,6 +2432,179 @@ export default {
       }
     },
 
+    /**
+     * 加载里程碑任务数据
+     */
+    async loadMilestoneTasks() {
+      try {
+        // 从所有任务中筛选出里程碑任务
+        this.milestoneTasks = this.allTasks
+          .filter(task => task.isMilestone === true)
+          .map(task => ({
+            id: task.id,
+            title: task.title || task.name || '未命名任务',
+            dueDate: task.dueDate || task.due_date || null,
+            status: task.status,
+            priority: task.priority,
+            creatorName: task.creatorName || '未知',
+            assignees: task.assignees || [],
+            assigneeName: task.assigneeName || '',
+            // 获取参与成员名称
+            memberNames: this.getMilestoneMembers(task)
+          }))
+          .sort((a, b) => {
+            // 按截止日期排序，无日期的排在后面
+            if (!a.dueDate && !b.dueDate) return 0
+            if (!a.dueDate) return 1
+            if (!b.dueDate) return -1
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+          })
+        
+        console.log('[ProjectDashboard] 里程碑任务加载完成:', this.milestoneTasks.length, '个')
+        
+        // 加载已提交的里程碑任务
+        await this.loadMilestoneSubmissions()
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载里程碑任务失败:', error)
+        this.milestoneTasks = []
+      }
+    },
+
+    /**
+     * 获取里程碑任务的参与成员名称
+     */
+    getMilestoneMembers(task) {
+      if (!task) return ''
+      
+      // 优先从 assignees 数组获取
+      if (Array.isArray(task.assignees) && task.assignees.length > 0) {
+        const names = task.assignees
+          .map(a => a.userName || a.username || a.name || a.realName || a.nickname)
+          .filter(n => n && n.trim())
+        if (names.length > 0) {
+          return names.join(', ')
+        }
+      }
+      
+      // 尝试其他字段
+      if (task.assigneeName) return task.assigneeName
+      if (task.creatorName) return task.creatorName
+      
+      return ''
+    },
+
+    /**
+     * 加载已提交的里程碑任务
+     */
+    async loadMilestoneSubmissions() {
+      try {
+        const milestoneSubmissions = []
+        
+        // 遍历里程碑任务，获取每个任务的提交记录
+        for (const task of this.milestoneTasks) {
+          if (task.id) {
+            try {
+              const response = await getTaskSubmissions(task.id)
+              if (response && response.code === 200 && Array.isArray(response.data) && response.data.length > 0) {
+                // 获取最新的提交记录
+                const submissions = response.data.sort((a, b) => {
+                  const timeA = new Date(a.submitTime || a.createdAt || 0).getTime()
+                  const timeB = new Date(b.submitTime || b.createdAt || 0).getTime()
+                  return timeB - timeA
+                })
+                
+                // 取最新的一条提交
+                const latestSubmission = submissions[0]
+                // 获取提交人名称，尝试多个字段
+                const submitterName = this.getSubmitterName(latestSubmission, task)
+                
+                milestoneSubmissions.push({
+                  taskId: task.id,
+                  taskTitle: task.title,
+                  submitterName: submitterName,
+                  submitTime: latestSubmission.submitTime || latestSubmission.createdAt,
+                  reviewStatus: latestSubmission.reviewStatus || 'PENDING',
+                  worktime: latestSubmission.worktime || 0
+                })
+              }
+            } catch (error) {
+              console.warn(`[ProjectDashboard] 获取里程碑任务 ${task.id} 的提交记录失败:`, error)
+            }
+          }
+        }
+        
+        // 按提交时间降序排序
+        milestoneSubmissions.sort((a, b) => {
+          const timeA = new Date(a.submitTime || 0).getTime()
+          const timeB = new Date(b.submitTime || 0).getTime()
+          return timeB - timeA
+        })
+        
+        this.milestoneSubmissions = milestoneSubmissions
+        console.log('[ProjectDashboard] 已提交的里程碑任务加载完成:', this.milestoneSubmissions.length, '个')
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载已提交的里程碑任务失败:', error)
+        this.milestoneSubmissions = []
+      }
+    },
+
+    /**
+     * 获取提交人名称
+     */
+    getSubmitterName(submission, task) {
+      console.log('[ProjectDashboard] 获取提交人名称，提交记录:', submission)
+      
+      // 1. 优先从 submitter 对象获取（后端返回的是 UserDTO 对象）
+      if (submission.submitter && typeof submission.submitter === 'object') {
+        const s = submission.submitter
+        const name = s.name || s.userName || s.username || s.realName || s.nickname
+        if (name) {
+          console.log('[ProjectDashboard] 从submitter对象获取到名称:', name)
+          return name
+        }
+      }
+      
+      // 2. 尝试从提交记录的直接字段获取
+      if (submission.submitterName && submission.submitterName !== '未知') {
+        return submission.submitterName
+      }
+      if (submission.userName) return submission.userName
+      if (submission.username) return submission.username
+      if (submission.name) return submission.name
+      
+      // 3. 尝试从用户对象获取
+      if (submission.user && typeof submission.user === 'object') {
+        const u = submission.user
+        const name = u.name || u.userName || u.username || u.realName || u.nickname
+        if (name) return name
+      }
+      
+      // 4. 尝试从项目成员中根据提交者ID查找
+      if (submission.submitterId && this.projectMembers.length > 0) {
+        const member = this.projectMembers.find(m => 
+          String(m.id) === String(submission.submitterId) ||
+          String(m.userId) === String(submission.submitterId)
+        )
+        if (member) {
+          return member.name || member.username || member.nickname || member.realName
+        }
+      }
+      
+      // 5. 尝试从userId查找
+      if (submission.userId && this.projectMembers.length > 0) {
+        const member = this.projectMembers.find(m => 
+          String(m.id) === String(submission.userId) ||
+          String(m.userId) === String(submission.userId)
+        )
+        if (member) {
+          return member.name || member.username || member.nickname || member.realName
+        }
+      }
+      
+      console.log('[ProjectDashboard] 未能获取到提交人名称')
+      return '未知'
+    },
+
     async loadAchievements() {
       const projectId = this.$route.params.id
       if (!projectId) {
@@ -2775,12 +3006,27 @@ export default {
      * 显示成员任务统计tooltip
      */
     showMemberTaskTooltip(event, member, type) {
-      const rect = event.target.closest('.bidirectional-bar-chart').getBoundingClientRect()
       this.memberTaskHoverType = type
+      const tooltipHeight = 70 // tooltip 大约高度
+      const tooltipWidth = 160 // tooltip 大约宽度
+      let x = event.clientX + 15
+      let y = event.clientY - tooltipHeight / 2
+      // 如果 tooltip 会超出视口右侧，则显示在鼠标左侧
+      if (x + tooltipWidth > window.innerWidth) {
+        x = event.clientX - tooltipWidth - 15
+      }
+      // 如果 tooltip 会超出视口顶部，则调整到视口内
+      if (y < 10) {
+        y = 10
+      }
+      // 如果 tooltip 会超出视口底部，则调整到视口内
+      if (y + tooltipHeight > window.innerHeight - 10) {
+        y = window.innerHeight - tooltipHeight - 10
+      }
       this.memberTaskTooltip = {
         show: true,
-        x: event.clientX - rect.left + 10,
-        y: event.clientY - rect.top - 60,
+        x: x,
+        y: y,
         name: member.name,
         label: type === 'total' ? '参与任务数' : '已完成任务数',
         value: type === 'total' ? member.totalTasks : member.completedTasks
@@ -2792,9 +3038,24 @@ export default {
      */
     updateMemberTaskTooltip(event) {
       if (!this.memberTaskTooltip.show) return
-      const rect = event.target.closest('.bidirectional-bar-chart').getBoundingClientRect()
-      this.memberTaskTooltip.x = event.clientX - rect.left + 10
-      this.memberTaskTooltip.y = event.clientY - rect.top - 60
+      const tooltipHeight = 70 // tooltip 大约高度
+      const tooltipWidth = 160 // tooltip 大约宽度
+      let x = event.clientX + 15
+      let y = event.clientY - tooltipHeight / 2
+      // 如果 tooltip 会超出视口右侧，则显示在鼠标左侧
+      if (x + tooltipWidth > window.innerWidth) {
+        x = event.clientX - tooltipWidth - 15
+      }
+      // 如果 tooltip 会超出视口顶部，则调整到视口内
+      if (y < 10) {
+        y = 10
+      }
+      // 如果 tooltip 会超出视口底部，则调整到视口内
+      if (y + tooltipHeight > window.innerHeight - 10) {
+        y = window.innerHeight - tooltipHeight - 10
+      }
+      this.memberTaskTooltip.x = x
+      this.memberTaskTooltip.y = y
     },
 
     /**
@@ -4514,6 +4775,49 @@ export default {
 }
 
 .commit-empty p {
+  font-size: 14px;
+  margin: 0;
+  color: #94a3b8;
+}
+
+/* 里程碑任务信息样式 */
+.milestone-task-info {
+  flex: 1;
+}
+
+.milestone-members {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.milestone-members svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.milestone-members span {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+/* 里程碑空状态样式 */
+.milestone-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.milestone-empty svg {
+  margin-bottom: 16px;
+  opacity: 0.3;
+  color: #94a3b8;
+}
+
+.milestone-empty p {
   font-size: 14px;
   margin: 0;
   color: #94a3b8;
@@ -6484,6 +6788,47 @@ export default {
 /* 成员任务统计Tooltip */
 .bidirectional-bar-chart {
   position: relative;
+}
+
+/* 固定定位的 tooltip，放在根级别避免被裁剪 */
+.member-task-tooltip-fixed {
+  position: fixed;
+  z-index: 9999;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #fff;
+  border-radius: 10px;
+  padding: 12px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  min-width: 140px;
+  animation: tooltipFadeIn 0.15s ease-out;
+}
+
+.member-task-tooltip-fixed .tooltip-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.member-task-tooltip-fixed .tooltip-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.member-task-tooltip-fixed .tooltip-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.member-task-tooltip-fixed .tooltip-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fbbf24;
 }
 
 .member-task-tooltip {

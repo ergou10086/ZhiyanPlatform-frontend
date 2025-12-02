@@ -179,7 +179,7 @@ export default {
       return days
     },
     urgentTasks() {
-      // 从任务数据中筛选出3天内即将到期的任务
+      // 从任务数据中筛选出3天内即将到期的进行中任务
       if (!this.myTasks || this.myTasks.length === 0) {
         return []
       }
@@ -192,21 +192,22 @@ export default {
       threeDaysLater.setHours(23, 59, 59, 999) // 设置为第3天的23:59:59
 
       return this.myTasks.filter(task => {
-        // 只统计有截止日期且未完成的任务
+        // 只统计有截止日期的任务
         if (!task.dueDate) {
           return false
         }
         
-        // 检查任务状态是否为完成状态（支持中英文）
+        // 只显示进行中的任务
         const status = String(task.status || '').trim()
         const statusUpper = status.toUpperCase()
-        const completedStatuses = ['DONE', '完成', '已完成', 'COMPLETED', 'done', 'Done']
-        const isCompleted = completedStatuses.includes(status) || 
-                           completedStatuses.includes(statusUpper) ||
-                           statusUpper.includes('DONE') || 
-                           status.includes('完成')
+        const inProgressStatuses = ['IN_PROGRESS', '进行中', 'DOING', 'doing', 'In Progress']
+        const isInProgress = inProgressStatuses.includes(status) || 
+                            inProgressStatuses.includes(statusUpper) ||
+                            statusUpper === 'IN_PROGRESS' ||
+                            status === '进行中'
         
-        if (isCompleted) {
+        // 只有进行中的任务才提醒
+        if (!isInProgress) {
           return false
         }
 

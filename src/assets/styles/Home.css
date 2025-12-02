@@ -917,45 +917,45 @@
     padding-top: 80px !important;  /* 为固定页眉留出空间 */
     gap: 16px !important;
   }
-  
+
   .home-container .section-card {
     padding: 16px !important;
   }
-  
+
   .home-container .section-title {
     font-size: 18px !important;
     margin-bottom: 12px !important;
   }
-  
+
   /* 快捷操作卡片改为2列 */
   .home-container .action-cards {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
-  
+
   .home-container .action-card {
     padding: 16px !important;
   }
-  
+
   .home-container .card-icon {
     width: 48px !important;
     height: 48px !important;
   }
-  
+
   /* 工作项和项目卡片优化 */
   .home-container .work-item,
   .home-container .project-card {
     padding: 12px !important;
     gap: 12px !important;
   }
-  
+
   .home-container .item-title,
   .home-container .project-title {
     font-size: 14px !important;
     line-height: 1.4 !important;
     white-space: normal !important;
   }
-  
+
   .home-container .item-description,
   .home-container .project-description {
     font-size: 12px !important;
@@ -969,25 +969,25 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
   }
-  
+
   /* 项目图标尺寸 */
   .home-container .project-icon {
     width: 36px !important;
     height: 36px !important;
     min-width: 36px !important;
   }
-  
+
   .home-container .project-icon svg {
     width: 20px !important;
     height: 20px !important;
   }
-  
+
   /* 项目元信息 */
   .home-container .project-meta {
     font-size: 11px !important;
     gap: 8px !important;
   }
-  
+
   /* 工作项和我参与的项目容器 - 确保铺满宽度 */
   .home-container .work-items,
   .home-container .my-projects {
@@ -995,16 +995,16 @@
     max-width: 100% !important;
     flex: 1 !important;
   }
-  
+
   .home-container .my-projects .section-card {
     height: auto !important;
     max-height: 400px !important;
   }
-  
+
   .home-container .project-list {
     max-height: 320px !important;
   }
-  
+
   /* 右侧边栏（日历） */
   .home-container .right-sidebar-column {
     width: 100% !important;
@@ -1019,24 +1019,24 @@
     padding-top: 75px !important;  /* 为固定页眉留出空间 */
     gap: 12px !important;
   }
-  
+
   .home-container .top-header {
     padding: 12px 16px !important;
   }
-  
+
   .home-container .page-title {
     font-size: 18px !important;
   }
-  
+
   .home-container .section-card {
     padding: 12px !important;
   }
-  
+
   .home-container .section-title {
     font-size: 16px !important;
     margin-bottom: 10px !important;
   }
-  
+
   /* 快捷操作卡片改为1列 */
   .home-container .action-cards {
     grid-template-columns: 1fr !important;
@@ -1045,30 +1045,30 @@
   .home-container .action-card {
     padding: 12px !important;
   }
-  
+
   .home-container .card-label {
     font-size: 14px !important;
   }
-  
+
   .home-container .card-icon {
     width: 40px !important;
     height: 40px !important;
   }
-  
+
   /* 工作项和项目卡片 */
   .home-container .work-item,
   .home-container .project-card {
     padding: 10px !important;
     gap: 10px !important;
   }
-  
+
   .home-container .item-title,
   .home-container .project-title {
     font-size: 13px !important;
     line-height: 1.3 !important;
     white-space: normal !important;
   }
-  
+
   .home-container .item-description,
   .home-container .project-description {
     font-size: 11px !important;
@@ -1080,25 +1080,25 @@
     -webkit-box-orient: vertical !important;
     overflow: hidden !important;
   }
-  
+
   .home-container .item-meta,
   .home-container .project-meta {
     font-size: 10px !important;
     gap: 6px !important;
   }
-  
+
   /* 项目图标 */
   .home-container .project-icon {
     width: 32px !important;
     height: 32px !important;
     min-width: 32px !important;
   }
-  
+
   .home-container .project-icon svg {
     width: 18px !important;
     height: 18px !important;
   }
-  
+
   /* 工作项和项目列表容器 - 确保铺满宽度 */
   .home-container .work-items,
   .home-container .my-projects {
@@ -1106,21 +1106,21 @@
     max-width: 100% !important;
     flex: 1 !important;
   }
-  
+
   .home-container .my-projects .section-card {
     max-height: 350px !important;
   }
-  
+
   .home-container .project-list {
     max-height: 280px !important;
   }
-  
+
   /* 状态徽章 */
   .home-container .status-badge {
     padding: 2px 8px !important;
     font-size: 10px !important;
   }
-  
+
   .home-container .progress-text {
     font-size: 10px !important;
   }
@@ -1952,6 +1952,28 @@
   color: #6ee7b7 !important;
 }
 
+/* OAuth2授权成功提示 */
+.oauth2-success-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 99999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
 
+/* 淡入淡出动画 */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
 
-
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
