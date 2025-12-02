@@ -182,7 +182,32 @@
           </div>
 
           <div class="detail-footer">
-            <button class="detail-btn" @click="closeMessageDetail">关闭</button>
+            <template v-if="detailActionType">
+              <button
+                class="detail-btn"
+                :disabled="detailActionLoading"
+                @click="handleDetailAction('accept')"
+              >
+                同意
+              </button>
+              <button
+                class="detail-btn outline"
+                :disabled="detailActionLoading"
+                @click="handleDetailAction('reject')"
+              >
+                拒绝
+              </button>
+              <button class="detail-btn ghost" @click="closeMessageDetail">
+                关闭
+              </button>
+            </template>
+            <button
+              v-else
+              class="detail-btn"
+              @click="closeMessageDetail"
+            >
+              关闭
+            </button>
           </div>
         </div>
       </div>
@@ -288,7 +313,11 @@ import {
   markAllAsRead,
   deleteMessage,
   sendMessageToUser,
-  sendMessageToProject
+  sendMessageToProject,
+  acceptProjectInvitation,
+  rejectProjectInvitation,
+  approveProjectJoin,
+  rejectProjectJoin
 } from '@/api/message'
 import { projectAPI } from '@/api/project'
 
@@ -308,6 +337,7 @@ export default {
       pollingTimer: null,
       detailDialogVisible: false,
       detailMessage: null,
+      detailActionLoading: false,
       // 发送消息对话框
       sendDialogVisible: false,
       sendMode: 'USER', // USER or PROJECT
@@ -510,9 +540,9 @@ export default {
      * 打开消息详情弹窗
      */
     openMessageDetail(message) {
-      this.detailMessage = { ...message }
-      this.detailDialogVisible = true
-    },
+        this.detailMessage = { ...message }
+        this.detailDialogVisible = true
+      },
 
     /**
      * 关闭消息详情弹窗
@@ -626,6 +656,77 @@ export default {
           this.$message.error('发送消息失败，请稍后重试')
         } finally {
           this.sendLoading = false
+        }
+      },
+
+      /**
+       * 解析扩展数据为对象
+       */
+      parseExtendDataObject(extendData) {
+        if (!extendData) return null
+        try {
+          if (typeof extendData === 'string') {
+            return JSON.parse(extendData)
+          }
+          return extendData
+        } catch (e) {
+          console.warn('parseExtendDataObject 失败:', e, extendData)
+          return null
+        }
+      },
+
+      /**
+       * 处理项目邀请/加入申请的同意/拒绝
+       * @param {'accept'|'reject'} action
+       */
+      async handleDetailAction(action) {
+        const message = this.detailMessage
+        if (!message) return
+
+        const extend = this.parseExtendDataObject(message.extendData)
+        if (!extend) {
+          this.$message.error('消息数据异常，无法处理')
+          return
+        }
+
+        this.detailActionLoading = true
+
+        try {
+          let res
+          const recipientId = message.id
+
+          if (this.detailActionType === 'INVITATION') {
+            if (action === 'accept') {
+              res = await acceptProjectInvitation(recipientId)
+            } else {
+              res = await rejectProjectInvitation(recipientId)
+            }
+          } else if (this.detailActionType === 'JOIN_APPLY') {
+            if (action === 'accept') {
+              res = await approveProjectJoin(recipientId)
+            } else {
+              res = await rejectProjectJoin(recipientId)
+            }
+          } else {
+            return
+          }
+
+          if (res && res.code === 200) {
+            this.$message.success(res.msg || '操作成功')
+            // 刷新列表和未读数
+            await this.fetchUnreadCount()
+            if (this.showPanel) {
+              await this.loadMessages(true)
+            }
+            this.closeMessageDetail()
+          } else {
+            this.$message.error(res?.msg || '操作失败')
+          }
+        } catch (error) {
+          console.error('处理消息操作失败:', error)
+          this.$message.error('操作失败，请稍后重试')
+        } finally {
+          this.detailActionLoading = false
         }
       },
 
@@ -773,7 +874,7 @@ export default {
             }
           }
         }
-        
+
         return {
           id: item.recipientId || item.id,
           title: item.title || '',
@@ -782,7 +883,8 @@ export default {
           createdAt: createdAt,
           scene: item.scene || '',
           businessId: item.businessId,
-          businessType: item.businessType
+          businessType: item.businessType,
+          extendData: item.extendData
         }
       })
     },
@@ -801,6 +903,27 @@ export default {
         return this.messages
       }
       return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
+    },
+
+    /**
+     * 当前详情消息的动作类型：
+     * - INVITATION: 项目邀请
+     * - JOIN_APPLY: 项目加入申请
+     * - null: 无需操作
+     */
+    detailActionType() {
+      if (!this.detailMessage) return null
+      const { scene, extendData } = this.detailMessage
+      const extend = this.parseExtendDataObject(extendData)
+      const kind = extend && extend.kind
+
+      if (scene === 'PROJECT_MEMBER_INVITED' && kind === 'PROJECT_INVITATION') {
+        return 'INVITATION'
+      }
+      if (scene === 'PROJECT_MEMBER_APPLY' && kind === 'PROJECT_JOIN_APPLY') {
+        return 'JOIN_APPLY'
+      }
+      return null
     }
   },
   directives: {
@@ -1493,6 +1616,19 @@ export default {
   color: #fff;
   cursor: pointer;
   font-size: 14px;
+}
+
+.detail-btn.outline {
+  background: transparent;
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+  margin-left: 8px;
+}
+
+.detail-btn.ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  margin-left: 8px;
 }
 
 /* 发送消息对话框 */
