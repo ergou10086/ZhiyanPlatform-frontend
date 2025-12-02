@@ -148,16 +148,28 @@
             :archiveRows="archiveRows" 
             :projectId="projectId" 
             :isNotMember="permissionErrorShown"
+            :isArchived="isArchived"
             @file-uploaded="handleFileUploaded"
             @file-deleted="handleFileDeleted"
             @file-edited="handleFileEdited"
           />
 
           <!-- 知识柜面板 -->
-          <KnowledgeBaseCabinet v-else-if="activeTab==='cabinet'" :projectId="projectId" @document-created="handleDocumentCreated" />
+          <KnowledgeBaseCabinet 
+            v-else-if="activeTab==='cabinet'" 
+            :projectId="projectId" 
+            :isArchived="isArchived"
+            @document-created="handleDocumentCreated" 
+          />
 
           <!-- AI 赋能面板 -->
-          <KnowledgeBaseAI v-else ref="aiComponent" :projectId="projectId" @files-changed="handleFilesChanged" />
+          <KnowledgeBaseAI 
+            v-else 
+            ref="aiComponent" 
+            :projectId="projectId" 
+            :isArchived="isArchived"
+            @files-changed="handleFilesChanged" 
+          />
         </div>
       </div>
     </div>
@@ -221,6 +233,8 @@ export default {
       activeTab: 'home',
       projectId: null,
       projectName: '加载中...',
+      projectStatus: null,
+      isArchived: false,
       achievementsCount: 0,
       documentsCount: 0,
       teamMembersCount: 0,
@@ -295,6 +309,15 @@ export default {
     },
     goTab(tab) {
       if (this.activeTab === tab) return
+      // 归档项目：禁止进入会产生修改的 Tab（Wiki 文档、AI 赋能）
+      if (this.isArchived && (tab === 'cabinet' || tab === 'ai')) {
+        if (this.$message) {
+          this.$message.warning('项目已归档，仅支持查看主页和成果目录，无法编辑Wiki或使用AI赋能')
+        } else {
+          alert('项目已归档，仅支持查看主页和成果目录，无法编辑Wiki或使用AI赋能')
+        }
+        return
+      }
       // 如果不是项目成员，禁止切换到 AI 赋能和项目wiki文档
       if ((tab === 'ai' || tab === 'cabinet') && this.permissionErrorShown) {
         return
@@ -314,6 +337,8 @@ export default {
         if (response && response.code === 200 && response.data) {
           // 使用API返回的最新数据
           this.projectName = response.data.name || '未知项目'
+          this.projectStatus = response.data.status || null
+          this.isArchived = this.projectStatus === 'ARCHIVED'
           console.log('从API获取到项目名称:', this.projectName)
           return
         }
@@ -339,6 +364,9 @@ export default {
           if (project) {
             // 优先使用name字段，如果没有则使用title字段
             this.projectName = project.name || project.title || '未知项目'
+            this.projectStatus = project.status || null
+            // 兼容中英文状态
+            this.isArchived = this.projectStatus === 'ARCHIVED' || this.projectStatus === '已归档'
             console.log('找到项目:', this.projectName, '项目数据:', project)
           } else {
             this.projectName = '未知项目'
