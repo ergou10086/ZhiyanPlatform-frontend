@@ -3391,7 +3391,7 @@ export default {
   position: relative;
   width: 100%;
 }
-
+  
 .search {
   width: 100%;
   height: 36px; 

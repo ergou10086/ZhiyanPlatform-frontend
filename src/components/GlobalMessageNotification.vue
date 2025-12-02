@@ -1191,7 +1191,7 @@ export default {
       }
       return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
     },
-
+    
     /**
      * 当前详情消息的动作类型：
      * - INVITATION: 项目邀请
