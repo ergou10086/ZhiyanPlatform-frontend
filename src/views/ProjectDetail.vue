@@ -163,7 +163,13 @@
                 <li class="dropdown-item" :class="{ active: selectedTaskType === '低' }" @click="selectTaskType('低')">低优先级</li>
               </ul>
             </div>
-            <button v-if="isProjectManager" class="btn primary" @click="createTask">新建任务</button>
+            <button
+              v-if="isProjectManager"
+              class="btn primary"
+              @click="createTask"
+              :disabled="isArchived"
+              :title="isArchived ? '项目已归档，仅支持查看，不能新建任务' : '新建任务'"
+            >新建任务</button>
           </div>
         </div>
         <!-- 空状态提示 -->
@@ -189,10 +195,10 @@
                 <div class="task-status-dropdown">
                   <button 
                     class="task-status-btn" 
-                    :class="[statusClass(task.status), { 'disabled': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') }]"
+                    :class="[statusClass(task.status), { 'disabled': isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')) }]"
                     @click="toggleTaskStatusDropdown(task)" 
-                    :title="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态'"
-                    :disabled="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')">
+                    :title="isArchived ? '项目已归档，仅支持查看，不能更改任务状态' : (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态')"
+                    :disabled="isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === ''))">
                     {{ task.status }}
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -206,20 +212,35 @@
                     <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                   </div>
                 </div>
-                <button class="task-assign-manager-btn" @click="openAssignTaskModal(task)" title="分配任务">
+                <button
+                  class="task-assign-manager-btn"
+                  @click="openAssignTaskModal(task)"
+                  :disabled="isArchived"
+                  :title="isArchived ? '项目已归档，仅支持查看，不能分配任务' : '分配任务'"
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M20 8V14M23 11H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
+                <button
+                  class="task-edit-btn"
+                  @click="editTask(task)"
+                  :disabled="isArchived"
+                  :title="isArchived ? '项目已归档，仅支持查看，不能编辑任务' : '编辑任务'"
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </button>
-                <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
+                <button
+                  class="task-delete-btn"
+                  @click="deleteTask(task.id)"
+                  :disabled="isArchived"
+                  :title="isArchived ? '项目已归档，仅支持查看，不能删除任务' : '删除任务'"
+                >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -260,8 +281,15 @@
                 </button>
               </template>
               
-              <!-- 当前用户未接取，但可以接取 -->
-              <button v-else-if="canClaimTask(task)" @click="assignTask(task)" class="assign-btn">接取任务</button>
+              <!-- 当前用户未接取，但可以接取（项目未归档时才允许） -->
+              <button
+                v-else-if="!isArchived && canClaimTask(task)"
+                @click="assignTask(task)"
+                class="assign-btn"
+                :title="isArchived ? '项目已归档，仅支持查看，不能接取任务' : '接取任务'"
+              >
+                接取任务
+              </button>
               
               <!-- 任务已满员 -->
               <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
@@ -288,7 +316,8 @@
               v-if="isProjectManager" 
               class="btn primary admin-action" 
               @click="inviteMember"
-              title="邀请成员加入项目"
+              :disabled="isArchived"
+              :title="isArchived ? '项目已归档，仅支持查看，不能邀请成员' : '邀请成员加入项目'"
               style="display: inline-flex; align-items: center; gap: 6px;"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -752,13 +781,13 @@
               <div class="task-item-header" @click.stop>
                 <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
                 <div class="task-actions" v-if="isProjectManager">
-                  <div class="task-status-dropdown">
-                    <button 
-                      class="task-status-btn" 
-                      :class="[statusClass(task.status), { 'disabled': task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') }]"
-                      @click="toggleTaskStatusDropdown(task)" 
-                      :title="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态'"
-                      :disabled="task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')">
+                <div class="task-status-dropdown">
+                  <button 
+                    class="task-status-btn" 
+                    :class="[statusClass(task.status), { 'disabled': isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')) }]"
+                    @click="toggleTaskStatusDropdown(task)" 
+                    :title="isArchived ? '项目已归档，仅支持查看，不能更改任务状态' : (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态')"
+                    :disabled="isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === ''))">
                       {{ task.status }}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -772,13 +801,23 @@
                       <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
                     </div>
                   </div>
-                  <button class="task-edit-btn" @click="editTask(task)" title="编辑任务">
+                  <button
+                    class="task-edit-btn"
+                    @click="editTask(task)"
+                    :disabled="isArchived"
+                    :title="isArchived ? '项目已归档，仅支持查看，不能编辑任务' : '编辑任务'"
+                  >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </button>
-                  <button class="task-delete-btn" @click="deleteTask(task.id)" title="删除任务">
+                  <button
+                    class="task-delete-btn"
+                    @click="deleteTask(task.id)"
+                    :disabled="isArchived"
+                    :title="isArchived ? '项目已归档，仅支持查看，不能删除任务' : '删除任务'"
+                  >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -819,8 +858,15 @@
                   </button>
                 </template>
                 
-                <!-- 当前用户未接取，但可以接取 -->
-                <button v-else-if="canClaimTask(task)" @click="assignTask(task)" class="assign-btn">接取任务</button>
+                <!-- 当前用户未接取，但可以接取（项目未归档时才允许） -->
+                <button
+                  v-else-if="!isArchived && canClaimTask(task)"
+                  @click="assignTask(task)"
+                  class="assign-btn"
+                  :title="isArchived ? '项目已归档，仅支持查看，不能接取任务' : '接取任务'"
+                >
+                  接取任务
+                </button>
                 
                 <!-- 任务已满员 -->
                 <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
@@ -1223,8 +1269,14 @@
           </div>
         </div>
         <div class="modal-footer">
-          <!-- 接取任务按钮 -->
-          <button v-if="canClaimTask(selectedTask)" @click="assignTask(selectedTask)" class="btn btn-success" style="margin-right: 12px;">
+          <!-- 接取任务按钮（仅项目未归档时可见） -->
+          <button
+            v-if="!isArchived && canClaimTask(selectedTask)"
+            @click="assignTask(selectedTask)"
+            class="btn btn-success"
+            style="margin-right: 12px;"
+            :title="isArchived ? '项目已归档，仅支持查看，不能接取任务' : '接取任务'"
+          >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
               <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 5.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <circle cx="8.5" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1540,6 +1592,8 @@ export default {
         status: 'ONGOING'
       },
       project: null,
+      projectStatus: null,
+      isArchived: false,
       tasks: [],
       teamMembers: [],
       inviteSlots: [],
@@ -2411,6 +2465,8 @@ export default {
             created_by: apiProject.creatorId || 1,
             creatorName: apiProject.creatorName || '未知' // 保存创建者名称
           }
+          this.projectStatus = apiProject.status || null
+          this.isArchived = this.projectStatus === 'ARCHIVED'
           // 并行加载团队成员和任务数据，提升加载速度
           this.isLoading = false
           Promise.all([
@@ -2465,6 +2521,8 @@ export default {
             created_by: foundProject.created_by || 1,
             creatorName: foundProject.creatorName || '未知'
           }
+          this.projectStatus = this.project.status || null
+          this.isArchived = this.projectStatus === 'ARCHIVED' || this.projectStatus === '已归档'
           // 加载团队成员数据
           this.teamMembers = foundProject.teamMembers || []
           this.inviteSlots = foundProject.inviteSlots || []
@@ -2535,6 +2593,8 @@ export default {
             created_by: apiProject.creatorId || 1,
             creatorName: apiProject.creatorName || '未知'
           }
+          this.projectStatus = apiProject.status || null
+          this.isArchived = this.projectStatus === 'ARCHIVED'
           // 并行加载团队成员和任务数据
           await Promise.all([
             this.loadTeamMembers(),
@@ -2634,6 +2694,10 @@ export default {
       }
     },
     inviteMember() {
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能邀请成员')
+        return
+      }
       // 打开邀请成员弹窗
       this.inviteMemberModalOpen = true
       this.userSearchKeyword = ''
@@ -3357,6 +3421,10 @@ export default {
     },
     // 任务操作功能
     createTask() {
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能新建任务')
+        return
+      }
       this.taskModalOpen = true
       // 重置表单
       this.newTask = {
@@ -3458,6 +3526,11 @@ export default {
       }
     },
     editTask(task) {
+      // 归档项目：不允许编辑任务（按钮已禁用，这里再兜底一次）
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能编辑任务')
+        return
+      }
       // 设置编辑数据
       this.editTaskData = {
         title: task.title,
@@ -3480,6 +3553,12 @@ export default {
       }
     },
     async saveEditTask() {
+      // 归档项目：不允许保存任务修改
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能修改任务')
+        this.closeEditTaskModal()
+        return
+      }
       if (!this.editTaskData.title.trim()) {
         alert('请输入任务标题')
         return
@@ -3526,6 +3605,11 @@ export default {
     },
     // 打开删除任务确认弹窗
     deleteTask(taskId) {
+      // 归档项目：不允许删除任务（双重保护，按钮已禁用，这里再兜底一次）
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能删除任务')
+        return
+      }
       this.taskToDelete = taskId
       this.deleteTaskConfirmOpen = true
     },
@@ -3536,6 +3620,12 @@ export default {
     },
     // 确认删除任务（在居中弹窗中点击"确定"）
     async confirmDeleteTask() {
+      // 再次校验项目状态，防止在归档后旧弹窗仍然可用
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能删除任务')
+        this.cancelDeleteTask()
+        return
+      }
       if (!this.taskToDelete) {
         this.cancelDeleteTask()
         return
@@ -3633,6 +3723,11 @@ export default {
       console.log('[canClaimTask] 检查任务:', task)
       if (!task) {
         console.log('[canClaimTask] 任务不存在')
+        return false
+      }
+      // 项目已归档：不允许接取任务
+      if (this.isArchived) {
+        console.log('[canClaimTask] 项目已归档，禁止接取任务')
         return false
       }
       // 如果任务已完成，不能接取
@@ -3770,6 +3865,10 @@ export default {
       this.$set(task, 'showStatusMenu', !task.showStatusMenu)
     },
     async changeTaskStatus(task, newStatus) {
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能更改任务状态')
+        return
+      }
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
@@ -3808,6 +3907,10 @@ export default {
     },
     // 打开接取任务确认弹窗
     assignTask(task) {
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能接取任务')
+        return
+      }
       this.taskToClaim = task
       this.claimTaskConfirmOpen = true
     },
@@ -3863,6 +3966,11 @@ export default {
     },
     // 打开分配任务模态框
     openAssignTaskModal(task) {
+      // 归档项目：不允许分配任务
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能分配任务')
+        return
+      }
       this.taskToAssign = task
       this.selectedAssigneeId = null
       this.assignTaskModalOpen = true
@@ -3875,6 +3983,12 @@ export default {
     },
     // 确认分配任务
     async confirmAssignTask() {
+      // 再次校验项目状态，避免归档后残留弹窗还能提交
+      if (this.isArchived) {
+        this.showErrorToast('项目已归档，只能查看，不能分配任务')
+        this.closeAssignTaskModal()
+        return
+      }
       if (!this.selectedAssigneeId || !this.taskToAssign) return
       const selectedMember = this.teamMembers.find(m => m.id === this.selectedAssigneeId)
       if (!selectedMember) {
