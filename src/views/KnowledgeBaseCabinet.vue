@@ -3,10 +3,20 @@
     <div class="cabinet-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- 左侧列表 -->
       <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
-        <div class="toolbar">
+      <div class="toolbar">
           <div class="toolbar-buttons" v-if="!sidebarCollapsed">
-          <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
-            <button class="btn secondary small" @click="createNewFolder">+ 新建节点</button>
+          <button
+            class="btn primary small"
+            @click="createNewDocument"
+            :disabled="isArchived"
+            :title="isArchived ? '项目已归档，仅支持查看' : '新建文档'"
+          >+ 新建文档</button>
+          <button
+            class="btn secondary small"
+            @click="createNewFolder"
+            :disabled="isArchived"
+            :title="isArchived ? '项目已归档，仅支持查看' : '新建节点'"
+          >+ 新建节点</button>
           </div>
           <div class="search-container" v-if="!sidebarCollapsed">
             <input
@@ -177,10 +187,10 @@
         </div>
 
         <div class="editor-footer">
-          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc">版本历史</button>
-          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc">差异对比</button>
+          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc || isArchived">版本历史</button>
+          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc || isArchived">差异对比</button>
           <div class="flex-spacer" />
-          <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing">
+          <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing" :disabled="isArchived" :title="isArchived ? '项目已归档，仅支持查看' : '编辑文档'">
             编辑
           </button>
           <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
@@ -691,6 +701,10 @@ export default {
     projectId: {
       type: [String, Number],
       default: null
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -1154,6 +1168,10 @@ export default {
     },
     
     createNewDocument() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki文档')
+        return
+      }
       this.showNewDocDialog = true
       this.newDocTitle = ''
       this.selectedNodeId = null
@@ -1265,6 +1283,10 @@ export default {
     },
 
     createNewFolder() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki节点')
+        return
+      }
       this.showNewFolderDialog = true
       this.newFolderName = ''
     },
@@ -1280,6 +1302,10 @@ export default {
     },
 
     async confirmNewFolder() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki节点')
+        return
+      }
       if (!this.newFolderName.trim()) return
       
       // 防止重复点击
@@ -1374,6 +1400,10 @@ export default {
     },
     
     async confirmNewDoc() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki文档')
+        return
+      }
       if (!this.selectedFile) {
         this.$message?.error('请选择要上传的Markdown文件')
         return
@@ -1496,6 +1526,10 @@ export default {
     },
     
     async saveDocument() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能保存Wiki文档')
+        return
+      }
       if (!this.activeDoc) {
         console.warn('[saveDocument] 没有活动文档')
         this.$message?.error('没有可保存的文档')
@@ -1567,6 +1601,9 @@ export default {
     },
     
     async autoSave() {
+      if (this.isArchived) {
+        return
+      }
       // 如果正在保存或没有未保存的更改，跳过
       if (this.isSaving || !this.hasUnsavedChanges || !this.activeDoc || !this.activeId) {
         return
@@ -2870,7 +2907,11 @@ export default {
      /**
       * 执行删除节点操作
       */
-     async executeDeleteNode() {
+    async executeDeleteNode() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能删除Wiki节点或文档')
+        return
+      }
       if (!this.deleteNodeId) {
         console.error('[executeDeleteNode] deleteNodeId为空')
         return
