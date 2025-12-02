@@ -77,15 +77,15 @@
           <div class="card-body">
             <div class="card-title-row">
               <h3 class="card-title">{{ project.title }}</h3>
-                <div class="badge-group">
-                  <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </span>
-              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
-                </div>
+              <div class="badge-group">
+                <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+              </div>
             </div>
             <ul class="meta-list">
               <li>
