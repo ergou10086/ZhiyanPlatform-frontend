@@ -106,3 +106,33 @@ export function getUnreadCountByScene() {
     method: 'get'
   })
 }
+
+/**
+ * 发送自定义消息给指定用户（私信）
+ * @param {Object} data
+ * @param {string} data.receiverUsername - 接收者用户名
+ * @param {string} data.title - 消息标题
+ * @param {string} data.content - 消息内容
+ */
+export function sendMessageToUser(data) {
+  return request({
+    url: '/zhiyan/message/send/to-user',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 向项目内所有成员（除自己外）群发自定义消息
+ * @param {Object} data
+ * @param {number} data.projectId - 项目ID
+ * @param {string} data.title - 消息标题
+ * @param {string} data.content - 消息内容
+ */
+export function sendMessageToProject(data) {
+  return request({
+    url: '/zhiyan/message/send/to-project',
+    method: 'post',
+    data
+  })
+}

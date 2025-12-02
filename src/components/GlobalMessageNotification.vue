@@ -25,6 +25,16 @@
             <span v-if="unreadCount > 0" class="unread-count">{{ unreadCount }}</span>
           </div>
           <div class="header-right">
+            <button 
+              class="action-btn send-btn" 
+              type="button"
+              @click.stop="openSendDialog('USER')"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>发送消息</span>
+            </button>
             <button class="action-btn" @click="markAllRead" :disabled="unreadCount === 0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -177,6 +187,96 @@
         </div>
       </div>
     </transition>
+
+    <!-- 发送消息对话框 -->
+    <el-dialog
+      title="发送站内消息"
+      :visible.sync="sendDialogVisible"
+      width="520px"
+      class="send-message-dialog"
+      append-to-body
+    >
+      <div class="send-mode-switch">
+        <button
+          type="button"
+          class="mode-btn"
+          :class="{ active: sendMode === 'USER' }"
+          @click="sendMode = 'USER'"
+        >
+          私信用户
+        </button>
+        <button
+          type="button"
+          class="mode-btn"
+          :class="{ active: sendMode === 'PROJECT' }"
+          @click="openSendDialog('PROJECT')"
+        >
+          项目群发
+        </button>
+      </div>
+
+      <div class="send-form">
+        <div v-if="sendMode === 'USER'" class="form-row">
+          <label class="form-label">接收者用户名</label>
+          <el-input
+            v-model="sendForm.receiverUsername"
+            placeholder="请输入对方的用户名（登录账号）"
+            clearable
+          />
+        </div>
+
+        <div v-else class="form-row">
+          <label class="form-label">选择项目</label>
+          <el-select
+            v-model="sendForm.projectId"
+            placeholder="请选择要群发消息的项目"
+            filterable
+            clearable
+            :loading="!myProjectsLoaded && sendMode === 'PROJECT'"
+            style="width: 100%;"
+          >
+            <el-option
+              v-for="project in myProjects"
+              :key="project.id"
+              :label="project.title"
+              :value="project.id"
+            />
+          </el-select>
+          <p v-if="myProjectsLoaded && myProjects.length === 0" class="helper-text">
+            当前没有参与的项目，无法进行项目群发。
+          </p>
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">标题</label>
+          <el-input
+            v-model="sendForm.title"
+            placeholder="请输入消息标题"
+            maxlength="100"
+            show-word-limit
+          />
+        </div>
+
+        <div class="form-row">
+          <label class="form-label">内容</label>
+          <el-input
+            type="textarea"
+            v-model="sendForm.content"
+            placeholder="请输入要发送的消息内容"
+            :rows="5"
+            maxlength="500"
+            show-word-limit
+          />
+        </div>
+      </div>
+
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="sendDialogVisible = false">取 消</el-button>
+        <el-button type="primary" :loading="sendLoading" @click="submitSendMessage">
+          {{ sendMode === 'USER' ? '发送私信' : '发送给项目成员' }}
+        </el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -186,8 +286,11 @@ import {
   getUnreadCount, 
   markAsRead, 
   markAllAsRead,
-  deleteMessage 
+  deleteMessage,
+  sendMessageToUser,
+  sendMessageToProject
 } from '@/api/message'
+import { projectAPI } from '@/api/project'
 
 export default {
   name: 'GlobalMessageNotification',
@@ -204,7 +307,19 @@ export default {
       hasMore: true,
       pollingTimer: null,
       detailDialogVisible: false,
-      detailMessage: null
+      detailMessage: null,
+      // 发送消息对话框
+      sendDialogVisible: false,
+      sendMode: 'USER', // USER or PROJECT
+      sendForm: {
+        receiverUsername: '',
+        projectId: null,
+        title: '',
+        content: ''
+      },
+      sendLoading: false,
+      myProjects: [],
+      myProjectsLoaded: false
     }
   },
   mounted() {
@@ -235,6 +350,50 @@ export default {
     closeMessagePanel() {
       this.showPanel = false
     },
+
+      /**
+       * 打开发送消息对话框
+       */
+      async openSendDialog(mode = 'USER') {
+        this.sendMode = mode
+        this.resetSendForm()
+        this.sendDialogVisible = true
+
+        // 如果是项目群发模式，且还未加载项目列表，则加载一次
+        if (this.sendMode === 'PROJECT' && !this.myProjectsLoaded) {
+          await this.loadMyProjects()
+        }
+      },
+
+      /**
+       * 重置发送表单
+       */
+      resetSendForm() {
+        this.sendForm = {
+          receiverUsername: '',
+          projectId: null,
+          title: '',
+          content: ''
+        }
+      },
+
+      /**
+       * 加载我参与的项目，用于项目群发选择
+       */
+      async loadMyProjects() {
+        try {
+          const res = await projectAPI.getMyProjects(0, 100)
+          if (res && res.code === 200 && res.data) {
+            this.myProjects = res.data.content || []
+            this.myProjectsLoaded = true
+          } else {
+            this.$message.error(res?.msg || '加载项目列表失败')
+          }
+        } catch (error) {
+          console.error('加载项目列表失败:', error)
+          this.$message.error('加载项目列表失败，请稍后重试')
+        }
+      },
 
     /**
      * 获取未读消息数量
@@ -396,6 +555,79 @@ export default {
         this.$message.error('操作失败')
       }
     },
+
+      /**
+       * 提交发送消息
+       */
+      async submitSendMessage() {
+        if (!this.sendForm.title || !this.sendForm.content) {
+          this.$message.warning('请填写标题和内容')
+          return
+        }
+
+        try {
+          this.sendLoading = true
+
+          if (this.sendMode === 'USER') {
+            if (!this.sendForm.receiverUsername) {
+              this.$message.warning('请输入接收者用户名')
+              this.sendLoading = false
+              return
+            }
+
+            const payload = {
+              receiverUsername: this.sendForm.receiverUsername.trim(),
+              title: this.sendForm.title.trim(),
+              content: this.sendForm.content.trim()
+            }
+
+            const res = await sendMessageToUser(payload)
+            if (res && res.code === 200) {
+              this.$message.success(res.msg || '消息发送成功')
+              this.sendDialogVisible = false
+              this.resetSendForm()
+              // 发送成功后刷新消息列表和未读数量
+              this.fetchUnreadCount()
+              if (this.showPanel) {
+                this.loadMessages(true)
+              }
+            } else {
+              this.$message.error(res?.msg || '发送消息失败')
+            }
+          } else if (this.sendMode === 'PROJECT') {
+            if (!this.sendForm.projectId) {
+              this.$message.warning('请选择项目')
+              this.sendLoading = false
+              return
+            }
+
+            const payload = {
+              projectId: this.sendForm.projectId,
+              title: this.sendForm.title.trim(),
+              content: this.sendForm.content.trim()
+            }
+
+            const res = await sendMessageToProject(payload)
+            if (res && res.code === 200) {
+              this.$message.success(res.msg || '消息已群发给项目成员')
+              this.sendDialogVisible = false
+              this.resetSendForm()
+              // 发送成功后刷新消息列表和未读数量
+              this.fetchUnreadCount()
+              if (this.showPanel) {
+                this.loadMessages(true)
+              }
+            } else {
+              this.$message.error(res?.msg || '发送消息失败')
+            }
+          }
+        } catch (error) {
+          console.error('发送消息失败:', error)
+          this.$message.error('发送消息失败，请稍后重试')
+        } finally {
+          this.sendLoading = false
+        }
+      },
 
     /**
      * 删除消息
@@ -831,6 +1063,7 @@ export default {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 4px;
 }
 
 .action-btn {
@@ -856,6 +1089,14 @@ export default {
 .action-btn:disabled {
   color: var(--text-quaternary);
   cursor: not-allowed;
+}
+
+.send-btn {
+  color: var(--primary-color);
+}
+
+.send-btn:hover:not(:disabled) {
+  background: var(--primary-lightest);
 }
 
 .action-btn svg {
@@ -1252,6 +1493,63 @@ export default {
   color: #fff;
   cursor: pointer;
   font-size: 14px;
+}
+
+/* 发送消息对话框 */
+.send-message-dialog ::v-deep .el-dialog__body {
+  padding-top: 10px;
+}
+
+.send-mode-switch {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 8px 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+  border-color: var(--primary-color);
+  background: var(--primary-lightest);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.mode-btn:hover {
+  border-color: var(--primary-color);
+}
+
+.send-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.helper-text {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 
