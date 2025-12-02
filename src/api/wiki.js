@@ -68,8 +68,24 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   response => {
-    console.log('[Wiki API响应]:', response.status, response.data)
-    return response.data
+    const data = response.data
+    console.log('[Wiki API响应]:', response.status, data)
+
+    if (data && typeof data === 'object' && Object.prototype.hasOwnProperty.call(data, 'code')) {
+      const isSuccess = Number(data.code) === 200
+      if (!isSuccess) {
+        const bizError = new Error(data.msg || data.message || 'Wiki业务异常')
+        bizError.isBusinessError = true
+        bizError.response = {
+          status: data.code,
+          data,
+          config: response.config
+        }
+        return Promise.reject(bizError)
+      }
+    }
+
+    return data
   },
   error => {
     // 重要：不调用 console.error，避免被全局错误处理器捕获
