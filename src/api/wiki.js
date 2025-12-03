@@ -433,6 +433,158 @@ export const wikiSearchAPI = {
   }
 }
 
+// ==================== Wiki附件管理 API ====================
+
+/**
+ * Wiki附件管理相关接口
+ * 对应后端 WikiAttachmentController
+ * 基础路径: /api/wiki/attachments
+ */
+export const wikiAttachmentAPI = {
+  /**
+   * 上传单个附件
+   * @param {File} file - 附件文件
+   * @param {Number} wikiPageId - Wiki页面ID
+   * @param {Number} projectId - 项目ID
+   * @param {String} attachmentType - 附件类型（IMAGE/FILE，可选）
+   * @param {String} description - 文件描述（可选）
+   */
+  uploadAttachment(file, wikiPageId, projectId, attachmentType = null, description = null) {
+    console.log('[wikiAttachmentAPI.uploadAttachment] 上传附件:', file.name, 'wikiPageId:', wikiPageId, 'projectId:', projectId)
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('wikiPageId', wikiPageId)
+    formData.append('projectId', projectId)
+    if (attachmentType) formData.append('attachmentType', attachmentType)
+    if (description) formData.append('description', description)
+    
+    return api.post('/zhiyan/wiki/attachments/upload', formData)
+  },
+
+  /**
+   * 批量上传附件
+   * @param {Array<File>} files - 附件文件列表
+   * @param {Number} wikiPageId - Wiki页面ID
+   * @param {Number} projectId - 项目ID
+   * @param {String} attachmentType - 附件类型（IMAGE/FILE，可选）
+   */
+  uploadAttachments(files, wikiPageId, projectId, attachmentType = null) {
+    console.log('[wikiAttachmentAPI.uploadAttachments] 批量上传附件, 数量:', files.length)
+    const formData = new FormData()
+    files.forEach(file => {
+      formData.append('files', file)
+    })
+    formData.append('wikiPageId', wikiPageId)
+    formData.append('projectId', projectId)
+    if (attachmentType) formData.append('attachmentType', attachmentType)
+    
+    return api.post('/zhiyan/wiki/attachments/upload/batch', formData)
+  },
+
+  /**
+   * 获取Wiki页面的所有附件
+   * @param {Number} wikiPageId - Wiki页面ID
+   */
+  getPageAttachments(wikiPageId) {
+    console.log('[wikiAttachmentAPI.getPageAttachments] 获取页面附件, wikiPageId:', wikiPageId)
+    return api.get(`/zhiyan/wiki/attachments/page/${wikiPageId}`)
+  },
+
+  /**
+   * 分页查询项目的所有附件
+   * @param {Number} projectId - 项目ID
+   * @param {Object} params - 分页参数
+   * @param {Number} params.page - 页码（从0开始）
+   * @param {Number} params.size - 每页数量
+   * @param {String} params.sortBy - 排序字段（默认uploadAt）
+   * @param {String} params.sortDirection - 排序方向（ASC/DESC）
+   */
+  getProjectAttachments(projectId, params = {}) {
+    console.log('[wikiAttachmentAPI.getProjectAttachments] 查询项目附件, projectId:', projectId)
+    return api.get(`/zhiyan/wiki/attachments/project/${projectId}`, {
+      params: {
+        page: params.page || 0,
+        size: params.size || 20,
+        sortBy: params.sortBy || 'uploadAt',
+        sortDirection: params.sortDirection || 'DESC'
+      }
+    })
+  },
+
+  /**
+   * 获取Wiki页面的图片列表
+   * @param {Number} wikiPageId - Wiki页面ID
+   */
+  getPageImages(wikiPageId) {
+    console.log('[wikiAttachmentAPI.getPageImages] 获取页面图片, wikiPageId:', wikiPageId)
+    return api.get(`/zhiyan/wiki/attachments/page/${wikiPageId}/images`)
+  },
+
+  /**
+   * 获取Wiki页面的文件列表（非图片）
+   * @param {Number} wikiPageId - Wiki页面ID
+   */
+  getPageFiles(wikiPageId) {
+    console.log('[wikiAttachmentAPI.getPageFiles] 获取页面文件, wikiPageId:', wikiPageId)
+    return api.get(`/zhiyan/wiki/attachments/page/${wikiPageId}/files`)
+  },
+
+  /**
+   * 获取附件详情
+   * @param {Number} attachmentId - 附件ID
+   */
+  getAttachment(attachmentId) {
+    console.log('[wikiAttachmentAPI.getAttachment] 获取附件详情, attachmentId:', attachmentId)
+    return api.get(`/zhiyan/wiki/attachments/${attachmentId}`)
+  },
+
+  /**
+   * 下载附件（返回下载URL或重定向）
+   * @param {Number} attachmentId - 附件ID
+   */
+  downloadAttachment(attachmentId) {
+    console.log('[wikiAttachmentAPI.downloadAttachment] 下载附件, attachmentId:', attachmentId)
+    // 返回下载URL，前端可以直接打开或使用a标签下载
+    return `/zhiyan/wiki/attachments/${attachmentId}/download`
+  },
+
+  /**
+   * 删除附件（软删除）
+   * @param {Number} attachmentId - 附件ID
+   */
+  deleteAttachment(attachmentId) {
+    console.log('[wikiAttachmentAPI.deleteAttachment] 删除附件, attachmentId:', attachmentId)
+    return api.delete(`/zhiyan/wiki/attachments/${attachmentId}`)
+  },
+
+  /**
+   * 物理删除附件（彻底删除）
+   * @param {Number} attachmentId - 附件ID
+   */
+  deleteAttachmentPermanently(attachmentId) {
+    console.log('[wikiAttachmentAPI.deleteAttachmentPermanently] 物理删除附件, attachmentId:', attachmentId)
+    return api.delete(`/zhiyan/wiki/attachments/${attachmentId}/permanent`)
+  },
+
+  /**
+   * 删除页面所有附件（物理删除）
+   * @param {Number} wikiPageId - Wiki页面ID
+   */
+  deletePageAttachments(wikiPageId) {
+    console.log('[wikiAttachmentAPI.deletePageAttachments] 删除页面所有附件, wikiPageId:', wikiPageId)
+    return api.delete(`/zhiyan/wiki/attachments/page/${wikiPageId}`)
+  },
+
+  /**
+   * 获取项目附件统计信息
+   * @param {Number} projectId - 项目ID
+   */
+  getAttachmentStats(projectId) {
+    console.log('[wikiAttachmentAPI.getAttachmentStats] 获取附件统计, projectId:', projectId)
+    return api.get(`/zhiyan/wiki/attachments/project/${projectId}/stats`)
+  }
+}
+
 // ==================== Wiki导入导出 API ====================
 
 /**
@@ -600,7 +752,8 @@ export const wikiAPI = {
   page: wikiPageAPI,
   version: wikiVersionAPI,
   search: wikiSearchAPI,
-  importExport: wikiImportExportAPI
+  importExport: wikiImportExportAPI,
+  attachment: wikiAttachmentAPI
 }
 
 export default api
