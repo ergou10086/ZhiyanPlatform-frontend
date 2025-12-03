@@ -35,7 +35,7 @@
             {{ project.title }}
             <button class="dashboard-btn" @click="goToProjectDashboard">仪表盘</button>
           </h1>
-          <div class="project-actions" v-if="isProjectManager">
+          <div class="project-actions" v-if="canManageProject">
             <button class="btn secondary" @click="editProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -44,7 +44,7 @@
               编辑项目
             </button>
             <!-- 删除项目按钮只对OWNER显示 -->
-            <button v-if="isProjectOwner" class="btn btn-danger" @click="deleteProject">
+            <button v-if="canOperateAsOwner" class="btn btn-danger" @click="deleteProject">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -126,7 +126,7 @@
                 </svg>
               </div>
               <!-- 项目管理员可以上传图片 -->
-              <div v-if="isProjectManager" class="project-image-overlay" @click="triggerImageUpload">
+              <div v-if="canManageProject" class="project-image-overlay" @click="triggerImageUpload">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19M5 12H19" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -164,7 +164,7 @@
               </ul>
             </div>
             <button
-              v-if="isProjectManager"
+              v-if="canManageProject"
               class="btn primary"
               @click="createTask"
               :disabled="isArchived"
@@ -191,7 +191,7 @@
           <div v-for="task in filteredTasks" :key="task.id" class="task-card" @click="openTaskDetailModal(task)">
             <div class="task-header" @click.stop>
             <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
-              <div class="task-actions" v-if="isProjectManager">
+              <div class="task-actions" v-if="canManageProject">
                 <div class="task-status-dropdown">
                   <button 
                     class="task-status-btn" 
@@ -313,7 +313,7 @@
           <div class="section-actions">
             <!-- 邀请成员按钮：对所有管理员（OWNER和ADMIN）显示 -->
             <button
-              v-if="isProjectManager" 
+              v-if="canManageProject" 
               class="btn primary admin-action" 
               @click="inviteMember"
               :disabled="isArchived"
@@ -329,7 +329,7 @@
             </button>
             <!-- 申请加入按钮：仅在当前用户不是成员时显示 -->
             <button
-              v-if="!isArchived && !isCurrentUserProjectMember && getCurrentUserId()"
+              v-if="!isArchived && !isProjectLocked && !isCurrentUserProjectMember && getCurrentUserId()"
               class="btn secondary apply-join-btn"
               type="button"
               @click.prevent="applyJoinProject"
@@ -356,7 +356,7 @@
                 <span class="role-badge" :class="getRoleBadgeClass(member.roleCode || member.role)">{{ getRoleDisplayName(member.roleCode || member.role) }}</span>
                 <!-- OWNER用户：为普通成员显示明显的"设为管理员"按钮 -->
                 <button 
-                  v-if="isProjectOwner && !isAdminRole(member) && !isOwnerMember(member) && !isCurrentUser(member)"
+                  v-if="canOperateAsOwner && !isAdminRole(member) && !isOwnerMember(member) && !isCurrentUser(member)"
                   class="btn-set-admin"
                   @click.stop="setMemberRole(member, 'ADMIN')"
                   title="将成员设为项目管理员"
@@ -369,7 +369,7 @@
                 </button>
                 <!-- OWNER用户：为管理员显示"移除管理员"按钮 -->
                 <button 
-                  v-if="isProjectOwner && isAdminRole(member) && !isOwnerMember(member) && !isCurrentUser(member)"
+                  v-if="canOperateAsOwner && isAdminRole(member) && !isOwnerMember(member) && !isCurrentUser(member)"
                   class="btn-remove-admin"
                   @click.stop="setMemberRole(member, 'MEMBER')"
                   title="移除管理员身份"
@@ -385,7 +385,7 @@
                 <!-- 对于OWNER用户，如果已经有明显的按钮，就不显示下拉菜单；对于ADMIN用户，仍然显示下拉菜单 -->
                 <!-- 注意：OWNER用户已经通过明显按钮管理角色，所以不需要下拉菜单 -->
                 <div 
-                  v-if="!isProjectOwner && isProjectManager && !isOwnerMember(member) && !isCurrentUser(member)" 
+                  v-if="!isProjectOwner && canManageProject && !isOwnerMember(member) && !isCurrentUser(member)" 
                   class="member-role-dropdown" 
                   @click.stop
                 >
@@ -405,9 +405,9 @@
                     <div 
                       v-if="!isAdminRole(member) && !isOwnerMember(member)" 
                       class="dropdown-item make-admin" 
-                      :class="{ 'disabled': !isProjectOwner }"
-                      @click.stop="!isProjectOwner ? null : setMemberRole(member, 'ADMIN')"
-                      :title="!isProjectOwner ? '只有项目拥有者可以设置管理员' : '将成员设为项目管理员'"
+                      :class="{ 'disabled': !canOperateAsOwner }"
+                      @click.stop="!canOperateAsOwner ? null : setMemberRole(member, 'ADMIN')"
+                      :title="!canOperateAsOwner ? '只有项目拥有者可以设置管理员' : '将成员设为项目管理员'"
                     >
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -417,7 +417,7 @@
             </div>
                     <!-- 只有OWNER可以移除ADMIN身份 -->
                     <div 
-                      v-if="isAdminRole(member) && isProjectOwner" 
+                      v-if="isAdminRole(member) && canOperateAsOwner" 
                       class="dropdown-item remove-admin" 
                       @click.stop="setMemberRole(member, 'MEMBER')"
                     >
@@ -432,7 +432,7 @@
             </div>
             <!-- 移除成员按钮：管理员可以移除，但不能移除OWNER，ADMIN不能移除其他ADMIN -->
             <button 
-              v-if="isProjectManager && canRemoveMember(member)" 
+              v-if="canManageProject && canRemoveMember(member)" 
               class="remove-member-btn" 
               @click.stop="removeTeamMember(member.id)" 
               :title="isOwnerMember(member) ? '不能移除项目拥有者' : '移除成员'"
@@ -456,7 +456,7 @@
               <h4 class="member-name">{{ invite.role }}</h4>
               <p class="member-role">待邀请</p>
             </div>
-            <button v-if="isProjectManager" class="remove-member-btn" @click="removeInviteSlot(invite.id)" title="取消邀请">
+            <button v-if="canManageProject" class="remove-member-btn" @click="removeInviteSlot(invite.id)" title="取消邀请">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -790,7 +790,7 @@
             <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item" @click="openTaskDetailModal(task)">
               <div class="task-item-header" @click.stop>
                 <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
-                <div class="task-actions" v-if="isProjectManager">
+                <div class="task-actions" v-if="canManageProject">
                 <div class="task-status-dropdown">
                   <button 
                     class="task-status-btn" 
@@ -1238,7 +1238,7 @@
               <div class="task-info-content milestone-content">
                 <div class="task-info-label">里程碑任务</div>
                 <div class="task-info-value milestone-switch-wrapper">
-                  <label class="switch-toggle" v-if="isProjectManager">
+                  <label class="switch-toggle" v-if="canManageProject">
                     <input type="checkbox" :checked="selectedTask.isMilestone" @change="toggleMilestone(selectedTask)" />
                     <span class="switch-slider"></span>
                   </label>
@@ -1719,6 +1719,17 @@ export default {
       if (Array.isArray(this.teamMembers) && this.teamMembers.length > 0) {
         return this.teamMembers.length
       }
+    },
+    isProjectLocked() {
+      const status = String(this.projectStatus || this.project?.status || '').toUpperCase()
+      const completedStatus = status === 'COMPLETED' || status === 'DONE' || status === '已完成'
+      return this.isArchived === true || completedStatus
+    },
+    canManageProject() {
+      return !this.isProjectLocked && this.isProjectManager
+    },
+    canOperateAsOwner() {
+      return !this.isProjectLocked && this.isProjectOwner
     },
     // 当前用户是否已经是项目成员（用于控制“申请加入”按钮显隐）
     isCurrentUserProjectMember() {
