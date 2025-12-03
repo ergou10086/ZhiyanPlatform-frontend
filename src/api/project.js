@@ -294,6 +294,19 @@ export const projectAPI = {
   },
 
   /**
+   * 申请加入项目
+   * @param {Number} projectId - 项目ID
+   * @param {String} reason - 申请理由（可选）
+   */
+  applyToJoinProject(projectId, reason = '') {
+    console.log('[projectAPI.applyToJoinProject] 申请加入项目, 项目ID:', projectId, '理由:', reason)
+    return api.post('/zhiyan/message/project/apply', {
+      projectId,
+      reason
+    })
+  },
+
+  /**
    * 分配角色给用户（添加成员）
    * @param {Number} projectId - 项目ID
    * @param {Object} data - 包含 userId 和 roleCode
