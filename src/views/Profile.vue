@@ -187,10 +187,10 @@
                 <p>还未添加研究方向标签，点击"管理标签"开始添加</p>
               </div>
               <div v-else class="tags-list">
-                <div v-for="tag in researchTags" :key="tag.id" class="research-tag">
+                <div v-for="(tag, index) in researchTags" :key="index" class="research-tag">
                   <span class="tag-hierarchy" v-if="tag.path">{{ tag.path }}</span>
-                  <span class="tag-name">{{ tag.name }}</span>
-                  <button @click="removeTag(tag.id)" class="tag-remove-btn" title="移除标签">
+                  <span class="tag-name">{{ tag.name || tag }}</span>
+                  <button @click="removeTag(index)" class="tag-remove-btn" title="移除标签">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
@@ -218,7 +218,7 @@
                 <p>还未关联学术成果，点击"关联成果"开始添加</p>
               </div>
               <div v-else class="achievements-list">
-                <div v-for="achievement in linkedAchievements" :key="achievement.id" class="achievement-item">
+                <div v-for="achievement in linkedAchievements" :key="achievement.achievementId || achievement.id" class="achievement-item">
                   <div class="achievement-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                       <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -229,7 +229,7 @@
                     <h4 class="achievement-title">{{ achievement.title }}</h4>
                     <p class="achievement-meta">{{ achievement.type }} · {{ achievement.date }}</p>
                   </div>
-                  <button @click="unlinkAchievement(achievement.id)" class="achievement-remove-btn" title="取消关联">
+                  <button @click="unlinkAchievement(achievement.achievementId || achievement.id)" class="achievement-remove-btn" title="取消关联">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
@@ -392,7 +392,7 @@
               <button @click="addCustomTag" class="btn-add-custom" :disabled="researchTags.length >= 5">
                 添加自定义标签 "{{ tagSearchKeyword }}"
               </button>
-              <p class="custom-tag-note">*自定义标签需要平台审核后才会显示</p>
+              <p class="custom-tag-note">*自定义标签将直接添加到您的标签列表</p>
             </div>
             <div v-else class="preset-tags-grid">
               <div 
@@ -481,9 +481,9 @@
             <div v-else class="achievements-selection-list">
               <div 
                 v-for="achievement in availableAchievements" 
-                :key="achievement.id"
+                :key="achievement.achievementId || achievement.id"
                 class="achievement-selection-item"
-                :class="{ selected: isAchievementLinked(achievement.id) }"
+                :class="{ selected: isAchievementLinked(achievement.achievementId || achievement.id) }"
                 @click="toggleAchievementLink(achievement)"
               >
                 <div class="achievement-selection-icon">
@@ -495,7 +495,7 @@
                   <h4>{{ achievement.title }}</h4>
                   <p>{{ achievement.type }} · {{ achievement.projectName }} · {{ achievement.date }}</p>
                 </div>
-                <div v-if="isAchievementLinked(achievement.id)" class="achievement-checkmark">
+                <div v-if="isAchievementLinked(achievement.achievementId || achievement.id)" class="achievement-checkmark">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                   </svg>
@@ -528,6 +528,9 @@ import '@/assets/styles/Profile.css'
 import '@/assets/styles/ProfileEnhancements.css'
 import { avatarAPI } from '@/api/avatar'
 import { authAPI } from '@/api/auth'
+import { profileAPI } from '@/api/profile'
+import { projectAPI } from '@/api/project'
+import { knowledgeAPI, TYPE_DISPLAY } from '@/api/knowledge'
 import { addTimestampToUrl } from '@/utils/imageUtils'
 
 export default {
@@ -601,6 +604,19 @@ export default {
   watch: {
     showAchievementModal(newVal) {
       if (newVal) {
+        // 确保项目列表已加载
+        if (this.userProjects.length === 0) {
+          this.loadUserProjects().then(() => {
+            this.loadProjectAchievements()
+          })
+        } else {
+          this.loadProjectAchievements()
+        }
+      }
+    },
+    selectedProjectFilter() {
+      // 当项目筛选改变时，重新加载成果
+      if (this.showAchievementModal) {
         this.loadProjectAchievements()
       }
     }
@@ -1340,14 +1356,20 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API加载用户的研究方向标签
-        // const response = await profileAPI.getResearchTags()
-        // this.researchTags = response.data || []
-        
-        // 模拟数据
-        this.researchTags = []
+        const response = await profileAPI.getResearchTags()
+        if (response && response.code === 200 && response.data) {
+          // 后端返回的是字符串数组，转换为前端需要的格式
+          this.researchTags = response.data.map((tag, index) => ({
+            id: index + 1, // 临时ID，用于前端显示
+            name: tag,
+            path: null // 后端不返回路径信息
+          }))
+        } else {
+          this.researchTags = []
+        }
       } catch (error) {
         console.error('加载研究方向标签失败:', error)
+        this.researchTags = []
       }
     },
     
@@ -1447,9 +1469,8 @@ export default {
       return this.researchTags.some(t => t.id === tagId)
     },
     
-    async removeTag(tagId) {
-      const index = this.researchTags.findIndex(t => t.id === tagId)
-      if (index > -1) {
+    async removeTag(index) {
+      if (index >= 0 && index < this.researchTags.length) {
         this.researchTags.splice(index, 1)
         await this.saveResearchTags()
       }
@@ -1459,17 +1480,25 @@ export default {
       if (!this.tagSearchKeyword.trim() || this.researchTags.length >= 5) return
       
       try {
-        // TODO: 调用后端API提交自定义标签审核
-        // const response = await profileAPI.submitCustomTag({
-        //   name: this.tagSearchKeyword.trim()
-        // })
+        // 直接添加自定义标签到列表
+        const customTag = this.tagSearchKeyword.trim()
+        if (this.researchTags.some(t => (t.name || t) === customTag)) {
+          this.showSuccessToast('标签已存在')
+          return
+        }
         
-        // 模拟添加（实际需要等待审核）
-        this.showSuccessToast('自定义标签已提交审核，审核通过后会自动添加')
+        this.researchTags.push({
+          id: Date.now(), // 临时ID
+          name: customTag,
+          path: null
+        })
+        
+        // 保存到后端
+        await this.saveResearchTags()
         this.tagSearchKeyword = ''
       } catch (error) {
-        console.error('提交自定义标签失败:', error)
-        alert('提交失败，请稍后重试')
+        console.error('添加自定义标签失败:', error)
+        alert('添加失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
@@ -1477,15 +1506,20 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API保存研究方向标签
-        // const response = await profileAPI.updateResearchTags({
-        //   tags: this.researchTags.map(t => t.id)
-        // })
+        // 提取标签名称数组
+        const tagNames = this.researchTags.map(t => t.name || t)
         
-        this.showSuccessToast('研究方向标签已更新')
+        const response = await profileAPI.updateResearchTags(tagNames)
+        if (response && response.code === 200) {
+          // 更新成功后，重新加载标签
+          await this.loadResearchTags()
+          this.showSuccessToast('研究方向标签已更新')
+        } else {
+          throw new Error(response?.msg || '更新失败')
+        }
       } catch (error) {
         console.error('保存研究方向标签失败:', error)
-        alert('保存失败，请稍后重试')
+        alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
@@ -1494,14 +1528,25 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API加载已关联的学术成果
-        // const response = await profileAPI.getLinkedAchievements()
-        // this.linkedAchievements = response.data || []
-        
-        // 模拟数据
-        this.linkedAchievements = []
+        const response = await profileAPI.getMyAchievements()
+        if (response && response.code === 200 && response.data) {
+          // 转换后端数据格式为前端需要的格式
+          this.linkedAchievements = response.data.map(item => ({
+            id: item.achievementId,
+            achievementId: item.achievementId,
+            title: item.achievementTitle || '未命名成果',
+            type: TYPE_DISPLAY[item.achievementType] || item.achievementType || '未知类型',
+            date: item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : '',
+            projectId: item.projectId,
+            displayOrder: item.displayOrder || 0,
+            remark: item.remark || ''
+          }))
+        } else {
+          this.linkedAchievements = []
+        }
       } catch (error) {
         console.error('加载已关联成果失败:', error)
+        this.linkedAchievements = []
       }
     },
     
@@ -1509,17 +1554,20 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API加载用户参与的项目
-        // const response = await projectAPI.getMyProjects()
-        // this.userProjects = response.data || []
-        
-        // 模拟数据
-        this.userProjects = [
-          { id: 1, name: '智能对话系统研究' },
-          { id: 2, name: '图像识别算法优化' }
-        ]
+        const response = await projectAPI.getMyProjects(0, 100) // 获取前100个项目
+        if (response && response.code === 200 && response.data) {
+          // 转换分页数据格式
+          const projectList = response.data.content || response.data
+          this.userProjects = projectList.map(project => ({
+            id: project.id,
+            name: project.name || '未命名项目'
+          }))
+        } else {
+          this.userProjects = []
+        }
       } catch (error) {
         console.error('加载用户项目失败:', error)
+        this.userProjects = []
       }
     },
     
@@ -1528,77 +1576,131 @@ export default {
       
       this.isLoadingAchievements = true
       try {
-        // TODO: 调用后端API加载项目的公开成果
-        // const response = await achievementAPI.getProjectAchievements({
-        //   projectId: this.selectedProjectFilter || null
-        // })
-        // this.availableAchievements = response.data || []
+        let allAchievements = []
         
-        // 模拟数据
-        this.availableAchievements = [
-          {
-            id: 1,
-            title: '基于深度学习的图像分类方法研究',
-            type: '论文',
-            projectName: '智能对话系统研究',
-            date: '2024-01-15'
-          },
-          {
-            id: 2,
-            title: '自然语言处理系统发明专利',
-            type: '专利',
-            projectName: '智能对话系统研究',
-            date: '2024-03-20'
+        if (this.selectedProjectFilter) {
+          // 加载指定项目的成果
+          const response = await knowledgeAPI.getProjectAchievements(
+            this.selectedProjectFilter,
+            0,
+            100
+          )
+          if (response && response.code === 200 && response.data) {
+            const achievementList = response.data.content || response.data
+            allAchievements = achievementList
+              .filter(achievement => achievement.isPublic === true && achievement.status === 'published')
+              .map(achievement => ({
+                id: achievement.id,
+                achievementId: achievement.id,
+                title: achievement.title || '未命名成果',
+                type: TYPE_DISPLAY[achievement.type] || achievement.type || '未知类型',
+                projectName: achievement.projectName || '未知项目',
+                date: achievement.createdAt ? new Date(achievement.createdAt).toLocaleDateString('zh-CN') : '',
+                projectId: achievement.projectId
+              }))
           }
-        ]
+        } else {
+          // 加载所有项目中的公开成果
+          for (const project of this.userProjects) {
+            try {
+              const response = await knowledgeAPI.getProjectAchievements(project.id, 0, 100)
+              if (response && response.code === 200 && response.data) {
+                const achievementList = response.data.content || response.data
+                const publicAchievements = achievementList
+                  .filter(achievement => achievement.isPublic === true && achievement.status === 'published')
+                  .map(achievement => ({
+                    id: achievement.id,
+                    achievementId: achievement.id,
+                    title: achievement.title || '未命名成果',
+                    type: TYPE_DISPLAY[achievement.type] || achievement.type || '未知类型',
+                    projectName: project.name,
+                    date: achievement.createdAt ? new Date(achievement.createdAt).toLocaleDateString('zh-CN') : '',
+                    projectId: project.id
+                  }))
+                allAchievements = allAchievements.concat(publicAchievements)
+              }
+            } catch (error) {
+              console.error(`加载项目[${project.id}]成果失败:`, error)
+            }
+          }
+        }
+        
+        // 应用搜索过滤
+        if (this.achievementSearchKeyword) {
+          const keyword = this.achievementSearchKeyword.toLowerCase()
+          allAchievements = allAchievements.filter(achievement =>
+            achievement.title.toLowerCase().includes(keyword)
+          )
+        }
+        
+        this.availableAchievements = allAchievements
       } catch (error) {
         console.error('加载项目成果失败:', error)
+        this.availableAchievements = []
       } finally {
         this.isLoadingAchievements = false
       }
     },
     
     searchAchievements() {
-      // 搜索功能的实现
-      // 这里可以根据搜索关键词过滤availableAchievements
+      // 重新加载成果列表，会自动应用搜索过滤
+      this.loadProjectAchievements()
     },
     
     isAchievementLinked(achievementId) {
-      return this.linkedAchievements.some(a => a.id === achievementId)
+      return this.linkedAchievements.some(a => a.achievementId === String(achievementId) || a.id === String(achievementId))
     },
     
-    toggleAchievementLink(achievement) {
-      const index = this.linkedAchievements.findIndex(a => a.id === achievement.id)
-      if (index > -1) {
-        this.linkedAchievements.splice(index, 1)
-      } else {
-        this.linkedAchievements.push(achievement)
+    async toggleAchievementLink(achievement) {
+      const achievementId = achievement.achievementId || achievement.id
+      const isLinked = this.isAchievementLinked(achievementId)
+      
+      try {
+        if (isLinked) {
+          // 取消关联
+          await profileAPI.unlinkAchievement(achievementId)
+          this.linkedAchievements = this.linkedAchievements.filter(
+            a => a.achievementId !== String(achievementId) && a.id !== String(achievementId)
+          )
+          this.showSuccessToast('已取消关联')
+        } else {
+          // 关联成果
+          const response = await profileAPI.linkAchievement({
+            achievementId: achievementId,
+            projectId: achievement.projectId,
+            displayOrder: this.linkedAchievements.length + 1
+          })
+          if (response && response.code === 200) {
+            // 重新加载关联列表
+            await this.loadLinkedAchievements()
+            this.showSuccessToast('已关联成果')
+          } else {
+            throw new Error(response?.msg || '关联失败')
+          }
+        }
+      } catch (error) {
+        console.error('切换成果关联状态失败:', error)
+        alert('操作失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
     async unlinkAchievement(achievementId) {
-      const index = this.linkedAchievements.findIndex(a => a.id === achievementId)
-      if (index > -1) {
-        this.linkedAchievements.splice(index, 1)
-        await this.saveAchievementLinks()
+      try {
+        await profileAPI.unlinkAchievement(achievementId)
+        // 重新加载关联列表
+        await this.loadLinkedAchievements()
+        this.showSuccessToast('已取消关联')
+      } catch (error) {
+        console.error('取消关联成果失败:', error)
+        alert('取消关联失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
     async saveAchievementLinks() {
-      if (!this.isLoggedIn) return
-      
-      try {
-        // TODO: 调用后端API保存学术成果关联
-        // const response = await profileAPI.updateLinkedAchievements({
-        //   achievementIds: this.linkedAchievements.map(a => a.id)
-        // })
-        
-        this.showAchievementModal = false
-        this.showSuccessToast('学术成果关联已更新')
-      } catch (error) {
-        console.error('保存成果关联失败:', error)
-        alert('保存失败，请稍后重试')
-      }
+      // 这个方法现在不需要了，因为toggleAchievementLink已经实时保存
+      // 保留用于兼容性
+      this.showAchievementModal = false
+      this.showSuccessToast('学术成果关联已更新')
     },
     
     // ===== 隐私设置相关方法 =====
