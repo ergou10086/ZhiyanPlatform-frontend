@@ -171,50 +171,39 @@
         @click.self="closeMessageDetail"
       >
         <div class="message-detail-modal">
-          <!-- 头部 -->
-          <div class="detail-header-new">
-            <div class="detail-header-icon" :class="getSceneClass(detailMessage?.scene)">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+          <div class="detail-header">
+            <div>
+              <div class="detail-scene">{{ getSceneLabel(detailMessage?.scene) || '消息详情' }}</div>
+              <div class="detail-title">{{ detailMessage?.title }}</div>
             </div>
-            <div class="detail-header-text">
-              <span class="detail-scene-tag">{{ getSceneName(detailMessage?.scene) }}</span>
-              <h3 class="detail-title-new">{{ detailMessage?.title }}</h3>
-            </div>
-            <button class="detail-close-new" @click="closeMessageDetail">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+            <button class="detail-close" @click="closeMessageDetail">
+              <span>&times;</span>
             </button>
           </div>
 
-          <!-- 发送者信息 -->
-          <div class="detail-sender" v-if="detailMessage?.senderUsername">
-            <div class="sender-avatar-detail">
-              <img v-if="detailMessage?.senderAvatar" :src="detailMessage.senderAvatar" alt="" />
-              <span v-else>{{ getAvatarInitial(detailMessage.senderUsername) }}</span>
-            </div>
-            <div class="sender-info-detail">
-              <span class="sender-name-detail">{{ detailMessage.senderUsername }}</span>
-              <span class="sender-time-detail">{{ formatDetailTime(detailMessage?.createdAt) }}</span>
-            </div>
-          </div>
-
-          <!-- 内容区域 -->
-          <div class="detail-body-new">
-            <div class="detail-content-card">
-              <p>{{ detailMessage?.content }}</p>
+          <div class="detail-body">
+            <div class="detail-section">
+              <div class="section-label">内容</div>
+              <div class="section-content">{{ detailMessage?.content }}</div>
             </div>
 
-            <!-- 附加信息 -->
-            <div class="detail-meta" v-if="!detailMessage?.senderUsername">
-              <div class="meta-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                  <path d="M12 6V12L16 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-                <span>{{ formatDetailTime(detailMessage?.createdAt) }}</span>
+            <div class="detail-section">
+              <div class="section-label">触发时间</div>
+              <div class="section-content">{{ formatDetailTime(detailMessage?.createdAt || detailMessage?.triggerTime) }}</div>
+            </div>
+
+            <div class="detail-section" v-if="detailMessage?.businessType">
+              <div class="section-label">业务类型</div>
+              <div class="section-content">{{ getBusinessTypeLabel(detailMessage.businessType) }}</div>
+            </div>
+
+            <div class="detail-section" v-if="detailMessage?.extendData">
+              <div class="section-label">扩展信息</div>
+              <div class="extend-info-list">
+                <div v-for="(item, index) in formatExtendDataList(detailMessage.extendData)" :key="index" class="extend-info-item">
+                  <span class="extend-label">{{ item.label }}</span>
+                  <span class="extend-value">{{ item.value }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -426,7 +415,6 @@ import {
   rejectProjectJoin
 } from '@/api/message'
 import { projectAPI } from '@/api/project'
-import { authAPI } from '@/api/auth'
 import { avatarAPI } from '@/api/avatar'
 
 export default {
@@ -457,9 +445,7 @@ export default {
       },
       sendLoading: false,
       myProjects: [],
-      myProjectsLoaded: false,
-      // 发送者信息缓存
-      senderCache: {}
+      myProjectsLoaded: false
     }
   },
   mounted() {
@@ -577,7 +563,7 @@ export default {
         console.log('📨 消息列表响应:', response)
 
         if (response && response.code === 200 && response.data) {
-          const newMessages = await this.transformMessages(response.data.content || [])
+          const newMessages = this.transformMessages(response.data.content || [])
 
           if (reset) {
             this.messages = newMessages
@@ -660,6 +646,83 @@ export default {
     closeMessageDetail() {
       this.detailDialogVisible = false
       this.detailMessage = null
+    },
+
+    /**
+     * 格式化详情时间为中文格式
+     */
+    formatDetailTime(timestamp) {
+      if (!timestamp) return ''
+      try {
+        let time
+        if (timestamp instanceof Date) {
+          time = timestamp
+        } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+          time = new Date(timestamp)
+        } else {
+          return ''
+        }
+        
+        if (isNaN(time.getTime())) {
+          return ''
+        }
+        
+        const year = time.getFullYear()
+        const month = String(time.getMonth() + 1).padStart(2, '0')
+        const day = String(time.getDate()).padStart(2, '0')
+        const hours = String(time.getHours()).padStart(2, '0')
+        const minutes = String(time.getMinutes()).padStart(2, '0')
+        const seconds = String(time.getSeconds()).padStart(2, '0')
+        
+        return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`
+      } catch (error) {
+        console.error('formatDetailTime 错误:', error)
+        return ''
+      }
+    },
+
+    /**
+     * 格式化扩展数据为列表格式
+     */
+    formatExtendDataList(extendData) {
+      if (!extendData) return []
+      
+      const labelMap = {
+        'senderId': '发送者ID',
+        'projectId': '项目ID',
+        'senderName': '发送者',
+        'projectName': '项目名称',
+        'receiverCount': '接收人数',
+        'taskId': '任务ID',
+        'taskName': '任务名称',
+        'userId': '用户ID',
+        'userName': '用户名',
+        'kind': '消息类型',
+        'status': '状态',
+        'reason': '原因',
+        'description': '描述',
+        'deadline': '截止时间',
+        'priority': '优先级'
+      }
+      
+      try {
+        let data = extendData
+        if (typeof extendData === 'string') {
+          data = JSON.parse(extendData)
+        }
+        
+        if (typeof data !== 'object' || data === null) {
+          return []
+        }
+        
+        return Object.entries(data).map(([key, value]) => ({
+          label: labelMap[key] || key,
+          value: value !== null && value !== undefined ? String(value) : '-'
+        }))
+      } catch (error) {
+        console.warn('扩展数据解析失败:', error)
+        return []
+      }
     },
 
     /**
@@ -873,6 +936,62 @@ export default {
     },
 
     /**
+     * 获取场景类型的中文标签
+     */
+    getSceneLabel(scene) {
+      const sceneLabels = {
+        // 任务相关
+        'TASK_ASSIGN': '任务分配',
+        'TASK_STATUS_CHANGED': '任务状态变更',
+        'TASK_REVIEW_REQUEST': '任务审核请求',
+        'TASK_REVIEW_RESULT': '任务审核结果',
+        'TASK_DEADLINE_REMIND': '任务截止提醒',
+        'TASK_OVERDUE': '任务逾期',
+        'TASK': '任务通知',
+        // 项目相关
+        'PROJECT_CREATED': '项目创建',
+        'PROJECT_ARCHIVED': '项目归档',
+        'PROJECT_DELETED': '项目删除',
+        'PROJECT_MEMBER_APPLY': '成员申请加入',
+        'PROJECT_MEMBER_INVITED': '项目邀请',
+        'PROJECT_MEMBER_REMOVED': '成员移除',
+        'PROJECT_MEMBER_APPROVAL': '成员审批',
+        'PROJECT_ROLE_CHANGED': '角色变更',
+        'PROJECT_STATUS_CHANGED': '项目状态变更',
+        'PROJECT': '项目通知',
+        // 成果相关
+        'ACHIEVEMENT_FILE_UPLOADED': '成果文件上传',
+        'ACHIEVEMENT_CREATED': '成果创建',
+        'ACHIEVEMENT_DELETED': '成果删除',
+        'ACHIEVEMENT_FILE_DELETED': '成果文件删除',
+        'ACHIEVEMENT_REVIEW_REQUEST': '成果审核请求',
+        'ACHIEVEMENT_STATUS_CHANGED': '成果状态变更',
+        'ACHIEVEMENT_PUBLISHED': '成果发布',
+        // 系统相关
+        'SYSTEM_SECURITY_ALERT': '安全警告',
+        'SYSTEM_BROADCAST': '系统广播',
+        'SYSTEM': '系统通知',
+        // 用户消息
+        'USER_CUSTOM_MESSAGE': '用户消息'
+      }
+      return sceneLabels[scene] || scene || '消息详情'
+    },
+
+    /**
+     * 获取业务类型的中文标签
+     */
+    getBusinessTypeLabel(businessType) {
+      const businessTypeLabels = {
+        'PROJECT': '项目',
+        'TASK': '任务',
+        'ACHIEVEMENT': '成果',
+        'SYSTEM': '系统',
+        'USER': '用户'
+      }
+      return businessTypeLabels[businessType] || businessType || ''
+    },
+
+    /**
      * 获取场景图标
      */
     getSceneIcon(scene) {
@@ -908,99 +1027,6 @@ export default {
       const parent = event.target.parentElement
       if (parent) {
         parent.classList.add('avatar-error')
-      }
-    },
-
-    /**
-     * 获取场景中文名称
-     */
-    getSceneName(scene) {
-      const sceneMap = {
-        // 任务相关
-        'TASK_ASSIGN': '任务分配',
-        'TASK_STATUS_CHANGED': '任务状态变更',
-        'TASK_REVIEW_REQUEST': '任务审核请求',
-        'TASK_REVIEW_RESULT': '任务审核结果',
-        'TASK_DEADLINE_REMIND': '任务截止提醒',
-        'TASK_OVERDUE': '任务逾期',
-        // 项目相关
-        'PROJECT_CREATED': '项目创建',
-        'PROJECT_ARCHIVED': '项目归档',
-        'PROJECT_DELETED': '项目删除',
-        'PROJECT_MEMBER_APPLY': '成员申请',
-        'PROJECT_MEMBER_INVITED': '成员邀请',
-        'PROJECT_MEMBER_REMOVED': '成员移除',
-        'PROJECT_MEMBER_APPROVAL': '成员审批',
-        'PROJECT_ROLE_CHANGED': '角色变更',
-        'PROJECT_STATUS_CHANGED': '项目状态变更',
-        // 成果相关
-        'ACHIEVEMENT_FILE_UPLOADED': '成果上传',
-        'ACHIEVEMENT_CREATED': '成果创建',
-        'ACHIEVEMENT_DELETED': '成果删除',
-        'ACHIEVEMENT_FILE_DELETED': '成果文件删除',
-        'ACHIEVEMENT_REVIEW_REQUEST': '成果审核请求',
-        'ACHIEVEMENT_STATUS_CHANGED': '成果状态变更',
-        'ACHIEVEMENT_PUBLISHED': '成果发布',
-        // 系统相关
-        'SYSTEM_SECURITY_ALERT': '安全提醒',
-        'SYSTEM_BROADCAST': '系统公告',
-        // 用户消息
-        'USER_CUSTOM_MESSAGE': '用户私信',
-        // Wiki相关
-        'WIKI_PAGE_CREATED': 'Wiki页面创建',
-        'WIKI_PAGE_UPDATED': 'Wiki页面更新',
-        'WIKI_PAGE_DELETED': 'Wiki页面删除'
-      }
-      return sceneMap[scene] || '消息通知'
-    },
-
-    /**
-     * 获取场景样式类
-     */
-    getSceneClass(scene) {
-      if (!scene) return 'scene-default'
-      if (scene.startsWith('TASK')) return 'scene-task'
-      if (scene.startsWith('PROJECT')) return 'scene-project'
-      if (scene.startsWith('ACHIEVEMENT')) return 'scene-achievement'
-      if (scene.startsWith('SYSTEM')) return 'scene-system'
-      if (scene.startsWith('USER')) return 'scene-user'
-      if (scene.startsWith('WIKI')) return 'scene-wiki'
-      return 'scene-default'
-    },
-
-    /**
-     * 获取业务类型中文名称
-     */
-    getBusinessTypeName(type) {
-      const typeMap = {
-        'TASK': '任务',
-        'PROJECT': '项目',
-        'ACHIEVEMENT': '成果',
-        'USER': '用户消息',
-        'WIKI': 'Wiki文档',
-        'SYSTEM': '系统'
-      }
-      return typeMap[type] || type
-    },
-
-    /**
-     * 格式化详情时间
-     */
-    formatDetailTime(timestamp) {
-      if (!timestamp) return ''
-      try {
-        let time = timestamp instanceof Date ? timestamp : new Date(timestamp)
-        if (isNaN(time.getTime())) return ''
-
-        const year = time.getFullYear()
-        const month = String(time.getMonth() + 1).padStart(2, '0')
-        const day = String(time.getDate()).padStart(2, '0')
-        const hour = String(time.getHours()).padStart(2, '0')
-        const minute = String(time.getMinutes()).padStart(2, '0')
-
-        return `${year}年${month}月${day}日 ${hour}:${minute}`
-      } catch (error) {
-        return ''
       }
     },
 
@@ -1075,13 +1101,13 @@ export default {
     /**
      * 将后端消息数据转换为前端可用结构
      */
-    async transformMessages(messageList) {
+    transformMessages(messageList) {
       if (!Array.isArray(messageList)) {
         console.warn('transformMessages: messageList 不是数组', messageList)
         return []
       }
       
-      const messages = await Promise.all(messageList.map(async item => {
+      const messages = messageList.map(item => {
         // 安全处理时间字段
         let createdAt = item.triggerTime
         if (createdAt) {
@@ -1099,14 +1125,21 @@ export default {
           }
         }
 
-        // 获取发送者信息
-        let senderUsername = ''
-        let senderAvatar = ''
-        if (item.senderId) {
-          const senderInfo = await this.getSenderInfo(item.senderId)
-          if (senderInfo) {
-            senderUsername = senderInfo.name || senderInfo.username || ''
-            senderAvatar = senderInfo.avatarUrl || ''
+        // 尝试从 extendData 中提取发送者信息
+        let senderUsername = item.senderUsername || ''
+        let senderId = null
+        
+        if (item.extendData) {
+          try {
+            const extend = typeof item.extendData === 'string' 
+              ? JSON.parse(item.extendData) 
+              : item.extendData
+            if (!senderUsername) {
+              senderUsername = extend.senderName || ''
+            }
+            senderId = extend.senderId || null
+          } catch (e) {
+            // 解析失败忽略
           }
         }
 
@@ -1120,60 +1153,63 @@ export default {
           businessId: item.businessId,
           businessType: item.businessType,
           extendData: item.extendData,
-          senderId: item.senderId,
           senderUsername: senderUsername,
-          senderAvatar: senderAvatar
+          senderId: senderId,
+          senderAvatar: null // 稍后异步加载
         }
-      }))
-
+      })
+      
+      // 异步加载发送者头像
+      this.loadSenderAvatars(messages)
+      
       return messages
     },
 
     /**
-     * 获取发送者信息（带缓存）
+     * 异步加载发送者头像（与团队成员相同的方式）
      */
-    async getSenderInfo(senderId) {
-      if (!senderId) return null
-
-      // 检查缓存
-      if (this.senderCache[senderId]) {
-        return this.senderCache[senderId]
-      }
-
-      try {
-        // 并行获取用户信息和头像
-        const [userResponse, avatarResponse] = await Promise.all([
-          authAPI.getUserById(senderId),
-          avatarAPI.getAvatarInfoById(senderId).catch(() => null)
-        ])
-
-        let senderInfo = null
-        if (userResponse && userResponse.code === 200 && userResponse.data) {
-          senderInfo = { ...userResponse.data }
-
-          // 处理头像
-          if (avatarResponse && avatarResponse.code === 200 && avatarResponse.data) {
-            const avatarData = avatarResponse.data
-            // 优先使用 dataUrl（Base64格式）
+    async loadSenderAvatars(messages) {
+      // 收集需要加载头像的 senderId（去重）
+      const senderIds = [...new Set(
+        messages
+          .filter(m => m.senderId && !m.senderAvatar)
+          .map(m => String(m.senderId))
+      )]
+      
+      if (senderIds.length === 0) return
+      
+      // 逐个加载头像（与团队成员相同的方式）
+      for (const senderId of senderIds) {
+        try {
+          const response = await avatarAPI.getAvatarInfoById(senderId)
+          if (response && response.code === 200 && response.data) {
+            const avatarData = response.data
+            let avatarUrl = null
+            
+            // 优先使用 dataUrl（Base64格式，可直接用于img src）
             if (avatarData.dataUrl) {
-              senderInfo.avatarUrl = avatarData.dataUrl
+              avatarUrl = avatarData.dataUrl
             } else if (avatarData.sizes) {
-              senderInfo.avatarUrl = avatarData.sizes.original || avatarData.sizes['256'] || avatarData.sizes['512']
+              avatarUrl = avatarData.sizes.original || avatarData.sizes['256'] || avatarData.sizes['512']
             } else if (avatarData.minio_url) {
-              senderInfo.avatarUrl = avatarData.minio_url
+              avatarUrl = avatarData.minio_url
             } else if (avatarData.cdn_url) {
-              senderInfo.avatarUrl = avatarData.cdn_url
+              avatarUrl = avatarData.cdn_url
+            }
+            
+            if (avatarUrl) {
+              // 更新所有该发送者的消息头像
+              this.messages.forEach(msg => {
+                if (String(msg.senderId) === senderId) {
+                  this.$set(msg, 'senderAvatar', avatarUrl)
+                }
+              })
             }
           }
-
-          this.senderCache[senderId] = senderInfo
-          return senderInfo
+        } catch (error) {
+          // 用户可能没有设置头像，忽略错误
         }
-      } catch (error) {
-        console.warn('获取发送者信息失败:', senderId, error)
       }
-
-      return null
     },
 
     /**
@@ -1191,7 +1227,7 @@ export default {
       }
       return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
     },
-    
+
     /**
      * 当前详情消息的动作类型：
      * - INVITATION: 项目邀请
@@ -1204,16 +1240,10 @@ export default {
       const extend = this.parseExtendDataObject(extendData)
       const kind = extend && extend.kind
 
-      // 项目邀请：需要同意/拒绝
-      if (scene === 'PROJECT_MEMBER_INVITED' || scene === 'MEMBER_INVITATION') {
+      if (scene === 'PROJECT_MEMBER_INVITED' && kind === 'PROJECT_INVITATION') {
         return 'INVITATION'
       }
-      // 通过kind判断
-      if (kind === 'PROJECT_INVITATION') {
-        return 'INVITATION'
-      }
-      // 项目加入申请
-      if (scene === 'PROJECT_MEMBER_APPLY' || kind === 'PROJECT_JOIN_APPLY') {
+      if (scene === 'PROJECT_MEMBER_APPLY' && kind === 'PROJECT_JOIN_APPLY') {
         return 'JOIN_APPLY'
       }
       return null
@@ -1476,12 +1506,6 @@ export default {
   text-align: center;
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 .panel-toolbar {
   display: flex;
   align-items: center;
@@ -1529,44 +1553,6 @@ export default {
 .toolbar-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.action-btn {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  background: transparent;
-  color: var(--primary-color);
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-
-.action-btn:hover:not(:disabled) {
-  background: var(--primary-lightest);
-}
-
-.action-btn:disabled {
-  color: var(--text-quaternary);
-  cursor: not-allowed;
-}
-
-.send-btn {
-  color: var(--primary-color);
-}
-
-.send-btn:hover:not(:disabled) {
-  background: var(--primary-lightest);
-}
-
-.action-btn svg {
-  width: 14px;
-  height: 14px;
 }
 
 /* 标签页 */
@@ -1704,17 +1690,6 @@ export default {
   background: var(--primary-lighter);
 }
 
-.message-icon {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-}
-
 /* 发送者头像样式 */
 .sender-avatar {
   flex-shrink: 0;
@@ -1775,6 +1750,17 @@ export default {
   font-size: 13px;
   font-weight: 500;
   color: var(--primary-color);
+}
+
+.message-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }
 
 .message-icon.scene-TASK_ASSIGN,
@@ -1912,14 +1898,14 @@ export default {
   opacity: 0;
 }
 
+/* 消息详情弹窗 - 蓝白配色 */
 .message-detail-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1928,327 +1914,309 @@ export default {
 }
 
 .message-detail-modal {
-  width: 480px;
+  width: 520px;
   max-width: 100%;
-  background: var(--bg-primary);
+  background: #ffffff;
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
   overflow: hidden;
 }
 
-/* 新版详情头部 - 蓝白配色 */
-.detail-header-new {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 24px;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-}
-
-.detail-header-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-}
-
-.detail-header-icon.scene-task {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.detail-header-icon.scene-project {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.detail-header-icon.scene-user {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.detail-header-icon.scene-system {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.detail-header-icon.scene-wiki {
-  background: rgba(255, 255, 255, 0.25);
-}
-
-.detail-header-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.detail-scene-tag {
-  display: inline-block;
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  margin-bottom: 10px;
-}
-
-.detail-title-new {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-.detail-close-new {
-  width: 38px;
-  height: 38px;
-  border: none;
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(8px);
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: all 0.2s ease;
-  flex-shrink: 0;
-}
-
-.detail-close-new:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: rotate(90deg);
-}
-
-/* 发送者信息 - 蓝白配色 */
-.detail-sender {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 24px;
-  background: #f0f7ff;
-  border-bottom: 1px solid #e0edff;
-}
-
-.sender-avatar-detail {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
-  font-size: 18px;
-  font-weight: 600;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-
-.sender-avatar-detail img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.sender-info-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.sender-name-detail {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e40af;
-}
-
-.sender-time-detail {
-  font-size: 13px;
-  color: #64748b;
-}
-
-/* 内容区域 - 蓝白配色 */
-.detail-body-new {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-  background: #ffffff;
-}
-
-.detail-content-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 18px 20px;
-  margin-bottom: 16px;
-}
-
-.detail-content-card p {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.8;
-  color: #334155;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.detail-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-top: 12px;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #64748b;
-  padding: 6px 12px;
-  background: #f1f5f9;
-  border-radius: 20px;
-}
-
-.meta-item svg {
-  color: #3b82f6;
-}
-
-/* 底部按钮 - 蓝白配色 */
-.detail-footer-new {
-  padding: 18px 24px 22px;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.detail-btn-new {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 28px;
-  border: none;
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
-}
-
-.detail-btn-new:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
-}
-
-/* 保留旧样式兼容 */
 .detail-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border-secondary);
+  padding: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
 }
 
 .detail-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 4px;
+  color: #ffffff;
+  margin-top: 6px;
 }
 
 .detail-scene {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
 }
 
 .detail-close {
+  width: 36px;
+  height: 36px;
   border: none;
-  background: transparent;
-  font-size: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.detail-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
 }
 
 .detail-body {
-  padding: 16px 24px;
+  padding: 20px 24px;
   overflow-y: auto;
   flex: 1;
+  background: #ffffff;
 }
 
 .detail-section {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
 }
 
 .section-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 8px;
 }
 
 .section-content {
   font-size: 14px;
-  color: var(--text-primary);
+  color: #334155;
   line-height: 1.6;
 }
 
 .section-extend {
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 12px;
+  background: #f0f7ff;
+  border: 1px solid #e0edff;
+  border-radius: 10px;
+  padding: 14px;
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-secondary);
+  line-height: 1.6;
+  color: #475569;
   overflow-x: auto;
   white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* 扩展信息列表样式 */
+.extend-info-list {
+  background: #f0f7ff;
+  border: 1px solid #e0edff;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.extend-info-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e0edff;
+}
+
+.extend-info-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.extend-info-item:first-child {
+  padding-top: 0;
+}
+
+.extend-label {
+  flex-shrink: 0;
+  width: 80px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.extend-value {
+  flex: 1;
+  font-size: 13px;
+  color: #334155;
   word-break: break-all;
 }
 
 .detail-footer {
-  padding: 16px 24px 20px;
-  border-top: 1px solid var(--border-secondary);
+  padding: 18px 24px 22px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
+  background: #f8fafc;
 }
 
 .detail-btn {
   min-width: 96px;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 6px;
-  background: var(--primary-color);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: #fff;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.detail-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
 }
 
 .detail-btn.outline {
-  background: transparent;
-  border: 1px solid var(--border-secondary);
-  color: var(--text-secondary);
-  margin-left: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.detail-btn.outline:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: none;
+  box-shadow: none;
 }
 
 .detail-btn.ghost {
   background: transparent;
-  color: var(--text-secondary);
-  margin-left: 8px;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.detail-btn.ghost:hover {
+  color: #334155;
+  background: #f1f5f9;
+  transform: none;
+}
+
+/* 夜间模式适配 */
+.dark-mode .message-panel {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .panel-header,
+.dark-mode .tabs,
+.dark-mode .message-footer {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .title-text {
+  color: #e5e7eb;
+}
+
+.dark-mode .unread-count {
+  background: #ef4444;
+}
+
+.dark-mode .tab-item {
+  color: #9ca3af;
+}
+
+.dark-mode .tab-item.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+.dark-mode .message-item {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-item:hover {
+  background: #0f172a;
+}
+
+.dark-mode .message-item.unread {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.dark-mode .message-item.unread:hover {
+  background: rgba(37, 99, 235, 0.22);
+}
+
+.dark-mode .message-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .message-body {
+  color: #9ca3af;
+}
+
+.dark-mode .message-time {
+  color: #6b7280;
+}
+
+.dark-mode .empty-state,
+.dark-mode .loading-state {
+  color: #9ca3af;
+}
+
+.dark-mode .message-detail-overlay {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.dark-mode .message-detail-modal {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .detail-header {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .detail-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .detail-scene,
+.dark-mode .section-label {
+  color: #6b7280;
+}
+
+.dark-mode .section-content {
+  color: #e5e7eb;
+}
+
+.dark-mode .section-extend {
+  background: #020617;
+  border-color: #1f2937;
+  color: #9ca3af;
+}
+
+.dark-mode .detail-footer {
+  border-top-color: #1f2937;
+}
+
+.dark-mode .detail-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.dark-mode .detail-btn.outline {
+  background: transparent;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dark-mode .detail-btn.ghost {
+  background: transparent;
+  color: #9ca3af;
 }
 
 /* 发送消息对话框 */
