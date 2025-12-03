@@ -341,7 +341,7 @@
         </div>
         <div class="team-grid">
           <div v-for="member in teamMembers" :key="member.id" class="member-card">
-            <div class="member-avatar">
+            <div class="member-avatar" @click="goToUserProfile(member)">
               <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
               <div v-else class="avatar-placeholder">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2644,6 +2644,20 @@ export default {
       } catch (e) {
         // 忽略缓存写入错误
       }
+    },
+    goToUserProfile(member) {
+      // 从成员对象中取 userId 或 id
+      const userId = member.userId || member.id
+      if (!userId) return
+      // 目前个人信息页路由为 /profile，可通过查询参数传入要查看的用户ID
+      // 同时将头像一并传过去，作为他人页面头像的兜底展示
+      this.$router.push({
+        path: '/profile',
+        query: {
+          userId: String(userId),
+          avatar: member.avatar || ''
+        }
+      })
     },
     loadTeamMembersFromLocalStorage() {
       const projectId = this.$route.params.id

@@ -90,6 +90,16 @@ export const profileAPI = {
   },
 
   /**
+   * 获取指定用户的研究方向标签
+   * @param {String|Number} userId - 用户ID
+   * @returns {Promise} 返回标签字符串列表
+   */
+  getUserResearchTags(userId) {
+    console.log('[profileAPI.getUserResearchTags] 获取用户研究方向标签, userId:', userId)
+    return api.get(`/zhiyan/auth/users/${userId}/research-tags`)
+  },
+
+  /**
    * 更新研究方向标签
    * @param {Array<String>} tags - 标签列表（1-5个）
    * @returns {Promise} 返回更新后的标签列表
@@ -99,6 +109,15 @@ export const profileAPI = {
     return api.put('/zhiyan/auth/profile/research-tags', {
       researchTags: tags
     })
+  },
+
+  /**
+   * 清空研究方向标签
+   * @returns {Promise} 返回操作结果
+   */
+  clearResearchTags() {
+    console.log('[profileAPI.clearResearchTags] 清空研究方向标签')
+    return api.delete('/zhiyan/auth/profile/research-tags')
   },
 
   /**

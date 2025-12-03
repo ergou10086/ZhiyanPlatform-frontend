@@ -283,7 +283,6 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding-left: 32px; /* 微调左内边距来达到最佳视觉平�?*/
 }
 
 .profile-container .nickname-info {
