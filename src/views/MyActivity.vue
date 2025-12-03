@@ -1054,64 +1054,78 @@ export default {
     async loadProjects() {
       this.isLoadingProjects = true
       try {
-        // 加载更多数量，与首页数据源一致但不做数量限制
         const pageSize = 100
-        let page = 0
-        let allProjects = []
-        let hasMore = true
-        
-        while (hasMore) {
-          const response = await projectAPI.getMyProjects(page, pageSize)
-          let projects = []
-  
-          if (Array.isArray(response)) {
-            projects = response
-          } else if (response && response.data) {
-            const data = response.data
-            if (Array.isArray(data)) {
-              projects = data
-            } else if (Array.isArray(data.content)) {
-              projects = data.content
-              // 如果带分页信息，判断是否还有下一页
-              const totalPages = data.totalPages
+        const fetchAllProjects = async (fetcher) => {
+          const results = []
+          let page = 0
+          let hasMore = true
+          while (hasMore) {
+            const response = await fetcher(page, pageSize)
+            const payload = response?.data ?? response
+            const { projects, totalPages } = this.extractProjectsFromResponse(payload)
+            if (Array.isArray(projects) && projects.length > 0) {
+              results.push(...projects)
               if (typeof totalPages === 'number') {
                 hasMore = page + 1 < totalPages
               } else {
                 hasMore = projects.length === pageSize
               }
-            } else if (Array.isArray(data.list)) {
-              projects = data.list
-              hasMore = projects.length === pageSize
-            } else if (Array.isArray(data.records)) {
-              projects = data.records
-              hasMore = projects.length === pageSize
             } else {
               hasMore = false
             }
-          } else {
-            hasMore = false
+            page += 1
+            if (page > 10) {
+              hasMore = false
+            }
           }
-  
-          allProjects = allProjects.concat(projects || [])
-          page += 1
-          
-          // 安全上限，避免无限循环
-          if (page > 10) {
-            hasMore = false
-          }
+          return results
         }
 
-        const currentUserId = this.getCurrentUserId()
+        const [participatedProjects, createdProjects] = await Promise.allSettled([
+          fetchAllProjects((page, size) => projectAPI.getMyProjects(page, size)),
+          fetchAllProjects((page, size) => projectAPI.getMyCreatedProjects(page, size))
+        ])
 
-        const participatedProjects = allProjects.filter(project => {
-          const creatorId = project.created_by || project.creatorId || project.createdBy
-          if (creatorId && String(creatorId) === String(currentUserId)) {
-            return false
+        const mergedProjectsMap = new Map()
+        const mergedList = []
+
+        if (participatedProjects.status === 'fulfilled') {
+          mergedList.push(...participatedProjects.value)
+        } else {
+          console.warn('[MyActivity] 获取我参与的项目失败:', participatedProjects.reason)
+        }
+
+        if (createdProjects.status === 'fulfilled') {
+          mergedList.push(...createdProjects.value)
+        } else {
+          console.warn('[MyActivity] 获取我创建的项目失败:', createdProjects.reason)
+        }
+
+        // 合并本地缓存中的项目，作为兜底数据
+        try {
+          const cachedProjectsRaw = localStorage.getItem('projects')
+          if (cachedProjectsRaw) {
+            const cachedProjects = JSON.parse(cachedProjectsRaw)
+            if (Array.isArray(cachedProjects)) {
+              mergedList.push(...cachedProjects)
+            } else {
+              console.warn('[MyActivity] 本地缓存的 projects 数据格式不是数组')
+            }
           }
-          return true
+        } catch (error) {
+          console.warn('[MyActivity] 解析本地缓存 projects 失败:', error)
+        }
+
+        mergedList.forEach(project => {
+          const rawId = project?.id || project?.projectId || project?.project_id
+          if (!rawId) return
+          const key = String(rawId)
+          if (!mergedProjectsMap.has(key)) {
+            mergedProjectsMap.set(key, project)
+          }
         })
 
-        this.projects = participatedProjects.map(project => {
+        this.projects = Array.from(mergedProjectsMap.values()).map(project => {
           const status = this.mapProjectStatus(project.status)
           return {
             id: project.id || project.projectId || project.project_id,
@@ -2020,45 +2034,70 @@ export default {
     },
 
     mapProjectStatus(status) {
+      if (!status) return 'in-progress'
+      const normalized = String(status).trim().toUpperCase()
       const statusMap = {
         'ACTIVE': 'in-progress',
+        'IN_PROGRESS': 'in-progress',
+        'ONGOING': 'in-progress',
+        'PAUSED': 'paused',
         'COMPLETED': 'completed',
-        'PAUSED': 'in-progress',
-        'ARCHIVED': 'completed',
+        'DONE': 'completed',
+        'ARCHIVED': 'archived',
         '进行中': 'in-progress',
         '已完成': 'completed',
-        '已暂停': 'in-progress'
+        '已暂停': 'paused',
+        '已归档': 'archived'
       }
-      return statusMap[status] || 'in-progress'
+      return statusMap[normalized] || statusMap[status] || 'in-progress'
+    },
+
+    extractProjectsFromResponse(payload) {
+      const result = { projects: [], totalPages: null }
+      if (!payload) {
+        return result
+      }
+      if (Array.isArray(payload)) {
+        result.projects = payload
+        return result
+      }
+      if (Array.isArray(payload.content)) {
+        result.projects = payload.content
+        result.totalPages = payload.totalPages ?? payload.total_pages ?? null
+        return result
+      }
+      if (Array.isArray(payload.list)) {
+        result.projects = payload.list
+        return result
+      }
+      if (Array.isArray(payload.records)) {
+        result.projects = payload.records
+        return result
+      }
+      return result
     },
 
     calculateProjectProgress(status) {
       if (!status) return 0
-      const statusStr = String(status)
-      if (statusStr === 'completed' || statusStr === 'Completed' || statusStr === '已完成') {
+      const normalized = this.mapProjectStatus(status)
+      if (normalized === 'completed' || normalized === 'archived') {
         return 100
       }
-      if (statusStr === 'in-progress' || statusStr === 'ACTIVE' || statusStr === 'Paused' || statusStr === '进行中') {
-        return 50
+      if (normalized === 'paused') {
+        return 25
       }
-      return 0
+      return 50
     },
 
     getProjectStatusText(status) {
-      if (!status) return '进行中'
-      const statusStr = String(status).trim()
+      const normalized = this.mapProjectStatus(status)
       const statusMap = {
         'in-progress': '进行中',
         'completed': '已完成',
-        'ACTIVE': '进行中',
-        'COMPLETED': '已完成',
-        'PAUSED': '进行中',
-        'ARCHIVED': '已归档',
-        '进行中': '进行中',
-        '已完成': '已完成',
-        '已归档': '已归档'
+        'paused': '已暂停',
+        'archived': '已归档'
       }
-      return statusMap[statusStr] || '进行中'
+      return statusMap[normalized] || '进行中'
     },
     
     getBarWidth(value, max) {
@@ -4305,6 +4344,7 @@ export default {
     overflow: visible !important;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     line-height: 1.4;
   }

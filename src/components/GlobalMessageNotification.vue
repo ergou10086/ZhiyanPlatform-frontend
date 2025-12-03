@@ -331,7 +331,7 @@
             <el-option
               v-for="project in myProjects"
               :key="project.id"
-              :label="project.title"
+              :label="project.title || project.name || `项目 ${project.id}`"
               :value="project.id"
             />
           </el-select>
@@ -689,7 +689,7 @@ export default {
       
       const labelMap = {
         'senderId': '发送者ID',
-        'projectId': '项目ID',
+        'projectId': '项目名称',
         'senderName': '发送者',
         'projectName': '项目名称',
         'receiverCount': '接收人数',
@@ -715,10 +715,21 @@ export default {
           return []
         }
         
-        return Object.entries(data).map(([key, value]) => ({
-          label: labelMap[key] || key,
-          value: value !== null && value !== undefined ? String(value) : '-'
-        }))
+        return Object.entries(data).map(([key, value]) => {
+          // 对项目ID做特殊处理：展示项目名称而不是纯ID
+          if (key === 'projectId') {
+            const projectName = this.getProjectNameById(value)
+            return {
+              label: labelMap[key] || key,
+              value: projectName || (value !== null && value !== undefined ? String(value) : '-')
+            }
+          }
+
+          return {
+            label: labelMap[key] || key,
+            value: value !== null && value !== undefined ? String(value) : '-'
+          }
+        })
       } catch (error) {
         console.warn('扩展数据解析失败:', error)
         return []
@@ -846,6 +857,41 @@ export default {
           console.warn('parseExtendDataObject 失败:', e, extendData)
           return null
         }
+      },
+
+      /**
+       * 根据项目ID获取项目名称（优先使用本地缓存）
+       */
+      getProjectNameById(projectId) {
+        if (!projectId) return ''
+        const idStr = String(projectId)
+
+        // 1) 优先从当前已加载的我的项目中查找
+        if (Array.isArray(this.myProjects) && this.myProjects.length > 0) {
+          const found = this.myProjects.find(p => String(p.id) === idStr)
+          if (found) {
+            return found.title || found.name || ''
+          }
+        }
+
+        // 2) 其次从 localStorage 的 projects 缓存中查找
+        try {
+          const saved = localStorage.getItem('projects')
+          if (saved) {
+            const list = JSON.parse(saved)
+            if (Array.isArray(list)) {
+              const found = list.find(p => String(p.id) === idStr)
+              if (found) {
+                return found.title || found.name || ''
+              }
+            }
+          }
+        } catch (e) {
+          // 忽略解析错误
+        }
+
+        // 3) 兜底返回“项目 + ID”
+        return `项目 ${idStr}`
       },
 
       /**

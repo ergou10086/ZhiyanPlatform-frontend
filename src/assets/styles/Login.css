@@ -189,6 +189,36 @@
   color: #2d3748;
 }
 
+.login-container .password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-container .password-input-wrapper input {
+  padding-right: 40px;
+}
+
+.login-container .password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  color: #a0aec0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.login-container .password-toggle-btn:hover {
+  color: #4a5568;
+}
+
 .login-container .form-group input:focus {
   outline: none;
   border-color: #3B82F6;
