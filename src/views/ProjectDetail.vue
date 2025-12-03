@@ -1720,6 +1720,17 @@ export default {
         return this.teamMembers.length
       }
     },
+    isProjectLocked() {
+      const status = String(this.projectStatus || this.project?.status || '').toUpperCase()
+      const completedStatus = status === 'COMPLETED' || status === 'DONE' || status === '已完成'
+      return this.isArchived === true || completedStatus
+    },
+    canManageProject() {
+      return !this.isProjectLocked && this.isProjectManager
+    },
+    canOperateAsOwner() {
+      return !this.isProjectLocked && this.isProjectOwner
+    },
     // 当前用户是否已经是项目成员（用于控制“申请加入”按钮显隐）
     isCurrentUserProjectMember() {
       const currentUserId = this.getCurrentUserId()
