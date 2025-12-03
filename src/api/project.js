@@ -279,17 +279,30 @@ export const projectAPI = {
   /**
    * 邀请成员加入项目
    * @param {Number} projectId - 项目ID
-   * @param {Object} data - 包含 userId 和 role（可选，默认MEMBER）
+   * @param {Object} data - 包含 userId、role（可选，默认MEMBER）、message（可选）
    */
   inviteMember(projectId, data) {
     console.log('[projectAPI.inviteMember] 邀请成员, 项目ID:', projectId, '数据:', data)
-    // 后端接口使用 @RequestParam，需要通过 params 传递参数
     const role = data.role || data.roleCode || 'MEMBER'
-    return api.post(`/zhiyan/projects/${projectId}/members`, null, {
-      params: { 
-        userId: data.userId, 
-        role: role 
-      }
+    // 通过消息中心发送项目邀请，不再直接将成员加入项目
+    return api.post('/zhiyan/message/project/invite', {
+      projectId,
+      targetUserId: data.userId,
+      role,
+      message: data.message || ''
+    })
+  },
+
+  /**
+   * 申请加入项目
+   * @param {Number} projectId - 项目ID
+   * @param {String} reason - 申请理由（可选）
+   */
+  applyToJoinProject(projectId, reason = '') {
+    console.log('[projectAPI.applyToJoinProject] 申请加入项目, 项目ID:', projectId, '理由:', reason)
+    return api.post('/zhiyan/message/project/apply', {
+      projectId,
+      reason
     })
   },
 

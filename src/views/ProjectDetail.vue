@@ -327,6 +327,16 @@
               </svg>
               邀请成员
             </button>
+            <!-- 申请加入按钮：仅在当前用户不是成员时显示 -->
+            <button
+              v-if="!isArchived && !isCurrentUserProjectMember && getCurrentUserId()"
+              class="btn secondary apply-join-btn"
+              type="button"
+              @click.prevent="applyJoinProject"
+              title="申请加入该项目"
+            >
+              申请加入
+            </button>
         </div>
         </div>
         <div class="team-grid">
@@ -1709,6 +1719,18 @@ export default {
       if (Array.isArray(this.teamMembers) && this.teamMembers.length > 0) {
         return this.teamMembers.length
       }
+    },
+    // 当前用户是否已经是项目成员（用于控制“申请加入”按钮显隐）
+    isCurrentUserProjectMember() {
+      const currentUserId = this.getCurrentUserId()
+      if (!currentUserId || !Array.isArray(this.teamMembers)) {
+        return false
+      }
+      const userIdStr = String(currentUserId)
+      return this.teamMembers.some(member => {
+        const memberId = String(member.id || member.userId || '')
+        return memberId === userIdStr
+      })
     },
     // 显示的用户列表（分页）
     displayedUsers() {
@@ -4703,6 +4725,37 @@ export default {
         this.showToast = false
         this.toastMessage = ''
       }, 1000)
+    },
+
+    /**
+     * 申请加入当前项目（非成员在团队成员区域点击）
+     */
+    async applyJoinProject() {
+      const projectId = this.project?.id || this.$route.params.id
+      if (!projectId) {
+        this.showSuccessToast('项目信息异常，无法申请加入')
+        return
+      }
+
+      if (!this.getCurrentUserId()) {
+        this.showSuccessToast('请先登录后再申请加入项目')
+        return
+      }
+
+      try {
+        const reason = window.prompt(`申请加入项目「${this.project?.name || this.project?.title || ''}」的理由（可选）：`, '')
+        const { projectAPI } = await import('@/api/project')
+        const res = await projectAPI.applyToJoinProject(projectId, reason || '')
+
+        if (res && res.code === 200) {
+          this.showSuccessToast(res.msg || '申请已发送，等待管理员处理')
+        } else {
+          this.showSuccessToast(res?.msg || '申请失败，请稍后重试')
+        }
+      } catch (error) {
+        console.error('申请加入项目失败:', error)
+        this.showSuccessToast('申请失败: ' + (error.message || '网络错误'))
+      }
     },
     onImageLoad() {
       console.log('✅ 图片加载成功:', this.project.imageUrl || this.project.image)
