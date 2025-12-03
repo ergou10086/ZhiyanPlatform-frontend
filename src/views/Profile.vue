@@ -187,10 +187,10 @@
                 <p>还未添加研究方向标签，点击"管理标签"开始添加</p>
               </div>
               <div v-else class="tags-list">
-                <div v-for="tag in researchTags" :key="tag.id" class="research-tag">
+                <div v-for="(tag, index) in researchTags" :key="index" class="research-tag">
                   <span class="tag-hierarchy" v-if="tag.path">{{ tag.path }}</span>
-                  <span class="tag-name">{{ tag.name }}</span>
-                  <button @click="removeTag(tag.id)" class="tag-remove-btn" title="移除标签">
+                  <span class="tag-name">{{ tag.name || tag }}</span>
+                  <button @click="removeTag(index)" class="tag-remove-btn" title="移除标签">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
@@ -217,8 +217,9 @@
               <div v-if="linkedAchievements.length === 0" class="empty-achievements">
                 <p>还未关联学术成果，点击"关联成果"开始添加</p>
               </div>
-              <div v-else class="achievements-list">
-                <div v-for="achievement in linkedAchievements" :key="achievement.id" class="achievement-item">
+              <div v-else>
+                <div class="achievements-list">
+                  <div v-for="achievement in visibleLinkedAchievements" :key="achievement.achievementId || achievement.id" class="achievement-item">
                   <div class="achievement-icon">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                       <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -229,10 +230,16 @@
                     <h4 class="achievement-title">{{ achievement.title }}</h4>
                     <p class="achievement-meta">{{ achievement.type }} · {{ achievement.date }}</p>
                   </div>
-                  <button @click="unlinkAchievement(achievement.id)" class="achievement-remove-btn" title="取消关联">
+                  <button @click="unlinkAchievement(achievement.achievementId || achievement.id)" class="achievement-remove-btn" title="取消关联">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
+                  </button>
+                  </div>
+                </div>
+                <div v-if="linkedAchievements.length > 6" class="achievements-more-wrapper">
+                  <button class="achievements-more-btn" @click="showLinkedAchievementsModal = true">
+                    查看更多成果
                   </button>
                 </div>
               </div>
@@ -361,65 +368,67 @@
             </svg>
           </button>
         </div>
-        <div class="modal-body">
-          <p class="modal-hint">最多可添加5个研究方向标签，当前已添加 {{ researchTags.length }}/5</p>
-          
-          <!-- 搜索框 -->
-          <div class="tag-search">
-            <input 
-              v-model="tagSearchKeyword" 
-              @input="searchTags"
-              placeholder="搜索预设标签或输入自定义标签..."
-              class="tag-search-input"
-            />
-          </div>
-          
-          <!-- 层级导航 -->
-          <div v-if="tagBreadcrumb.length > 0" class="tag-breadcrumb">
-            <span class="breadcrumb-item" @click="navigateToTagLevel(-1)">全部</span>
-            <span v-for="(level, index) in tagBreadcrumb" :key="index" class="breadcrumb-item">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <span @click="navigateToTagLevel(index)">{{ level.name }}</span>
-            </span>
-          </div>
-          
-          <!-- 标签选择区 -->
-          <div class="tag-selection-area">
-            <div v-if="filteredPresetTags.length === 0 && tagSearchKeyword" class="custom-tag-suggestion">
-              <p>未找到匹配的预设标签</p>
-              <button @click="addCustomTag" class="btn-add-custom" :disabled="researchTags.length >= 5">
-                添加自定义标签 "{{ tagSearchKeyword }}"
-              </button>
-              <p class="custom-tag-note">*自定义标签需要平台审核后才会显示</p>
+        <div class="modal-body tag-modal-body">
+          <div class="tag-modal-scroll-area">
+            <p class="modal-hint">最多可添加5个研究方向标签，当前已添加 {{ researchTags.length }}/5</p>
+            
+            <!-- 搜索框 -->
+            <div class="tag-search">
+              <input 
+                v-model="tagSearchKeyword" 
+                @input="searchTags"
+                placeholder="搜索预设标签或输入自定义标签..."
+                class="tag-search-input"
+              />
             </div>
-            <div v-else class="preset-tags-grid">
-              <div 
-                v-for="tag in filteredPresetTags" 
-                :key="tag.id"
-                class="preset-tag-item"
-                :class="{ selected: isTagSelected(tag.id), disabled: researchTags.length >= 5 && !isTagSelected(tag.id) }"
-                @click="toggleTagSelection(tag)"
-              >
-                <span class="preset-tag-name">{{ tag.name }}</span>
-                <svg v-if="tag.hasChildren" width="12" height="12" viewBox="0 0 24 24" fill="none" class="tag-arrow">
+            
+            <!-- 层级导航 -->
+            <div v-if="tagBreadcrumb.length > 0" class="tag-breadcrumb">
+              <span class="breadcrumb-item" @click="navigateToTagLevel(-1)">全部</span>
+              <span v-for="(level, index) in tagBreadcrumb" :key="index" class="breadcrumb-item">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                   <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
-                <svg v-if="isTagSelected(tag.id)" width="16" height="16" viewBox="0 0 24 24" fill="none" class="tag-checkmark">
-                  <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                </svg>
+                <span @click="navigateToTagLevel(index)">{{ level.name }}</span>
+              </span>
+            </div>
+            
+            <!-- 标签选择区 -->
+            <div class="tag-selection-area">
+              <div v-if="filteredPresetTags.length === 0 && tagSearchKeyword" class="custom-tag-suggestion">
+                <p>未找到匹配的预设标签</p>
+                <button @click="addCustomTag" class="btn-add-custom" :disabled="researchTags.length >= 5">
+                  添加自定义标签 "{{ tagSearchKeyword }}"
+                </button>
+                <p class="custom-tag-note">*自定义标签将直接添加到您的标签列表</p>
+              </div>
+              <div v-else class="preset-tags-grid">
+                <div 
+                  v-for="tag in filteredPresetTags" 
+                  :key="tag.id"
+                  class="preset-tag-item"
+                  :class="{ selected: isTagSelected(tag.id), disabled: researchTags.length >= 5 && !isTagSelected(tag.id) }"
+                  @click="toggleTagSelection(tag)"
+                >
+                  <span class="preset-tag-name">{{ tag.name }}</span>
+                  <svg v-if="tag.hasChildren" width="12" height="12" viewBox="0 0 24 24" fill="none" class="tag-arrow">
+                    <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <svg v-if="isTagSelected(tag.id)" width="16" height="16" viewBox="0 0 24 24" fill="none" class="tag-checkmark">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
-          
+
           <!-- 已选标签 -->
           <div v-if="researchTags.length > 0" class="selected-tags-section">
             <h4>已选标签</h4>
             <div class="selected-tags-list">
-              <div v-for="tag in researchTags" :key="tag.id" class="selected-tag">
+              <div v-for="(tag, index) in researchTags" :key="tag.id" class="selected-tag">
                 <span>{{ tag.name }}</span>
-                <button @click="removeTag(tag.id)" class="selected-tag-remove">
+                <button @click="removeTag(index)" class="selected-tag-remove">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                   </svg>
@@ -461,12 +470,34 @@
           <!-- 项目筛选 -->
           <div class="project-filter">
             <label>筛选项目：</label>
-            <select v-model="selectedProjectFilter" @change="loadProjectAchievements" class="project-filter-select">
-              <option value="">全部项目</option>
-              <option v-for="project in userProjects" :key="project.id" :value="project.id">
-                {{ project.name }}
-              </option>
-            </select>
+            <div class="project-filter-select" @click.stop="toggleProjectDropdown">
+              <span class="project-filter-selected-text">
+                {{ currentProjectFilterLabel }}
+              </span>
+              <span class="project-filter-arrow">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M7 10L12 15L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <div v-if="showProjectDropdown" class="project-filter-dropdown">
+                <div 
+                  class="project-filter-option" 
+                  :class="{ active: !selectedProjectFilter }"
+                  @click.stop="selectProjectFilter('')"
+                >
+                  全部项目
+                </div>
+                <div 
+                  v-for="project in userProjects" 
+                  :key="project.id" 
+                  class="project-filter-option"
+                  :class="{ active: String(selectedProjectFilter) === String(project.id) }"
+                  @click.stop="selectProjectFilter(project.id)"
+                >
+                  {{ project.name }}
+                </div>
+              </div>
+            </div>
           </div>
           
           <!-- 成果列表 -->
@@ -481,9 +512,9 @@
             <div v-else class="achievements-selection-list">
               <div 
                 v-for="achievement in availableAchievements" 
-                :key="achievement.id"
+                :key="achievement.achievementId || achievement.id"
                 class="achievement-selection-item"
-                :class="{ selected: isAchievementLinked(achievement.id) }"
+                :class="{ selected: isAchievementSelected(achievement.achievementId || achievement.id) }"
                 @click="toggleAchievementLink(achievement)"
               >
                 <div class="achievement-selection-icon">
@@ -495,7 +526,7 @@
                   <h4>{{ achievement.title }}</h4>
                   <p>{{ achievement.type }} · {{ achievement.projectName }} · {{ achievement.date }}</p>
                 </div>
-                <div v-if="isAchievementLinked(achievement.id)" class="achievement-checkmark">
+                <div v-if="isAchievementSelected(achievement.achievementId || achievement.id)" class="achievement-checkmark">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
                     <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                   </svg>
@@ -507,6 +538,46 @@
         <div class="modal-footer">
           <button @click="showAchievementModal = false" class="modal-btn modal-btn-cancel">取消</button>
           <button @click="saveAchievementLinks" class="modal-btn modal-btn-confirm">确认</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 已关联成果列表弹窗（只读查看更多） -->
+    <div v-if="showLinkedAchievementsModal" class="modal-overlay" @click="showLinkedAchievementsModal = false">
+      <div class="modal-content achievement-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>已关联学术成果</h3>
+          <button @click="showLinkedAchievementsModal = false" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="achievements-selection-area">
+            <div v-if="linkedAchievements.length === 0" class="empty-achievements-state">
+              <p>当前没有已关联的学术成果</p>
+            </div>
+            <div v-else class="achievements-selection-list">
+              <div
+                v-for="achievement in linkedAchievements"
+                :key="achievement.achievementId || achievement.id"
+                class="achievement-selection-item">
+                <div class="achievement-selection-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                </div>
+                <div class="achievement-selection-info">
+                  <h4>{{ achievement.title }}</h4>
+                  <p>{{ achievement.type }} · {{ achievement.date }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="showLinkedAchievementsModal = false" class="modal-btn modal-btn-confirm">关闭</button>
         </div>
       </div>
     </div>
@@ -528,6 +599,9 @@ import '@/assets/styles/Profile.css'
 import '@/assets/styles/ProfileEnhancements.css'
 import { avatarAPI } from '@/api/avatar'
 import { authAPI } from '@/api/auth'
+import { profileAPI } from '@/api/profile'
+import { projectAPI } from '@/api/project'
+import { knowledgeAPI, TYPE_DISPLAY } from '@/api/knowledge'
 import { addTimestampToUrl } from '@/utils/imageUtils'
 
 export default {
@@ -585,6 +659,9 @@ export default {
       selectedProjectFilter: '',
       userProjects: [],
       isLoadingAchievements: false,
+      selectedAchievementIds: [],
+      showProjectDropdown: false,
+      showLinkedAchievementsModal: false,
       // 隐私设置
       privacySettings: {
         profileVisibility: 'public',
@@ -596,11 +673,40 @@ export default {
   computed: {
     avatarUrlWithTimestamp() {
       return addTimestampToUrl(this.userInfo.avatar)
+    },
+
+    currentProjectFilterLabel() {
+      if (!this.selectedProjectFilter) {
+        return '全部项目'
+      }
+      const project = this.userProjects.find(p => String(p.id) === String(this.selectedProjectFilter))
+      return project ? project.name : '全部项目'
+    },
+
+    visibleLinkedAchievements() {
+      // 主页上最多展示 6 条成果
+      return this.linkedAchievements.slice(0, 6)
     }
   },
   watch: {
     showAchievementModal(newVal) {
       if (newVal) {
+        // 确保项目列表已加载
+        if (this.userProjects.length === 0) {
+          this.loadUserProjects().then(() => {
+            this.loadProjectAchievements()
+          })
+        } else {
+          this.loadProjectAchievements()
+        }
+
+        // 初始化弹窗中的选中状态为当前已关联成果
+        this.selectedAchievementIds = this.linkedAchievements.map(a => String(a.achievementId || a.id))
+      }
+    },
+    selectedProjectFilter() {
+      // 当项目筛选改变时，重新加载成果
+      if (this.showAchievementModal) {
         this.loadProjectAchievements()
       }
     }
@@ -670,9 +776,27 @@ export default {
       }
     },
     handleClickOutside(event) {
-      if (!event.target.closest('.user-profile') && !event.target.closest('.user-menu')) {
+      const userMenu = this.$refs.userMenu
+      const userProfile = this.$refs.userProfile
+      if (userMenu && !userMenu.contains(event.target) && userProfile && !userProfile.contains(event.target)) {
         this.userMenuOpen = false
       }
+
+      // 关闭项目筛选下拉
+      if (this.showProjectDropdown) {
+        this.showProjectDropdown = false
+      }
+    },
+    toggleProjectDropdown() {
+      if (!this.isLoggedIn || this.userProjects.length === 0) {
+        // 未登录或没有项目时，不显示下拉
+        return
+      }
+      this.showProjectDropdown = !this.showProjectDropdown
+    },
+    selectProjectFilter(projectId) {
+      this.selectedProjectFilter = projectId
+      this.showProjectDropdown = false
     },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
@@ -684,7 +808,7 @@ export default {
       this.$router.push('/home')
     },
     goToLogin() {
-      this.$router.push('/login')
+      this.$router.push({ name: 'Login' })
     },
     showSuccessToast(message) {
       this.toastMessage = message
@@ -1340,14 +1464,20 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API加载用户的研究方向标签
-        // const response = await profileAPI.getResearchTags()
-        // this.researchTags = response.data || []
-        
-        // 模拟数据
-        this.researchTags = []
+        const response = await profileAPI.getResearchTags()
+        if (response && response.code === 200 && response.data) {
+          // 后端返回的是字符串数组，转换为前端需要的格式
+          this.researchTags = response.data.map((tag, index) => ({
+            id: index + 1, // 临时ID，用于前端显示
+            name: tag,
+            path: null // 后端不返回路径信息
+          }))
+        } else {
+          this.researchTags = []
+        }
       } catch (error) {
         console.error('加载研究方向标签失败:', error)
+        this.researchTags = []
       }
     },
     
@@ -1359,16 +1489,94 @@ export default {
         
         // 模拟层级标签数据
         this.presetTags = [
+          // 计算机科学 / 人工智能
           { id: 1, name: '人工智能', parentId: null, hasChildren: true },
           { id: 2, name: '机器学习', parentId: 1, hasChildren: true },
           { id: 3, name: '深度学习', parentId: 2, hasChildren: true },
           { id: 4, name: '自然语言处理', parentId: 1, hasChildren: true },
           { id: 5, name: '计算机视觉', parentId: 1, hasChildren: true },
-          { id: 6, name: '大模型', parentId: 3, hasChildren: false },
-          { id: 7, name: 'CNN', parentId: 3, hasChildren: false },
-          { id: 8, name: 'Transformer', parentId: 4, hasChildren: false },
-          { id: 9, name: '量子计算', parentId: null, hasChildren: true },
-          { id: 10, name: '生物信息学', parentId: null, hasChildren: false }
+          { id: 6, name: '强化学习', parentId: 1, hasChildren: false },
+          { id: 7, name: '推荐系统', parentId: 1, hasChildren: false },
+          { id: 8, name: '知识图谱', parentId: 1, hasChildren: false },
+
+          { id: 9, name: '大模型', parentId: 3, hasChildren: false },
+          { id: 10, name: '神经网络结构', parentId: 3, hasChildren: true },
+          { id: 11, name: 'CNN', parentId: 10, hasChildren: false },
+          { id: 12, name: 'RNN/LSTM', parentId: 10, hasChildren: false },
+          { id: 13, name: 'Transformer', parentId: 10, hasChildren: false },
+
+          { id: 14, name: '文本挖掘', parentId: 4, hasChildren: false },
+          { id: 15, name: '对话系统', parentId: 4, hasChildren: false },
+          { id: 16, name: '机器翻译', parentId: 4, hasChildren: false },
+          { id: 17, name: '信息检索', parentId: 4, hasChildren: false },
+
+          { id: 18, name: '目标检测', parentId: 5, hasChildren: false },
+          { id: 19, name: '图像分割', parentId: 5, hasChildren: false },
+          { id: 20, name: '三维视觉', parentId: 5, hasChildren: false },
+          { id: 21, name: '多模态学习', parentId: 5, hasChildren: false },
+
+          { id: 22, name: '数据挖掘', parentId: null, hasChildren: true },
+          { id: 23, name: '时序数据分析', parentId: 22, hasChildren: false },
+          { id: 24, name: '图数据挖掘', parentId: 22, hasChildren: false },
+          { id: 25, name: '用户行为分析', parentId: 22, hasChildren: false },
+
+          { id: 26, name: '软件工程', parentId: null, hasChildren: true },
+          { id: 27, name: '软件架构', parentId: 26, hasChildren: false },
+          { id: 28, name: '形式化验证', parentId: 26, hasChildren: false },
+          { id: 29, name: 'DevOps', parentId: 26, hasChildren: false },
+
+          { id: 30, name: '网络与安全', parentId: null, hasChildren: true },
+          { id: 31, name: '网络协议', parentId: 30, hasChildren: false },
+          { id: 32, name: '网络安全', parentId: 30, hasChildren: true },
+          { id: 33, name: '密码学', parentId: 32, hasChildren: false },
+          { id: 34, name: '入侵检测', parentId: 32, hasChildren: false },
+
+          { id: 35, name: '分布式系统', parentId: null, hasChildren: true },
+          { id: 36, name: '云计算', parentId: 35, hasChildren: false },
+          { id: 37, name: '边缘计算', parentId: 35, hasChildren: false },
+          { id: 38, name: '高性能计算', parentId: 35, hasChildren: false },
+
+          // 数学与统计
+          { id: 39, name: '应用数学', parentId: null, hasChildren: true },
+          { id: 40, name: '数值分析', parentId: 39, hasChildren: false },
+          { id: 41, name: '优化理论', parentId: 39, hasChildren: false },
+          { id: 42, name: '随机过程', parentId: 39, hasChildren: false },
+
+          { id: 43, name: '统计学', parentId: null, hasChildren: true },
+          { id: 44, name: '贝叶斯统计', parentId: 43, hasChildren: false },
+          { id: 45, name: '高维统计', parentId: 43, hasChildren: false },
+
+          // 物理与工程
+          { id: 46, name: '量子计算', parentId: null, hasChildren: true },
+          { id: 47, name: '量子算法', parentId: 46, hasChildren: false },
+          { id: 48, name: '量子通信', parentId: 46, hasChildren: false },
+
+          { id: 49, name: '凝聚态物理', parentId: null, hasChildren: false },
+          { id: 50, name: '光学工程', parentId: null, hasChildren: false },
+          { id: 51, name: '控制理论', parentId: null, hasChildren: true },
+          { id: 52, name: '智能控制', parentId: 51, hasChildren: false },
+          { id: 53, name: '鲁棒控制', parentId: 51, hasChildren: false },
+
+          // 生命科学与医工结合
+          { id: 54, name: '生物信息学', parentId: null, hasChildren: true },
+          { id: 55, name: '基因组学', parentId: 54, hasChildren: false },
+          { id: 56, name: '蛋白质组学', parentId: 54, hasChildren: false },
+          { id: 57, name: '单细胞分析', parentId: 54, hasChildren: false },
+
+          { id: 58, name: '计算生物学', parentId: null, hasChildren: false },
+          { id: 59, name: '医学影像分析', parentId: null, hasChildren: false },
+
+          // 人文社科与交叉
+          { id: 60, name: '管理科学与工程', parentId: null, hasChildren: true },
+          { id: 61, name: '运筹与决策', parentId: 60, hasChildren: false },
+          { id: 62, name: '供应链管理', parentId: 60, hasChildren: false },
+
+          { id: 63, name: '经济学', parentId: null, hasChildren: true },
+          { id: 64, name: '金融工程', parentId: 63, hasChildren: false },
+          { id: 65, name: '计量经济学', parentId: 63, hasChildren: false },
+
+          { id: 66, name: '教育技术', parentId: null, hasChildren: false },
+          { id: 67, name: '数字人文', parentId: null, hasChildren: false }
         ]
         this.filteredPresetTags = this.presetTags.filter(tag => tag.parentId === null)
       } catch (error) {
@@ -1447,9 +1655,8 @@ export default {
       return this.researchTags.some(t => t.id === tagId)
     },
     
-    async removeTag(tagId) {
-      const index = this.researchTags.findIndex(t => t.id === tagId)
-      if (index > -1) {
+    async removeTag(index) {
+      if (index >= 0 && index < this.researchTags.length) {
         this.researchTags.splice(index, 1)
         await this.saveResearchTags()
       }
@@ -1459,17 +1666,25 @@ export default {
       if (!this.tagSearchKeyword.trim() || this.researchTags.length >= 5) return
       
       try {
-        // TODO: 调用后端API提交自定义标签审核
-        // const response = await profileAPI.submitCustomTag({
-        //   name: this.tagSearchKeyword.trim()
-        // })
+        // 直接添加自定义标签到列表
+        const customTag = this.tagSearchKeyword.trim()
+        if (this.researchTags.some(t => (t.name || t) === customTag)) {
+          this.showSuccessToast('标签已存在')
+          return
+        }
         
-        // 模拟添加（实际需要等待审核）
-        this.showSuccessToast('自定义标签已提交审核，审核通过后会自动添加')
+        this.researchTags.push({
+          id: Date.now(), // 临时ID
+          name: customTag,
+          path: null
+        })
+        
+        // 保存到后端
+        await this.saveResearchTags()
         this.tagSearchKeyword = ''
       } catch (error) {
-        console.error('提交自定义标签失败:', error)
-        alert('提交失败，请稍后重试')
+        console.error('添加自定义标签失败:', error)
+        alert('添加失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
@@ -1477,15 +1692,20 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API保存研究方向标签
-        // const response = await profileAPI.updateResearchTags({
-        //   tags: this.researchTags.map(t => t.id)
-        // })
+        // 提取标签名称数组
+        const tagNames = this.researchTags.map(t => t.name || t)
         
-        this.showSuccessToast('研究方向标签已更新')
+        const response = await profileAPI.updateResearchTags(tagNames)
+        if (response && response.code === 200) {
+          // 更新成功后，重新加载标签
+          await this.loadResearchTags()
+          this.showSuccessToast('研究方向标签已更新')
+        } else {
+          throw new Error(response?.msg || '更新失败')
+        }
       } catch (error) {
         console.error('保存研究方向标签失败:', error)
-        alert('保存失败，请稍后重试')
+        alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
@@ -1494,14 +1714,49 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API加载已关联的学术成果
-        // const response = await profileAPI.getLinkedAchievements()
-        // this.linkedAchievements = response.data || []
-        
-        // 模拟数据
-        this.linkedAchievements = []
+        const response = await profileAPI.getMyAchievements()
+        if (response && response.code === 200 && response.data) {
+          // 转换后端数据格式为前端需要的格式
+          const mapped = await Promise.all(response.data.map(async item => {
+            let title = item.achievementTitle
+            let type = TYPE_DISPLAY[item.achievementType] || item.achievementType || '未知类型'
+            let date = item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : ''
+
+            // 如果后端没有返回标题/类型，则调用知识库接口补充信息
+            if (!title || title === '未命名成果' || title === '未知标题') {
+              try {
+                const detailResp = await knowledgeAPI.getAchievementDetail(item.achievementId)
+                if (detailResp && detailResp.code === 200 && detailResp.data) {
+                  title = detailResp.data.title || title
+                  type = TYPE_DISPLAY[detailResp.data.type] || detailResp.data.type || type
+                  if (detailResp.data.createdAt) {
+                    date = new Date(detailResp.data.createdAt).toLocaleDateString('zh-CN')
+                  }
+                }
+              } catch (error) {
+                console.warn('获取成果详情失败:', item.achievementId, error)
+              }
+            }
+
+            return {
+              id: item.achievementId,
+              achievementId: item.achievementId,
+              title: title || '未命名成果',
+              type,
+              date,
+              projectId: item.projectId,
+              displayOrder: item.displayOrder || 0,
+              remark: item.remark || ''
+            }
+          }))
+
+          this.linkedAchievements = mapped
+        } else {
+          this.linkedAchievements = []
+        }
       } catch (error) {
         console.error('加载已关联成果失败:', error)
+        this.linkedAchievements = []
       }
     },
     
@@ -1509,17 +1764,20 @@ export default {
       if (!this.isLoggedIn) return
       
       try {
-        // TODO: 调用后端API加载用户参与的项目
-        // const response = await projectAPI.getMyProjects()
-        // this.userProjects = response.data || []
-        
-        // 模拟数据
-        this.userProjects = [
-          { id: 1, name: '智能对话系统研究' },
-          { id: 2, name: '图像识别算法优化' }
-        ]
+        const response = await projectAPI.getMyProjects(0, 100) // 获取前100个项目
+        if (response && response.code === 200 && response.data) {
+          // 转换分页数据格式
+          const projectList = response.data.content || response.data
+          this.userProjects = projectList.map(project => ({
+            id: project.id,
+            name: project.name || '未命名项目'
+          }))
+        } else {
+          this.userProjects = []
+        }
       } catch (error) {
         console.error('加载用户项目失败:', error)
+        this.userProjects = []
       }
     },
     
@@ -1528,76 +1786,156 @@ export default {
       
       this.isLoadingAchievements = true
       try {
-        // TODO: 调用后端API加载项目的公开成果
-        // const response = await achievementAPI.getProjectAchievements({
-        //   projectId: this.selectedProjectFilter || null
-        // })
-        // this.availableAchievements = response.data || []
+        let allAchievements = []
         
-        // 模拟数据
-        this.availableAchievements = [
-          {
-            id: 1,
-            title: '基于深度学习的图像分类方法研究',
-            type: '论文',
-            projectName: '智能对话系统研究',
-            date: '2024-01-15'
-          },
-          {
-            id: 2,
-            title: '自然语言处理系统发明专利',
-            type: '专利',
-            projectName: '智能对话系统研究',
-            date: '2024-03-20'
+        if (this.selectedProjectFilter) {
+          // 加载指定项目的成果
+          const response = await knowledgeAPI.getProjectAchievements(
+            this.selectedProjectFilter,
+            0,
+            100
+          )
+          if (response && response.code === 200 && response.data) {
+            const achievementList = response.data.content || response.data
+            allAchievements = achievementList.map(achievement => ({
+              id: achievement.id,
+              achievementId: achievement.id,
+              title: achievement.title || '未命名成果',
+              type: TYPE_DISPLAY[achievement.type] || achievement.type || '未知类型',
+              projectName: achievement.projectName || '未知项目',
+              date: achievement.createdAt ? new Date(achievement.createdAt).toLocaleDateString('zh-CN') : '',
+              projectId: achievement.projectId,
+              isPublic: achievement.isPublic,
+              status: achievement.status
+            }))
           }
-        ]
+        } else {
+          // 加载所有项目中的成果（后台已根据权限过滤）
+          for (const project of this.userProjects) {
+            try {
+              const response = await knowledgeAPI.getProjectAchievements(project.id, 0, 100)
+              if (response && response.code === 200 && response.data) {
+                const achievementList = response.data.content || response.data
+                const projectAchievements = achievementList.map(achievement => ({
+                  id: achievement.id,
+                  achievementId: achievement.id,
+                  title: achievement.title || '未命名成果',
+                  type: TYPE_DISPLAY[achievement.type] || achievement.type || '未知类型',
+                  projectName: project.name,
+                  date: achievement.createdAt ? new Date(achievement.createdAt).toLocaleDateString('zh-CN') : '',
+                  projectId: project.id,
+                  isPublic: achievement.isPublic,
+                  status: achievement.status
+                }))
+                allAchievements = allAchievements.concat(projectAchievements)
+              }
+            } catch (error) {
+              console.error(`加载项目[${project.id}]成果失败:`, error)
+            }
+          }
+        }
+        
+        // 应用搜索过滤
+        if (this.achievementSearchKeyword) {
+          const keyword = this.achievementSearchKeyword.toLowerCase()
+          allAchievements = allAchievements.filter(achievement =>
+            achievement.title.toLowerCase().includes(keyword)
+          )
+        }
+        
+        this.availableAchievements = allAchievements
       } catch (error) {
         console.error('加载项目成果失败:', error)
+        this.availableAchievements = []
       } finally {
         this.isLoadingAchievements = false
       }
     },
     
     searchAchievements() {
-      // 搜索功能的实现
-      // 这里可以根据搜索关键词过滤availableAchievements
+      // 重新加载成果列表，会自动应用搜索过滤
+      this.loadProjectAchievements()
     },
     
     isAchievementLinked(achievementId) {
-      return this.linkedAchievements.some(a => a.id === achievementId)
+      return this.linkedAchievements.some(a => a.achievementId === String(achievementId) || a.id === String(achievementId))
+    },
+
+    isAchievementSelected(achievementId) {
+      const idStr = String(achievementId)
+      return this.selectedAchievementIds.includes(idStr)
     },
     
     toggleAchievementLink(achievement) {
-      const index = this.linkedAchievements.findIndex(a => a.id === achievement.id)
+      // 在弹窗内仅切换前端选中状态，不立刻调用后端
+      const idStr = String(achievement.achievementId || achievement.id)
+      const index = this.selectedAchievementIds.indexOf(idStr)
       if (index > -1) {
-        this.linkedAchievements.splice(index, 1)
+        this.selectedAchievementIds.splice(index, 1)
       } else {
-        this.linkedAchievements.push(achievement)
+        this.selectedAchievementIds.push(idStr)
       }
     },
     
     async unlinkAchievement(achievementId) {
-      const index = this.linkedAchievements.findIndex(a => a.id === achievementId)
-      if (index > -1) {
-        this.linkedAchievements.splice(index, 1)
-        await this.saveAchievementLinks()
+      try {
+        await profileAPI.unlinkAchievement(achievementId)
+        // 重新加载关联列表
+        await this.loadLinkedAchievements()
+        this.showSuccessToast('已取消关联')
+      } catch (error) {
+        console.error('取消关联成果失败:', error)
+        alert('取消关联失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
     async saveAchievementLinks() {
-      if (!this.isLoggedIn) return
-      
+      if (!this.isLoggedIn) {
+        this.showAchievementModal = false
+        return
+      }
+
       try {
-        // TODO: 调用后端API保存学术成果关联
-        // const response = await profileAPI.updateLinkedAchievements({
-        //   achievementIds: this.linkedAchievements.map(a => a.id)
-        // })
-        
+        const currentIds = this.linkedAchievements.map(a => String(a.achievementId || a.id))
+        const selectedSet = new Set(this.selectedAchievementIds)
+
+        // 需要取消关联的：原来有，现在没选中
+        const toUnlink = currentIds.filter(id => !selectedSet.has(id))
+
+        // 需要新关联的：现在选中，但原来没有
+        const toLink = this.selectedAchievementIds.filter(id => !currentIds.includes(id))
+
+        // 先处理取消关联
+        for (const id of toUnlink) {
+          try {
+            await profileAPI.unlinkAchievement(id)
+          } catch (error) {
+            console.error('取消关联失败:', id, error)
+          }
+        }
+
+        // 再处理新增关联
+        for (const id of toLink) {
+          const achievement = this.availableAchievements.find(a => String(a.achievementId || a.id) === id)
+          if (!achievement) continue
+          try {
+            await profileAPI.linkAchievement({
+              achievementId: achievement.achievementId || achievement.id,
+              projectId: achievement.projectId,
+              displayOrder: this.linkedAchievements.length + 1
+            })
+          } catch (error) {
+            console.error('关联成果失败:', id, error)
+          }
+        }
+
+        // 重新加载已关联列表并关闭弹窗
+        await this.loadLinkedAchievements()
         this.showAchievementModal = false
         this.showSuccessToast('学术成果关联已更新')
       } catch (error) {
         console.error('保存成果关联失败:', error)
-        alert('保存失败，请稍后重试')
+        alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
       }
     },
     
