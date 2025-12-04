@@ -40,7 +40,7 @@ module.exports = {
         // 不需要pathRewrite，直接转发 /zhiyan/projects/* 到后端
       },
       '/user-avatars': {
-        target: 'http://152.136.245.180:9000',
+        target: 'http://152.136.245.180:9006',
         changeOrigin: true,
         secure: false,
         pathRewrite: { '^/user-avatars': '/user-avatars' }

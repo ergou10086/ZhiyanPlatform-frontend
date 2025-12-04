@@ -2013,12 +2013,13 @@
 .member-avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: 9999px;
   overflow: hidden;
-  background-color: #f0f0f0;
+  background: #EEF2FF;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   flex-shrink: 0;
 }
 

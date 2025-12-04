@@ -16,15 +16,16 @@
             <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
-        <span class="page-title">个人信息</span>
+        <span class="page-title">{{ profileTitle }}</span>
       </div>
      </div>
 
     <!-- 主要内容区域 -->
     <div class="main-content">
-      <div class="profile-content">
+      <!-- 数据加载完成后再显示主体内容，避免先渲染自己的信息再切换到他人 -->
+      <div v-if="!isProfileLoading" class="profile-content">
         <!-- 个人信息标题 -->
-        <h1 class="profile-title">个人信息</h1>
+        <h1 class="profile-title">{{ profileTitle }}</h1>
         
         <!-- 两栏布局容器 -->
         <div class="profile-grid">
@@ -33,7 +34,7 @@
             <!-- 头像和昵称卡片 -->
             <div class="info-card">
           <div class="avatar-section">
-            <div class="avatar-container" @click="triggerAvatarUpload">
+            <div class="avatar-container" @click="isViewingSelf && triggerAvatarUpload()">
               <img v-if="userInfo.avatar" :src="avatarUrlWithTimestamp" alt="用户头像" class="avatar-image" />
             <div v-else class="avatar-placeholder">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -41,7 +42,7 @@
                 <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </div>
-              <div class="camera-icon">
+              <div v-if="isViewingSelf" class="camera-icon">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 4H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <circle cx="12" cy="13" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -76,7 +77,7 @@
                   <span class="nickname-display">{{ userInfo.nickname }}</span>
                   <span v-if="userInfo.id" class="user-id-display">ID: {{ userInfo.id }}</span>
                 </div>
-                <button @click="editNickname" class="edit-nickname-btn">
+                <button v-if="isViewingSelf" @click="editNickname" class="edit-nickname-btn">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -100,7 +101,7 @@
           <div class="info-item">
             <div class="intro-header">
               <h3 class="info-label">所属机构</h3>
-              <button v-if="!editingOrganization && isLoggedIn" @click="editOrganization" class="edit-btn">
+              <button v-if="!editingOrganization && isLoggedIn && isViewingSelf" @click="editOrganization" class="edit-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -141,7 +142,7 @@
           <div class="info-item">
             <div class="intro-header">
               <h3 class="info-label">个人简介</h3>
-              <button v-if="!editingIntro && isLoggedIn" @click="editIntro" class="edit-btn">
+              <button v-if="!editingIntro && isLoggedIn && isViewingSelf" @click="editIntro" class="edit-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -162,7 +163,7 @@
                 <button @click="cancelEditIntro" class="cancel-btn">取消</button>
               </div>
             </div>
-            <p v-else class="info-value intro-content">{{ userInfo.introduction }}</p>
+            <p v-else class="info-value intro-content">{{ displayIntroduction }}</p>
           </div>
         </div>
           </div>
@@ -175,7 +176,7 @@
           <div class="info-item">
             <div class="intro-header">
               <h3 class="info-label">研究方向</h3>
-              <button @click="showTagModal = true" class="edit-btn">
+              <button v-if="isViewingSelf" @click="showTagModal = true" class="edit-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -190,7 +191,7 @@
                 <div v-for="(tag, index) in researchTags" :key="index" class="research-tag">
                   <span class="tag-hierarchy" v-if="tag.path">{{ tag.path }}</span>
                   <span class="tag-name">{{ tag.name || tag }}</span>
-                  <button @click="removeTag(index)" class="tag-remove-btn" title="移除标签">
+                  <button v-if="isViewingSelf" @click="removeTag(index)" class="tag-remove-btn" title="移除标签">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
@@ -206,7 +207,7 @@
           <div class="info-item">
             <div class="intro-header">
               <h3 class="info-label">学术成果</h3>
-              <button @click="showAchievementModal = true" class="edit-btn">
+              <button v-if="isViewingSelf" @click="showAchievementModal = true" class="edit-btn">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -230,7 +231,7 @@
                     <h4 class="achievement-title">{{ achievement.title }}</h4>
                     <p class="achievement-meta">{{ achievement.type }} · {{ achievement.date }}</p>
                   </div>
-                  <button @click="unlinkAchievement(achievement.achievementId || achievement.id)" class="achievement-remove-btn" title="取消关联">
+                  <button v-if="isViewingSelf" @click="unlinkAchievement(achievement.achievementId || achievement.id)" class="achievement-remove-btn" title="取消关联">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                       <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
@@ -428,7 +429,7 @@
             <div class="selected-tags-list">
               <div v-for="(tag, index) in researchTags" :key="tag.id" class="selected-tag">
                 <span>{{ tag.name }}</span>
-                <button @click="removeTag(index)" class="selected-tag-remove">
+                <button v-if="isViewingSelf" @click="removeTag(index)" class="selected-tag-remove">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
                     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                   </svg>
@@ -632,6 +633,8 @@ export default {
         y: 0,
         size: 0
       },
+      isProfileLoading: true,
+      currentUserId: null,
       userInfo: {
         id: null,
         username: '',
@@ -643,6 +646,8 @@ export default {
         role: '',
         status: ''
       },
+      viewingUserId: null,
+      isViewingOther: false,
       // 研究方向标签相关
       showTagModal: false,
       researchTags: [],
@@ -686,6 +691,48 @@ export default {
     visibleLinkedAchievements() {
       // 主页上最多展示 6 条成果
       return this.linkedAchievements.slice(0, 6)
+    },
+
+    isViewingSelf() {
+      if (!this.currentUserId) return true
+      if (!this.viewingUserId) return true
+      return String(this.currentUserId) === String(this.viewingUserId)
+    },
+
+    profileTitle() {
+      // 自己：显示"个人信息"；查看他人：显示对方昵称/姓名
+      if (this.isViewingSelf) {
+        return '个人信息'
+      }
+      return this.userInfo.nickname || this.userInfo.username || '个人信息'
+    },
+
+    displayIntroduction() {
+      // 确保个人简介正确显示，优先使用 introduction，其次使用 description
+      // 注意：如果introduction是默认值，但description有值，应该使用description
+      let intro = this.userInfo.introduction
+      
+      // 如果introduction是默认值，尝试使用description
+      if (intro === '这个人很懒，什么都没有留下...' && this.userInfo.description) {
+        intro = this.userInfo.description
+      }
+      
+      // 如果还是没有，直接使用description
+      if (!intro || intro === '这个人很懒，什么都没有留下...') {
+        intro = this.userInfo.description || intro
+      }
+      
+      console.log('[Profile] displayIntroduction计算属性:', {
+        'userInfo.introduction': this.userInfo.introduction,
+        'userInfo.description': this.userInfo.description,
+        '最终intro': intro
+      })
+      
+      // 如果是默认值或空，显示默认文本
+      if (!intro || intro.trim() === '' || intro === '这个人很懒，什么都没有留下...') {
+        return '这个人很懒，什么都没有留下...'
+      }
+      return intro
     }
   },
   watch: {
@@ -714,8 +761,6 @@ export default {
   mounted() {
     this.loadUserInfo()
     this.loadUserAvatar()
-    this.loadResearchTags()
-    this.loadLinkedAchievements()
     this.loadPrivacySettings()
     this.loadPresetTags()
     this.loadUserProjects()
@@ -723,12 +768,214 @@ export default {
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', this.loadUserInfo)
   },
+  beforeRouteUpdate(to, from, next) {
+    const isReturningToSelf = !!from.query.userId && (typeof to.query.userId === 'undefined' || to.query.userId === null || to.query.userId === '')
+
+    if (isReturningToSelf) {
+      next()
+      window.location.reload()
+      return
+    }
+
+    if (to.query.userId !== from.query.userId) {
+      this.isProfileLoading = true
+      this.loadUserInfo({
+        routeUserId: typeof to.query.userId === 'undefined' ? undefined : to.query.userId
+      })
+    }
+    next()
+  },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     this.$root.$off('userInfoUpdated', this.loadUserInfo)
   },
   methods: {
-    loadUserInfo() {
+    async loadOtherUserProfile(userId) {
+      try {
+        // 加载他人基本信息
+        const response = await authAPI.getUserById(userId)
+        if (response && response.code === 200 && response.data) {
+          const data = response.data
+          console.log('[Profile] 加载他人信息 getUserById 返回数据:', data)
+          this.userInfo = {
+            id: data.id || data.userId,
+            username: data.username || data.name || '',
+            email: data.email || '',
+            nickname: data.nickname || data.name || '未设置昵称',
+            avatar: data.avatar || data.avatarUrl || data.imageUrl || this.userInfo.avatar || '',
+            organization: data.organization || data.institution || '未设置机构',
+            introduction: data.introduction || data.description || '这个人很懒，什么都没有留下...',
+            role: data.role || 'MEMBER',
+            status: data.status || 'ACTIVE'
+          }
+        }
+
+        const parallelTasks = []
+
+        // 并发加载头像、标签、成果，避免串行等待
+        parallelTasks.push(
+          (async () => {
+            try {
+              const avatarResp = await avatarAPI.getAvatarInfoById(userId)
+              if (avatarResp && avatarResp.code === 200 && avatarResp.data) {
+                const a = avatarResp.data
+                let url = a.cdn_url || a.minio_url || a.avatarUrl || a.url || null
+
+                if (!url && a.avatarData) {
+                  const contentType = a.contentType || 'image/jpeg'
+                  url = `data:${contentType};base64,${a.avatarData}`
+                }
+
+                if (url) {
+                  this.userInfo.avatar = url
+                }
+              }
+            } catch (error) {
+              console.error('加载他人头像失败:', error)
+            }
+          })()
+        )
+
+        parallelTasks.push(
+          (async () => {
+            try {
+              const tagResp = await profileAPI.getUserResearchTags(userId)
+              if (tagResp && tagResp.code === 200 && tagResp.data) {
+                this.researchTags = tagResp.data.map((tag, index) => ({
+                  id: index + 1,
+                  name: tag,
+                  path: null
+                }))
+              } else {
+                this.researchTags = []
+              }
+            } catch (error) {
+              console.error('加载他人研究方向标签失败:', error)
+              this.researchTags = []
+            }
+          })()
+        )
+
+        parallelTasks.push(
+          (async () => {
+            try {
+              const achvResp = await profileAPI.getUserAchievements(userId)
+              if (achvResp && achvResp.code === 200 && achvResp.data) {
+                this.linkedAchievements = await this.mapAchievementsList(achvResp.data)
+              } else {
+                this.linkedAchievements = []
+              }
+            } catch (error) {
+              console.error('加载他人学术成果失败:', error)
+              this.linkedAchievements = []
+            }
+          })()
+        )
+
+        await Promise.all(parallelTasks)
+      } catch (error) {
+        console.error('加载他人用户信息失败:', error)
+      } finally {
+        this.isProfileLoading = false
+      }
+    },
+    async loadMyProfileFromServer() {
+      // 从后端获取最新的用户信息，确保包含 description 等最新字段
+      try {
+        const response = await authAPI.getCurrentUserInfo()
+        if (response && response.code === 200 && response.data) {
+          const data = response.data
+          console.log('[Profile] 从服务器获取最新用户信息:', data)
+          console.log('[Profile] description字段值:', data.description)
+          console.log('[Profile] introduction字段值:', data.introduction)
+          
+          // 获取description字段（后端返回的是description）
+          // 注意：即使description是空字符串，也要使用它（因为用户可能清空了简介）
+          const description = data.description !== undefined && data.description !== null 
+            ? data.description 
+            : (data.introduction !== undefined && data.introduction !== null 
+              ? data.introduction 
+              : '')
+          console.log('[Profile] 最终使用的个人简介:', description, '类型:', typeof description, '长度:', description ? description.length : 0)
+          
+          // 更新 userInfo，使用Vue.set确保响应式更新
+          this.$set(this.userInfo, 'id', data.id || data.userId || this.userInfo.id)
+          this.$set(this.userInfo, 'username', data.username || data.name || this.userInfo.username)
+          this.$set(this.userInfo, 'email', data.email || this.userInfo.email)
+          this.$set(this.userInfo, 'nickname', data.nickname || data.name || this.userInfo.nickname)
+          this.$set(this.userInfo, 'avatar', data.avatar || data.avatarUrl || data.avatarData || this.userInfo.avatar)
+          this.$set(this.userInfo, 'organization', data.organization || data.institution || this.userInfo.organization)
+          // 如果description为空字符串，显示默认文本；否则显示实际内容
+          const displayIntro = description && description.trim() !== '' 
+            ? description 
+            : '这个人很懒，什么都没有留下...'
+          this.$set(this.userInfo, 'introduction', displayIntro)
+          this.$set(this.userInfo, 'description', description) // 同时设置description字段（保持原始值）
+          this.$set(this.userInfo, 'role', data.role || this.userInfo.role)
+          this.$set(this.userInfo, 'status', data.status || this.userInfo.status)
+          
+          console.log('[Profile] 更新后的userInfo.introduction:', this.userInfo.introduction)
+          console.log('[Profile] 更新后的userInfo.description:', this.userInfo.description)
+          console.log('[Profile] 更新后的完整userInfo:', JSON.stringify(this.userInfo))
+          
+          // 更新 localStorage 中的用户信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              // 更新所有字段，确保包含 description
+              // 优先使用后端返回的description字段
+              if (data.description !== undefined && data.description !== null) {
+                userData.description = data.description
+                userData.introduction = data.description // 同时设置introduction以兼容
+              } else if (data.introduction !== undefined && data.introduction !== null) {
+                userData.introduction = data.introduction
+                userData.description = data.introduction
+              }
+              userData.organization = data.organization || data.institution || userData.organization
+              userData.nickname = data.nickname || data.name || userData.nickname
+              if (data.avatar || data.avatarUrl || data.avatarData) {
+                userData.avatar = data.avatar || data.avatarUrl || data.avatarData
+              }
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('✅ 已更新 localStorage 中的用户信息')
+              console.log('✅ localStorage中的description:', userData.description)
+              console.log('✅ localStorage中的introduction:', userData.introduction)
+            } catch (error) {
+              console.error('更新 localStorage 失败:', error)
+            }
+          } else {
+            // 如果没有保存的用户信息，直接保存从服务器获取的数据
+            const userDataToSave = {
+              ...data,
+              description: description,
+              introduction: description
+            }
+            localStorage.setItem('user_info', JSON.stringify(userDataToSave))
+            console.log('✅ 首次保存用户信息到 localStorage')
+          }
+          
+          this.isProfileLoading = false
+        } else {
+          this.isProfileLoading = false
+        }
+      } catch (error) {
+        console.error('从服务器获取用户信息失败:', error)
+        this.isProfileLoading = false
+      }
+    },
+    triggerAvatarUpload() {
+      if (!this.isViewingSelf) return
+      const input = this.$refs.avatarUpload
+      if (input) {
+        input.click()
+      }
+    },
+    loadUserInfo(options = {}) {
+      const hasRouteOverride = Object.prototype.hasOwnProperty.call(options, 'routeUserId')
+      const routeUserId = hasRouteOverride ? options.routeUserId : this.$route.query.userId
+      const normalizedRouteUserId = routeUserId != null && routeUserId !== '' ? String(routeUserId) : null
+
       // 检查用户是否已登录
       const token = localStorage.getItem('access_token')
       const savedUserInfo = localStorage.getItem('user_info')
@@ -737,18 +984,58 @@ export default {
       if (this.isLoggedIn && savedUserInfo) {
         try {
           const userData = JSON.parse(savedUserInfo)
-          this.userInfo = {
-            id: userData.id || userData.userId,
-            username: userData.username || userData.name || '',
-            email: userData.email || '',
-            nickname: userData.nickname || userData.name || '未设置昵称',
-            avatar: userData.avatar || '',
-            organization: userData.organization || userData.institution || '未设置机构',
-            introduction: userData.introduction || '这个人很懒，什么都没有留下...',
-            role: userData.role || 'MEMBER',
-            status: userData.status || 'ACTIVE'
+          this.currentUserId = userData.id || userData.userId
+          const normalizedCurrentUserId = this.currentUserId != null ? String(this.currentUserId) : null
+
+          // 如果路由上带了 userId，并且与当前用户不同：直接进入“查看他人”模式，避免先闪现自己的信息
+          if (normalizedRouteUserId && normalizedRouteUserId !== normalizedCurrentUserId) {
+            this.viewingUserId = normalizedRouteUserId
+            this.isViewingOther = true
+
+            // 初始化为一个空的占位信息（不要用自己的 userInfo）
+            const routeAvatar = this.$route.query?.avatar
+            this.userInfo = {
+              id: this.viewingUserId,
+              username: '',
+              email: '',
+              nickname: '',
+              avatar: routeAvatar || '',
+              organization: '',
+              introduction: '',
+              role: 'MEMBER',
+              status: 'ACTIVE'
+            }
+
+            this.researchTags = []
+            this.linkedAchievements = []
+
+            this.loadOtherUserProfile(this.viewingUserId)
+          } else {
+            // 默认显示当前登录用户自己的信息
+            this.viewingUserId = this.currentUserId
+            this.isViewingOther = false
+
+            // 先从 localStorage 读取，然后从后端获取最新信息以确保数据同步
+            this.userInfo = {
+              id: userData.id || userData.userId,
+              username: userData.username || userData.name || '',
+              email: userData.email || '',
+              nickname: userData.nickname || userData.name || '未设置昵称',
+              avatar: userData.avatar || '',
+              organization: userData.organization || userData.institution || '未设置机构',
+              introduction: userData.introduction || userData.description || '这个人很懒，什么都没有留下...',
+              role: userData.role || 'MEMBER',
+              status: userData.status || 'ACTIVE'
+            }
+            console.log('加载用户信息（从localStorage）:', this.userInfo)
+
+            // 从后端获取最新的用户信息，确保包含 description 字段
+            this.loadMyProfileFromServer()
+
+            // 查看自己的资料时，加载当前用户的研究方向和学术成果
+            this.loadResearchTags()
+            this.loadLinkedAchievements()
           }
-          console.log('加载用户信息:', this.userInfo)
         } catch (error) {
           console.error('解析用户信息失败:', error)
           this.isLoggedIn = false
@@ -756,6 +1043,9 @@ export default {
       } else {
         // 游客模式
         this.isLoggedIn = false
+        this.currentUserId = null
+        this.viewingUserId = null
+        this.isViewingOther = false
         this.userInfo = {
           id: null,
           username: '',
@@ -1318,7 +1608,9 @@ export default {
     // 个人简介编辑方法
     editIntro() {
       this.editingIntro = true
-      this.tempIntro = this.userInfo.introduction
+      // 使用计算属性确保获取正确的值
+      const intro = this.userInfo.introduction || this.userInfo.description || ''
+      this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.$nextTick(() => {
         this.$refs.introTextarea.focus()
       })
@@ -1333,34 +1625,71 @@ export default {
       }
       
       // 如果内容没有变化，直接退出编辑
-      if (trimmedIntro === this.userInfo.introduction) {
+      const currentIntro = this.userInfo.introduction || this.userInfo.description || ''
+      if (trimmedIntro === currentIntro || (trimmedIntro === '' && (currentIntro === '' || currentIntro === '这个人很懒，什么都没有留下...'))) {
         this.editingIntro = false
         return
       }
       
       try {
-        // 调用后端API更新个人简介（后端字段为title）
-        const response = await authAPI.updateUserInfo({
-          title: trimmedIntro
-        })
+        // 调用后端API更新个人简介
+        const response = await profileAPI.updateDescription(trimmedIntro)
         
         if (response && response.code === 200) {
-          // 更新成功
-          this.userInfo.introduction = trimmedIntro
-          this.editingIntro = false
-          
-          // 更新user_info中的简介信息
-          const savedUserInfo = localStorage.getItem('user_info')
-          if (savedUserInfo) {
-            try {
-              const userData = JSON.parse(savedUserInfo)
-              userData.introduction = trimmedIntro
-              localStorage.setItem('user_info', JSON.stringify(userData))
-              console.log('个人简介已更新到user_info')
-            } catch (error) {
-              console.error('更新user_info简介失败:', error)
+          // 更新成功，重新获取用户信息以确保数据同步
+          try {
+            const userInfoResp = await authAPI.getCurrentUserInfo()
+            if (userInfoResp && userInfoResp.code === 200 && userInfoResp.data) {
+              const updatedData = userInfoResp.data
+              // 更新本地 userInfo
+              this.userInfo.introduction = updatedData.introduction || updatedData.description || trimmedIntro
+              
+              // 更新 localStorage 中的用户信息
+              const savedUserInfo = localStorage.getItem('user_info')
+              if (savedUserInfo) {
+                try {
+                  const userData = JSON.parse(savedUserInfo)
+                  userData.introduction = updatedData.introduction || updatedData.description || trimmedIntro
+                  userData.description = updatedData.description || updatedData.introduction || trimmedIntro
+                  localStorage.setItem('user_info', JSON.stringify(userData))
+                  console.log('个人简介已更新到user_info')
+                } catch (error) {
+                  console.error('更新user_info简介失败:', error)
+                }
+              }
+            } else {
+              // 如果获取失败，直接使用保存的值
+              this.userInfo.introduction = trimmedIntro
+              const savedUserInfo = localStorage.getItem('user_info')
+              if (savedUserInfo) {
+                try {
+                  const userData = JSON.parse(savedUserInfo)
+                  userData.introduction = trimmedIntro
+                  userData.description = trimmedIntro
+                  localStorage.setItem('user_info', JSON.stringify(userData))
+                } catch (error) {
+                  console.error('更新user_info简介失败:', error)
+                }
+              }
+            }
+          } catch (error) {
+            console.error('重新获取用户信息失败:', error)
+            // 如果重新获取失败，直接使用保存的值
+            this.userInfo.introduction = trimmedIntro
+            const savedUserInfo = localStorage.getItem('user_info')
+            if (savedUserInfo) {
+              try {
+                const userData = JSON.parse(savedUserInfo)
+                userData.introduction = trimmedIntro
+                userData.description = trimmedIntro
+                localStorage.setItem('user_info', JSON.stringify(userData))
+              } catch (e) {
+                console.error('更新user_info简介失败:', e)
+              }
             }
           }
+          
+          this.editingIntro = false
           
           // 触发全局更新事件
           this.$root.$emit('userInfoUpdated')
@@ -1374,11 +1703,13 @@ export default {
         console.error('更新个人简介失败:', error)
         alert('更新个人简介失败: ' + (error.message || error.msg || '请稍后重试'))
         // 恢复原简介
-        this.tempIntro = this.userInfo.introduction
+        const intro = this.userInfo.introduction || this.userInfo.description || ''
+        this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       }
     },
     cancelEditIntro() {
-      this.tempIntro = this.userInfo.introduction
+      const intro = this.userInfo.introduction || this.userInfo.description || ''
+      this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.editingIntro = false
     },
     // 机构编辑方法
@@ -1695,11 +2026,16 @@ export default {
         // 提取标签名称数组
         const tagNames = this.researchTags.map(t => t.name || t)
         
-        const response = await profileAPI.updateResearchTags(tagNames)
+        let response
+        if (tagNames.length === 0) {
+          response = await profileAPI.clearResearchTags()
+        } else {
+          response = await profileAPI.updateResearchTags(tagNames)
+        }
         if (response && response.code === 200) {
           // 更新成功后，重新加载标签
           await this.loadResearchTags()
-          this.showSuccessToast('研究方向标签已更新')
+          this.showSuccessToast(tagNames.length === 0 ? '研究方向标签已清空' : '研究方向标签已更新')
         } else {
           throw new Error(response?.msg || '更新失败')
         }
@@ -1710,47 +2046,53 @@ export default {
     },
     
     // ===== 学术成果关联相关方法 =====
+    async mapAchievementsList(sourceList) {
+      // 统一的成果映射与补全逻辑，供本人和他人复用
+      if (!Array.isArray(sourceList) || sourceList.length === 0) return []
+
+      const mapped = await Promise.all(sourceList.map(async item => {
+        let title = item.achievementTitle || item.title
+        let type = TYPE_DISPLAY[item.achievementType] || TYPE_DISPLAY[item.type] || item.achievementType || item.type || '未知类型'
+        let date = item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : ''
+
+        // 如果后端没有返回标题/类型，则调用知识库接口补充信息
+        if (!title || title === '未命名成果' || title === '未知标题') {
+          try {
+            const detailResp = await knowledgeAPI.getAchievementDetail(item.achievementId)
+            if (detailResp && detailResp.code === 200 && detailResp.data) {
+              title = detailResp.data.title || title
+              type = TYPE_DISPLAY[detailResp.data.type] || detailResp.data.type || type
+              if (detailResp.data.createdAt) {
+                date = new Date(detailResp.data.createdAt).toLocaleDateString('zh-CN')
+              }
+            }
+          } catch (error) {
+            console.warn('获取成果详情失败:', item.achievementId, error)
+          }
+        }
+
+        return {
+          id: item.achievementId,
+          achievementId: item.achievementId,
+          title: title || '未命名成果',
+          type,
+          date,
+          projectId: item.projectId,
+          displayOrder: item.displayOrder || 0,
+          remark: item.remark || ''
+        }
+      }))
+
+      return mapped
+    },
+
     async loadLinkedAchievements() {
       if (!this.isLoggedIn) return
       
       try {
         const response = await profileAPI.getMyAchievements()
         if (response && response.code === 200 && response.data) {
-          // 转换后端数据格式为前端需要的格式
-          const mapped = await Promise.all(response.data.map(async item => {
-            let title = item.achievementTitle
-            let type = TYPE_DISPLAY[item.achievementType] || item.achievementType || '未知类型'
-            let date = item.createdAt ? new Date(item.createdAt).toLocaleDateString('zh-CN') : ''
-
-            // 如果后端没有返回标题/类型，则调用知识库接口补充信息
-            if (!title || title === '未命名成果' || title === '未知标题') {
-              try {
-                const detailResp = await knowledgeAPI.getAchievementDetail(item.achievementId)
-                if (detailResp && detailResp.code === 200 && detailResp.data) {
-                  title = detailResp.data.title || title
-                  type = TYPE_DISPLAY[detailResp.data.type] || detailResp.data.type || type
-                  if (detailResp.data.createdAt) {
-                    date = new Date(detailResp.data.createdAt).toLocaleDateString('zh-CN')
-                  }
-                }
-              } catch (error) {
-                console.warn('获取成果详情失败:', item.achievementId, error)
-              }
-            }
-
-            return {
-              id: item.achievementId,
-              achievementId: item.achievementId,
-              title: title || '未命名成果',
-              type,
-              date,
-              projectId: item.projectId,
-              displayOrder: item.displayOrder || 0,
-              remark: item.remark || ''
-            }
-          }))
-
-          this.linkedAchievements = mapped
+          this.linkedAchievements = await this.mapAchievementsList(response.data)
         } else {
           this.linkedAchievements = []
         }

@@ -50,7 +50,7 @@
           <div class="loading-spinner"></div>
           <p class="loading-text">正在加载项目数据...</p>
         </div>
-        
+
         <!-- 空状态 -->
         <div v-else-if="projects.length === 0" class="empty-state">
           <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -157,7 +157,7 @@
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
-import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
+import { normalizeProjectCoverUrl, normalizeImageUrl, preloadImages } from '@/utils/imageUtils'
 import '@/assets/styles/ProjectSquare.css'
 
 export default {
@@ -181,7 +181,9 @@ export default {
       toastMessage: '',
       saveStateTimer: null, // 防抖定时器
       isAuthenticated: false,
-      currentUserId: null
+      currentUserId: null,
+      imagesReady: false,
+      loadingStartTime: 0
     }
   },
   computed: {
@@ -336,6 +338,43 @@ export default {
       }
     },
 
+    /**
+     * 静默预加载项目封面图片，避免进入详情或翻页时首帧白屏
+     * 当 block 为 true 时，会等待预加载完成再继续（用于当前页加载）
+     * 可选传入 projectList，只预加载指定项目（如当前页）
+     */
+    async preloadProjectImages(block = false, projectList = null) {
+      try {
+        const source = Array.isArray(projectList) && projectList.length > 0
+          ? projectList
+          : this.projects
+
+        if (!Array.isArray(source) || source.length === 0) return
+        const urls = source
+          .map(p => p.image || p.imageUrl)
+          .filter(url => !!url)
+
+        if (!urls.length) return
+
+        if (block) {
+          // 首次进入页面时，等待预加载完成，再展示网格，减少图片“冒出来”的感觉
+          // 无论预加载成功或失败，都不向外抛错，避免阻塞页面渲染
+          try {
+            await preloadImages(urls)
+          } catch (e) {
+            // 忽略预加载错误
+          }
+        } else {
+          // 后台静默预加载，不阻塞主线程
+          preloadImages(urls).catch(() => {
+            // 预加载失败不影响正常展示，静默忽略
+          })
+        }
+      } catch (e) {
+        // 任何异常都不影响页面正常使用
+      }
+    },
+
     refreshAuthState() {
       try {
         const token = localStorage.getItem('access_token')
@@ -467,21 +506,36 @@ export default {
     },
     async loadProjects(backgroundUpdate = false) {
       this.refreshAuthState()
-      // 如果不是后台更新模式，先尝试从缓存加载
+
+      // 非后台加载时，立即进入 loading 状态并记录开始时间（包括使用缓存的路径）
       if (!backgroundUpdate) {
+        this.isLoading = true
+        this.loadingStartTime = Date.now()
+
+        // 先尝试从缓存加载
         const cachedProjects = localStorage.getItem('projects')
         if (cachedProjects) {
           try {
             const projects = JSON.parse(cachedProjects)
             const accessibleProjects = projects.filter(p => this.canDisplayProject(p))
             if (accessibleProjects.length > 0) {
-              // 先显示缓存数据
+              // 先准备好缓存数据
               this.projects = accessibleProjects.map(project => ({
                 ...project,
                 status: this.getStatusDisplay(project.status),
                 image: normalizeProjectCoverUrl(project.image || project.imageUrl),
                 imageUrl: normalizeProjectCoverUrl(project.imageUrl || project.image)
               }))
+              // 首次加载时，仅对当前页项目阻塞式预加载封面图，避免图片逐个出现
+              await this.preloadProjectImages(true, this.paginatedProjects)
+
+              // 确保 loading 至少展示一小段时间，避免一闪而过
+              const minDuration = 1200
+              const elapsed = Date.now() - (this.loadingStartTime || Date.now())
+              if (elapsed < minDuration) {
+                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed))
+              }
+
               this.isLoading = false
               // 后台更新数据
               setTimeout(() => this.loadProjects(true), 100)
@@ -491,11 +545,6 @@ export default {
             // 缓存读取失败，继续从API加载
           }
         }
-      }
-      
-      // 如果是后台更新或没有缓存，才显示loading
-      if (!backgroundUpdate) {
-        this.isLoading = true
       }
       
       try {
@@ -591,14 +640,8 @@ export default {
               return canShow
             })
           
-          // 只在非后台更新模式下输出日志
-          if (!backgroundUpdate) {
-            console.log('转换后的项目数量:', this.projects.length)
-          }
-          
-          // 先使用缓存或默认值显示项目列表，不阻塞UI
+          // 读取每个项目已缓存的成员数量（如果有），用于快速显示团队人数
           this.projects.forEach(project => {
-            // 尝试从缓存读取成员数量
             try {
               const cached = localStorage.getItem(`project_member_count_${project.id}`)
               if (cached) {
@@ -616,8 +659,17 @@ export default {
           // 保存合并后的数据到localStorage（先保存，不等待成员数量）
           localStorage.setItem('projects', JSON.stringify(this.projects))
           
-          // 如果不是后台更新模式，立即显示列表
+          // 如果不是后台更新模式，在结束 loading 前，对当前页项目阻塞式预加载封面图
           if (!backgroundUpdate) {
+            await this.preloadProjectImages(true, this.paginatedProjects)
+
+            // 确保 loading 至少展示一小段时间，避免一闪而过
+            const minDuration = 1200
+            const elapsed = Date.now() - (this.loadingStartTime || Date.now())
+            if (elapsed < minDuration) {
+              await new Promise(resolve => setTimeout(resolve, minDuration - elapsed))
+            }
+
             this.isLoading = false
           }
           
@@ -685,6 +737,7 @@ export default {
         }
       } finally {
         if (!backgroundUpdate) {
+          // 兜底：如果前面因异常提前退出，这里仍然保证关闭 loading，避免页面卡住
           this.isLoading = false
         }
       }
