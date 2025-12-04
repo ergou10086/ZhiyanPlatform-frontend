@@ -519,6 +519,71 @@ export default {
       return messages
     },
     
+    startTypewriter(messageIndex, newText) {
+      if (!newText) {
+        return
+      }
+      if (this.currentTypingMessageIndex !== messageIndex) {
+        this.stopTypewriter()
+        this.currentTypingMessageIndex = messageIndex
+      }
+      this.typewriterQueue += String(newText)
+      if (this.isTyping && this.typewriterTimer) {
+        return
+      }
+      if (messageIndex < 0 || messageIndex >= this.messages.length) {
+        this.typewriterQueue = ''
+        this.isTyping = false
+        this.currentTypingMessageIndex = -1
+        return
+      }
+      this.isTyping = true
+      const step = 3
+      if (this.typewriterTimer) {
+        clearInterval(this.typewriterTimer)
+        this.typewriterTimer = null
+      }
+      this.typewriterTimer = setInterval(() => {
+        if (!this.typewriterQueue || this.typewriterQueue.length === 0) {
+          clearInterval(this.typewriterTimer)
+          this.typewriterTimer = null
+          this.isTyping = false
+          return
+        }
+        const targetIndex = this.currentTypingMessageIndex
+        if (targetIndex < 0 || targetIndex >= this.messages.length) {
+          this.typewriterQueue = ''
+          clearInterval(this.typewriterTimer)
+          this.typewriterTimer = null
+          this.isTyping = false
+          return
+        }
+        const chunk = this.typewriterQueue.slice(0, step)
+        this.typewriterQueue = this.typewriterQueue.slice(step)
+        const msg = this.messages[targetIndex]
+        msg.content = (msg.content || '') + chunk
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
+      }, 30)
+    },
+    
+    stopTypewriter() {
+      if (this.typewriterTimer) {
+        clearInterval(this.typewriterTimer)
+        this.typewriterTimer = null
+      }
+      if (this.isTyping && this.currentTypingMessageIndex >= 0 && this.currentTypingMessageIndex < this.messages.length) {
+        if (this.typewriterQueue && this.typewriterQueue.length > 0) {
+          const msg = this.messages[this.currentTypingMessageIndex]
+          msg.content = (msg.content || '') + this.typewriterQueue
+        }
+      }
+      this.isTyping = false
+      this.currentTypingMessageIndex = -1
+      this.typewriterQueue = ''
+    },
+    
     async sendMessage() {
       if (this.isArchived) {
         if (this.$message) {
@@ -601,10 +666,6 @@ export default {
         this.messages.push(textMessage)
       }
       
-      // 清空已选择的文件（发送后清空）
-      this.selectedLocalFiles = []
-      this.selectedKnowledgeFileIds = []
-
       this.isSending = true
       
       // 创建AI回复消息占位符
@@ -707,6 +768,25 @@ export default {
       
       // ⭐ 参考Dify：等待打字机完成
       this.finishTypewriter()
+    },
+    
+    /**
+     * 处理流式响应错误
+     */
+    handleStreamError(error, aiMessage) {
+      console.error('[Dify 知识库] 流式响应错误:', error)
+      if (this.currentStreamController) {
+        this.currentStreamController.close()
+        this.currentStreamController = null
+      }
+      this.isSending = false
+      // 停止打字机，避免继续追加内容
+      this.stopTypewriter()
+      if (aiMessage) {
+        const msg = error && error.message ? error.message : 'AI 调用失败，请稍后重试'
+        aiMessage.content = '抱歉，AI 调用失败：' + msg
+      }
+      this.saveMessagesToStorage()
     },
     
     /**

@@ -997,6 +997,44 @@
   box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
 }
 
+/* 编辑器容器 */
+.ai-assistant-container .editor-container {
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+}
+
+/* Markdown 编辑器样式 */
+.ai-assistant-container .markdown-editor {
+  width: 100%;
+  min-height: 400px;
+  padding: 16px 18px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #1e293b;
+  background: #ffffff;
+  resize: vertical;
+  transition: all 0.3s ease;
+}
+
+.ai-assistant-container .markdown-editor:hover {
+  border-color: #5EB6E4;
+}
+
+.ai-assistant-container .markdown-editor:focus {
+  outline: none;
+  border-color: #0044CC;
+  box-shadow: 0 0 0 3px rgba(0, 68, 204, 0.1);
+}
+
+.ai-assistant-container .markdown-editor::placeholder {
+  color: #cbd5e1;
+  font-style: italic;
+}
+
 /* 空状态 */
 .ai-assistant-container .empty-state-inline {
   display: flex;
