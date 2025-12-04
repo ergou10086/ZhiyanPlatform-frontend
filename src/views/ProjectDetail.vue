@@ -344,7 +344,7 @@
         </div>
         <div class="team-grid">
           <div v-for="member in teamMembers" :key="member.id" class="member-card">
-            <div class="member-avatar">
+            <div class="member-avatar" @click="goToUserProfile(member)">
               <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
               <div v-else class="avatar-placeholder">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1570,7 +1570,7 @@
 </template>
 <script>
 import '@/assets/styles/ProjectDetail.css'
-import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage } from '@/utils/imageUtils'
+import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage, preloadImages } from '@/utils/imageUtils'
 import { addTimestampToUrl } from '@/utils/imageUtils'
 import TaskSubmissionModal from '@/components/TaskSubmissionModal.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
@@ -2449,6 +2449,8 @@ export default {
             this.teamMembers = parsed.data.teamMembers || []
             this.tasks = parsed.data.tasks || []
             this.isLoading = false
+            // 使用缓存数据时也提前预加载项目图片和头像
+            this.preloadDetailImages()
             // 后台更新数据（包括团队成员）
             this.loadProjectFromAPI().then(() => {
               // 在数据加载完成后再检查权限
@@ -2575,6 +2577,8 @@ export default {
           ]).then(() => {
             this.updateManagerFromTeamMembers()
             this.saveProjectDetailCache()
+            // 使用项目广场回退数据时，同样预加载当前详情需要的图片
+            this.preloadDetailImages()
           }).catch(error => {
             console.error('并行加载数据时出错:', error)
           })
@@ -2641,9 +2645,56 @@ export default {
           ])
           this.updateManagerFromTeamMembers()
           this.saveProjectDetailCache()
+          // 后台刷新项目数据完成后，再次预加载图片，确保使用最新URL
+          this.preloadDetailImages()
         }
       } catch (error) {
         console.error('后台更新项目数据失败:', error)
+      }
+    },
+    /**
+     * 预加载项目详情页中会用到的图片（项目大图 + 各类头像）
+     */
+    preloadDetailImages() {
+      try {
+        const urls = []
+
+        if (this.project) {
+          if (this.project.imageUrl) {
+            urls.push(this.project.imageUrl)
+          } else if (this.project.image) {
+            urls.push(this.project.image)
+          }
+        }
+
+        if (Array.isArray(this.teamMembers)) {
+          this.teamMembers.forEach(m => {
+            if (m && m.avatar) {
+              urls.push(m.avatar)
+            }
+          })
+        }
+
+        if (Array.isArray(this.tasks)) {
+          this.tasks.forEach(task => {
+            if (Array.isArray(task.assignees)) {
+              task.assignees.forEach(a => {
+                if (a && a.avatarUrl) {
+                  urls.push(a.avatarUrl)
+                }
+              })
+            }
+          })
+        }
+
+        const uniqueUrls = Array.from(new Set(urls.filter(Boolean)))
+        if (!uniqueUrls.length) return
+
+        preloadImages(uniqueUrls).catch(() => {
+          // 预加载失败不会影响正常渲染
+        })
+      } catch (e) {
+        // 任何异常都不影响页面正常使用
       }
     },
     saveProjectDetailCache() {
@@ -2661,6 +2712,20 @@ export default {
       } catch (e) {
         // 忽略缓存写入错误
       }
+    },
+    goToUserProfile(member) {
+      // 从成员对象中取 userId 或 id
+      const userId = member.userId || member.id
+      if (!userId) return
+      // 目前个人信息页路由为 /profile，可通过查询参数传入要查看的用户ID
+      // 同时将头像一并传过去，作为他人页面头像的兜底展示
+      this.$router.push({
+        path: '/profile',
+        query: {
+          userId: String(userId),
+          avatar: member.avatar || ''
+        }
+      })
     },
     loadTeamMembersFromLocalStorage() {
       const projectId = this.$route.params.id
@@ -3126,6 +3191,19 @@ export default {
       const { avatarAPI } = await import('@/api/avatar')
       for (const member of this.teamMembers) {
         if (!member.userId) continue
+
+        // 优先从本次会话的缓存中读取头像URL，避免重复请求
+        try {
+          const cacheKey = `avatar_cache_${member.userId}`
+          const cached = typeof window !== 'undefined' ? window.sessionStorage.getItem(cacheKey) : null
+          if (cached) {
+            this.$set(member, 'avatar', cached)
+            continue
+          }
+        } catch (e) {
+          // sessionStorage 不可用时直接忽略缓存
+        }
+
         try {
           const response = await avatarAPI.getAvatarInfoById(member.userId)
           if (response && response.code === 200 && response.data) {
@@ -3136,13 +3214,20 @@ export default {
               avatarUrl = avatarData.dataUrl
             } else if (avatarData.sizes) {
               avatarUrl = avatarData.sizes.original || avatarData.sizes['256'] || avatarData.sizes['512']
-            } else if (avatarData.minio_url) {
-              avatarUrl = avatarData.minio_url
-            } else if (avatarData.cdn_url) {
-              avatarUrl = avatarData.cdn_url
+            } else if (avatarData.minio_url || avatarData.minioUrl || avatarData.cdn_url || avatarData.cdnUrl) {
+              avatarUrl = avatarData.minio_url || avatarData.minioUrl || avatarData.cdn_url || avatarData.cdnUrl
             }
             if (avatarUrl) {
               this.$set(member, 'avatar', avatarUrl)
+              // 将头像URL写入本次会话缓存，后续切换页面直接复用
+              try {
+                const cacheKey = `avatar_cache_${member.userId}`
+                if (typeof window !== 'undefined') {
+                  window.sessionStorage.setItem(cacheKey, avatarUrl)
+                }
+              } catch (e) {
+                // 写缓存失败不影响正常显示
+              }
               console.log(`[loadMemberAvatars] 加载成员 ${member.name} 头像成功`)
             }
           }
@@ -3151,6 +3236,8 @@ export default {
           console.log(`[loadMemberAvatars] 成员 ${member.name} 没有头像或加载失败`)
         }
       }
+      // 成员头像加载或从缓存恢复后，触发一次图片预加载，提升后续滚动体验
+      this.preloadDetailImages()
     },
     handleAvatarUpdated({ userId, avatarUrl }) {
       // 💡 局部更新：只更新该用户的头像，无需重新请求整个成员列表
@@ -3167,6 +3254,15 @@ export default {
         console.log('✅ 找到成员:', member.name)
         console.log('更新前的头像:', member.avatar?.substring(0, 50))
         this.$set(member, 'avatar', avatarUrl)
+        // 同步更新本次会话的头像缓存
+        try {
+          const cacheKey = `avatar_cache_${userId}`
+          if (typeof window !== 'undefined') {
+            window.sessionStorage.setItem(cacheKey, avatarUrl)
+          }
+        } catch (e) {
+          // 缓存异常不影响界面
+        }
         console.log(`✅ 已更新团队成员 ${member.name}(${userId}) 的头像`)
         console.log('更新后的头像:', member.avatar?.substring(0, 50))
         // 强制Vue更新视图
@@ -4290,17 +4386,38 @@ export default {
             await new Promise(resolve => setTimeout(resolve, 300))
             // 刷新任务列表
             await this.loadProjectTasks()
+            
+            // ✅ 触发全局事件，通知首页刷新任务列表
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              newStatus: '完成',
+              statusValue: 'DONE',
+              reviewStatus: 'APPROVED'
+            })
           } else {
             console.warn('[handleReviewSuccess] 更新任务状态失败:', response.msg)
             this.showSuccessToast('审核通过')
             // 即使更新失败也刷新任务列表
             await this.loadProjectTasks()
+            // 触发事件
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              reviewStatus: 'APPROVED'
+            })
           }
         } catch (error) {
           console.error('[handleReviewSuccess] 更新任务状态失败:', error)
           this.showSuccessToast('审核通过')
           // 即使更新失败也刷新任务列表
           await this.loadProjectTasks()
+          // 触发事件
+          this.$root.$emit('taskStatusChanged', {
+            projectId: this.project.id,
+            taskId: taskId,
+            reviewStatus: 'APPROVED'
+          })
         }
       } else if (reviewStatus === 'REJECTED') {
         // 审核拒绝：更新任务状态为"进行中"
@@ -4317,12 +4434,28 @@ export default {
             // 刷新任务列表
             await this.loadProjectTasks()
             console.log('[handleReviewSuccess] ✅ 任务列表已刷新')
+            
+            // ✅ 触发全局事件，通知首页刷新任务列表（包括被打回的任务）
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              newStatus: '进行中',
+              statusValue: 'IN_PROGRESS',
+              reviewStatus: 'REJECTED' // 标记这是审核拒绝
+            })
+            console.log('[handleReviewSuccess] ✅ 已触发 taskStatusChanged 事件，通知首页刷新')
           } else {
             console.error('[handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
             console.error('[handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
             this.showSuccessToast('审核拒绝，但状态更新失败: ' + (response?.msg || '未知错误'))
             // 即使更新失败也刷新任务列表
             await this.loadProjectTasks()
+            // 即使状态更新失败，也触发事件（因为提交记录已经被标记为REJECTED）
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              reviewStatus: 'REJECTED'
+            })
           }
         } catch (error) {
           console.error('[handleReviewSuccess] ❌ 更新任务状态异常:', error)
@@ -4330,6 +4463,12 @@ export default {
           this.showSuccessToast('审核拒绝，但状态更新异常: ' + (error.message || '未知错误'))
           // 即使更新失败也刷新任务列表
           await this.loadProjectTasks()
+          // 即使状态更新异常，也触发事件（因为提交记录已经被标记为REJECTED）
+          this.$root.$emit('taskStatusChanged', {
+            projectId: this.project.id,
+            taskId: taskId,
+            reviewStatus: 'REJECTED'
+          })
         }
       } else {
         this.showSuccessToast('审核完成')

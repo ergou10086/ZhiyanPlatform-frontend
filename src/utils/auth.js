@@ -41,12 +41,19 @@ export function normalizeUserInfo(userInfo) {
   normalized.avatarUrl = avatarUrl
   normalized.nickname = userInfo.nickname || userInfo.name || ''
   
+  // 处理个人简介字段：后端返回 description，前端使用 introduction
+  // 确保两个字段都有值，以兼容不同的字段名
+  const description = userInfo.description || userInfo.introduction || ''
+  normalized.description = description
+  normalized.introduction = description
+  
   // 添加调试日志
   console.log('🔄 规范化用户信息:', {
     原始avatar: userInfo.avatar || userInfo.avatarUrl,
     规范化后: avatarUrl,
     nickname: normalized.nickname,
-    hasAvatar: !!avatarUrl
+    hasAvatar: !!avatarUrl,
+    description: description
   })
   
   return normalized
