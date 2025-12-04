@@ -202,10 +202,8 @@ export default {
     },
     goToProfile() {
       this.userMenuOpen = false
-      // 检查当前路由，避免重复导航
-      if (this.$route.path !== '/profile') {
-        this.$router.push('/profile')
-      }
+      // 无论当前在什么页面，强制整页刷新到 /profile，确保重新挂载 Profile 组件
+      window.location.href = '/profile'
     },
     goToLogin() {
       this.userMenuOpen = false

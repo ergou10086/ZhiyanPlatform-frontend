@@ -33,7 +33,7 @@
             <span class="add-name">论文</span>
           </div>
           <div class="add-desc">上传学术论文成果</div>
-          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('论文')">上传论文</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember || isArchived }" :disabled="isNotMember || isArchived" @click="uploadFile('论文')">上传论文</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -41,7 +41,7 @@
             <span class="add-name">专利</span>
           </div>
           <div class="add-desc">记录专利信息</div>
-          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('专利')">上传专利</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember || isArchived }" :disabled="isNotMember || isArchived" @click="uploadFile('专利')">上传专利</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -49,7 +49,7 @@
             <span class="add-name">数据集</span>
           </div>
           <div class="add-desc">上传研究数据集</div>
-          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('数据集')">上传数据集</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember || isArchived }" :disabled="isNotMember || isArchived" @click="uploadFile('数据集')">上传数据集</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -57,7 +57,7 @@
             <span class="add-name">模型文件</span>
           </div>
           <div class="add-desc">存储已训练模型</div>
-          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('模型文件')">上传模型</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember || isArchived }" :disabled="isNotMember || isArchived" @click="uploadFile('模型文件')">上传模型</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -65,7 +65,7 @@
             <span class="add-name">实验报告</span>
           </div>
           <div class="add-desc">上传实验报告文档</div>
-          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="uploadFile('实验报告')">上传报告</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember || isArchived }" :disabled="isNotMember || isArchived" @click="uploadFile('实验报告')">上传报告</button>
         </div>
         <div class="add-card">
           <div class="add-head">
@@ -73,7 +73,7 @@
             <span class="add-name">自定义项目</span>
           </div>
           <div class="add-desc">创建自定义成果类型</div>
-          <button class="add-btn" :class="{ 'disabled': isNotMember }" :disabled="isNotMember" @click="createCustomType">新建类型</button>
+          <button class="add-btn" :class="{ 'disabled': isNotMember || isArchived }" :disabled="isNotMember || isArchived" @click="createCustomType">新建类型</button>
         </div>
         <!-- 任务成果（AI助手联动） -->
         <div class="add-card">
@@ -84,8 +84,8 @@
           <div class="add-desc">跳转到 AI 实验分析助手 · 任务成果草稿页面，生成并上传任务成果</div>
           <button
             class="add-btn"
-            :class="{ 'disabled': isNotMember }"
-            :disabled="isNotMember"
+            :class="{ 'disabled': isNotMember || isArchived }"
+            :disabled="isNotMember || isArchived"
             @click="openTaskResultAssistant"
           >
             打开任务成果面板
@@ -3961,6 +3961,23 @@ export default {
 @import '@/assets/styles/catalog/dialog.css';
 @import '@/assets/styles/catalog/panel.css';
 @import '@/assets/styles/catalog/file-view.css';
+
+/* 归档项目禁用按钮样式 */
+.add-btn.disabled,
+.add-btn:disabled {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
+  color: #e5e7eb !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.add-btn.disabled:hover,
+.add-btn:disabled:hover {
+  background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
 
 /* 关联任务 & 删除确认弹窗样式（参考 AI 助手的文件选择弹窗） */
 .modal-overlay {
