@@ -457,8 +457,10 @@ export default {
             console.warn('获取头像失败，使用默认头像:', avatarError)
           }
           
-          // 保存用户信息（包含头像）
-          localStorage.setItem('user_info', JSON.stringify(response.data))
+          // 规范化并保存用户信息（包含头像和description字段）
+          const { normalizeUserInfo } = await import('@/utils/auth')
+          const normalizedUserInfo = normalizeUserInfo(response.data)
+          localStorage.setItem('user_info', JSON.stringify(normalizedUserInfo))
           
           // 触发用户信息更新事件
           this.$root.$emit('userInfoUpdated')
