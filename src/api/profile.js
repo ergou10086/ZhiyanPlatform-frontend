@@ -182,6 +182,18 @@ export const profileAPI = {
       displayOrder: data.displayOrder,
       remark: data.remark
     })
+  },
+
+  /**
+   * 更新个人简介
+   * @param {String} description - 个人简介内容
+   * @returns {Promise} 返回更新结果
+   */
+  updateDescription(description) {
+    console.log('[profileAPI.updateDescription] 更新个人简介:', description)
+    return api.patch('/zhiyan/auth/users/me/profile/description', {
+      description: description
+    })
   }
 }
 

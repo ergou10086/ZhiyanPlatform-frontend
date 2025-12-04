@@ -163,7 +163,7 @@
                 <button @click="cancelEditIntro" class="cancel-btn">取消</button>
               </div>
             </div>
-            <p v-else class="info-value intro-content">{{ userInfo.introduction }}</p>
+            <p v-else class="info-value intro-content">{{ displayIntroduction }}</p>
           </div>
         </div>
           </div>
@@ -700,11 +700,39 @@ export default {
     },
 
     profileTitle() {
-      // 自己：显示“个人信息”；查看他人：显示对方昵称/姓名
+      // 自己：显示"个人信息"；查看他人：显示对方昵称/姓名
       if (this.isViewingSelf) {
         return '个人信息'
       }
       return this.userInfo.nickname || this.userInfo.username || '个人信息'
+    },
+
+    displayIntroduction() {
+      // 确保个人简介正确显示，优先使用 introduction，其次使用 description
+      // 注意：如果introduction是默认值，但description有值，应该使用description
+      let intro = this.userInfo.introduction
+      
+      // 如果introduction是默认值，尝试使用description
+      if (intro === '这个人很懒，什么都没有留下...' && this.userInfo.description) {
+        intro = this.userInfo.description
+      }
+      
+      // 如果还是没有，直接使用description
+      if (!intro || intro === '这个人很懒，什么都没有留下...') {
+        intro = this.userInfo.description || intro
+      }
+      
+      console.log('[Profile] displayIntroduction计算属性:', {
+        'userInfo.introduction': this.userInfo.introduction,
+        'userInfo.description': this.userInfo.description,
+        '最终intro': intro
+      })
+      
+      // 如果是默认值或空，显示默认文本
+      if (!intro || intro.trim() === '' || intro === '这个人很懒，什么都没有留下...') {
+        return '这个人很懒，什么都没有留下...'
+      }
+      return intro
     }
   },
   watch: {
@@ -776,7 +804,7 @@ export default {
             nickname: data.nickname || data.name || '未设置昵称',
             avatar: data.avatar || data.avatarUrl || data.imageUrl || this.userInfo.avatar || '',
             organization: data.organization || data.institution || '未设置机构',
-            introduction: data.introduction || '这个人很懒，什么都没有留下...',
+            introduction: data.introduction || data.description || '这个人很懒，什么都没有留下...',
             role: data.role || 'MEMBER',
             status: data.status || 'ACTIVE'
           }
@@ -851,6 +879,91 @@ export default {
         this.isProfileLoading = false
       }
     },
+    async loadMyProfileFromServer() {
+      // 从后端获取最新的用户信息，确保包含 description 等最新字段
+      try {
+        const response = await authAPI.getCurrentUserInfo()
+        if (response && response.code === 200 && response.data) {
+          const data = response.data
+          console.log('[Profile] 从服务器获取最新用户信息:', data)
+          console.log('[Profile] description字段值:', data.description)
+          console.log('[Profile] introduction字段值:', data.introduction)
+          
+          // 获取description字段（后端返回的是description）
+          // 注意：即使description是空字符串，也要使用它（因为用户可能清空了简介）
+          const description = data.description !== undefined && data.description !== null 
+            ? data.description 
+            : (data.introduction !== undefined && data.introduction !== null 
+              ? data.introduction 
+              : '')
+          console.log('[Profile] 最终使用的个人简介:', description, '类型:', typeof description, '长度:', description ? description.length : 0)
+          
+          // 更新 userInfo，使用Vue.set确保响应式更新
+          this.$set(this.userInfo, 'id', data.id || data.userId || this.userInfo.id)
+          this.$set(this.userInfo, 'username', data.username || data.name || this.userInfo.username)
+          this.$set(this.userInfo, 'email', data.email || this.userInfo.email)
+          this.$set(this.userInfo, 'nickname', data.nickname || data.name || this.userInfo.nickname)
+          this.$set(this.userInfo, 'avatar', data.avatar || data.avatarUrl || data.avatarData || this.userInfo.avatar)
+          this.$set(this.userInfo, 'organization', data.organization || data.institution || this.userInfo.organization)
+          // 如果description为空字符串，显示默认文本；否则显示实际内容
+          const displayIntro = description && description.trim() !== '' 
+            ? description 
+            : '这个人很懒，什么都没有留下...'
+          this.$set(this.userInfo, 'introduction', displayIntro)
+          this.$set(this.userInfo, 'description', description) // 同时设置description字段（保持原始值）
+          this.$set(this.userInfo, 'role', data.role || this.userInfo.role)
+          this.$set(this.userInfo, 'status', data.status || this.userInfo.status)
+          
+          console.log('[Profile] 更新后的userInfo.introduction:', this.userInfo.introduction)
+          console.log('[Profile] 更新后的userInfo.description:', this.userInfo.description)
+          console.log('[Profile] 更新后的完整userInfo:', JSON.stringify(this.userInfo))
+          
+          // 更新 localStorage 中的用户信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              // 更新所有字段，确保包含 description
+              // 优先使用后端返回的description字段
+              if (data.description !== undefined && data.description !== null) {
+                userData.description = data.description
+                userData.introduction = data.description // 同时设置introduction以兼容
+              } else if (data.introduction !== undefined && data.introduction !== null) {
+                userData.introduction = data.introduction
+                userData.description = data.introduction
+              }
+              userData.organization = data.organization || data.institution || userData.organization
+              userData.nickname = data.nickname || data.name || userData.nickname
+              if (data.avatar || data.avatarUrl || data.avatarData) {
+                userData.avatar = data.avatar || data.avatarUrl || data.avatarData
+              }
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('✅ 已更新 localStorage 中的用户信息')
+              console.log('✅ localStorage中的description:', userData.description)
+              console.log('✅ localStorage中的introduction:', userData.introduction)
+            } catch (error) {
+              console.error('更新 localStorage 失败:', error)
+            }
+          } else {
+            // 如果没有保存的用户信息，直接保存从服务器获取的数据
+            const userDataToSave = {
+              ...data,
+              description: description,
+              introduction: description
+            }
+            localStorage.setItem('user_info', JSON.stringify(userDataToSave))
+            console.log('✅ 首次保存用户信息到 localStorage')
+          }
+          
+          this.isProfileLoading = false
+        } else {
+          this.isProfileLoading = false
+        }
+      } catch (error) {
+        console.error('从服务器获取用户信息失败:', error)
+        this.isProfileLoading = false
+      }
+    },
     triggerAvatarUpload() {
       if (!this.isViewingSelf) return
       const input = this.$refs.avatarUpload
@@ -902,6 +1015,7 @@ export default {
             this.viewingUserId = this.currentUserId
             this.isViewingOther = false
 
+            // 先从 localStorage 读取，然后从后端获取最新信息以确保数据同步
             this.userInfo = {
               id: userData.id || userData.userId,
               username: userData.username || userData.name || '',
@@ -909,16 +1023,18 @@ export default {
               nickname: userData.nickname || userData.name || '未设置昵称',
               avatar: userData.avatar || '',
               organization: userData.organization || userData.institution || '未设置机构',
-              introduction: userData.introduction || '这个人很懒，什么都没有留下...',
+              introduction: userData.introduction || userData.description || '这个人很懒，什么都没有留下...',
               role: userData.role || 'MEMBER',
               status: userData.status || 'ACTIVE'
             }
-            console.log('加载用户信息:', this.userInfo)
+            console.log('加载用户信息（从localStorage）:', this.userInfo)
+
+            // 从后端获取最新的用户信息，确保包含 description 字段
+            this.loadMyProfileFromServer()
 
             // 查看自己的资料时，加载当前用户的研究方向和学术成果
             this.loadResearchTags()
             this.loadLinkedAchievements()
-            this.isProfileLoading = false
           }
         } catch (error) {
           console.error('解析用户信息失败:', error)
@@ -1492,7 +1608,9 @@ export default {
     // 个人简介编辑方法
     editIntro() {
       this.editingIntro = true
-      this.tempIntro = this.userInfo.introduction
+      // 使用计算属性确保获取正确的值
+      const intro = this.userInfo.introduction || this.userInfo.description || ''
+      this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.$nextTick(() => {
         this.$refs.introTextarea.focus()
       })
@@ -1507,34 +1625,71 @@ export default {
       }
       
       // 如果内容没有变化，直接退出编辑
-      if (trimmedIntro === this.userInfo.introduction) {
+      const currentIntro = this.userInfo.introduction || this.userInfo.description || ''
+      if (trimmedIntro === currentIntro || (trimmedIntro === '' && (currentIntro === '' || currentIntro === '这个人很懒，什么都没有留下...'))) {
         this.editingIntro = false
         return
       }
       
       try {
-        // 调用后端API更新个人简介（后端字段为title）
-        const response = await authAPI.updateUserInfo({
-          title: trimmedIntro
-        })
+        // 调用后端API更新个人简介
+        const response = await profileAPI.updateDescription(trimmedIntro)
         
         if (response && response.code === 200) {
-          // 更新成功
-          this.userInfo.introduction = trimmedIntro
-          this.editingIntro = false
-          
-          // 更新user_info中的简介信息
-          const savedUserInfo = localStorage.getItem('user_info')
-          if (savedUserInfo) {
-            try {
-              const userData = JSON.parse(savedUserInfo)
-              userData.introduction = trimmedIntro
-              localStorage.setItem('user_info', JSON.stringify(userData))
-              console.log('个人简介已更新到user_info')
-            } catch (error) {
-              console.error('更新user_info简介失败:', error)
+          // 更新成功，重新获取用户信息以确保数据同步
+          try {
+            const userInfoResp = await authAPI.getCurrentUserInfo()
+            if (userInfoResp && userInfoResp.code === 200 && userInfoResp.data) {
+              const updatedData = userInfoResp.data
+              // 更新本地 userInfo
+              this.userInfo.introduction = updatedData.introduction || updatedData.description || trimmedIntro
+              
+              // 更新 localStorage 中的用户信息
+              const savedUserInfo = localStorage.getItem('user_info')
+              if (savedUserInfo) {
+                try {
+                  const userData = JSON.parse(savedUserInfo)
+                  userData.introduction = updatedData.introduction || updatedData.description || trimmedIntro
+                  userData.description = updatedData.description || updatedData.introduction || trimmedIntro
+                  localStorage.setItem('user_info', JSON.stringify(userData))
+                  console.log('个人简介已更新到user_info')
+                } catch (error) {
+                  console.error('更新user_info简介失败:', error)
+                }
+              }
+            } else {
+              // 如果获取失败，直接使用保存的值
+              this.userInfo.introduction = trimmedIntro
+              const savedUserInfo = localStorage.getItem('user_info')
+              if (savedUserInfo) {
+                try {
+                  const userData = JSON.parse(savedUserInfo)
+                  userData.introduction = trimmedIntro
+                  userData.description = trimmedIntro
+                  localStorage.setItem('user_info', JSON.stringify(userData))
+                } catch (error) {
+                  console.error('更新user_info简介失败:', error)
+                }
+              }
+            }
+          } catch (error) {
+            console.error('重新获取用户信息失败:', error)
+            // 如果重新获取失败，直接使用保存的值
+            this.userInfo.introduction = trimmedIntro
+            const savedUserInfo = localStorage.getItem('user_info')
+            if (savedUserInfo) {
+              try {
+                const userData = JSON.parse(savedUserInfo)
+                userData.introduction = trimmedIntro
+                userData.description = trimmedIntro
+                localStorage.setItem('user_info', JSON.stringify(userData))
+              } catch (e) {
+                console.error('更新user_info简介失败:', e)
+              }
             }
           }
+          
+          this.editingIntro = false
           
           // 触发全局更新事件
           this.$root.$emit('userInfoUpdated')
@@ -1548,11 +1703,13 @@ export default {
         console.error('更新个人简介失败:', error)
         alert('更新个人简介失败: ' + (error.message || error.msg || '请稍后重试'))
         // 恢复原简介
-        this.tempIntro = this.userInfo.introduction
+        const intro = this.userInfo.introduction || this.userInfo.description || ''
+        this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       }
     },
     cancelEditIntro() {
-      this.tempIntro = this.userInfo.introduction
+      const intro = this.userInfo.introduction || this.userInfo.description || ''
+      this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.editingIntro = false
     },
     // 机构编辑方法
