@@ -162,6 +162,12 @@ export const authAPI = {
     return api.post('/zhiyan/auth/reset-password', data)
   },
 
+  // 修改邮箱
+  changeEmail(data) {
+    // data: { userId, currentPassword, oldEmail, newEmail, verificationCode }
+    return api.post('/zhiyan/auth/change-email', data)
+  },
+
   // 发送用于重置密码的验证码（后端会校验邮箱存在）
   sendResetPasswordCode(email) {
     return api.post('/zhiyan/auth/forgot-password', { email })
