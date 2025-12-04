@@ -269,6 +269,7 @@
                   class="project-select"
                   placeholder="请选择项目"
                   :clearable="false"
+                  :searchable="false"
                 />
               </div>
             </div>
@@ -359,6 +360,11 @@
             <div class="content-section">
               <div class="section-header">
                 <h3 class="section-title">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 7H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  已选择的任务 <span v-if="selectedTaskSummaries.length > 0" class="task-count">({{ selectedTaskSummaries.length }})</span>
                 </h3>
               </div>
               <div class="section-body">
@@ -368,6 +374,11 @@
                     :key="task.id"
                     class="task-item"
                   >
+                    <button class="remove-btn" @click="removeSelectedTask(task.id)" title="移除">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
                     <div class="task-info">
                       <div class="task-title" :title="task.title">{{ task.title || '未命名任务' }}</div>
                       <div class="task-meta">
@@ -385,11 +396,6 @@
                         </span>
                       </div>
                     </div>
-                    <button class="remove-btn" @click="removeSelectedTask(task.id)" title="移除">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </button>
                   </div>
                 </div>
                 <div v-else class="empty-state-inline">
@@ -431,9 +437,59 @@
                   </svg>
                   生成结果
                 </h3>
+                <div class="section-actions" v-if="taskResultOutput">
+                  <template v-if="!isEditing">
+                    <button class="result-action-btn" @click="startEditing">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87891 20 1.87891C20.5626 1.87891 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1213 3.43762 22.1213 4.00023C22.1213 4.56284 21.8978 5.1024 21.5 5.50023L12 14.0002L8 15.0002L9 11.0002L18.5 2.50023Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>编辑</span>
+                    </button>
+                    <button class="result-action-btn" @click="exportToMarkdown">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 19.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M17 8L12 13L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 3V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>导出Markdown</span>
+                    </button>
+                    <button class="result-action-btn primary" @click="uploadTaskResult">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 19.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 10L12 5L17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 5V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>保存为成果</span>
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button class="result-action-btn" @click="cancelEditing">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 18L18 6M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>取消</span>
+                    </button>
+                    <button class="result-action-btn primary" @click="saveEditedContent">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 19.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16L21 8V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M17 21V13H7V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7 3V8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                      <span>保存</span>
+                    </button>
+                  </template>
+                </div>
               </div>
               <div class="section-body result-body">
-                <div v-if="taskResultOutput" class="result-content">
+                <div v-if="isEditing" class="editor-container">
+                  <textarea 
+                    v-model="editedContent" 
+                    class="markdown-editor"
+                    placeholder="在这里编辑 Markdown 内容..."
+                  ></textarea>
+                </div>
+                <div v-else-if="taskResultOutput" class="result-content">
                   <div class="markdown-content" v-html="formatMarkdown(taskResultOutput)"></div>
                 </div>
                 <div v-else class="empty-state-inline">
@@ -728,7 +784,7 @@ marked.setOptions({
       try {
         return hljs.highlight(code, { language: lang }).value
       } catch (err) {
-        onsole.error('代码高亮失败:', err)
+        console.error('代码高亮失败:', err)
       }
     }
     return hljs.highlightAuto(code).value
@@ -788,6 +844,8 @@ export default {
       taskResultPrompt: '',
       taskResultOutput: '',
       isGeneratingTaskResult: false,
+      isEditing: false, // 是否正在编辑成果内容
+      editedContent: '', // 编辑中的内容
       includeAttachments: true,
       attachmentFilters: ['pdf', 'docx'],
       attachmentFilterOptions: [
@@ -918,6 +976,19 @@ export default {
         }
       }
     })
+
+    // 如果从知识库成果目录跳转而来，并指定了任务成果模式，则自动切换
+    try {
+      const { mode, projectId } = this.$route.query || {}
+      if (mode === 'taskResult') {
+        this.currentMode = 'taskResult'
+        if (projectId) {
+          this.taskResultProjectId = projectId
+        }
+      }
+    } catch (e) {
+      console.warn('[AIAssistant] 解析路由参数失败:', e)
+    }
 
     // 【临时禁用】自动同步功能，避免日志刷屏
     // 用户可以手动点击"同步任务状态"按钮进行同步
@@ -1742,8 +1813,6 @@ export default {
             this.isSending = false
             this.currentStreamController = null
             this.currentAbortController = null
-            // 发送成功后清空已上传文件列表
-            this.uploadedFiles = []
             this.$nextTick(() => {
               this.scrollToBottom()
             })
@@ -2438,6 +2507,80 @@ export default {
       this.$nextTick(() => {
         this.scrollToBottom()
       })
+    },
+
+    // ========== 任务成果编辑相关方法 ==========
+    // 开始编辑
+    startEditing() {
+      this.editedContent = this.taskResultOutput
+      this.isEditing = true
+    },
+
+    // 取消编辑
+    cancelEditing() {
+      this.isEditing = false
+      this.editedContent = ''
+    },
+
+    // 保存编辑内容
+    saveEditedContent() {
+      this.taskResultOutput = this.editedContent
+      this.isEditing = false
+      this.editedContent = ''
+      alert('内容已保存')
+    },
+
+    // 导出为 Markdown 文件
+    exportToMarkdown() {
+      if (!this.taskResultOutput) {
+        alert('没有可导出的内容')
+        return
+      }
+
+      const blob = new Blob([this.taskResultOutput], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const dateStr = new Date().toISOString().slice(0, 10)
+      a.download = `成果_${dateStr}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    },
+
+    // 上传为成果
+    async uploadTaskResult() {
+      if (!this.taskResultOutput) {
+        alert('没有可上传的内容')
+        return
+      }
+
+      if (!this.taskResultProjectId) {
+        alert('请先选择项目')
+        return
+      }
+
+      try {
+        // TODO: 调用后端 API 上传成果
+        // 这里需要根据实际的后端 API 接口来实现
+        // const response = await knowledgeAPI.uploadAchievement({
+        //   projectId: this.taskResultProjectId,
+        //   title: 'AI生成的成果',
+        //   content: this.taskResultOutput,
+        //   markdown: this.taskResultOutput
+        // })
+        
+        // 临时提示
+        alert('成果上传功能待实现，请等待后端接口接入')
+        console.log('准备上传成果:', {
+          projectId: this.taskResultProjectId,
+          content: this.taskResultOutput.substring(0, 100) + '...'
+        })
+      } catch (error) {
+        console.error('上传成果失败:', error)
+        alert('上传成果失败: ' + (error.message || '未知错误'))
+      }
     }
   }
 }

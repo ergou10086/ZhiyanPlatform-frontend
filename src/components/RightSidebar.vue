@@ -105,6 +105,7 @@
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -338,7 +339,7 @@ export default {
         'LOW': 'priority-low'
       }
       return map[priority] || 'priority-medium'
-    }
+    },
   }
 }
 </script>
@@ -355,6 +356,9 @@ export default {
   border: 1px solid var(--border-primary);
   box-shadow: var(--shadow-md);
   flex-shrink: 0; /* 防止被压缩 */
+  align-self: flex-start; /* 顶部对齐，不拉伸 */
+  overflow: hidden; /* 隐藏溢出，防止页面延伸 */
+  max-height: 100vh; /* 限制最大高度为视口高度 */
 }
 
 .calendar-header {
@@ -387,6 +391,7 @@ export default {
   background: linear-gradient(135deg, var(--bg-primary), var(--error-light));
 }
 
+
 .task-alert-content {
   display: flex;
   flex-direction: column;
@@ -402,6 +407,13 @@ export default {
   transition: all var(--transition-normal);
   cursor: pointer;
   position: relative;
+  user-select: none; /* 防止文本选择 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  z-index: 10; /* 提高层级，确保可点击 */
+  pointer-events: auto; /* 确保可以接收点击事件 */
+  flex-shrink: 0; /* 不收缩，保持固定高度 */
 }
 
 .alert-message.urgent {
@@ -868,6 +880,7 @@ export default {
     overflow-y: auto !important;
   }
   
+  
   .task-alert-widget .widget-title {
     font-size: 14px !important;
     margin-bottom: 8px !important;
@@ -966,6 +979,7 @@ export default {
   .task-alert-widget {
     max-height: 150px !important;
   }
+  
   
   .task-alert-widget .widget-title {
     font-size: 13px !important;
@@ -1132,6 +1146,7 @@ export default {
 .dark-mode .right-sidebar .expand-icon {
   color: #cbd5e1 !important;
 }
+
 
 /* 暗色模式下的任务列表滚动条样式 */
 .dark-mode .right-sidebar .urgent-task-list::-webkit-scrollbar {

@@ -20,6 +20,7 @@ import OAuth2Callback from '../views/OAuth2Callback.vue'
 import OAuth2Bind from '../views/OAuth2Bind.vue'
 import OAuth2Supplement from '../views/OAuth2Supplement.vue'
 import OAuth2Error from '../views/OAuth2Error.vue'
+import ChangeEmail from '../views/ChangeEmail.vue'
 
 Vue.use(VueRouter)
 
@@ -42,6 +43,11 @@ const routes = [
     path: '/forgot-password',
     name: 'ForgotPassword',
     component: ForgotPassword
+  },
+  {
+    path: '/change-email',
+    name: 'ChangeEmail',
+    component: ChangeEmail
   },
   {
     path: '/auth/oauth2/callback/:provider',

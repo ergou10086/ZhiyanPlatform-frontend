@@ -360,7 +360,7 @@
 <script>
 import '@/assets/styles/KnowledgeBaseAI.css'
 import { knowledgeAPI } from '@/api/knowledge'
-import { cozeAPI } from '@/api/coze'
+import difyAPI, { uploadAndChatStreamForKnowledge } from '@/api/dify'
 
 // ⭐ Markdown渲染和代码高亮
 import { marked } from 'marked'
@@ -394,6 +394,10 @@ export default {
     projectId: {
       type: [String, Number],
       default: null
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -515,7 +519,80 @@ export default {
       return messages
     },
     
+    startTypewriter(messageIndex, newText) {
+      if (!newText) {
+        return
+      }
+      if (this.currentTypingMessageIndex !== messageIndex) {
+        this.stopTypewriter()
+        this.currentTypingMessageIndex = messageIndex
+      }
+      this.typewriterQueue += String(newText)
+      if (this.isTyping && this.typewriterTimer) {
+        return
+      }
+      if (messageIndex < 0 || messageIndex >= this.messages.length) {
+        this.typewriterQueue = ''
+        this.isTyping = false
+        this.currentTypingMessageIndex = -1
+        return
+      }
+      this.isTyping = true
+      const step = 3
+      if (this.typewriterTimer) {
+        clearInterval(this.typewriterTimer)
+        this.typewriterTimer = null
+      }
+      this.typewriterTimer = setInterval(() => {
+        if (!this.typewriterQueue || this.typewriterQueue.length === 0) {
+          clearInterval(this.typewriterTimer)
+          this.typewriterTimer = null
+          this.isTyping = false
+          return
+        }
+        const targetIndex = this.currentTypingMessageIndex
+        if (targetIndex < 0 || targetIndex >= this.messages.length) {
+          this.typewriterQueue = ''
+          clearInterval(this.typewriterTimer)
+          this.typewriterTimer = null
+          this.isTyping = false
+          return
+        }
+        const chunk = this.typewriterQueue.slice(0, step)
+        this.typewriterQueue = this.typewriterQueue.slice(step)
+        const msg = this.messages[targetIndex]
+        msg.content = (msg.content || '') + chunk
+        this.$nextTick(() => {
+          this.scrollToBottom()
+        })
+      }, 30)
+    },
+    
+    stopTypewriter() {
+      if (this.typewriterTimer) {
+        clearInterval(this.typewriterTimer)
+        this.typewriterTimer = null
+      }
+      if (this.isTyping && this.currentTypingMessageIndex >= 0 && this.currentTypingMessageIndex < this.messages.length) {
+        if (this.typewriterQueue && this.typewriterQueue.length > 0) {
+          const msg = this.messages[this.currentTypingMessageIndex]
+          msg.content = (msg.content || '') + this.typewriterQueue
+        }
+      }
+      this.isTyping = false
+      this.currentTypingMessageIndex = -1
+      this.typewriterQueue = ''
+    },
+    
     async sendMessage() {
+      if (this.isArchived) {
+        if (this.$message) {
+          this.$message.warning('项目已归档，仅支持查看知识库，不能使用AI赋能对话')
+        } else {
+          alert('项目已归档，仅支持查看知识库，不能使用AI赋能对话')
+        }
+        return
+      }
       // 如果没有输入消息且没有文件，则不允许发送
       if ((!this.inputMessage.trim() && this.selectedLocalFiles.length === 0 && this.selectedKnowledgeFileIds.length === 0) || this.isSending) return
       
@@ -589,10 +666,6 @@ export default {
         this.messages.push(textMessage)
       }
       
-      // 清空已选择的文件（发送后清空）
-      this.selectedLocalFiles = []
-      this.selectedKnowledgeFileIds = []
-
       this.isSending = true
       
       // 创建AI回复消息占位符
@@ -655,248 +728,34 @@ export default {
       this.selectedKnowledgeFileIds = []
       this.knowledgeFileInfoMap = {}
         
-        if (localFiles || knowledgeFileIds) {
-          // 调用带文件的流式对话接口
-          console.log('[调用API] 使用带文件接口，localFiles:', localFiles?.length, 'knowledgeFileIds:', knowledgeFileIds?.length, 'conversationId:', this.conversationId)
-          this.currentStreamController = await cozeAPI.chatStreamWithFiles(
-            query,
-            this.conversationId,
-            localFiles, // 直接传递 File 对象
-            knowledgeFileIds, // 知识库文件ID
-            null, // customVariables
-            (message) => {
-              // 处理流式消息
-              this.handleStreamMessage(message, aiMessage)
-            },
-            (error) => {
-              // 处理错误
-              this.handleStreamError(error, aiMessage)
-            },
-            () => {
-              // 流式响应完成
-              this.handleStreamComplete(aiMessage)
+        // 调用基于 Dify 知识库工作流的流式对话接口（支持文件）
+        console.log('[调用API] 使用Dify知识库工作流接口，localFiles:', localFiles?.length, 'knowledgeFileIds:', knowledgeFileIds?.length, 'conversationId:', this.conversationId)
+        this.currentStreamController = await uploadAndChatStreamForKnowledge(
+          query,
+          this.conversationId,
+          knowledgeFileIds || [],
+          localFiles || [],
+          (delta) => {
+            // 处理流式消息增量内容，直接走打字机效果
+            if (delta) {
+              this.startTypewriter(this.currentTypingMessageIndex, String(delta))
             }
-          )
-        } else {
-          // 调用不带文件的流式对话接口
-          console.log('[调用API] 使用普通接口，conversationId:', this.conversationId)
-          this.currentStreamController = await cozeAPI.chatStream(
-            query,
-            this.conversationId,
-            null, // customVariables
-            (message) => {
-              // 处理流式消息
-              this.handleStreamMessage(message, aiMessage)
-            },
-            (error) => {
-              // 处理错误
-              this.handleStreamError(error, aiMessage)
-            },
-            () => {
-              // 流式响应完成
-              this.handleStreamComplete(aiMessage)
-            }
-          )
-        }
+          },
+          () => {
+            // 流式响应完成
+            this.handleStreamComplete(aiMessage)
+          },
+          (error) => {
+            // 处理错误
+            this.handleStreamError(error, aiMessage)
+          }
+        )
       } catch (error) {
         console.error('发送消息失败:', error)
         aiMessage.content = '抱歉，发送消息时发生错误：' + (error.message || '未知错误')
         this.isSending = false
         this.saveMessagesToStorage()
       }
-    },
-    
-    /**
-     * 处理流式消息（参考Dify实现）
-     */
-    handleStreamMessage(message, aiMessage) {
-      console.log('[Coze流式消息]', message)
-      
-      // 根据事件类型处理
-      const event = message.event
-      
-      // 保存对话ID（如果有）
-      if (message.conversationId || message.conversation_id) {
-        this.conversationId = message.conversationId || message.conversation_id
-        this.saveConversationId()
-      }
-      
-      // 处理不同类型的消息
-      if (event === 'conversation.chat.created') {
-        // 对话创建
-        console.log('[Coze] 对话已创建, conversationId:', this.conversationId)
-      } else if (event === 'conversation.message.delta') {
-        // ⭐ 消息增量（流式文本块）- 打字机效果的核心
-        const content = message.content
-        const role = message.role
-        
-        if (content && role === 'assistant') {
-          console.log('[Coze] 📨 收到内容:', content.substring(0, 20), '长度:', content.length)
-          // 直接调用打字机方法添加到队列
-          this.startTypewriter(this.currentTypingMessageIndex, content)
-        }
-      } else if (event === 'conversation.message.completed') {
-        // 消息完成
-        console.log('[Coze] ✅ 消息已完成')
-        this.saveMessagesToStorage()
-      } else if (event === 'conversation.chat.completed') {
-        // 对话完成
-        console.log('[Coze] ✅ 对话已完成')
-      } else if (event === 'conversation.chat.failed') {
-        // 对话失败
-        console.error('[Coze] ❌ 对话失败:', message.errorMessage || message.error_message)
-        
-        // 停止打字机并显示错误
-        this.stopTypewriter()
-        if (aiMessage.content) {
-          aiMessage.content += '\n\n[对话失败: ' + (message.errorMessage || message.error_message || '未知错误') + ']'
-        } else {
-          aiMessage.content = '抱歉，AI对话失败：' + (message.errorMessage || message.error_message || '未知错误')
-        }
-        
-        this.isSending = false
-        this.currentStreamController = null
-        this.saveMessagesToStorage()
-      } else if (event === 'done') {
-        // 结束标记
-        console.log('[Coze] 🏁 流式响应结束')
-      } else if (event === 'error') {
-        // 错误
-        console.error('[Coze] ❌ 流式响应错误:', message.errorMessage || message.error_message)
-        
-        // 停止打字机并显示错误
-        this.stopTypewriter()
-        if (aiMessage.content) {
-          aiMessage.content += '\n\n[错误: ' + (message.errorMessage || message.error_message || '未知错误') + ']'
-        } else {
-          aiMessage.content = '抱歉，AI响应时发生错误：' + (message.errorMessage || message.error_message || '未知错误')
-        }
-        
-        this.isSending = false
-        this.currentStreamController = null
-        this.saveMessagesToStorage()
-      }
-    },
-    
-    /**
-     * 处理流式响应错误（参考Dify实现）
-     */
-    handleStreamError(error, aiMessage) {
-      console.error('[Coze] ❌ 流式响应错误:', error)
-      
-      // 停止打字机
-      this.stopTypewriter()
-      
-      // 显示错误信息
-      if (aiMessage.content) {
-        aiMessage.content += '\n\n[连接中断]'
-      } else {
-        aiMessage.content = '抱歉，AI响应时发生错误：' + (error.message || '未知错误')
-      }
-      
-      this.isSending = false
-      this.currentStreamController = null
-      this.saveMessagesToStorage()
-    },
-    
-    /**
-     * ⭐ 启动打字机效果（参考Dify实现）
-     * @param {number} messageIndex - 消息索引
-     * @param {string} newContent - 新增的内容
-     */
-    startTypewriter(messageIndex, newContent) {
-      console.log('[打字机] 📝 startTypewriter 被调用:', {
-        messageIndex,
-        newContentLength: newContent?.length || 0,
-        newContentPreview: newContent?.substring(0, 20),
-        currentQueue: this.typewriterQueue.length,
-        isTyping: this.isTyping,
-        currentIndex: this.currentTypingMessageIndex
-      })
-
-      // 将新内容添加到队列
-      this.typewriterQueue += newContent
-      console.log('[打字机] 队列已更新，新长度:', this.typewriterQueue.length)
-
-      // 如果已经在打字，直接返回（队列会自动处理）
-      if (this.isTyping && this.currentTypingMessageIndex === messageIndex) {
-        console.log('[打字机] 已在打字中，内容已加入队列')
-        return
-      }
-
-      // 如果是新消息，重置打字机状态
-      if (this.currentTypingMessageIndex !== messageIndex) {
-        console.log('[打字机] 新消息，重置打字机状态')
-        this.stopTypewriter()
-        this.currentTypingMessageIndex = messageIndex
-        this.typewriterQueue = newContent
-      }
-
-      // 开始打字
-      console.log('[打字机] 🚀 开始打字效果...')
-      this.isTyping = true
-
-      // ⭐ 参考Dify：打字机速度（毫秒/字符）
-      // 优化：从300ms改为8ms，提升显示速度37倍！
-      const typingSpeed = 8
-
-      this.typewriterTimer = setInterval(() => {
-        if (this.typewriterQueue.length === 0) {
-          // 队列为空，但保持打字状态（等待新内容）
-          return
-        }
-
-        // ⭐ 优化：每次取出多个字符（3个），而不是1个，提升显示速度
-        const charsToTake = Math.min(3, this.typewriterQueue.length)
-        const chars = this.typewriterQueue.substring(0, charsToTake)
-        this.typewriterQueue = this.typewriterQueue.substring(charsToTake)
-
-        console.log('[打字机] ⌨️ 输出字符:', JSON.stringify(chars), '剩余队列:', this.typewriterQueue.length)
-
-        // 添加到消息内容
-        if (this.messages[messageIndex]) {
-          this.messages[messageIndex].content += chars
-          console.log('[打字机] 当前消息长度:', this.messages[messageIndex].content.length)
-
-          // 每添加几个字符滚动一次（优化性能）
-          if (this.messages[messageIndex].content.length % 10 === 0) {
-            this.$nextTick(() => {
-              this.scrollToBottom()
-            })
-          }
-        } else {
-          console.error('[打字机] ❌ 消息不存在，索引:', messageIndex)
-        }
-      }, typingSpeed)
-    },
-
-    /**
-     * ⭐ 停止打字机效果（参考Dify实现）
-     */
-    stopTypewriter() {
-      if (this.typewriterTimer) {
-        clearInterval(this.typewriterTimer)
-        this.typewriterTimer = null
-      }
-
-      // 如果还有剩余队列，直接显示
-      if (this.typewriterQueue && this.currentTypingMessageIndex >= 0) {
-        const messageIndex = this.currentTypingMessageIndex
-        if (this.messages[messageIndex]) {
-          this.messages[messageIndex].content += this.typewriterQueue
-          this.typewriterQueue = ''
-          console.log('[打字机] 剩余内容已追加，当前长度:', this.messages[messageIndex].content.length)
-        }
-      }
-
-      // ⭐ 标记打字结束
-      this.isTyping = false
-      this.currentTypingMessageIndex = -1
-      this.typewriterQueue = ''
-
-      this.$nextTick(() => {
-        this.scrollToBottom()
-      })
     },
     
     /**
@@ -909,6 +768,25 @@ export default {
       
       // ⭐ 参考Dify：等待打字机完成
       this.finishTypewriter()
+    },
+    
+    /**
+     * 处理流式响应错误
+     */
+    handleStreamError(error, aiMessage) {
+      console.error('[Dify 知识库] 流式响应错误:', error)
+      if (this.currentStreamController) {
+        this.currentStreamController.close()
+        this.currentStreamController = null
+      }
+      this.isSending = false
+      // 停止打字机，避免继续追加内容
+      this.stopTypewriter()
+      if (aiMessage) {
+        const msg = error && error.message ? error.message : 'AI 调用失败，请稍后重试'
+        aiMessage.content = '抱歉，AI 调用失败：' + msg
+      }
+      this.saveMessagesToStorage()
     },
     
     /**
@@ -932,6 +810,9 @@ export default {
           }
           this.stopTypewriter()
           
+          // 在打字完成后，尝试从最新AI消息中提取思维导图图片URL
+          this.updateMindmapFromLastMessage()
+          
           // ⭐ 打字完成后，保存会话
           this.saveCurrentChatSession()
           this.$nextTick(() => {
@@ -940,6 +821,24 @@ export default {
           })
         }
       }, 100)
+    },
+    
+    // 从最新的AI消息中提取思维导图图片URL并更新右侧面板
+    updateMindmapFromLastMessage() {
+      if (!this.messages || this.messages.length === 0) return
+      // 寻找最后一条AI消息
+      const lastAiMessage = [...this.messages].reverse().find(m => m.type === 'left' && m.content)
+      if (!lastAiMessage || !lastAiMessage.content) return
+      const content = lastAiMessage.content
+      // 匹配常见图片URL后缀
+      const urlMatch = content.match(/https?:\/\/\S+\.(?:png|jpe?g|gif|webp)/i)
+      if (!urlMatch) {
+        return
+      }
+      const url = urlMatch[0]
+      console.log('[思维导图] 检测到图片URL:', url)
+      // 在右侧思维导图面板中显示图片
+      this.mindmapData = `<div class="mindmap-image-wrapper"><img src="${url}" alt="思维导图" style="max-width: 100%; height: auto; border-radius: 8px;" /></div>`
     },
     
     scrollToBottom() {

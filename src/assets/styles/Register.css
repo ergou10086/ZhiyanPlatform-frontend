@@ -415,15 +415,15 @@
 }
 
 
-/* Toast样式 */
+/* Toast样式（居中小弹窗，与登录页保持一致） */
 .register-container .success-toast {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 12px 24px;
+  color: #ffffff;
+  padding: 16px 24px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
