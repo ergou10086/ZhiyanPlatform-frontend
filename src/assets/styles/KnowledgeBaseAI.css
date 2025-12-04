@@ -3246,3 +3246,131 @@
   }
 }
 
+/* =============================
+   Dark mode overrides for AI 赋能视图
+   ============================= */
+
+.dark-mode .ai-view .section-card,
+.dark-mode .ai-view .chat-card {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .ai-view .chat-window {
+  background: #020617;
+}
+
+.dark-mode .ai-view .page-subtitle {
+  color: #cbd5f5;
+  background: linear-gradient(135deg, #020617 0%, #0b1120 100%);
+  border-left-color: #5eb6e4;
+}
+
+.dark-mode .ai-view .section-title,
+.dark-mode .ai-view .section-subtitle,
+.dark-mode .ai-view .page-title,
+.dark-mode .ai-view .file-preview-name,
+.dark-mode .ai-view .file-preview-meta,
+.dark-mode .ai-view .file-name {
+  color: #e5e7eb;
+}
+
+.dark-mode .ai-view .composer-input {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .ai-view .composer-input::placeholder {
+  color: #6b7280;
+}
+
+.dark-mode .ai-view .file-preview-card {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .ai-view .file-dialog,
+.dark-mode .file-dialog-overlay.ai-view .file-dialog {
+  background: #020617;
+}
+
+.dark-mode .ai-view .file-dialog-header {
+  background: linear-gradient(135deg, #020617 0%, #0b1120 100%);
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .ai-view .file-dialog-header h3 {
+  color: #e5e7eb;
+}
+
+.dark-mode .ai-view .file-dialog-header .header-subtitle {
+  color: #93c5fd;
+}
+
+.dark-mode .ai-view .file-dialog-body {
+  background: #020617;
+}
+
+.dark-mode .ai-view .file-card {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .ai-view .file-card.selected {
+  background: linear-gradient(135deg, #020617 0%, #1d4ed8 100%);
+}
+
+.dark-mode .ai-view .empty-text,
+.dark-mode .ai-view .loading-text {
+  color: #9ca3af;
+}
+
+.dark-mode .ai-view .file-dialog-body .empty-state,
+.dark-mode .ai-view .file-dialog-body .loading-container {
+  background: transparent;
+}
+
+.dark-mode .ai-view .file-select-btn {
+  background: linear-gradient(135deg, #020617 0%, #0b1120 100%);
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .ai-view .file-dropdown-menu {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .ai-view .file-dropdown-menu .dropdown-item {
+  color: #e5e7eb;
+}
+
+.dark-mode .ai-view .file-dropdown-menu .dropdown-item:hover {
+  background: #111827;
+}
+
+.dark-mode .ai-view .uploaded-files-panel {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .ai-view .files-panel-body {
+  background: #020617;
+}
+
+.dark-mode .ai-view .empty-files {
+  color: #9ca3af;
+}
+
+.dark-mode .ai-view .file-item {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .ai-view .file-type-badge,
+.dark-mode .ai-view .file-count-badge {
+  background: #0b1120;
+  color: #e5e7eb;
+}
+

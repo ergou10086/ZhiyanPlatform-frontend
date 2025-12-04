@@ -32,13 +32,24 @@
           
           <div class="form-group">
             <label for="password">密码</label>
-            <input
-              type="password"
-              id="password"
-              v-model="loginForm.password"
-              placeholder="请输入密码"
-              required
-            />
+            <div class="password-input-wrapper">
+              <input
+                :type="showPassword ? 'text' : 'password'"
+                id="password"
+                v-model="loginForm.password"
+                placeholder="请输入密码"
+                required
+              />
+              <button
+                type="button"
+                class="password-toggle-btn"
+                @click="togglePasswordVisibility"
+                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+              >
+                <span v-if="showPassword">🙈</span>
+                <span v-else>👁️</span>
+              </button>
+            </div>
           </div>
           
           <div class="form-options">
@@ -112,6 +123,7 @@ export default {
         password: '',
         rememberMe: false
       },
+      showPassword: false,
       showToast: false,
       toastMessage: '',
       animateLogo: false,
@@ -173,6 +185,9 @@ export default {
       // 设置用户头像的方法
       this.userAvatar = avatarUrl
       localStorage.setItem('userAvatar', avatarUrl)
+    },
+    togglePasswordVisibility() {
+      this.showPassword = !this.showPassword
     },
     async handleLogin() {
       if (this.submitLocked) return

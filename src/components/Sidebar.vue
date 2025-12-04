@@ -118,8 +118,12 @@ export default {
       this.$emit('close')
     },
     navigateTo(route) {
-      // 如果已经在目标路径，只关闭侧边栏
-      if (this.$route.path === route || (route === '/knowledge-base' && this.$route.path.startsWith('/knowledge-base'))) {
+      const samePath = this.$route.path === route || (route === '/knowledge-base' && this.$route.path.startsWith('/knowledge-base'))
+      const isProfileResetNeeded = route === '/profile' && this.$route.query && this.$route.query.userId
+
+      // 对于大多数页面，如果已经在目标路径，只需要关闭侧边栏即可。
+      // 但当从他人档案页返回到自己的档案页时，需要清理 query 中的 userId。
+      if (samePath && !isProfileResetNeeded) {
         this.closeSidebar()
         return
       }

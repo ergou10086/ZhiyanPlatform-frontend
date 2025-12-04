@@ -11,6 +11,8 @@
       :is-dark-mode="isDarkMode"
       @theme-toggle="handleThemeToggle"
     />
+    <!-- 悬浮消息提醒组件，在页面右侧 -->
+    <FloatingMessageReminder v-if="!isAuthPage" />
     <!-- 全局错误弹窗 -->
     <GlobalErrorDialog />
   </div>
@@ -20,13 +22,15 @@
 import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
 import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
 import GlobalMessageNotification from '@/components/GlobalMessageNotification.vue'
+import FloatingMessageReminder from '@/components/FloatingMessageReminder.vue'
 
 export default {
   name: 'App',
   components: {
     GlobalUserProfile,
     GlobalErrorDialog,
-    GlobalMessageNotification
+    GlobalMessageNotification,
+    FloatingMessageReminder
   },
   data() {
     return {

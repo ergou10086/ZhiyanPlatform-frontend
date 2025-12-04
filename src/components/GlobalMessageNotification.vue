@@ -331,7 +331,7 @@
             <el-option
               v-for="project in myProjects"
               :key="project.id"
-              :label="project.title"
+              :label="project.title || project.name || `项目 ${project.id}`"
               :value="project.id"
             />
           </el-select>
@@ -702,7 +702,23 @@ export default {
         'reason': '原因',
         'description': '描述',
         'deadline': '截止时间',
-        'priority': '优先级'
+        'priority': '优先级',
+        'role': '角色',
+        'roleLabel': '角色标签',
+        'inviterId': '邀请者ID',
+        'inviterName': '邀请者名称',
+        'targetUserId': '目标用户ID',
+        'inviteeId': '被邀请者ID',
+        'inviteeName': '被邀请者名称',
+        'applicantId': '申请者ID',
+        'applicantName': '申请者名称',
+        'operatorId': '操作者ID',
+        'operatorName': '操作者名称',
+        'receiverId': '接收者ID',
+        'receiverUsername': '接收者用户名',
+        'messageType': '消息类型',
+        'businessId': '业务ID',
+        'businessType': '业务类型'
       }
       
       try {
@@ -715,10 +731,21 @@ export default {
           return []
         }
         
-        return Object.entries(data).map(([key, value]) => ({
-          label: labelMap[key] || key,
-          value: value !== null && value !== undefined ? String(value) : '-'
-        }))
+        return Object.entries(data).map(([key, value]) => {
+          // 对项目ID做特殊处理：展示项目名称而不是纯ID
+          if (key === 'projectId') {
+            const projectName = this.getProjectNameById(value)
+            return {
+              label: labelMap[key] || key,
+              value: projectName || (value !== null && value !== undefined ? String(value) : '-')
+            }
+          }
+
+          return {
+            label: labelMap[key] || key,
+            value: value !== null && value !== undefined ? String(value) : '-'
+          }
+        })
       } catch (error) {
         console.warn('扩展数据解析失败:', error)
         return []
@@ -846,6 +873,41 @@ export default {
           console.warn('parseExtendDataObject 失败:', e, extendData)
           return null
         }
+      },
+
+      /**
+       * 根据项目ID获取项目名称（优先使用本地缓存）
+       */
+      getProjectNameById(projectId) {
+        if (!projectId) return ''
+        const idStr = String(projectId)
+
+        // 1) 优先从当前已加载的我的项目中查找
+        if (Array.isArray(this.myProjects) && this.myProjects.length > 0) {
+          const found = this.myProjects.find(p => String(p.id) === idStr)
+          if (found) {
+            return found.title || found.name || ''
+          }
+        }
+
+        // 2) 其次从 localStorage 的 projects 缓存中查找
+        try {
+          const saved = localStorage.getItem('projects')
+          if (saved) {
+            const list = JSON.parse(saved)
+            if (Array.isArray(list)) {
+              const found = list.find(p => String(p.id) === idStr)
+              if (found) {
+                return found.title || found.name || ''
+              }
+            }
+          }
+        } catch (e) {
+          // 忽略解析错误
+        }
+
+        // 3) 兜底返回“项目 + ID”
+        return `项目 ${idStr}`
       },
 
       /**
@@ -1222,10 +1284,14 @@ export default {
   },
   computed: {
     displayedMessages() {
+      // 显示所有消息，包括项目邀请和申请消息（即使已处理过也会保留）
+      // 注意：右侧悬浮消息提醒只显示未读的项目邀请和申请消息
+      let filtered = this.messages
+      
       if (!this.selectedScene) {
-        return this.messages
+        return filtered
       }
-      return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
+      return filtered.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
     },
 
     /**
@@ -2560,5 +2626,168 @@ export default {
   .dark-mode .bell-icon {
     color: #5EB6E4;
   }
+}
+</style>
+
+<!-- 深色模式弹窗和工具栏的全局样式（不加 scoped，覆盖 el-dialog 等 append-to-body 的元素） -->
+<style>
+/* 消息面板顶部工具栏在黑夜模式下变暗色 */
+.dark-mode .message-panel .panel-toolbar {
+  background: #020617;
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-panel .toolbar-btn {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .message-panel .toolbar-btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+}
+
+.dark-mode .message-panel .toolbar-btn:not(.primary):hover:not(:disabled) {
+  background: #111827;
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+/* 消息详情弹窗主体在黑夜模式下变暗色 */
+.dark-mode .message-detail-modal {
+  background: #020617;
+}
+
+.dark-mode .message-detail-modal .detail-body {
+  background: #020617;
+}
+
+.dark-mode .message-detail-modal .detail-header {
+  background: linear-gradient(135deg, #020617 0%, #0f172a 60%, #1d4ed8 100%);
+}
+
+.dark-mode .message-detail-modal .section-extend {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .message-detail-modal .detail-footer {
+  background: #020617;
+  border-top-color: #1f2937;
+}
+
+/* 黑夜模式下的“扩展信息”卡片整块变暗色 */
+.dark-mode .message-detail-modal .extend-info-list {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .message-detail-modal .extend-info-item {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-detail-modal .extend-label {
+  color: #9ca3af;
+}
+
+.dark-mode .message-detail-modal .extend-value {
+  color: #e5e7eb;
+}
+
+/* 发送消息对话框在黑夜模式下的样式（el-dialog append-to-body） */
+.dark-mode .send-message-dialog .el-dialog {
+  background: #020617;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode .send-message-dialog .dialog-custom-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .header-icon {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.dark-mode .send-message-dialog .header-text h3 {
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .header-text p {
+  color: #9ca3af;
+}
+
+.dark-mode .send-message-dialog .header-close {
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .header-close:hover {
+  background: rgba(30, 64, 175, 0.9);
+}
+
+.dark-mode .send-message-dialog .send-mode-tabs {
+  background: #020617;
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .send-message-dialog .mode-tab {
+  background: #020617;
+  border-color: #1f2937;
+  color: #9ca3af;
+}
+
+.dark-mode .send-message-dialog .mode-tab.active {
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+.dark-mode .send-message-dialog .send-form-content {
+  background: #020617;
+}
+
+.dark-mode .send-message-dialog .form-group .form-label {
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .form-group .form-label svg {
+  color: #60a5fa;
+}
+
+.dark-mode .send-message-dialog .el-input__inner,
+.dark-mode .send-message-dialog .el-textarea__inner {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .el-input__inner::placeholder,
+.dark-mode .send-message-dialog .el-textarea__inner::placeholder {
+  color: #6b7280;
+}
+
+.dark-mode .send-message-dialog .dialog-custom-footer {
+  background: #020617;
+  border-top-color: #1f2937;
+}
+
+.dark-mode .send-message-dialog .btn-cancel {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .btn-cancel:hover {
+  background: #111827;
+  border-color: #374151;
+}
+
+.dark-mode .send-message-dialog .btn-send {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.dark-mode .send-message-dialog .btn-send:disabled {
+  opacity: 0.7;
 }
 </style>
