@@ -24,25 +24,31 @@
             <span class="title-text">消息通知</span>
             <span v-if="unreadCount > 0" class="unread-count">{{ unreadCount }}</span>
           </div>
-          <div class="header-right">
-            <button 
-              class="action-btn send-btn" 
-              type="button"
-              @click.stop="openSendDialog('USER')"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>发送消息</span>
-            </button>
-            <button class="action-btn" @click="markAllRead" :disabled="unreadCount === 0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              <span>全部已读</span>
-            </button>
-          </div>
+        </div>
+
+        <div class="panel-toolbar">
+          <button
+            class="toolbar-btn primary"
+            type="button"
+            @click.stop="openSendDialog('USER')"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>发送消息</span>
+          </button>
+
+          <button
+            class="toolbar-btn"
+            @click="markAllRead"
+            :disabled="unreadCount === 0"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>全部已读</span>
+          </button>
         </div>
 
         <!-- 标签页切换 -->
@@ -99,16 +105,32 @@
             v-for="message in displayedMessages" 
             :key="message.id" 
             class="message-item"
-            :class="{ 'unread': !message.isRead }"
+            :class="{ 'unread': !message.isRead, 'has-sender': message.senderUsername }"
             @click="handleMessageClick(message)"
           >
-            <!-- 消息图标 -->
-            <div class="message-icon" :class="`scene-${message.scene}`">
+            <!-- 发送者头像（如果有发送者信息） -->
+            <div v-if="message.senderUsername" class="sender-avatar">
+              <img
+                v-if="message.senderAvatar"
+                :src="message.senderAvatar"
+                :alt="message.senderUsername"
+                class="avatar-img"
+                @error="handleAvatarError($event)"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ getAvatarInitial(message.senderUsername) }}
+              </div>
+            </div>
+            <!-- 消息图标（如果没有发送者信息） -->
+            <div v-else class="message-icon" :class="`scene-${message.scene}`">
               <component :is="getSceneIcon(message.scene)" />
             </div>
 
             <!-- 消息内容 -->
             <div class="message-content">
+              <div class="message-header-row" v-if="message.senderUsername">
+                <span class="sender-name">{{ message.senderUsername }}</span>
+              </div>
               <div class="message-title">{{ message.title }}</div>
               <div class="message-body">{{ message.content }}</div>
               <div class="message-time">{{ formatTime(message.createdAt) }}</div>
@@ -151,7 +173,7 @@
         <div class="message-detail-modal">
           <div class="detail-header">
             <div>
-              <div class="detail-scene">{{ detailMessage?.scene || '消息详情' }}</div>
+              <div class="detail-scene">{{ getSceneLabel(detailMessage?.scene) || '消息详情' }}</div>
               <div class="detail-title">{{ detailMessage?.title }}</div>
             </div>
             <button class="detail-close" @click="closeMessageDetail">
@@ -167,22 +189,52 @@
 
             <div class="detail-section">
               <div class="section-label">触发时间</div>
-              <div class="section-content">{{ detailMessage?.createdAt || detailMessage?.triggerTime }}</div>
+              <div class="section-content">{{ formatDetailTime(detailMessage?.createdAt || detailMessage?.triggerTime) }}</div>
             </div>
 
             <div class="detail-section" v-if="detailMessage?.businessType">
               <div class="section-label">业务类型</div>
-              <div class="section-content">{{ detailMessage.businessType }}</div>
+              <div class="section-content">{{ getBusinessTypeLabel(detailMessage.businessType) }}</div>
             </div>
 
             <div class="detail-section" v-if="detailMessage?.extendData">
               <div class="section-label">扩展信息</div>
-              <pre class="section-extend">{{ formatExtendData(detailMessage.extendData) }}</pre>
+              <div class="extend-info-list">
+                <div v-for="(item, index) in formatExtendDataList(detailMessage.extendData)" :key="index" class="extend-info-item">
+                  <span class="extend-label">{{ item.label }}</span>
+                  <span class="extend-value">{{ item.value }}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="detail-footer">
-            <button class="detail-btn" @click="closeMessageDetail">关闭</button>
+            <template v-if="detailActionType">
+              <button
+                class="detail-btn"
+                :disabled="detailActionLoading"
+                @click="handleDetailAction('accept')"
+              >
+                同意
+              </button>
+              <button
+                class="detail-btn outline"
+                :disabled="detailActionLoading"
+                @click="handleDetailAction('reject')"
+              >
+                拒绝
+              </button>
+              <button class="detail-btn ghost" @click="closeMessageDetail">
+                关闭
+              </button>
+            </template>
+            <button
+              v-else
+              class="detail-btn"
+              @click="closeMessageDetail"
+            >
+              关闭
+            </button>
           </div>
         </div>
       </div>
@@ -190,43 +242,84 @@
 
     <!-- 发送消息对话框 -->
     <el-dialog
-      title="发送站内消息"
       :visible.sync="sendDialogVisible"
-      width="520px"
+      width="480px"
       class="send-message-dialog"
       append-to-body
+      :show-close="false"
     >
-      <div class="send-mode-switch">
-        <button
-          type="button"
-          class="mode-btn"
-          :class="{ active: sendMode === 'USER' }"
-          @click="sendMode = 'USER'"
-        >
-          私信用户
-        </button>
-        <button
-          type="button"
-          class="mode-btn"
-          :class="{ active: sendMode === 'PROJECT' }"
-          @click="openSendDialog('PROJECT')"
-        >
-          项目群发
+      <!-- 自定义头部 -->
+      <div slot="title" class="dialog-custom-header">
+        <div class="header-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h3>发送消息</h3>
+          <p>向用户或项目成员发送站内消息</p>
+        </div>
+        <button class="header-close" @click="sendDialogVisible = false">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
       </div>
 
-      <div class="send-form">
-        <div v-if="sendMode === 'USER'" class="form-row">
-          <label class="form-label">接收者用户名</label>
+      <!-- 模式切换 -->
+      <div class="send-mode-tabs">
+        <div
+          class="mode-tab"
+          :class="{ active: sendMode === 'USER' }"
+          @click="sendMode = 'USER'"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>私信用户</span>
+        </div>
+        <div
+          class="mode-tab"
+          :class="{ active: sendMode === 'PROJECT' }"
+          @click="openSendDialog('PROJECT')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>项目群发</span>
+        </div>
+      </div>
+
+      <!-- 表单内容 -->
+      <div class="send-form-content">
+        <div v-if="sendMode === 'USER'" class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            接收者
+          </label>
           <el-input
             v-model="sendForm.receiverUsername"
-            placeholder="请输入对方的用户名（登录账号）"
+            placeholder="请输入对方的用户名"
             clearable
+            prefix-icon="el-icon-search"
           />
         </div>
 
-        <div v-else class="form-row">
-          <label class="form-label">选择项目</label>
+        <div v-else class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            选择项目
+          </label>
           <el-select
             v-model="sendForm.projectId"
             placeholder="请选择要群发消息的项目"
@@ -238,44 +331,71 @@
             <el-option
               v-for="project in myProjects"
               :key="project.id"
-              :label="project.title"
+              :label="project.title || project.name || `项目 ${project.id}`"
               :value="project.id"
             />
           </el-select>
-          <p v-if="myProjectsLoaded && myProjects.length === 0" class="helper-text">
-            当前没有参与的项目，无法进行项目群发。
+          <p v-if="myProjectsLoaded && myProjects.length === 0" class="empty-tip">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            当前没有参与的项目
           </p>
         </div>
 
-        <div class="form-row">
-          <label class="form-label">标题</label>
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18.5 2.5C18.8978 2.10217 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10217 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10217 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            消息标题
+          </label>
           <el-input
             v-model="sendForm.title"
-            placeholder="请输入消息标题"
+            placeholder="给消息起个标题吧"
             maxlength="100"
             show-word-limit
           />
         </div>
 
-        <div class="form-row">
-          <label class="form-label">内容</label>
+        <div class="form-group">
+          <label class="form-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            消息内容
+          </label>
           <el-input
             type="textarea"
             v-model="sendForm.content"
-            placeholder="请输入要发送的消息内容"
-            :rows="5"
+            placeholder="写下你想说的话..."
+            :rows="4"
             maxlength="500"
             show-word-limit
+            resize="none"
           />
         </div>
       </div>
 
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="sendDialogVisible = false">取 消</el-button>
-        <el-button type="primary" :loading="sendLoading" @click="submitSendMessage">
-          {{ sendMode === 'USER' ? '发送私信' : '发送给项目成员' }}
-        </el-button>
-      </span>
+      <!-- 底部按钮 -->
+      <div slot="footer" class="dialog-custom-footer">
+        <button class="btn-cancel" @click="sendDialogVisible = false">取消</button>
+        <button
+          class="btn-send"
+          :class="{ loading: sendLoading }"
+          :disabled="sendLoading"
+          @click="submitSendMessage"
+        >
+          <svg v-if="!sendLoading" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="loading-spinner" v-else></span>
+          {{ sendLoading ? '发送中...' : (sendMode === 'USER' ? '发送私信' : '群发消息') }}
+        </button>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -288,9 +408,14 @@ import {
   markAllAsRead,
   deleteMessage,
   sendMessageToUser,
-  sendMessageToProject
+  sendMessageToProject,
+  acceptProjectInvitation,
+  rejectProjectInvitation,
+  approveProjectJoin,
+  rejectProjectJoin
 } from '@/api/message'
 import { projectAPI } from '@/api/project'
+import { avatarAPI } from '@/api/avatar'
 
 export default {
   name: 'GlobalMessageNotification',
@@ -308,6 +433,7 @@ export default {
       pollingTimer: null,
       detailDialogVisible: false,
       detailMessage: null,
+      detailActionLoading: false,
       // 发送消息对话框
       sendDialogVisible: false,
       sendMode: 'USER', // USER or PROJECT
@@ -510,9 +636,9 @@ export default {
      * 打开消息详情弹窗
      */
     openMessageDetail(message) {
-      this.detailMessage = { ...message }
-      this.detailDialogVisible = true
-    },
+        this.detailMessage = { ...message }
+        this.detailDialogVisible = true
+      },
 
     /**
      * 关闭消息详情弹窗
@@ -520,6 +646,110 @@ export default {
     closeMessageDetail() {
       this.detailDialogVisible = false
       this.detailMessage = null
+    },
+
+    /**
+     * 格式化详情时间为中文格式
+     */
+    formatDetailTime(timestamp) {
+      if (!timestamp) return ''
+      try {
+        let time
+        if (timestamp instanceof Date) {
+          time = timestamp
+        } else if (typeof timestamp === 'string' || typeof timestamp === 'number') {
+          time = new Date(timestamp)
+        } else {
+          return ''
+        }
+        
+        if (isNaN(time.getTime())) {
+          return ''
+        }
+        
+        const year = time.getFullYear()
+        const month = String(time.getMonth() + 1).padStart(2, '0')
+        const day = String(time.getDate()).padStart(2, '0')
+        const hours = String(time.getHours()).padStart(2, '0')
+        const minutes = String(time.getMinutes()).padStart(2, '0')
+        const seconds = String(time.getSeconds()).padStart(2, '0')
+        
+        return `${year}年${month}月${day}日 ${hours}:${minutes}:${seconds}`
+      } catch (error) {
+        console.error('formatDetailTime 错误:', error)
+        return ''
+      }
+    },
+
+    /**
+     * 格式化扩展数据为列表格式
+     */
+    formatExtendDataList(extendData) {
+      if (!extendData) return []
+      
+      const labelMap = {
+        'senderId': '发送者ID',
+        'projectId': '项目ID',
+        'senderName': '发送者',
+        'projectName': '项目名称',
+        'receiverCount': '接收人数',
+        'taskId': '任务ID',
+        'taskName': '任务名称',
+        'userId': '用户ID',
+        'userName': '用户名',
+        'kind': '消息类型',
+        'status': '状态',
+        'reason': '原因',
+        'description': '描述',
+        'deadline': '截止时间',
+        'priority': '优先级',
+        'role': '角色',
+        'roleLabel': '角色标签',
+        'inviterId': '邀请者ID',
+        'inviterName': '邀请者名称',
+        'targetUserId': '目标用户ID',
+        'inviteeId': '被邀请者ID',
+        'inviteeName': '被邀请者名称',
+        'applicantId': '申请者ID',
+        'applicantName': '申请者名称',
+        'operatorId': '操作者ID',
+        'operatorName': '操作者名称',
+        'receiverId': '接收者ID',
+        'receiverUsername': '接收者用户名',
+        'messageType': '消息类型',
+        'businessId': '业务ID',
+        'businessType': '业务类型'
+      }
+      
+      try {
+        let data = extendData
+        if (typeof extendData === 'string') {
+          data = JSON.parse(extendData)
+        }
+        
+        if (typeof data !== 'object' || data === null) {
+          return []
+        }
+        
+        return Object.entries(data).map(([key, value]) => {
+          // 对项目ID做特殊处理：展示项目名称而不是纯ID
+          if (key === 'projectId') {
+            const projectName = this.getProjectNameById(value)
+            return {
+              label: labelMap[key] || key,
+              value: projectName || (value !== null && value !== undefined ? String(value) : '-')
+            }
+          }
+
+          return {
+            label: labelMap[key] || key,
+            value: value !== null && value !== undefined ? String(value) : '-'
+          }
+        })
+      } catch (error) {
+        console.warn('扩展数据解析失败:', error)
+        return []
+      }
     },
 
     /**
@@ -629,6 +859,112 @@ export default {
         }
       },
 
+      /**
+       * 解析扩展数据为对象
+       */
+      parseExtendDataObject(extendData) {
+        if (!extendData) return null
+        try {
+          if (typeof extendData === 'string') {
+            return JSON.parse(extendData)
+          }
+          return extendData
+        } catch (e) {
+          console.warn('parseExtendDataObject 失败:', e, extendData)
+          return null
+        }
+      },
+
+      /**
+       * 根据项目ID获取项目名称（优先使用本地缓存）
+       */
+      getProjectNameById(projectId) {
+        if (!projectId) return ''
+        const idStr = String(projectId)
+
+        // 1) 优先从当前已加载的我的项目中查找
+        if (Array.isArray(this.myProjects) && this.myProjects.length > 0) {
+          const found = this.myProjects.find(p => String(p.id) === idStr)
+          if (found) {
+            return found.title || found.name || ''
+          }
+        }
+
+        // 2) 其次从 localStorage 的 projects 缓存中查找
+        try {
+          const saved = localStorage.getItem('projects')
+          if (saved) {
+            const list = JSON.parse(saved)
+            if (Array.isArray(list)) {
+              const found = list.find(p => String(p.id) === idStr)
+              if (found) {
+                return found.title || found.name || ''
+              }
+            }
+          }
+        } catch (e) {
+          // 忽略解析错误
+        }
+
+        // 3) 兜底返回“项目 + ID”
+        return `项目 ${idStr}`
+      },
+
+      /**
+       * 处理项目邀请/加入申请的同意/拒绝
+       * @param {'accept'|'reject'} action
+       */
+      async handleDetailAction(action) {
+        const message = this.detailMessage
+        if (!message) return
+
+        const extend = this.parseExtendDataObject(message.extendData)
+        if (!extend) {
+          this.$message.error('消息数据异常，无法处理')
+          return
+        }
+
+        this.detailActionLoading = true
+
+        try {
+          let res
+          const recipientId = message.id
+
+          if (this.detailActionType === 'INVITATION') {
+            if (action === 'accept') {
+              res = await acceptProjectInvitation(recipientId)
+            } else {
+              res = await rejectProjectInvitation(recipientId)
+            }
+          } else if (this.detailActionType === 'JOIN_APPLY') {
+            if (action === 'accept') {
+              res = await approveProjectJoin(recipientId)
+            } else {
+              res = await rejectProjectJoin(recipientId)
+            }
+          } else {
+            return
+          }
+
+          if (res && res.code === 200) {
+            this.$message.success(res.msg || '操作成功')
+            // 刷新列表和未读数
+            await this.fetchUnreadCount()
+            if (this.showPanel) {
+              await this.loadMessages(true)
+            }
+            this.closeMessageDetail()
+          } else {
+            this.$message.error(res?.msg || '操作失败')
+          }
+        } catch (error) {
+          console.error('处理消息操作失败:', error)
+          this.$message.error('操作失败，请稍后重试')
+        } finally {
+          this.detailActionLoading = false
+        }
+      },
+
     /**
      * 删除消息
      */
@@ -662,6 +998,62 @@ export default {
     },
 
     /**
+     * 获取场景类型的中文标签
+     */
+    getSceneLabel(scene) {
+      const sceneLabels = {
+        // 任务相关
+        'TASK_ASSIGN': '任务分配',
+        'TASK_STATUS_CHANGED': '任务状态变更',
+        'TASK_REVIEW_REQUEST': '任务审核请求',
+        'TASK_REVIEW_RESULT': '任务审核结果',
+        'TASK_DEADLINE_REMIND': '任务截止提醒',
+        'TASK_OVERDUE': '任务逾期',
+        'TASK': '任务通知',
+        // 项目相关
+        'PROJECT_CREATED': '项目创建',
+        'PROJECT_ARCHIVED': '项目归档',
+        'PROJECT_DELETED': '项目删除',
+        'PROJECT_MEMBER_APPLY': '成员申请加入',
+        'PROJECT_MEMBER_INVITED': '项目邀请',
+        'PROJECT_MEMBER_REMOVED': '成员移除',
+        'PROJECT_MEMBER_APPROVAL': '成员审批',
+        'PROJECT_ROLE_CHANGED': '角色变更',
+        'PROJECT_STATUS_CHANGED': '项目状态变更',
+        'PROJECT': '项目通知',
+        // 成果相关
+        'ACHIEVEMENT_FILE_UPLOADED': '成果文件上传',
+        'ACHIEVEMENT_CREATED': '成果创建',
+        'ACHIEVEMENT_DELETED': '成果删除',
+        'ACHIEVEMENT_FILE_DELETED': '成果文件删除',
+        'ACHIEVEMENT_REVIEW_REQUEST': '成果审核请求',
+        'ACHIEVEMENT_STATUS_CHANGED': '成果状态变更',
+        'ACHIEVEMENT_PUBLISHED': '成果发布',
+        // 系统相关
+        'SYSTEM_SECURITY_ALERT': '安全警告',
+        'SYSTEM_BROADCAST': '系统广播',
+        'SYSTEM': '系统通知',
+        // 用户消息
+        'USER_CUSTOM_MESSAGE': '用户消息'
+      }
+      return sceneLabels[scene] || scene || '消息详情'
+    },
+
+    /**
+     * 获取业务类型的中文标签
+     */
+    getBusinessTypeLabel(businessType) {
+      const businessTypeLabels = {
+        'PROJECT': '项目',
+        'TASK': '任务',
+        'ACHIEVEMENT': '成果',
+        'SYSTEM': '系统',
+        'USER': '用户'
+      }
+      return businessTypeLabels[businessType] || businessType || ''
+    },
+
+    /**
      * 获取场景图标
      */
     getSceneIcon(scene) {
@@ -677,6 +1069,27 @@ export default {
       }
 
       return 'NoticeIcon'
+    },
+
+    /**
+     * 获取头像首字母
+     */
+    getAvatarInitial(username) {
+      if (!username) return '?'
+      return username.charAt(0).toUpperCase()
+    },
+
+    /**
+     * 处理头像加载错误
+     */
+    handleAvatarError(event) {
+      // 隐藏加载失败的图片
+      event.target.style.display = 'none'
+      // 显示占位符（通过父元素的 CSS 处理）
+      const parent = event.target.parentElement
+      if (parent) {
+        parent.classList.add('avatar-error')
+      }
     },
 
     /**
@@ -756,7 +1169,7 @@ export default {
         return []
       }
       
-      return messageList.map(item => {
+      const messages = messageList.map(item => {
         // 安全处理时间字段
         let createdAt = item.triggerTime
         if (createdAt) {
@@ -773,7 +1186,25 @@ export default {
             }
           }
         }
+
+        // 尝试从 extendData 中提取发送者信息
+        let senderUsername = item.senderUsername || ''
+        let senderId = null
         
+        if (item.extendData) {
+          try {
+            const extend = typeof item.extendData === 'string' 
+              ? JSON.parse(item.extendData) 
+              : item.extendData
+            if (!senderUsername) {
+              senderUsername = extend.senderName || ''
+            }
+            senderId = extend.senderId || null
+          } catch (e) {
+            // 解析失败忽略
+          }
+        }
+
         return {
           id: item.recipientId || item.id,
           title: item.title || '',
@@ -782,9 +1213,65 @@ export default {
           createdAt: createdAt,
           scene: item.scene || '',
           businessId: item.businessId,
-          businessType: item.businessType
+          businessType: item.businessType,
+          extendData: item.extendData,
+          senderUsername: senderUsername,
+          senderId: senderId,
+          senderAvatar: null // 稍后异步加载
         }
       })
+      
+      // 异步加载发送者头像
+      this.loadSenderAvatars(messages)
+      
+      return messages
+    },
+
+    /**
+     * 异步加载发送者头像（与团队成员相同的方式）
+     */
+    async loadSenderAvatars(messages) {
+      // 收集需要加载头像的 senderId（去重）
+      const senderIds = [...new Set(
+        messages
+          .filter(m => m.senderId && !m.senderAvatar)
+          .map(m => String(m.senderId))
+      )]
+      
+      if (senderIds.length === 0) return
+      
+      // 逐个加载头像（与团队成员相同的方式）
+      for (const senderId of senderIds) {
+        try {
+          const response = await avatarAPI.getAvatarInfoById(senderId)
+          if (response && response.code === 200 && response.data) {
+            const avatarData = response.data
+            let avatarUrl = null
+            
+            // 优先使用 dataUrl（Base64格式，可直接用于img src）
+            if (avatarData.dataUrl) {
+              avatarUrl = avatarData.dataUrl
+            } else if (avatarData.sizes) {
+              avatarUrl = avatarData.sizes.original || avatarData.sizes['256'] || avatarData.sizes['512']
+            } else if (avatarData.minio_url) {
+              avatarUrl = avatarData.minio_url
+            } else if (avatarData.cdn_url) {
+              avatarUrl = avatarData.cdn_url
+            }
+            
+            if (avatarUrl) {
+              // 更新所有该发送者的消息头像
+              this.messages.forEach(msg => {
+                if (String(msg.senderId) === senderId) {
+                  this.$set(msg, 'senderAvatar', avatarUrl)
+                }
+              })
+            }
+          }
+        } catch (error) {
+          // 用户可能没有设置头像，忽略错误
+        }
+      }
     },
 
     /**
@@ -797,10 +1284,35 @@ export default {
   },
   computed: {
     displayedMessages() {
+      // 显示所有消息，包括项目邀请和申请消息（即使已处理过也会保留）
+      // 注意：右侧悬浮消息提醒只显示未读的项目邀请和申请消息
+      let filtered = this.messages
+      
       if (!this.selectedScene) {
-        return this.messages
+        return filtered
       }
-      return this.messages.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
+      return filtered.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
+    },
+
+    /**
+     * 当前详情消息的动作类型：
+     * - INVITATION: 项目邀请
+     * - JOIN_APPLY: 项目加入申请
+     * - null: 无需操作
+     */
+    detailActionType() {
+      if (!this.detailMessage) return null
+      const { scene, extendData } = this.detailMessage
+      const extend = this.parseExtendDataObject(extendData)
+      const kind = extend && extend.kind
+
+      if (scene === 'PROJECT_MEMBER_INVITED' && kind === 'PROJECT_INVITATION') {
+        return 'INVITATION'
+      }
+      if (scene === 'PROJECT_MEMBER_APPLY' && kind === 'PROJECT_JOIN_APPLY') {
+        return 'JOIN_APPLY'
+      }
+      return null
     }
   },
   directives: {
@@ -1060,48 +1572,53 @@ export default {
   text-align: center;
 }
 
-.header-right {
+.panel-toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
 }
 
-.action-btn {
-  display: flex;
-  flex-direction: row;
+.toolbar-btn {
+  flex: 1;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  background: transparent;
-  color: var(--primary-color);
-  font-size: 13px;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 14px;
   cursor: pointer;
-  border-radius: 6px;
   transition: all 0.2s ease;
-  white-space: nowrap;
 }
 
-.action-btn:hover:not(:disabled) {
-  background: var(--primary-lightest);
+.toolbar-btn.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg, #5eb6e4 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.25);
 }
 
-.action-btn:disabled {
-  color: var(--text-quaternary);
-  cursor: not-allowed;
+.toolbar-btn.primary:hover {
+  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.35);
+  transform: translateY(-1px);
 }
 
-.send-btn {
+.toolbar-btn:not(.primary):hover:not(:disabled) {
+  border-color: var(--primary-color);
   color: var(--primary-color);
-}
-
-.send-btn:hover:not(:disabled) {
   background: var(--primary-lightest);
 }
 
-.action-btn svg {
-  width: 14px;
-  height: 14px;
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 标签页 */
@@ -1237,6 +1754,68 @@ export default {
 
 .message-item.unread:hover {
   background: var(--primary-lighter);
+}
+
+/* 发送者头像样式 */
+.sender-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+}
+
+.sender-avatar .avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.sender-avatar .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.sender-avatar.avatar-error::after {
+  content: attr(data-initial);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 发送者名称样式 */
+.message-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.sender-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--primary-color);
 }
 
 .message-icon {
@@ -1385,6 +1964,7 @@ export default {
   opacity: 0;
 }
 
+/* 消息详情弹窗 - 蓝白配色 */
 .message-detail-overlay {
   position: fixed;
   top: 0;
@@ -1402,154 +1982,550 @@ export default {
 .message-detail-modal {
   width: 520px;
   max-width: 100%;
-  background: var(--bg-primary);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
+  overflow: hidden;
 }
 
 .detail-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border-secondary);
+  padding: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
 }
 
 .detail-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--text-primary);
-  margin-top: 4px;
+  color: #ffffff;
+  margin-top: 6px;
 }
 
 .detail-scene {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
 }
 
 .detail-close {
+  width: 36px;
+  height: 36px;
   border: none;
-  background: transparent;
-  font-size: 24px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  font-size: 20px;
   line-height: 1;
   cursor: pointer;
-  color: var(--text-secondary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.detail-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
 }
 
 .detail-body {
-  padding: 16px 24px;
+  padding: 20px 24px;
   overflow-y: auto;
   flex: 1;
+  background: #ffffff;
 }
 
 .detail-section {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
 }
 
 .section-label {
-  font-size: 12px;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 8px;
 }
 
 .section-content {
   font-size: 14px;
-  color: var(--text-primary);
+  color: #334155;
   line-height: 1.6;
 }
 
 .section-extend {
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 12px;
+  background: #f0f7ff;
+  border: 1px solid #e0edff;
+  border-radius: 10px;
+  padding: 14px;
   font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-secondary);
+  line-height: 1.6;
+  color: #475569;
   overflow-x: auto;
   white-space: pre-wrap;
+  word-break: break-all;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* 扩展信息列表样式 */
+.extend-info-list {
+  background: #f0f7ff;
+  border: 1px solid #e0edff;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.extend-info-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e0edff;
+}
+
+.extend-info-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.extend-info-item:first-child {
+  padding-top: 0;
+}
+
+.extend-label {
+  flex-shrink: 0;
+  width: 80px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.extend-value {
+  flex: 1;
+  font-size: 13px;
+  color: #334155;
   word-break: break-all;
 }
 
 .detail-footer {
-  padding: 16px 24px 20px;
-  border-top: 1px solid var(--border-secondary);
+  padding: 18px 24px 22px;
+  border-top: 1px solid #e2e8f0;
   display: flex;
   justify-content: flex-end;
+  gap: 12px;
+  background: #f8fafc;
 }
 
 .detail-btn {
   min-width: 96px;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border: none;
-  border-radius: 6px;
-  background: var(--primary-color);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   color: #fff;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.detail-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.detail-btn.outline {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.detail-btn.outline:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+  transform: none;
+  box-shadow: none;
+}
+
+.detail-btn.ghost {
+  background: transparent;
+  color: #64748b;
+  box-shadow: none;
+}
+
+.detail-btn.ghost:hover {
+  color: #334155;
+  background: #f1f5f9;
+  transform: none;
+}
+
+/* 夜间模式适配 */
+.dark-mode .message-panel {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .panel-header,
+.dark-mode .tabs,
+.dark-mode .message-footer {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .title-text {
+  color: #e5e7eb;
+}
+
+.dark-mode .unread-count {
+  background: #ef4444;
+}
+
+.dark-mode .tab-item {
+  color: #9ca3af;
+}
+
+.dark-mode .tab-item.active {
+  color: #60a5fa;
+  border-bottom-color: #60a5fa;
+}
+
+.dark-mode .message-item {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-item:hover {
+  background: #0f172a;
+}
+
+.dark-mode .message-item.unread {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.dark-mode .message-item.unread:hover {
+  background: rgba(37, 99, 235, 0.22);
+}
+
+.dark-mode .message-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .message-body {
+  color: #9ca3af;
+}
+
+.dark-mode .message-time {
+  color: #6b7280;
+}
+
+.dark-mode .empty-state,
+.dark-mode .loading-state {
+  color: #9ca3af;
+}
+
+.dark-mode .message-detail-overlay {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.dark-mode .message-detail-modal {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .detail-header {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .detail-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .detail-scene,
+.dark-mode .section-label {
+  color: #6b7280;
+}
+
+.dark-mode .section-content {
+  color: #e5e7eb;
+}
+
+.dark-mode .section-extend {
+  background: #020617;
+  border-color: #1f2937;
+  color: #9ca3af;
+}
+
+.dark-mode .detail-footer {
+  border-top-color: #1f2937;
+}
+
+.dark-mode .detail-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.dark-mode .detail-btn.outline {
+  background: transparent;
+  border-color: #374151;
+  color: #e5e7eb;
+}
+
+.dark-mode .detail-btn.ghost {
+  background: transparent;
+  color: #9ca3af;
 }
 
 /* 发送消息对话框 */
+.send-message-dialog ::v-deep .el-dialog {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.send-message-dialog ::v-deep .el-dialog__header {
+  padding: 0;
+  margin: 0;
+}
+
 .send-message-dialog ::v-deep .el-dialog__body {
-  padding-top: 10px;
+  padding: 0;
 }
 
-.send-mode-switch {
+.send-message-dialog ::v-deep .el-dialog__footer {
+  padding: 0;
+}
+
+/* 自定义头部 - 蓝白配色 */
+.dialog-custom-header {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
 }
 
-.mode-btn {
+.header-icon {
+  width: 52px;
+  height: 52px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-icon svg {
+  color: white;
+}
+
+.header-text {
   flex: 1;
-  padding: 8px 0;
-  border-radius: 6px;
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-secondary);
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
 }
 
-.mode-btn.active {
-  border-color: var(--primary-color);
-  background: var(--primary-lightest);
-  color: var(--primary-color);
+.header-text h3 {
+  margin: 0;
+  font-size: 20px;
   font-weight: 600;
 }
 
-.mode-btn:hover {
-  border-color: var(--primary-color);
-}
-
-.send-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
+.header-text p {
+  margin: 6px 0 0;
   font-size: 13px;
-  color: var(--text-secondary);
+  opacity: 0.9;
 }
 
-.helper-text {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--text-tertiary);
+.header-close {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.header-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* 模式切换标签 - 蓝白配色 */
+.send-mode-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 18px 24px;
+  background: #f0f7ff;
+  border-bottom: 1px solid #e0edff;
+}
+
+.mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  transition: all 0.25s ease;
+}
+
+.mode-tab:hover {
+  color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.mode-tab.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.mode-tab svg {
+  flex-shrink: 0;
+}
+
+/* 表单内容 - 蓝白配色 */
+.send-form-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #ffffff;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group .form-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-group .form-label svg {
+  color: #3b82f6;
+}
+
+.form-group ::v-deep .el-input__inner,
+.form-group ::v-deep .el-textarea__inner {
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.form-group ::v-deep .el-input__inner:focus,
+.form-group ::v-deep .el-textarea__inner:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.form-group ::v-deep .el-textarea__inner {
+  min-height: 100px;
+}
+
+.empty-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* 底部按钮 - 蓝白配色 */
+.dialog-custom-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 24px 22px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-cancel {
+  padding: 12px 24px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancel:hover {
+  border-color: #cbd5e1;
+  color: #334155;
+  background: #f8fafc;
+}
+
+.btn-send {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border: none;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-send:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.btn-send:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.btn-send .loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
 }
 
 
@@ -1650,5 +2626,168 @@ export default {
   .dark-mode .bell-icon {
     color: #5EB6E4;
   }
+}
+</style>
+
+<!-- 深色模式弹窗和工具栏的全局样式（不加 scoped，覆盖 el-dialog 等 append-to-body 的元素） -->
+<style>
+/* 消息面板顶部工具栏在黑夜模式下变暗色 */
+.dark-mode .message-panel .panel-toolbar {
+  background: #020617;
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-panel .toolbar-btn {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .message-panel .toolbar-btn.primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border-color: transparent;
+}
+
+.dark-mode .message-panel .toolbar-btn:not(.primary):hover:not(:disabled) {
+  background: #111827;
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+/* 消息详情弹窗主体在黑夜模式下变暗色 */
+.dark-mode .message-detail-modal {
+  background: #020617;
+}
+
+.dark-mode .message-detail-modal .detail-body {
+  background: #020617;
+}
+
+.dark-mode .message-detail-modal .detail-header {
+  background: linear-gradient(135deg, #020617 0%, #0f172a 60%, #1d4ed8 100%);
+}
+
+.dark-mode .message-detail-modal .section-extend {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .message-detail-modal .detail-footer {
+  background: #020617;
+  border-top-color: #1f2937;
+}
+
+/* 黑夜模式下的“扩展信息”卡片整块变暗色 */
+.dark-mode .message-detail-modal .extend-info-list {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+.dark-mode .message-detail-modal .extend-info-item {
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .message-detail-modal .extend-label {
+  color: #9ca3af;
+}
+
+.dark-mode .message-detail-modal .extend-value {
+  color: #e5e7eb;
+}
+
+/* 发送消息对话框在黑夜模式下的样式（el-dialog append-to-body） */
+.dark-mode .send-message-dialog .el-dialog {
+  background: #020617;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode .send-message-dialog .dialog-custom-header {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .header-icon {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.dark-mode .send-message-dialog .header-text h3 {
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .header-text p {
+  color: #9ca3af;
+}
+
+.dark-mode .send-message-dialog .header-close {
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .header-close:hover {
+  background: rgba(30, 64, 175, 0.9);
+}
+
+.dark-mode .send-message-dialog .send-mode-tabs {
+  background: #020617;
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .send-message-dialog .mode-tab {
+  background: #020617;
+  border-color: #1f2937;
+  color: #9ca3af;
+}
+
+.dark-mode .send-message-dialog .mode-tab.active {
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+.dark-mode .send-message-dialog .send-form-content {
+  background: #020617;
+}
+
+.dark-mode .send-message-dialog .form-group .form-label {
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .form-group .form-label svg {
+  color: #60a5fa;
+}
+
+.dark-mode .send-message-dialog .el-input__inner,
+.dark-mode .send-message-dialog .el-textarea__inner {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .el-input__inner::placeholder,
+.dark-mode .send-message-dialog .el-textarea__inner::placeholder {
+  color: #6b7280;
+}
+
+.dark-mode .send-message-dialog .dialog-custom-footer {
+  background: #020617;
+  border-top-color: #1f2937;
+}
+
+.dark-mode .send-message-dialog .btn-cancel {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .send-message-dialog .btn-cancel:hover {
+  background: #111827;
+  border-color: #374151;
+}
+
+.dark-mode .send-message-dialog .btn-send {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.dark-mode .send-message-dialog .btn-send:disabled {
+  opacity: 0.7;
 }
 </style>

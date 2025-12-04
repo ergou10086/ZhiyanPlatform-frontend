@@ -159,7 +159,7 @@
 
 .add-grid { 
   display: grid; 
-  grid-template-columns: repeat(3, 1fr); 
+  grid-template-columns: repeat(3, 1fr) auto; 
   gap: 20px 28px; 
   padding: 0 40px 20px;
 }
@@ -267,6 +267,15 @@
 .dot-purple { background: #8b5cf6; }
 .dot-yellow { background: #fbbf24; }
 .dot-pink { background: #f472b6; }
+.dot-task { background: #ec4899; }
+
+/* 任务成果卡片特殊布局 */
+.add-card:nth-child(7) {
+  grid-column: 4;
+  grid-row: 1 / 3;
+  width: 240px;
+  min-height: 320px;
+}
 
 /* 表格样式 */
 .table-wrap { 
@@ -407,6 +416,11 @@
     padding: 0 30px 20px;
   }
   
+  .add-card:nth-child(7) {
+    width: 220px;
+    min-height: 300px;
+  }
+  
   .add-achievement-section {
     padding: 14px 36px 28px;
   }
@@ -418,9 +432,16 @@
 
 @media (max-width: 1200px) {
   .add-grid { 
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) auto;
     gap: 20px;
     padding: 0 24px 20px;
+  }
+  
+  .add-card:nth-child(7) {
+    grid-column: 3;
+    grid-row: 1 / 4;
+    width: 200px;
+    min-height: 440px;
   }
   
   .add-achievement-section {
@@ -462,6 +483,13 @@
     grid-template-columns: 1fr;
     gap: 16px;
     padding: 0 16px 16px;
+  }
+  
+  .add-card:nth-child(7) {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    min-height: 130px;
   }
   
   .add-card {
@@ -511,6 +539,13 @@
   .add-grid {
     padding: 0 12px 12px;
     gap: 12px;
+  }
+  
+  .add-card:nth-child(7) {
+    grid-column: 1;
+    grid-row: auto;
+    width: 100%;
+    min-height: 120px;
   }
   
   .add-card {

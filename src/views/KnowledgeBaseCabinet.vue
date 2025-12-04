@@ -3,10 +3,20 @@
     <div class="cabinet-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- 左侧列表 -->
       <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
-        <div class="toolbar">
+      <div class="toolbar">
           <div class="toolbar-buttons" v-if="!sidebarCollapsed">
-          <button class="btn primary small" @click="createNewDocument">+ 新建文档</button>
-            <button class="btn secondary small" @click="createNewFolder">+ 新建节点</button>
+          <button
+            class="btn primary small"
+            @click="createNewDocument"
+            :disabled="isArchived"
+            :title="isArchived ? '项目已归档，仅支持查看' : '新建文档'"
+          >+ 新建文档</button>
+          <button
+            class="btn secondary small"
+            @click="createNewFolder"
+            :disabled="isArchived"
+            :title="isArchived ? '项目已归档，仅支持查看' : '新建节点'"
+          >+ 新建节点</button>
           </div>
           <div class="search-container" v-if="!sidebarCollapsed">
             <input
@@ -96,11 +106,159 @@
         <div v-else class="empty-editor">
           <p>暂无文档内容</p>
         </div>
+        
+        <!-- 附件区域 -->
+        <div class="attachments-section" :class="{ collapsed: attachmentsCollapsed }">
+          <div class="attachments-header" @click="toggleAttachmentsCollapse">
+            <div class="attachments-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>附件</span>
+              <span class="attachments-count" v-if="docAttachments.length > 0">({{ docAttachments.length }})</span>
+              <!-- 折叠/展开箭头 -->
+              <svg class="collapse-arrow" :class="{ rotated: !attachmentsCollapsed }" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="attachments-header-actions">
+              <!-- 附件筛选 -->
+              <div class="attachment-filter" v-if="docAttachments.length > 0">
+                <button 
+                  class="filter-btn" 
+                  :class="{ active: attachmentFilter === 'all' }"
+                  @click="attachmentFilter = 'all'"
+                  title="全部"
+                >全部</button>
+                <button 
+                  class="filter-btn" 
+                  :class="{ active: attachmentFilter === 'image' }"
+                  @click="attachmentFilter = 'image'"
+                  title="图片"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                    <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button 
+                  class="filter-btn" 
+                  :class="{ active: attachmentFilter === 'file' }"
+                  @click="attachmentFilter = 'file'"
+                  title="文件"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <button class="upload-attachment-btn" @click="triggerAttachmentUpload" :disabled="uploadingAttachment || !activeId">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>{{ uploadingAttachment ? '上传中...' : '上传附件' }}</span>
+              </button>
+            </div>
+            <input 
+              type="file" 
+              ref="attachmentInput" 
+              @change="handleAttachmentUpload" 
+              style="display: none;"
+              multiple
+            />
+          </div>
+          
+          <!-- 附件统计信息 -->
+          <div class="attachments-stats" v-if="attachmentStats && docAttachments.length > 0">
+            <span class="stat-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ imageCount }} 张图片
+            </span>
+            <span class="stat-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ fileCount }} 个文件
+            </span>
+            <span class="stat-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="currentColor" stroke-width="2"/>
+              </svg>
+              {{ formatFileSize(totalSize) }}
+            </span>
+          </div>
+          
+          <!-- 附件列表 -->
+          <div class="attachments-list" v-if="filteredAttachments.length > 0">
+            <div class="attachment-item" v-for="(file, index) in filteredAttachments" :key="file.id || index">
+              <div class="attachment-icon" :class="getFileIconClass(file.name)">
+                <svg v-if="isImageFile(file.name)" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
+                  <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg v-else-if="isPdfFile(file.name)" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="13 2 13 9 20 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="attachment-info">
+                <div class="attachment-name" :title="file.name">{{ file.name }}</div>
+                <div class="attachment-meta">
+                  <span class="attachment-size">{{ formatFileSize(file.size) }}</span>
+                  <span class="attachment-date" v-if="file.uploadedAt">{{ formatAttachmentDate(file.uploadedAt) }}</span>
+                </div>
+              </div>
+              <div class="attachment-actions">
+                <button class="attachment-action-btn copy-link" @click="copyAttachmentLink(file)" title="复制链接">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <button class="attachment-action-btn download" @click="downloadAttachment(file)" title="下载">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </button>
+                <button class="attachment-action-btn delete" @click="deleteAttachment(index)" title="删除">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 空状态 -->
+          <div class="attachments-empty" v-else>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>暂无附件</p>
+            <span>点击上方按钮上传文件</span>
+          </div>
+        </div>
+
         <div class="editor-footer">
-          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc">版本历史</button>
-          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc">差异对比</button>
+          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc || isArchived">版本历史</button>
+          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc || isArchived">差异对比</button>
           <div class="flex-spacer" />
-          <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing">
+          <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing" :disabled="isArchived" :title="isArchived ? '项目已归档，仅支持查看' : '编辑文档'">
             编辑
           </button>
           <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
@@ -611,6 +769,10 @@ export default {
     projectId: {
       type: [String, Number],
       default: null
+    },
+    isArchived: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
@@ -687,7 +849,14 @@ export default {
       showRestoreConfirmDialog: false,
       pendingRestoreVersion: null, // 待恢复的版本号
       pendingRestoreSource: null, // 恢复来源：'archive' 或 'view'
-      restoring: false // 是否正在恢复中
+      restoring: false, // 是否正在恢复中
+
+      // 附件相关
+      docAttachments: [], // 当前文档的附件列表
+      uploadingAttachment: false, // 是否正在上传附件
+      attachmentFilter: 'all', // 附件筛选：all/image/file
+      attachmentStats: true, // 是否显示附件统计
+      attachmentsCollapsed: false // 附件区域是否折叠
     }
   },
   computed: {
@@ -742,6 +911,29 @@ export default {
         node.title.toLowerCase().includes(searchText) ||
         String(node.id).includes(searchText)
       )
+    },
+    // 根据筛选条件过滤附件列表
+    filteredAttachments() {
+      if (this.attachmentFilter === 'all') {
+        return this.docAttachments
+      } else if (this.attachmentFilter === 'image') {
+        return this.docAttachments.filter(file => this.isImageFile(file.name))
+      } else if (this.attachmentFilter === 'file') {
+        return this.docAttachments.filter(file => !this.isImageFile(file.name))
+      }
+      return this.docAttachments
+    },
+    // 图片数量
+    imageCount() {
+      return this.docAttachments.filter(file => this.isImageFile(file.name)).length
+    },
+    // 文件数量（非图片）
+    fileCount() {
+      return this.docAttachments.filter(file => !this.isImageFile(file.name)).length
+    },
+    // 附件总大小
+    totalSize() {
+      return this.docAttachments.reduce((sum, file) => sum + (file.size || 0), 0)
     }
   },
   async mounted() {
@@ -1070,6 +1262,10 @@ export default {
     },
     
     createNewDocument() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki文档')
+        return
+      }
       this.showNewDocDialog = true
       this.newDocTitle = ''
       this.selectedNodeId = null
@@ -1181,6 +1377,10 @@ export default {
     },
 
     createNewFolder() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki节点')
+        return
+      }
       this.showNewFolderDialog = true
       this.newFolderName = ''
     },
@@ -1196,6 +1396,10 @@ export default {
     },
 
     async confirmNewFolder() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki节点')
+        return
+      }
       if (!this.newFolderName.trim()) return
       
       // 防止重复点击
@@ -1290,6 +1494,10 @@ export default {
     },
     
     async confirmNewDoc() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能新建Wiki文档')
+        return
+      }
       if (!this.selectedFile) {
         this.$message?.error('请选择要上传的Markdown文件')
         return
@@ -1412,6 +1620,10 @@ export default {
     },
     
     async saveDocument() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能保存Wiki文档')
+        return
+      }
       if (!this.activeDoc) {
         console.warn('[saveDocument] 没有活动文档')
         this.$message?.error('没有可保存的文档')
@@ -1483,6 +1695,9 @@ export default {
     },
     
     async autoSave() {
+      if (this.isArchived) {
+        return
+      }
       // 如果正在保存或没有未保存的更改，跳过
       if (this.isSaving || !this.hasUnsavedChanges || !this.activeDoc || !this.activeId) {
         return
@@ -2786,7 +3001,11 @@ export default {
      /**
       * 执行删除节点操作
       */
-     async executeDeleteNode() {
+    async executeDeleteNode() {
+      if (this.isArchived) {
+        this.$message?.error('项目已归档，仅支持查看，不能删除Wiki节点或文档')
+        return
+      }
       if (!this.deleteNodeId) {
         console.error('[executeDeleteNode] deleteNodeId为空')
         return
@@ -2915,11 +3134,11 @@ export default {
       // 删除线
       formatted = formatted.replace(/~~([^~]+)~~/g, '<del>$1</del>')
 
+      // 图片（必须在链接之前处理，否则 ![alt](url) 会被链接正则部分匹配）
+      formatted = formatted.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%; border-radius: 8px; margin: 8px 0;" />')
+
       // 链接
       formatted = formatted.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
-
-      // 图片
-      formatted = formatted.replace(/!\[([^\]]*)\]\(([^\)]+)\)/g, '<img src="$2" alt="$1" style="max-width: 100%;" />')
 
       // 水平分割线
       formatted = formatted.replace(/^---$/gm, '<hr class="markdown-hr" />')
@@ -3029,8 +3248,351 @@ export default {
         console.log('[exportDocument] 文档导出成功:', fileName)
         this.$message?.success('文档导出成功！')
       } catch (error) {
-        console.error('[exportDocument] 导出文档失败:', error)
-        this.$message?.error('导出文档失败，请重试')
+        console.error('[exportDocument] 导出失败:', error)
+        this.$message?.error('文档导出失败')
+      }
+    },
+
+    // ========== 附件相关方法 ==========
+
+    /**
+     * 切换附件区域折叠/展开状态
+     */
+    toggleAttachmentsCollapse(event) {
+      // 阻止点击上传按钮等子元素时触发折叠
+      if (event.target.closest('.upload-attachment-btn') || 
+          event.target.closest('.filter-btn') ||
+          event.target.closest('.attachment-filter')) {
+        return
+      }
+      this.attachmentsCollapsed = !this.attachmentsCollapsed
+    },
+
+    /**
+     * 触发附件上传
+     */
+    triggerAttachmentUpload() {
+      // 检查是否有选中的文档
+      if (!this.activeId) {
+        this.$message?.warning('请先选择一个文档')
+        return
+      }
+      this.$refs.attachmentInput?.click()
+    },
+
+    /**
+     * 处理附件上传 - 调用后端API
+     */
+    async handleAttachmentUpload(event) {
+      const files = event.target.files
+      if (!files || files.length === 0) return
+
+      // 检查必要参数
+      if (!this.activeId || !this.projectId) {
+        this.$message?.error('请先选择一个文档')
+        return
+      }
+
+      this.uploadingAttachment = true
+      let successCount = 0
+      let failCount = 0
+
+      try {
+        for (const file of files) {
+          // 后端限制100MB
+          if (file.size > 100 * 1024 * 1024) {
+            this.$message?.warning(`文件 ${file.name} 超过100MB限制`)
+            failCount++
+            continue
+          }
+
+          try {
+            console.log('[handleAttachmentUpload] 上传附件:', file.name, 'wikiPageId:', this.activeId, 'projectId:', this.projectId)
+            
+            // 调用后端API上传附件
+            const response = await wikiAPI.attachment.uploadAttachment(
+              file,
+              this.activeId,
+              this.projectId
+            )
+
+            if (response && response.code === 200) {
+              // 上传成功，将返回的附件信息添加到列表
+              const attachmentData = response.data
+              this.docAttachments.push({
+                id: attachmentData.id,
+                name: attachmentData.fileName,
+                size: attachmentData.fileSize,
+                type: attachmentData.mimeType,
+                uploadedAt: attachmentData.uploadAt,
+                url: attachmentData.fileUrl,
+                attachmentType: attachmentData.attachmentType
+              })
+              successCount++
+              console.log('[handleAttachmentUpload] 附件上传成功:', attachmentData.fileName)
+            } else {
+              console.error('[handleAttachmentUpload] 上传失败:', response?.msg)
+              failCount++
+            }
+          } catch (uploadError) {
+            console.error('[handleAttachmentUpload] 上传文件失败:', file.name, uploadError)
+            failCount++
+          }
+        }
+
+        // 显示上传结果
+        if (successCount > 0 && failCount === 0) {
+          this.$message?.success(`成功上传 ${successCount} 个附件`)
+        } else if (successCount > 0 && failCount > 0) {
+          this.$message?.warning(`上传完成：成功 ${successCount} 个，失败 ${failCount} 个`)
+        } else if (failCount > 0) {
+          this.$message?.error('附件上传失败')
+        }
+      } catch (error) {
+        console.error('[handleAttachmentUpload] 上传失败:', error)
+        this.$message?.error('附件上传失败：' + (error.message || '请重试'))
+      } finally {
+        this.uploadingAttachment = false
+        event.target.value = ''
+      }
+    },
+
+    /**
+     * 下载/查看附件 - 图片在线查看，文档下载
+     */
+    downloadAttachment(file) {
+      try {
+        console.log('[downloadAttachment] 处理附件:', file.name)
+        
+        if (!file.url) {
+          this.$message?.error('无法获取文件链接')
+          return
+        }
+        
+        // 判断是否为图片文件
+        if (this.isImageFile(file.name)) {
+          // 图片：在新窗口中直接查看
+          this.previewImage(file)
+        } else {
+          // 文档：直接下载
+          window.open(file.url, '_blank')
+          console.log('[downloadAttachment] 下载文档:', file.url)
+        }
+      } catch (error) {
+        console.error('[downloadAttachment] 处理失败:', error)
+        this.$message?.error('操作失败: ' + (error.message || '请重试'))
+      }
+    },
+
+    /**
+     * 预览图片 - 在新窗口中显示图片
+     */
+    previewImage(file) {
+      const imageWindow = window.open('', '_blank')
+      if (imageWindow) {
+        imageWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>${file.name}</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 20px;
+                background: #1a1a1a;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                box-sizing: border-box;
+              }
+              img {
+                max-width: 100%;
+                max-height: calc(100vh - 40px);
+                object-fit: contain;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${file.url}" alt="${file.name}" />
+          </body>
+          </html>
+        `)
+        imageWindow.document.close()
+        console.log('[previewImage] 预览图片:', file.name)
+      } else {
+        window.open(file.url, '_blank')
+      }
+    },
+
+    /**
+     * 复制附件链接到剪贴板（优先使用COS直接URL）
+     */
+    async copyAttachmentLink(file) {
+      let linkUrl = ''
+      try {
+        // 优先使用 COS 直接 URL（可以直接在浏览器中打开，无需认证）
+        if (file.url) {
+          linkUrl = file.url
+        } else if (file.fileUrl) {
+          linkUrl = file.fileUrl
+        }
+        
+        if (!linkUrl) {
+          this.$message?.error('无法获取附件链接')
+          return
+        }
+        
+        // 复制到剪贴板
+        await navigator.clipboard.writeText(linkUrl)
+        this.$message?.success('链接已复制到剪贴板')
+        console.log('[copyAttachmentLink] 已复制链接:', linkUrl)
+      } catch (error) {
+        console.error('[copyAttachmentLink] 复制失败:', error)
+        // 降级方案：使用传统方式复制
+        try {
+          const textArea = document.createElement('textarea')
+          textArea.value = linkUrl || ''
+          textArea.style.position = 'fixed'
+          textArea.style.left = '-9999px'
+          document.body.appendChild(textArea)
+          textArea.select()
+          document.execCommand('copy')
+          document.body.removeChild(textArea)
+          this.$message?.success('链接已复制到剪贴板')
+        } catch (fallbackError) {
+          this.$message?.error('复制失败，请手动复制')
+        }
+      }
+    },
+
+    /**
+     * 删除附件 - 调用后端API
+     */
+    async deleteAttachment(index) {
+      const file = this.docAttachments[index]
+      
+      if (!file.id) {
+        // 兼容旧的本地附件（没有id的情况）
+        if (file.url) {
+          URL.revokeObjectURL(file.url)
+        }
+        this.docAttachments.splice(index, 1)
+        this.$message?.success('附件已删除')
+        return
+      }
+
+      try {
+        console.log('[deleteAttachment] 删除附件:', file.id, file.name)
+        
+        // 调用后端API删除附件（使用物理删除）
+        const response = await wikiAPI.attachment.deleteAttachmentPermanently(file.id)
+        
+        if (response && response.code === 200) {
+          // 从本地列表中移除
+          this.docAttachments.splice(index, 1)
+          this.$message?.success('附件已删除')
+          console.log('[deleteAttachment] 附件删除成功')
+        } else {
+          this.$message?.error(response?.msg || '删除失败')
+        }
+      } catch (error) {
+        console.error('[deleteAttachment] 删除失败:', error)
+        this.$message?.error('删除失败：' + (error.message || '请重试'))
+      }
+    },
+
+    /**
+     * 从后端加载页面附件
+     */
+    async loadPageAttachments() {
+      if (!this.activeId) {
+        this.docAttachments = []
+        return
+      }
+
+      try {
+        console.log('[loadPageAttachments] 加载页面附件, wikiPageId:', this.activeId)
+        
+        const response = await wikiAPI.attachment.getPageAttachments(this.activeId)
+        
+        if (response && response.code === 200) {
+          // 转换后端返回的数据格式
+          this.docAttachments = (response.data || []).map(item => ({
+            id: item.id,
+            name: item.fileName,
+            size: item.fileSize,
+            type: item.mimeType,
+            uploadedAt: item.uploadAt,
+            url: item.fileUrl,
+            attachmentType: item.attachmentType
+          }))
+          console.log('[loadPageAttachments] 加载成功, 附件数量:', this.docAttachments.length)
+        } else {
+          console.warn('[loadPageAttachments] 加载失败:', response?.msg)
+          this.docAttachments = []
+        }
+      } catch (error) {
+        // 权限错误或其他错误，静默处理
+        console.warn('[loadPageAttachments] 加载附件失败:', error)
+        this.docAttachments = []
+      }
+    },
+
+    /**
+     * 判断是否为图片文件
+     */
+    isImageFile(filename) {
+      if (!filename) return false
+      const ext = filename.split('.').pop()?.toLowerCase()
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext)
+    },
+
+    /**
+     * 判断是否为PDF文件
+     */
+    isPdfFile(filename) {
+      if (!filename) return false
+      return filename.toLowerCase().endsWith('.pdf')
+    },
+
+    /**
+     * 获取文件图标样式类
+     */
+    getFileIconClass(filename) {
+      if (this.isImageFile(filename)) return 'icon-image'
+      if (this.isPdfFile(filename)) return 'icon-pdf'
+      const ext = filename?.split('.').pop()?.toLowerCase()
+      if (['doc', 'docx'].includes(ext)) return 'icon-word'
+      if (['xls', 'xlsx'].includes(ext)) return 'icon-excel'
+      if (['ppt', 'pptx'].includes(ext)) return 'icon-ppt'
+      if (['zip', 'rar', '7z'].includes(ext)) return 'icon-zip'
+      return 'icon-file'
+    },
+
+    /**
+     * 格式化附件日期
+     */
+    formatAttachmentDate(dateStr) {
+      if (!dateStr) return ''
+      try {
+        const date = new Date(dateStr)
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hour = String(date.getHours()).padStart(2, '0')
+        const minute = String(date.getMinutes()).padStart(2, '0')
+        return `${month}-${day} ${hour}:${minute}`
+      } catch (e) {
+        return ''
+      }
+    }
+  },
+  watch: {
+    activeId(newId) {
+      if (newId) {
+        this.loadPageAttachments()
       }
     }
   }
@@ -3142,7 +3704,7 @@ export default {
   position: relative;
   width: 100%;
 }
-
+  
 .search {
   width: 100%;
   height: 36px; 
@@ -5100,4 +5662,353 @@ export default {
   border-radius: 0 0 12px 12px;
   flex-shrink: 0;
 }
+
+/* ========== 附件区域样式 ========== */
+.attachments-section {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+/* 折叠状态 */
+.attachments-section.collapsed {
+  padding: 10px 14px;
+}
+
+.attachments-section.collapsed .attachments-stats,
+.attachments-section.collapsed .attachments-list,
+.attachments-section.collapsed .attachments-empty,
+.attachments-section.collapsed .attachments-header-actions {
+  display: none;
+}
+
+.attachments-section.collapsed .attachments-header {
+  margin-bottom: 0;
+}
+
+.attachments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.attachments-header:hover {
+  opacity: 0.85;
+}
+
+.attachments-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.attachments-title svg {
+  width: 16px;
+  height: 16px;
+  color: #3b82f6;
+}
+
+/* 折叠箭头 */
+.attachments-title .collapse-arrow {
+  width: 14px;
+  height: 14px;
+  color: #64748b;
+  transition: transform 0.3s ease;
+  margin-left: 4px;
+}
+
+.attachments-title .collapse-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.attachments-count {
+  font-weight: 400;
+  color: #64748b;
+}
+
+.upload-attachment-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.25);
+}
+
+.upload-attachment-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.upload-attachment-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.upload-attachment-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.attachment-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attachment-icon.icon-image {
+  background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
+  color: white;
+}
+
+.attachment-icon.icon-pdf {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.attachment-icon.icon-word {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.attachment-icon.icon-excel {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.attachment-icon.icon-ppt {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: white;
+}
+
+.attachment-icon.icon-zip {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+}
+
+.attachment-icon.icon-file {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+  color: white;
+}
+
+.attachment-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.attachment-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.attachment-size,
+.attachment-date {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.attachment-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.attachment-action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.attachment-action-btn.copy-link {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.attachment-action-btn.copy-link:hover {
+  background: #22c55e;
+  color: white;
+}
+
+.attachment-action-btn.download {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.attachment-action-btn.download:hover {
+  background: #3b82f6;
+  color: white;
+}
+
+.attachment-action-btn.delete {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+.attachment-action-btn.delete:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.attachments-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  color: #94a3b8;
+}
+
+.attachments-empty svg {
+  width: 20px;
+  height: 20px;
+  opacity: 0.5;
+}
+
+.attachments-empty p {
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.attachments-empty span {
+  display: none;
+}
+
+/* 附件头部操作区 */
+.attachments-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 附件筛选按钮组 */
+.attachment-filter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  height: 24px;
+}
+
+.filter-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+.filter-btn:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.filter-btn.active {
+  background: white;
+  color: #3b82f6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 附件统计信息 */
+.attachments-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.stat-item svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0.7;
+}
+
 </style>

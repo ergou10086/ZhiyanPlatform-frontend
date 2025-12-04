@@ -148,16 +148,28 @@
             :archiveRows="archiveRows" 
             :projectId="projectId" 
             :isNotMember="permissionErrorShown"
+            :isArchived="isArchived"
             @file-uploaded="handleFileUploaded"
             @file-deleted="handleFileDeleted"
             @file-edited="handleFileEdited"
           />
 
           <!-- 知识柜面板 -->
-          <KnowledgeBaseCabinet v-else-if="activeTab==='cabinet'" :projectId="projectId" @document-created="handleDocumentCreated" />
+          <KnowledgeBaseCabinet 
+            v-else-if="activeTab==='cabinet'" 
+            :projectId="projectId" 
+            :isArchived="isArchived"
+            @document-created="handleDocumentCreated" 
+          />
 
           <!-- AI 赋能面板 -->
-          <KnowledgeBaseAI v-else ref="aiComponent" :projectId="projectId" @files-changed="handleFilesChanged" />
+          <KnowledgeBaseAI 
+            v-else 
+            ref="aiComponent" 
+            :projectId="projectId" 
+            :isArchived="isArchived"
+            @files-changed="handleFilesChanged" 
+          />
         </div>
       </div>
     </div>
@@ -221,6 +233,8 @@ export default {
       activeTab: 'home',
       projectId: null,
       projectName: '加载中...',
+      projectStatus: null,
+      isArchived: false,
       achievementsCount: 0,
       documentsCount: 0,
       teamMembersCount: 0,
@@ -295,6 +309,15 @@ export default {
     },
     goTab(tab) {
       if (this.activeTab === tab) return
+      // 归档项目：禁止进入会产生修改的 Tab（Wiki 文档、AI 赋能）
+      if (this.isArchived && (tab === 'cabinet' || tab === 'ai')) {
+        if (this.$message) {
+          this.$message.warning('项目已归档，仅支持查看主页和成果目录，无法编辑Wiki或使用AI赋能')
+        } else {
+          alert('项目已归档，仅支持查看主页和成果目录，无法编辑Wiki或使用AI赋能')
+        }
+        return
+      }
       // 如果不是项目成员，禁止切换到 AI 赋能和项目wiki文档
       if ((tab === 'ai' || tab === 'cabinet') && this.permissionErrorShown) {
         return
@@ -314,6 +337,8 @@ export default {
         if (response && response.code === 200 && response.data) {
           // 使用API返回的最新数据
           this.projectName = response.data.name || '未知项目'
+          this.projectStatus = response.data.status || null
+          this.isArchived = this.projectStatus === 'ARCHIVED'
           console.log('从API获取到项目名称:', this.projectName)
           return
         }
@@ -339,6 +364,9 @@ export default {
           if (project) {
             // 优先使用name字段，如果没有则使用title字段
             this.projectName = project.name || project.title || '未知项目'
+            this.projectStatus = project.status || null
+            // 兼容中英文状态
+            this.isArchived = this.projectStatus === 'ARCHIVED' || this.projectStatus === '已归档'
             console.log('找到项目:', this.projectName, '项目数据:', project)
           } else {
             this.projectName = '未知项目'
@@ -458,7 +486,18 @@ export default {
           this.achievementsCount = 0
         }
       } catch (error) {
-        // 对于知识库 API 错误，如果不是明显的网络错误，都当作权限错误处理
+        const permissionDetected = this.isPermissionError(error)
+        if (permissionDetected && !this.permissionErrorShown) {
+          this.permissionErrorShown = true
+          this.showPermissionDialog = true
+          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
+            this.activeTab = 'home'
+          }
+          this.achievementsCount = 0
+          return
+        }
+
+        // 对于知识库 API 错误，如果不是明显的网络错误，记录警告后兜底
         const isNetworkError = error && (
           error.code === 'ECONNABORTED' || 
           error.code === 'NETWORK_ERROR' || 
@@ -466,21 +505,11 @@ export default {
           error.message?.includes('Network') ||
           (!error.response && error.request)
         )
-        
-        const isServerError = error?.response?.status >= 500
-        const isPermissionError = !isNetworkError && !isServerError
-        
-        if (isPermissionError && !this.permissionErrorShown) {
-          // 权限错误：显示自定义弹窗
-          this.permissionErrorShown = true
-          this.showPermissionDialog = true
-          // 如果当前在 AI 页面或 wiki 页面，切换回主页
-          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
-            this.activeTab = 'home'
-          }
+
+        if (!isNetworkError) {
+          console.warn('加载成果总数失败（非权限错误）:', error)
         }
-        // 不调用 console.error，避免触发全局错误弹窗
-        
+
         this.achievementsCount = 0
       }
     },
@@ -509,38 +538,31 @@ export default {
           this.documentsCount = 0
         }
       } catch (error) {
-        // 对于知识库 API 错误，如果不是明显的网络错误，都当作权限错误处理
-        // 这样可以避免显示技术错误弹窗
+        const permissionDetected = this.isPermissionError(error)
+        if (permissionDetected && !this.permissionErrorShown) {
+          this.permissionErrorShown = true
+          this.showPermissionDialog = true
+          this.documentsCount = 0
+          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
+            this.activeTab = 'home'
+          }
+          return
+        }
+
+        // 对于知识库 API 错误，如果不是明显的网络错误或服务器错误，则记录警告
         const isNetworkError = error && (
           error.code === 'ECONNABORTED' || 
           error.code === 'NETWORK_ERROR' || 
           error.message?.includes('网络') ||
           error.message?.includes('Network') ||
-          (!error.response && error.request) // 有请求但没有响应，可能是网络问题
+          (!error.response && error.request)
         )
-        
-        // 如果不是网络错误，且不是明显的服务器内部错误（500），就当作权限错误
         const isServerError = error?.response?.status >= 500
-        const isPermissionError = !isNetworkError && !isServerError
-        
-        if (isPermissionError && !this.permissionErrorShown) {
-          // 权限错误：显示自定义弹窗
-          // 重要：完全不调用 console.error，避免被全局错误处理器捕获
-          this.permissionErrorShown = true
-          this.showPermissionDialog = true
-          this.documentsCount = 0
-          // 如果当前在 AI 页面或 wiki 页面，切换回主页
-          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
-            this.activeTab = 'home'
-          }
-          return // 直接返回，不执行后续代码
-        }
-        
-        // 只有网络错误或服务器错误才记录日志（但不显示弹窗）
+
         if (isNetworkError || isServerError) {
-          // 静默处理，不调用 console.error，避免触发全局错误弹窗
-          // 只在控制台输出警告（不会触发全局错误处理器）
           console.warn('加载文档数量失败（网络或服务器错误）:', error)
+        } else {
+          console.warn('加载文档数量失败（未知错误）:', error)
         }
         
         // 如果API失败，尝试从localStorage读取作为后备
@@ -555,7 +577,6 @@ export default {
             this.documentsCount = 0
           }
         } catch (localError) {
-          // 静默处理，不调用 console.error
           this.documentsCount = 0
         }
       }
@@ -768,7 +789,18 @@ export default {
           console.log('⚠️ API调用失败，使用模拟在线人数:', this.onlineMembersCount, '人')
         }
       } catch (error) {
-        // 对于知识库 API 错误，如果不是明显的网络错误，都当作权限错误处理
+        const permissionDetected = this.isPermissionError(error)
+        if (permissionDetected && !this.permissionErrorShown) {
+          this.permissionErrorShown = true
+          this.showPermissionDialog = true
+          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
+            this.activeTab = 'home'
+          }
+          this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)
+          return
+        }
+
+        // 对于知识库 API 错误，如果不是明显的网络错误，记录一次警告
         const isNetworkError = error && (
           error.code === 'ECONNABORTED' || 
           error.code === 'NETWORK_ERROR' || 
@@ -776,20 +808,10 @@ export default {
           error.message?.includes('Network') ||
           (!error.response && error.request)
         )
-        
-        const isServerError = error?.response?.status >= 500
-        const isPermissionError = !isNetworkError && !isServerError
-        
-        if (isPermissionError && !this.permissionErrorShown) {
-          // 权限错误：显示自定义弹窗
-          this.permissionErrorShown = true
-          this.showPermissionDialog = true
-          // 如果当前在 AI 页面或 wiki 页面，切换回主页
-          if (this.activeTab === 'ai' || this.activeTab === 'cabinet') {
-            this.activeTab = 'home'
-          }
+
+        if (!isNetworkError) {
+          console.warn('加载团队成员数量失败（非权限错误）:', error)
         }
-        // 不调用 console.error 或 console.warn，避免触发全局错误弹窗
         
         // 出错时使用模拟数据
         this.onlineMembersCount = Math.floor(this.teamMembersCount * 0.67)

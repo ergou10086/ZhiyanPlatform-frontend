@@ -31,6 +31,20 @@ export function getUnreadCount() {
 }
 
 /**
+ * 获取未读消息列表（分页）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从0开始）
+ * @param {number} params.size - 每页数量
+ */
+export function getUnreadMessages(params) {
+  return request({
+    url: '/zhiyan/message/unread',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 标记消息为已读
  * @param {number} messageId - 消息ID
  */
@@ -134,5 +148,49 @@ export function sendMessageToProject(data) {
     url: '/zhiyan/message/send/to-project',
     method: 'post',
     data
+  })
+}
+
+/**
+ * 同意项目邀请（受邀人点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function acceptProjectInvitation(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/invite/${recipientId}/accept`,
+    method: 'post'
+  })
+}
+
+/**
+ * 拒绝项目邀请（受邀人点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function rejectProjectInvitation(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/invite/${recipientId}/reject`,
+    method: 'post'
+  })
+}
+
+/**
+ * 同意项目加入申请（管理员点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function approveProjectJoin(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/apply/${recipientId}/approve`,
+    method: 'post'
+  })
+}
+
+/**
+ * 拒绝项目加入申请（管理员点击）
+ * @param {number} recipientId - 消息收件记录ID
+ */
+export function rejectProjectJoin(recipientId) {
+  return request({
+    url: `/zhiyan/message/project/apply/${recipientId}/reject`,
+    method: 'post'
   })
 }

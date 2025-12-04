@@ -222,10 +222,26 @@
 
 /* 标签管理弹窗 */
 .tag-modal-content {
-  max-width: 700px;
-  width: 90%;
+  max-width: 900px;
+  width: 95%;
   max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tag-modal-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tag-modal-scroll-area {
+  flex: 1;
   overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .modal-hint {
@@ -446,13 +462,14 @@
 }
 
 .achievements-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
 .achievement-item {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 12px;
   padding: 16px;
@@ -501,6 +518,29 @@
   margin: 0;
 }
 
+.achievements-more-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.achievements-more-btn {
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.achievements-more-btn:hover {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+}
+
 .achievement-remove-btn {
   flex-shrink: 0;
   background: none;
@@ -519,9 +559,17 @@
 
 /* 学术成果关联弹窗 */
 .achievement-modal-content {
-  max-width: 800px;
-  width: 90%;
+  max-width: 960px;
+  width: 95%;
   max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.achievement-modal-content .modal-body {
+  flex: 1;
+  padding-bottom: 16px;
   overflow-y: auto;
 }
 
@@ -562,7 +610,10 @@
 }
 
 .project-filter-select {
-  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 12px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -570,11 +621,62 @@
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
+  max-width: 260px; /* 防止被弹窗右侧裁切 */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .project-filter-select:focus {
   outline: none;
   border-color: #3b82f6;
+}
+
+.project-filter-selected-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-filter-arrow {
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.project-filter-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 6px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e5e7eb;
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.project-filter-option {
+  padding: 10px 12px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.project-filter-option:hover {
+  background: #f3f4f6;
+}
+
+.project-filter-option.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
 }
 
 .achievements-selection-area {
@@ -618,6 +720,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .achievement-selection-item {

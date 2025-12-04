@@ -155,7 +155,10 @@ export default {
       statusOpen: false,
       // 翻页相关
       currentPage: 1,
-      pageSize: 8 // 每页显示8个项目（2行，每行4个）
+      pageSize: 8, // 每页显示8个项目（2行，每行4个）
+      // 登录状态与当前用户
+      isAuthenticated: false,
+      currentUserId: null
     }
   },
   computed: {
@@ -165,7 +168,8 @@ export default {
       return this.joinedProjects.filter(project => {
         const matchText = text ? project.title.toLowerCase().includes(text) : true
         const matchStatus = this.selectedStatus ? project.status === this.selectedStatus : true
-        return matchText && matchStatus
+        const matchVisibility = this.canDisplayProject(project)
+        return matchText && matchStatus && matchVisibility
       })
     },
     // 总页数
@@ -181,18 +185,135 @@ export default {
     }
   },
   mounted() {
+    this.refreshAuthState()
     this.loadUserProjects()
+    window.addEventListener('storage', this.handleStorageChange)
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
+    window.removeEventListener('storage', this.handleStorageChange)
     document.removeEventListener('click', this.handleClickOutside)
   },
   methods: {
+    refreshAuthState() {
+      try {
+        const token = localStorage.getItem('access_token')
+        const userInfoRaw = localStorage.getItem('user_info')
+        let parsedInfo = null
+        let userId = null
+        if (userInfoRaw) {
+          try {
+            parsedInfo = JSON.parse(userInfoRaw)
+            userId = this.extractUserId(parsedInfo)
+          } catch (e) {
+            console.warn('[KnowledgeBase] 解析 user_info 失败:', e)
+          }
+        }
+        const authed = !!(token && userId)
+        this.isAuthenticated = authed
+        this.currentUserId = authed ? this.normalizeId(userId) : null
+      } catch (error) {
+        console.warn('[KnowledgeBase] 刷新认证状态失败:', error)
+        this.isAuthenticated = false
+        this.currentUserId = null
+      }
+    },
+    extractUserId(userInfo) {
+      if (!userInfo || typeof userInfo !== 'object') return null
+      const candidates = ['id', 'userId', 'user_id', 'uid', 'accountId']
+      for (const key of candidates) {
+        if (userInfo[key] !== undefined && userInfo[key] !== null) {
+          return userInfo[key]
+        }
+      }
+      if (userInfo.user) {
+        return userInfo.user.id || userInfo.user.userId || userInfo.user.user_id || null
+      }
+      return null
+    },
+    normalizeId(value) {
+      if (value === undefined || value === null) return null
+      return String(value)
+    },
+    handleStorageChange(event) {
+      if (event.key === 'access_token' || event.key === 'user_info') {
+        const previousUserId = this.currentUserId
+        this.refreshAuthState()
+        // 未登录或换账号时重新加载项目列表
+        if (!this.isAuthenticated) {
+          this.currentPage = 1
+        } else if (!previousUserId || this.currentUserId !== previousUserId) {
+          this.currentPage = 1
+          this.loadUserProjects()
+        }
+      }
+    },
+
+    canDisplayProject(project) {
+      if (!project) return false
+      // 非私有项目在知识库广场总是可见
+      if (!project.visibility || project.visibility !== 'PRIVATE') {
+        return true
+      }
+      return this.isProjectAccessible(project)
+    },
+    isProjectAccessible(project) {
+      if (!project) return false
+      if (!project.visibility || project.visibility !== 'PRIVATE') return true
+      if (!this.isAuthenticated || !this.currentUserId) return false
+
+      const candidateIds = [
+        project.accessibleUserId,
+        project.accessible_user_id
+      ].filter(value => value !== undefined && value !== null)
+
+      if (candidateIds.length > 0) {
+        if (candidateIds.some(id => this.normalizeId(id) === this.currentUserId)) {
+          return true
+        }
+      }
+
+      const creatorId = this.normalizeId(project.creatorId || project.created_by || project.createdBy)
+      if (creatorId && creatorId === this.currentUserId) {
+        return true
+      }
+
+      const memberLists = [
+        project.teamMembers,
+        project.members,
+        project.participants,
+        project.users,
+        project.userList,
+        project.team
+      ]
+      for (const list of memberLists) {
+        if (Array.isArray(list)) {
+          const matched = list.some(member => {
+            if (!member) return false
+            const memberId = this.normalizeId(member.userId || member.id || member.user_id)
+            return memberId === this.currentUserId
+          })
+          if (matched) {
+            return true
+          }
+        }
+      }
+      return false
+    },
+
     async loadUserProjects() {
-      // 从localStorage加载用户创建的项目
-      const createdProjects = JSON.parse(localStorage.getItem('projects') || '[]')
-      
-      // 标记用户创建的项目，并添加项目周期和标签
+      // 从localStorage加载项目（来源于项目广场/详情缓存）
+      const allProjects = JSON.parse(localStorage.getItem('projects') || '[]')
+      // 只保留当前用户可访问的项目（公开 + 本人有权限的私有）
+      const createdProjects = allProjects.filter(project => {
+        const canShow = this.canDisplayProject(project)
+        if (!canShow) {
+          console.warn('[KnowledgeBase] 过滤掉无权限的项目:', project.id, project.name || project.title, 'visibility:', project.visibility)
+        }
+        return canShow
+      })
+
+      // 标记项目，并添加项目周期和标签
       const markedCreatedProjects = createdProjects.map(project => ({
         ...project,
         status: project.status || '进行中',
@@ -203,7 +324,7 @@ export default {
         isJoined: true
       }))
       
-      // 使用用户创建的项目
+      // 使用当前用户可访问的项目
       this.joinedProjects = [...markedCreatedProjects]
       
       // 为所有项目并行获取真实的团队成员数量

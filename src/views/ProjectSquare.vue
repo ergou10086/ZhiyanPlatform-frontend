@@ -50,7 +50,7 @@
           <div class="loading-spinner"></div>
           <p class="loading-text">正在加载项目数据...</p>
         </div>
-        
+
         <!-- 空状态 -->
         <div v-else-if="projects.length === 0" class="empty-state">
           <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -77,15 +77,21 @@
           <div class="card-body">
             <div class="card-title-row">
               <h3 class="card-title">{{ project.title }}</h3>
-                <div class="badge-group">
-                  <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </span>
-              <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
-                </div>
+              <div class="badge-group">
+                <span v-if="project.visibility === 'PUBLIC'" class="visibility-badge visibility-public" title="公开项目">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span v-else-if="project.visibility === 'PRIVATE'" class="visibility-badge visibility-private" title="仅自己和团队可见">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11V7a3 3 0 0 1 6 0v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </span>
+                <span class="status-badge" :class="statusClass(project.status)">{{ project.status }}</span>
+              </div>
             </div>
             <ul class="meta-list">
               <li>
@@ -151,7 +157,7 @@
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
-import { normalizeProjectCoverUrl, normalizeImageUrl } from '@/utils/imageUtils'
+import { normalizeProjectCoverUrl, normalizeImageUrl, preloadImages } from '@/utils/imageUtils'
 import '@/assets/styles/ProjectSquare.css'
 
 export default {
@@ -173,7 +179,11 @@ export default {
       isLoading: true, // 添加加载状态
       showToast: false,
       toastMessage: '',
-      saveStateTimer: null // 防抖定时器
+      saveStateTimer: null, // 防抖定时器
+      isAuthenticated: false,
+      currentUserId: null,
+      imagesReady: false,
+      loadingStartTime: 0
     }
   },
   computed: {
@@ -186,9 +196,8 @@ export default {
       return this.projects.filter(p => {
         const matchText = text ? p.title.toLowerCase().includes(text) : true
         const matchStatus = this.selectedStatus ? p.status === this.selectedStatus : true
-        // 只显示公开项目
-        const isPublic = p.visibility === 'PUBLIC'
-        return matchText && matchStatus && isPublic
+        const matchVisibility = this.isProjectAccessible(p)
+        return matchText && matchStatus && matchVisibility
       })
     },
     totalPages() {
@@ -214,6 +223,8 @@ export default {
     }
   },
   mounted() {
+    this.refreshAuthState()
+    window.addEventListener('storage', this.handleStorageChange)
     // 清理旧的图片 URL（包含 localhost 的错误 URL）
     this.cleanupOldImageUrls()
     
@@ -234,6 +245,7 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
   },
   activated() {
+    this.refreshAuthState()
     // 当页面被激活时（从其他页面返回），优先显示缓存，后台更新
     // 这样可以快速显示，同时获取最新数据
     
@@ -271,6 +283,7 @@ export default {
     if (this.saveStateTimer) {
       clearTimeout(this.saveStateTimer)
     }
+    window.removeEventListener('storage', this.handleStorageChange)
     // 保存页面状态（组件销毁前）
     this.savePageState()
     document.removeEventListener('click', this.handleClickOutside)
@@ -324,7 +337,159 @@ export default {
         // 如果清理失败，不影响正常功能
       }
     },
+
+    /**
+     * 静默预加载项目封面图片，避免进入详情或翻页时首帧白屏
+     * 当 block 为 true 时，会等待预加载完成再继续（用于当前页加载）
+     * 可选传入 projectList，只预加载指定项目（如当前页）
+     */
+    async preloadProjectImages(block = false, projectList = null) {
+      try {
+        const source = Array.isArray(projectList) && projectList.length > 0
+          ? projectList
+          : this.projects
+
+        if (!Array.isArray(source) || source.length === 0) return
+        const urls = source
+          .map(p => p.image || p.imageUrl)
+          .filter(url => !!url)
+
+        if (!urls.length) return
+
+        if (block) {
+          // 首次进入页面时，等待预加载完成，再展示网格，减少图片“冒出来”的感觉
+          // 无论预加载成功或失败，都不向外抛错，避免阻塞页面渲染
+          try {
+            await preloadImages(urls)
+          } catch (e) {
+            // 忽略预加载错误
+          }
+        } else {
+          // 后台静默预加载，不阻塞主线程
+          preloadImages(urls).catch(() => {
+            // 预加载失败不影响正常展示，静默忽略
+          })
+        }
+      } catch (e) {
+        // 任何异常都不影响页面正常使用
+      }
+    },
+
+    refreshAuthState() {
+      try {
+        const token = localStorage.getItem('access_token')
+        const userInfoRaw = localStorage.getItem('user_info')
+        let parsedInfo = null
+        let userId = null
+        if (userInfoRaw) {
+          try {
+            parsedInfo = JSON.parse(userInfoRaw)
+            userId = this.extractUserId(parsedInfo)
+          } catch (e) {
+            console.warn('解析 user_info 失败:', e)
+          }
+        }
+        const authed = !!(token && userId)
+        this.isAuthenticated = authed
+        this.currentUserId = authed ? this.normalizeId(userId) : null
+      } catch (error) {
+        console.warn('刷新认证状态失败:', error)
+        this.isAuthenticated = false
+        this.currentUserId = null
+      }
+    },
+    extractUserId(userInfo) {
+      if (!userInfo || typeof userInfo !== 'object') return null
+      const candidates = ['id', 'userId', 'user_id', 'uid', 'accountId']
+      for (const key of candidates) {
+        if (userInfo[key] !== undefined && userInfo[key] !== null) {
+          return userInfo[key]
+        }
+      }
+      if (userInfo.user) {
+        return userInfo.user.id || userInfo.user.userId || userInfo.user.user_id || null
+      }
+      return null
+    },
+    normalizeId(value) {
+      if (value === undefined || value === null) return null
+      return String(value)
+    },
+    handleStorageChange(event) {
+      if (event.key === 'access_token' || event.key === 'user_info') {
+        const previousUserId = this.currentUserId
+        this.refreshAuthState()
+        if (!this.isAuthenticated) {
+          this.currentPage = 1
+        } else if (!previousUserId || this.currentUserId !== previousUserId) {
+          this.currentPage = 1
+          this.loadProjects(true)
+        }
+      }
+    },
     
+    deriveAccessibleUserId(project, localProject) {
+      if (!project || project.visibility !== 'PRIVATE') {
+        return null
+      }
+      const backendAccessible = project.accessibleUserId || project.accessible_user_id
+      if (backendAccessible !== undefined && backendAccessible !== null) {
+        return this.normalizeId(backendAccessible)
+      }
+      const currentId = this.currentUserId ? this.normalizeId(this.currentUserId) : null
+      const localAccessible = localProject?.accessibleUserId || localProject?.accessible_user_id
+      if (localAccessible && currentId && this.normalizeId(localAccessible) === currentId) {
+        return currentId
+      }
+      return currentId
+    },
+    canDisplayProject(project) {
+      if (!project) return false
+      if (project.visibility !== 'PRIVATE') return true
+      return this.isProjectAccessible(project)
+    },
+    isProjectAccessible(project) {
+      if (!project) return false
+      if (project.visibility !== 'PRIVATE') return true
+      if (!this.isAuthenticated || !this.currentUserId) return false
+
+      const candidateIds = [
+        project.accessibleUserId,
+        project.accessible_user_id
+      ].filter(value => value !== undefined && value !== null)
+
+      if (candidateIds.length > 0) {
+        if (candidateIds.some(id => this.normalizeId(id) === this.currentUserId)) {
+          return true
+        }
+      }
+
+      const creatorId = this.normalizeId(project.creatorId || project.created_by || project.createdBy)
+      if (creatorId && creatorId === this.currentUserId) {
+        return true
+      }
+
+      const memberLists = [
+        project.teamMembers,
+        project.members,
+        project.participants,
+        project.users,
+        project.userList
+      ]
+      for (const list of memberLists) {
+        if (Array.isArray(list)) {
+          const matched = list.some(member => {
+            if (!member) return false
+            const memberId = this.normalizeId(member.userId || member.id || member.user_id)
+            return memberId === this.currentUserId
+          })
+          if (matched) {
+            return true
+          }
+        }
+      }
+      return false
+    },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
     },
@@ -340,21 +505,37 @@ export default {
       }
     },
     async loadProjects(backgroundUpdate = false) {
-      // 如果不是后台更新模式，先尝试从缓存加载
+      this.refreshAuthState()
+
+      // 非后台加载时，立即进入 loading 状态并记录开始时间（包括使用缓存的路径）
       if (!backgroundUpdate) {
+        this.isLoading = true
+        this.loadingStartTime = Date.now()
+
+        // 先尝试从缓存加载
         const cachedProjects = localStorage.getItem('projects')
         if (cachedProjects) {
           try {
             const projects = JSON.parse(cachedProjects)
-            const publicProjects = projects.filter(p => p.visibility === 'PUBLIC')
-            if (publicProjects.length > 0) {
-              // 先显示缓存数据
-              this.projects = publicProjects.map(project => ({
+            const accessibleProjects = projects.filter(p => this.canDisplayProject(p))
+            if (accessibleProjects.length > 0) {
+              // 先准备好缓存数据
+              this.projects = accessibleProjects.map(project => ({
                 ...project,
                 status: this.getStatusDisplay(project.status),
                 image: normalizeProjectCoverUrl(project.image || project.imageUrl),
                 imageUrl: normalizeProjectCoverUrl(project.imageUrl || project.image)
               }))
+              // 首次加载时，仅对当前页项目阻塞式预加载封面图，避免图片逐个出现
+              await this.preloadProjectImages(true, this.paginatedProjects)
+
+              // 确保 loading 至少展示一小段时间，避免一闪而过
+              const minDuration = 1200
+              const elapsed = Date.now() - (this.loadingStartTime || Date.now())
+              if (elapsed < minDuration) {
+                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed))
+              }
+
               this.isLoading = false
               // 后台更新数据
               setTimeout(() => this.loadProjects(true), 100)
@@ -364,11 +545,6 @@ export default {
             // 缓存读取失败，继续从API加载
           }
         }
-      }
-      
-      // 如果是后台更新或没有缓存，才显示loading
-      if (!backgroundUpdate) {
-        this.isLoading = true
       }
       
       try {
@@ -413,6 +589,8 @@ export default {
                 原始project对象: project
               })
 
+              const accessibleUserId = this.deriveAccessibleUserId(project, localProject)
+
               return {
                 id: project.id,
                 name: project.name,
@@ -438,6 +616,7 @@ export default {
                 creatorName: project.creatorName || '神秘用户', // 添加创建者名称
                 createdAt: project.createdAt,
                 updatedAt: project.updatedAt,
+                accessibleUserId,
                 // 保留localStorage中的其他数据（如任务、团队成员等）
                 tasks: localProject?.tasks || [],
                 // 如果后端返回成员列表/数量，则优先使用
@@ -454,22 +633,15 @@ export default {
               }
             })
             .filter(project => {
-              // 只保留公开项目，记录被过滤的私有项目
-              if (project.visibility !== 'PUBLIC') {
-                console.warn('过滤掉非公开项目:', project.id, project.name, '可见性:', project.visibility)
-                return false
+              const canShow = this.canDisplayProject(project)
+              if (!canShow) {
+                console.warn('过滤掉无权访问的项目:', project.id, project.name, 'visibility:', project.visibility)
               }
-              return true
+              return canShow
             })
           
-          // 只在非后台更新模式下输出日志
-          if (!backgroundUpdate) {
-            console.log('转换后的项目数量:', this.projects.length)
-          }
-          
-          // 先使用缓存或默认值显示项目列表，不阻塞UI
+          // 读取每个项目已缓存的成员数量（如果有），用于快速显示团队人数
           this.projects.forEach(project => {
-            // 尝试从缓存读取成员数量
             try {
               const cached = localStorage.getItem(`project_member_count_${project.id}`)
               if (cached) {
@@ -487,8 +659,17 @@ export default {
           // 保存合并后的数据到localStorage（先保存，不等待成员数量）
           localStorage.setItem('projects', JSON.stringify(this.projects))
           
-          // 如果不是后台更新模式，立即显示列表
+          // 如果不是后台更新模式，在结束 loading 前，对当前页项目阻塞式预加载封面图
           if (!backgroundUpdate) {
+            await this.preloadProjectImages(true, this.paginatedProjects)
+
+            // 确保 loading 至少展示一小段时间，避免一闪而过
+            const minDuration = 1200
+            const elapsed = Date.now() - (this.loadingStartTime || Date.now())
+            if (elapsed < minDuration) {
+              await new Promise(resolve => setTimeout(resolve, minDuration - elapsed))
+            }
+
             this.isLoading = false
           }
           
@@ -556,6 +737,7 @@ export default {
         }
       } finally {
         if (!backgroundUpdate) {
+          // 兜底：如果前面因异常提前退出，这里仍然保证关闭 loading，避免页面卡住
           this.isLoading = false
         }
       }
@@ -566,14 +748,15 @@ export default {
       const savedProjects = localStorage.getItem('projects')
       if (savedProjects) {
         const allProjects = JSON.parse(savedProjects)
-        // 只保留公开项目，并确保状态正确转换和图片URL规范化
-        this.projects = allProjects.filter(project => {
-          if (project.visibility !== 'PUBLIC') {
-            console.warn('从localStorage过滤掉非公开项目:', project.id, project.name || project.title, '可见性:', project.visibility)
-            return false
+        // 只保留当前用户可访问的项目，并确保状态正确转换和图片URL规范化
+        const accessibleProjects = allProjects.filter(project => {
+          const canShow = this.canDisplayProject(project)
+          if (!canShow) {
+            console.warn('从localStorage过滤掉无权限的项目:', project.id, project.name || project.title, '可见性:', project.visibility)
           }
-          return true
-        }).map(project => {
+          return canShow
+        })
+        this.projects = accessibleProjects.map(project => {
           // 规范化图片 URL
           const normalizedImageUrl = normalizeProjectCoverUrl(project.image || project.imageUrl)
           
