@@ -651,14 +651,17 @@ export default {
       this.$router.push('/login')
     },
     async loadMyProjects() {
+      console.log('[loadMyProjects] 开始加载项目列表')
       // 检查用户是否已登录
       const token = localStorage.getItem('access_token')
       const userInfo = localStorage.getItem('user_info')
       const isAuthenticated = !!(token && userInfo)
       
       if (!isAuthenticated) {
+        console.warn('[loadMyProjects] 用户未登录，清空项目列表')
         // 如果用户未登录，显示空数组
         this.myProjects = []
+        this.isLoadingProjects = false
         return
       }
       
@@ -669,15 +672,20 @@ export default {
           const parsed = JSON.parse(cachedProjects)
           // 检查缓存是否过期（5分钟）
           if (parsed.timestamp && Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+            console.log('[loadMyProjects] 从缓存加载项目列表，数量:', (parsed.data || []).length)
             this.myProjects = parsed.data || []
             this.isLoadingProjects = false
             // 后台更新数据
             this.loadMyProjectsFromAPI()
             return
+          } else {
+            console.log('[loadMyProjects] 缓存已过期，从API加载')
           }
+        } else {
+          console.log('[loadMyProjects] 没有缓存，从API加载')
         }
       } catch (e) {
-        // 缓存读取失败，继续从API加载
+        console.warn('[loadMyProjects] 缓存读取失败，继续从API加载:', e)
       }
       
       this.isLoadingProjects = true
@@ -685,25 +693,38 @@ export default {
     },
     async loadMyProjectsFromAPI() {
       try {
+        console.log('[loadMyProjectsFromAPI] 开始加载项目列表')
         // 调用API获取我参与的项目
         const response = await projectAPI.getMyProjects(0, 5) // 获取前5个项目
+        console.log('[loadMyProjectsFromAPI] API响应:', response)
         
         // 处理API返回的数据，兼容多种数据结构
         let projects = []
         if (Array.isArray(response)) {
           projects = response
+          console.log('[loadMyProjectsFromAPI] 响应是数组，项目数量:', projects.length)
         } else if (response && response.data) {
           if (Array.isArray(response.data)) {
             projects = response.data
+            console.log('[loadMyProjectsFromAPI] response.data是数组，项目数量:', projects.length)
           } else if (Array.isArray(response.data.content)) {
             // Spring分页数据
             projects = response.data.content
+            console.log('[loadMyProjectsFromAPI] response.data.content是数组，项目数量:', projects.length)
           } else if (Array.isArray(response.data.list)) {
             projects = response.data.list
+            console.log('[loadMyProjectsFromAPI] response.data.list是数组，项目数量:', projects.length)
           } else if (Array.isArray(response.data.records)) {
             projects = response.data.records
+            console.log('[loadMyProjectsFromAPI] response.data.records是数组，项目数量:', projects.length)
+          } else {
+            console.warn('[loadMyProjectsFromAPI] ⚠️ 无法解析项目数据，response.data:', response.data)
           }
+        } else {
+          console.warn('[loadMyProjectsFromAPI] ⚠️ API响应格式异常:', response)
         }
+        
+        console.log('[loadMyProjectsFromAPI] 解析到的项目数量:', projects.length)
         
         if (projects.length > 0) {
           const mappedProjects = projects.map(project => ({
@@ -714,7 +735,9 @@ export default {
             progress: this.calculateProgress(project.status)
           }))
           
+          console.log('[loadMyProjectsFromAPI] 映射后的项目列表:', mappedProjects.map(p => ({ id: p.id, title: p.title })))
           this.myProjects = mappedProjects
+          console.log('[loadMyProjectsFromAPI] ✅ 项目列表已更新，数量:', this.myProjects.length)
           
           // 保存到缓存
           try {
@@ -723,16 +746,18 @@ export default {
               timestamp: Date.now()
             }))
           } catch (e) {
-            // 忽略缓存写入错误
+            console.warn('[loadMyProjectsFromAPI] 缓存写入失败:', e)
           }
         } else {
+          console.warn('[loadMyProjectsFromAPI] ⚠️ 没有项目数据，清空项目列表')
           this.myProjects = []
         }
       } catch (error) {
-        console.error('加载项目失败:', error)
+        console.error('[loadMyProjectsFromAPI] ❌ 加载项目失败:', error)
         this.myProjects = []
       } finally {
         this.isLoadingProjects = false
+        console.log('[loadMyProjectsFromAPI] 加载完成，isLoadingProjects = false')
       }
     },
     mapStatus(status) {
@@ -856,47 +881,38 @@ export default {
         const cachedTasks = localStorage.getItem('my_tasks_cache')
         if (cachedTasks) {
           const parsed = JSON.parse(cachedTasks)
-          // 检查缓存是否过期（3分钟）
-          if (parsed.timestamp && Date.now() - parsed.timestamp < 3 * 60 * 1000) {
-            // 从缓存加载时也要过滤掉已完成和待审核的任务
+          // 延长缓存时间到30分钟，减少不必要的API调用
+          if (parsed.timestamp && Date.now() - parsed.timestamp < 30 * 60 * 1000) {
+            // 缓存中保存的数据已经是过滤和排序后的数据，直接使用
             const cachedData = parsed.data || []
-            const activeCachedTasks = cachedData.filter(task => {
-              const status = String(task.status || '').trim()
-              const statusUpper = status.toUpperCase()
-              
-              // 排除所有可能的完成状态（支持中英文）
-              const completedStatuses = ['DONE', '完成', '已完成', 'COMPLETED', 'done', 'Done']
-              const isCompleted = completedStatuses.includes(status) || 
-                                 completedStatuses.includes(statusUpper) ||
-                                 statusUpper.includes('DONE') || 
-                                 status.includes('完成')
-              
-              // 排除所有可能的待审核状态（支持中英文）
-              const pendingReviewStatuses = ['PENDING_REVIEW', '待审核', 'pending_review', 'Pending_Review']
-              const isPendingReview = pendingReviewStatuses.includes(status) || 
-                                     pendingReviewStatuses.includes(statusUpper) ||
-                                     statusUpper.includes('PENDING_REVIEW') || 
-                                     status.includes('待审核')
-              
-              // 排除已完成和待审核的任务
-              return !isCompleted && !isPendingReview
-            })
+            console.log('[loadMyTasks] 从缓存加载任务，数量:', cachedData.length)
             
-            // 从缓存加载时也要检查被打回状态并排序
+            // 直接使用缓存数据，不再过滤（因为保存时已经过滤过了）
             // 先显示缓存数据（即使没有被打回状态，也会按优先级排序）
-            this.myTasks = this.sortTasksByPriority(activeCachedTasks)
+            this.myTasks = cachedData // 缓存数据已经是排序后的，直接使用
             this.isLoadingTasks = false
+            console.log('[loadMyTasks] 缓存任务已显示，数量:', this.myTasks.length)
             
-            // 后台异步检查被打回状态，检查完成后更新显示
-            this.checkRejectedSubmissions(activeCachedTasks).then(() => {
-              // 检查完成后重新排序并更新显示
-              this.myTasks = this.sortTasksByPriority(activeCachedTasks)
-            }).catch(error => {
-              console.warn('[loadMyTasks] 检查被打回状态失败:', error)
-            })
+            // 后台静默更新：延迟执行，避免阻塞UI
+            // 1. 先延迟检查被打回状态（如果缓存中有isRejected标记，可以跳过）
+            setTimeout(() => {
+              // 只检查没有isRejected标记的任务（优化性能）
+              const tasksToCheck = this.myTasks.filter(t => t.isRejected === undefined || t.isRejected === false)
+              if (tasksToCheck.length > 0) {
+                this.checkRejectedSubmissions(tasksToCheck, true).then(() => {
+                  // 检查完成后重新排序并更新显示（静默模式）
+                  const sortedTasks = this.sortTasksByPriority(this.myTasks, true)
+                  this.myTasks = sortedTasks
+                }).catch(error => {
+                  // 静默失败，不影响显示
+                })
+              }
+            }, 1000)
             
-            // 后台更新数据（从API重新加载最新数据）
-            this.loadMyTasksFromAPI()
+            // 2. 延迟从API重新加载最新数据（延长到10秒后，减少不必要的请求）
+            setTimeout(() => {
+              this.loadMyTasksFromAPI(true) // 传入true表示静默更新
+            }, 10000)
             return
           }
         }
@@ -907,14 +923,16 @@ export default {
       this.isLoadingTasks = true
       await this.loadMyTasksFromAPI()
     },
-    async loadMyTasksFromAPI() {
+    async loadMyTasksFromAPI(silent = false) {
       try {
         // 调用API获取我的任务（增加数量，确保能获取到所有任务）
         const response = await taskAPI.getMyAssignedTasks(0, 20)
         
-        console.log('[loadMyTasksFromAPI] API响应:', response)
-        console.log('[loadMyTasksFromAPI] response.data类型:', typeof response?.data, '是否为数组:', Array.isArray(response?.data))
-        console.log('[loadMyTasksFromAPI] response.data内容:', response?.data)
+        if (!silent) {
+          console.log('[loadMyTasksFromAPI] API响应:', response)
+          console.log('[loadMyTasksFromAPI] response.data类型:', typeof response?.data, '是否为数组:', Array.isArray(response?.data))
+          console.log('[loadMyTasksFromAPI] response.data内容:', response?.data)
+        }
         
         // 处理API返回的数据
         let tasks = []
@@ -975,7 +993,18 @@ export default {
             isRejected: false // 初始化为false，后续会检查
           }))
           
-          // 过滤掉已完成和待审核的任务
+          // 先检查所有任务的提交记录（包括PENDING_REVIEW状态的任务）
+          // 因为被打回的任务可能状态还是PENDING_REVIEW，需要先检查提交记录
+          // 静默模式下减少日志输出
+          if (!silent) {
+            console.log('[loadMyTasksFromAPI] 开始检查所有任务的提交记录，任务数量:', mappedTasks.length)
+          }
+          await this.checkRejectedSubmissions(mappedTasks, silent)
+          if (!silent) {
+            console.log('[loadMyTasksFromAPI] 提交记录检查完成')
+          }
+          
+          // 过滤掉已完成和待审核的任务（但保留被打回的PENDING_REVIEW任务）
           const activeTasks = mappedTasks.filter(task => {
             const status = String(task.status || '').trim()
             const statusUpper = status.toUpperCase()
@@ -987,6 +1016,11 @@ export default {
                                statusUpper.includes('DONE') || 
                                status.includes('完成')
             
+            // 如果任务已完成，直接排除
+            if (isCompleted) {
+              return false
+            }
+            
             // 排除所有可能的待审核状态（支持中英文）
             const pendingReviewStatuses = ['PENDING_REVIEW', '待审核', 'pending_review', 'Pending_Review']
             const isPendingReview = pendingReviewStatuses.includes(status) || 
@@ -994,53 +1028,67 @@ export default {
                                    statusUpper.includes('PENDING_REVIEW') || 
                                    status.includes('待审核')
             
-            // 排除已完成和待审核的任务
-            return !isCompleted && !isPendingReview
+            // 如果任务状态是PENDING_REVIEW，但被打回了，则保留（因为需要显示被打回的任务）
+            if (isPendingReview) {
+              // 如果任务被打回，保留它
+              if (task.isRejected) {
+                console.log(`[loadMyTasksFromAPI] 保留被打回的PENDING_REVIEW任务: ${task.id} (${task.title})`)
+                return true
+              }
+              // 否则排除
+              return false
+            }
+            
+            // 其他状态（IN_PROGRESS, TODO等）都保留
+            return true
           })
           
-          // 检查每个任务是否有被拒绝的提交记录
-          console.log('[loadMyTasksFromAPI] 检查前任务列表:', activeTasks.length, '个任务')
-          console.log('[loadMyTasksFromAPI] 检查前任务详情:', activeTasks.map(t => ({
-            id: t.id,
-            title: t.title,
-            status: t.status,
-            isRejected: t.isRejected
-          })))
-          
-          if (activeTasks.length > 0) {
-            console.log('[loadMyTasksFromAPI] 开始检查被打回状态，任务数量:', activeTasks.length)
-            await this.checkRejectedSubmissions(activeTasks)
-            console.log('[loadMyTasksFromAPI] 检查完成')
-          } else {
-            console.warn('[loadMyTasksFromAPI] ⚠️ 没有活跃任务需要检查')
+          if (!silent) {
+            console.log('[loadMyTasksFromAPI] 过滤后任务列表:', activeTasks.length, '个任务')
+            console.log('[loadMyTasksFromAPI] 过滤后任务详情:', activeTasks.map(t => ({
+              id: t.id,
+              title: t.title,
+              status: t.status,
+              isRejected: t.isRejected
+            })))
           }
           
-          console.log('[loadMyTasksFromAPI] 检查后任务列表:', activeTasks.map(t => ({
-            id: t.id,
-            title: t.title,
-            isRejected: t.isRejected
-          })))
+          // 确保 activeTasks 没有被意外修改
+          if (activeTasks.length === 0) {
+            if (!silent) {
+              console.warn('[loadMyTasksFromAPI] ⚠️ 过滤后没有活跃任务')
+            }
+            this.myTasks = []
+            return
+          }
           
           // 排序：被打回的任务排在顶部，然后按优先级排序
-          const sortedTasks = this.sortTasksByPriority(activeTasks)
-          console.log('[loadMyTasksFromAPI] 排序后的任务列表:', sortedTasks.length, '个任务')
-          console.log('[loadMyTasksFromAPI] 排序后的任务详情:', sortedTasks.map(t => ({
-            id: t.id,
-            title: t.title,
-            isRejected: t.isRejected,
-            priority: t.priority,
-            status: t.status
-          })))
-          
-          // 验证：检查是否有被打回的任务
-          const rejectedTasks = sortedTasks.filter(t => t.isRejected)
-          if (rejectedTasks.length > 0) {
-            console.log('[loadMyTasksFromAPI] ✅ 找到被打回的任务:', rejectedTasks.map(t => ({
+          // 创建副本，避免修改原数组
+          const tasksToSort = [...activeTasks]
+          if (!silent) {
+            console.log('[loadMyTasksFromAPI] 准备排序，tasksToSort.length:', tasksToSort.length)
+          }
+          const sortedTasks = this.sortTasksByPriority(tasksToSort)
+          if (!silent) {
+            console.log('[loadMyTasksFromAPI] 排序后的任务列表:', sortedTasks.length, '个任务')
+            console.log('[loadMyTasksFromAPI] 排序后的任务详情:', sortedTasks.map(t => ({
               id: t.id,
-              title: t.title
+              title: t.title,
+              isRejected: t.isRejected,
+              priority: t.priority,
+              status: t.status
             })))
-          } else {
-            console.warn('[loadMyTasksFromAPI] ⚠️ 没有找到被打回的任务')
+            
+            // 验证：检查是否有被打回的任务
+            const rejectedTasks = sortedTasks.filter(t => t.isRejected)
+            if (rejectedTasks.length > 0) {
+              console.log('[loadMyTasksFromAPI] ✅ 找到被打回的任务:', rejectedTasks.map(t => ({
+                id: t.id,
+                title: t.title
+              })))
+            } else {
+              console.warn('[loadMyTasksFromAPI] ⚠️ 没有找到被打回的任务')
+            }
           }
           
           this.myTasks = sortedTasks
@@ -1066,31 +1114,41 @@ export default {
         this.isLoadingTasks = false
       }
     },
-    async checkRejectedSubmissions(tasks) {
+    async checkRejectedSubmissions(tasks, silent = false) {
       // 检查任务是否有被拒绝的提交记录
       // 改为检查所有提交记录，找出最新的一条REJECTED提交
       if (!tasks || tasks.length === 0) {
-        console.warn('[checkRejectedSubmissions] ⚠️ 任务列表为空，跳过检查')
+        if (!silent) {
+          console.warn('[checkRejectedSubmissions] ⚠️ 任务列表为空，跳过检查')
+        }
         return
       }
       
       const { getTaskSubmissions } = await import('@/api/taskSubmission')
       
-      console.log(`[checkRejectedSubmissions] ✅ 开始检查 ${tasks.length} 个任务的提交记录`)
-      console.log(`[checkRejectedSubmissions] 任务列表:`, tasks.map(t => ({ id: t.id, title: t.title })))
+      if (!silent) {
+        console.log(`[checkRejectedSubmissions] ✅ 开始检查 ${tasks.length} 个任务的提交记录`)
+        console.log(`[checkRejectedSubmissions] 任务列表:`, tasks.map(t => ({ id: t.id, title: t.title })))
+      }
       
       // 并行检查所有任务的所有提交记录
       const checkPromises = tasks.map(async (task) => {
         try {
           const response = await getTaskSubmissions(task.id)
-          console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) API响应:`, response)
+          if (!silent) {
+            console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) API响应:`, response)
+          }
           
           if (response && response.code === 200 && response.data) {
             const submissions = Array.isArray(response.data) ? response.data : []
-            console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 共有 ${submissions.length} 条提交记录`)
+            if (!silent) {
+              console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 共有 ${submissions.length} 条提交记录`)
+            }
             
             if (submissions.length === 0) {
-              console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 没有提交记录`)
+              if (!silent) {
+                console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 没有提交记录`)
+              }
               return
             }
             
@@ -1102,14 +1160,16 @@ export default {
             })
             
             const latestSubmission = sortedSubmissions[0]
-            console.log(`[checkRejectedSubmissions] 任务 ${task.id} 最新提交记录详情:`, {
-              id: latestSubmission.id,
-              reviewStatus: latestSubmission.reviewStatus,
-              review_status: latestSubmission.review_status,
-              status: latestSubmission.status,
-              submissionTime: latestSubmission.submissionTime || latestSubmission.submitTime,
-              submission: latestSubmission
-            })
+            if (!silent) {
+              console.log(`[checkRejectedSubmissions] 任务 ${task.id} 最新提交记录详情:`, {
+                id: latestSubmission.id,
+                reviewStatus: latestSubmission.reviewStatus,
+                review_status: latestSubmission.review_status,
+                status: latestSubmission.status,
+                submissionTime: latestSubmission.submissionTime || latestSubmission.submitTime,
+                submission: latestSubmission
+              })
+            }
             
             // 检查多种可能的字段名（兼容不同的API响应格式）
             // 后端可能返回枚举对象（有name属性）或字符串
@@ -1123,40 +1183,52 @@ export default {
             // 转换为字符串并统一大写，便于比较
             const statusStr = String(reviewStatus || '').toUpperCase().trim()
             
-            console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 最新提交状态: ${statusStr}`)
-            console.log(`[checkRejectedSubmissions] 任务 ${task.id} 所有提交记录状态:`, sortedSubmissions.map(sub => {
-              let subStatus = sub.reviewStatus || sub.review_status || sub.status
-              if (subStatus && typeof subStatus === 'object') {
-                subStatus = subStatus.name || subStatus.toString()
-              }
-              return {
-                id: sub.id,
-                version: sub.version,
-                reviewStatus: String(subStatus || '').toUpperCase().trim(),
-                submissionTime: sub.submissionTime || sub.submitTime || sub.createdAt
-              }
-            }))
+            if (!silent) {
+              console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 最新提交状态: ${statusStr}`)
+              console.log(`[checkRejectedSubmissions] 任务 ${task.id} 所有提交记录状态:`, sortedSubmissions.map(sub => {
+                let subStatus = sub.reviewStatus || sub.review_status || sub.status
+                if (subStatus && typeof subStatus === 'object') {
+                  subStatus = subStatus.name || subStatus.toString()
+                }
+                return {
+                  id: sub.id,
+                  version: sub.version,
+                  reviewStatus: String(subStatus || '').toUpperCase().trim(),
+                  submissionTime: sub.submissionTime || sub.submitTime || sub.createdAt
+                }
+              }))
+            }
             
             // 如果最新提交的状态是REJECTED，则标记任务为被打回
             if (statusStr === 'REJECTED') {
               task.isRejected = true
-              console.log(`[checkRejectedSubmissions] ✅ 任务 ${task.id} (${task.title}) 被打回，最新提交reviewStatus=${statusStr}`)
+              if (!silent) {
+                console.log(`[checkRejectedSubmissions] ✅ 任务 ${task.id} (${task.title}) 被打回，最新提交reviewStatus=${statusStr}`)
+              }
             } else {
               // 检查是否有REJECTED的提交记录（即使不是最新的）
               // 如果最新提交是APPROVED，但之前有REJECTED，说明问题已经解决，不标记为被打回
               // 如果最新提交是PENDING，但之前有REJECTED，也不标记为被打回（因为可能是新的提交）
               // 只有当最新提交是REJECTED时，才标记为被打回
-              console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 未被打回，最新提交reviewStatus=${statusStr}`)
+              if (!silent) {
+                console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 未被打回，最新提交reviewStatus=${statusStr}`)
+              }
             }
           } else if (response && response.code === 200 && !response.data) {
             // 没有提交记录
-            console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 没有提交记录`)
+            if (!silent) {
+              console.log(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) 没有提交记录`)
+            }
           } else {
-            console.warn(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) API响应异常:`, response)
+            if (!silent) {
+              console.warn(`[checkRejectedSubmissions] 任务 ${task.id} (${task.title}) API响应异常:`, response)
+            }
           }
         } catch (error) {
           // 如果获取提交记录失败，不影响任务显示，只是不标记为被打回
-          console.warn(`[checkRejectedSubmissions] 检查任务 ${task.id} (${task.title}) 的提交记录失败:`, error)
+          if (!silent) {
+            console.warn(`[checkRejectedSubmissions] 检查任务 ${task.id} (${task.title}) 的提交记录失败:`, error)
+          }
         }
       })
       
@@ -1164,8 +1236,10 @@ export default {
       await Promise.all(checkPromises)
       
       // 统计被打回的任务数量
-      const rejectedCount = tasks.filter(t => t.isRejected).length
-      console.log(`[checkRejectedSubmissions] 检查完成，共 ${rejectedCount} 个任务被打回`)
+      if (!silent) {
+        const rejectedCount = tasks.filter(t => t.isRejected).length
+        console.log(`[checkRejectedSubmissions] 检查完成，共 ${rejectedCount} 个任务被打回`)
+      }
     },
     mapTaskPriority(priority) {
       // 将后端优先级映射到前端显示
@@ -1189,7 +1263,7 @@ export default {
       const date = new Date(dateStr)
       return `截止日期：${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     },
-    sortTasksByPriority(tasks) {
+    sortTasksByPriority(tasks, silent = false) {
       // 定义优先级权重：高优先级 = 3, 中优先级 = 2, 低优先级 = 1
       const priorityWeight = {
         'high': 3,
@@ -1199,21 +1273,27 @@ export default {
       
       const tasksToSort = Array.isArray(tasks) ? [...tasks] : (this.myTasks ? [...this.myTasks] : [])
       
-      console.log('[sortTasksByPriority] 排序前任务列表:', tasksToSort.map(t => ({
-        id: t.id,
-        title: t.title,
-        isRejected: t.isRejected,
-        priority: t.priority
-      })))
+      if (!silent) {
+        console.log('[sortTasksByPriority] 排序前任务列表:', tasksToSort.map(t => ({
+          id: t.id,
+          title: t.title,
+          isRejected: t.isRejected,
+          priority: t.priority
+        })))
+      }
       
       tasksToSort.sort((a, b) => {
         // 优先排序：被打回的任务排在顶部
         if (a.isRejected && !b.isRejected) {
-          console.log(`[sortTasksByPriority] 任务 ${a.id} (${a.title}) 被打回，排在任务 ${b.id} (${b.title}) 前面`)
+          if (!silent) {
+            console.log(`[sortTasksByPriority] 任务 ${a.id} (${a.title}) 被打回，排在任务 ${b.id} (${b.title}) 前面`)
+          }
           return -1 // a排在前面
         }
         if (!a.isRejected && b.isRejected) {
-          console.log(`[sortTasksByPriority] 任务 ${b.id} (${b.title}) 被打回，排在任务 ${a.id} (${a.title}) 前面`)
+          if (!silent) {
+            console.log(`[sortTasksByPriority] 任务 ${b.id} (${b.title}) 被打回，排在任务 ${a.id} (${a.title}) 前面`)
+          }
           return 1 // b排在前面
         }
         // 如果都是被打回或都不是被打回，则按优先级排序
@@ -1221,12 +1301,14 @@ export default {
         return priorityDiff
       })
       
-      console.log('[sortTasksByPriority] 排序后任务列表:', tasksToSort.map(t => ({
-        id: t.id,
-        title: t.title,
-        isRejected: t.isRejected,
-        priority: t.priority
-      })))
+      if (!silent) {
+        console.log('[sortTasksByPriority] 排序后任务列表:', tasksToSort.map(t => ({
+          id: t.id,
+          title: t.title,
+          isRejected: t.isRejected,
+          priority: t.priority
+        })))
+      }
       
       return tasksToSort
     },
