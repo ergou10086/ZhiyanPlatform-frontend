@@ -4380,17 +4380,38 @@ export default {
             await new Promise(resolve => setTimeout(resolve, 300))
             // 刷新任务列表
             await this.loadProjectTasks()
+            
+            // ✅ 触发全局事件，通知首页刷新任务列表
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              newStatus: '完成',
+              statusValue: 'DONE',
+              reviewStatus: 'APPROVED'
+            })
           } else {
             console.warn('[handleReviewSuccess] 更新任务状态失败:', response.msg)
             this.showSuccessToast('审核通过')
             // 即使更新失败也刷新任务列表
             await this.loadProjectTasks()
+            // 触发事件
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              reviewStatus: 'APPROVED'
+            })
           }
         } catch (error) {
           console.error('[handleReviewSuccess] 更新任务状态失败:', error)
           this.showSuccessToast('审核通过')
           // 即使更新失败也刷新任务列表
           await this.loadProjectTasks()
+          // 触发事件
+          this.$root.$emit('taskStatusChanged', {
+            projectId: this.project.id,
+            taskId: taskId,
+            reviewStatus: 'APPROVED'
+          })
         }
       } else if (reviewStatus === 'REJECTED') {
         // 审核拒绝：更新任务状态为"进行中"
@@ -4407,12 +4428,28 @@ export default {
             // 刷新任务列表
             await this.loadProjectTasks()
             console.log('[handleReviewSuccess] ✅ 任务列表已刷新')
+            
+            // ✅ 触发全局事件，通知首页刷新任务列表（包括被打回的任务）
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              newStatus: '进行中',
+              statusValue: 'IN_PROGRESS',
+              reviewStatus: 'REJECTED' // 标记这是审核拒绝
+            })
+            console.log('[handleReviewSuccess] ✅ 已触发 taskStatusChanged 事件，通知首页刷新')
           } else {
             console.error('[handleReviewSuccess] ❌ 更新任务状态失败，响应:', response)
             console.error('[handleReviewSuccess] 错误信息:', response?.msg || '未知错误')
             this.showSuccessToast('审核拒绝，但状态更新失败: ' + (response?.msg || '未知错误'))
             // 即使更新失败也刷新任务列表
             await this.loadProjectTasks()
+            // 即使状态更新失败，也触发事件（因为提交记录已经被标记为REJECTED）
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: taskId,
+              reviewStatus: 'REJECTED'
+            })
           }
         } catch (error) {
           console.error('[handleReviewSuccess] ❌ 更新任务状态异常:', error)
@@ -4420,6 +4457,12 @@ export default {
           this.showSuccessToast('审核拒绝，但状态更新异常: ' + (error.message || '未知错误'))
           // 即使更新失败也刷新任务列表
           await this.loadProjectTasks()
+          // 即使状态更新异常，也触发事件（因为提交记录已经被标记为REJECTED）
+          this.$root.$emit('taskStatusChanged', {
+            projectId: this.project.id,
+            taskId: taskId,
+            reviewStatus: 'REJECTED'
+          })
         }
       } else {
         this.showSuccessToast('审核完成')
