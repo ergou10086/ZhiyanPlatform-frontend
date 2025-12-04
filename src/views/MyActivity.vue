@@ -4293,14 +4293,9 @@ export default {
   }
 
   .mini-bar {
-    padding: 12px;
-    background: #fafafa;
-    border-radius: 8px;
-  }
-
-  .mini-bar .mini-title {
-    font-size: 13px;
-    margin-bottom: 8px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
   }
 
   .chart-box.tiny {

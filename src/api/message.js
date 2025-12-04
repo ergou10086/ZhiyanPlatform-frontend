@@ -31,6 +31,20 @@ export function getUnreadCount() {
 }
 
 /**
+ * 获取未读消息列表（分页）
+ * @param {Object} params - 查询参数
+ * @param {number} params.page - 页码（从0开始）
+ * @param {number} params.size - 每页数量
+ */
+export function getUnreadMessages(params) {
+  return request({
+    url: '/zhiyan/message/unread',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 标记消息为已读
  * @param {number} messageId - 消息ID
  */

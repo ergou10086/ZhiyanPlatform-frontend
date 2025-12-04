@@ -259,7 +259,7 @@
                 <span v-if="task.participantCount" class="task-participant-count">
                   接取人数: {{ task.assignees ? task.assignees.length : 0 }}/{{ task.participantCount }}
                 </span>
-              </div>
+            </div>
             </div>
             <!-- 任务操作区域 - 支持多人接取 -->
             <div class="task-assign-section" @click.stop>
@@ -268,17 +268,20 @@
               
               <!-- 当前用户已接取 -->
               <template v-else-if="isCurrentUserAssignee(task)">
-                <span class="assign-status-badge assigned-by-me">已接取</span>
-                <!-- 逾期显示已逾期标识 -->
-                <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
-                <!-- 未逾期显示提交按钮 -->
-                <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
-                </button>
+              <span class="assign-status-badge assigned-by-me">已接取</span>
+                <!-- 归档项目不显示任何操作按钮 -->
+                <template v-if="!isArchived">
+                  <!-- 逾期显示已逾期标识 -->
+                  <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
+                  <!-- 未逾期显示提交按钮 -->
+                  <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
+              </button>
+                </template>
               </template>
               
               <!-- 当前用户未接取，但可以接取（项目未归档时才允许） -->
@@ -312,7 +315,7 @@
           <h2 class="section-title">团队成员</h2>
           <div class="section-actions">
             <!-- 邀请成员按钮：对所有管理员（OWNER和ADMIN）显示 -->
-            <button
+            <button 
               v-if="canManageProject" 
               class="btn primary admin-action" 
               @click="inviteMember"
@@ -791,11 +794,11 @@
               <div class="task-item-header" @click.stop>
                 <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
                 <div class="task-actions" v-if="canManageProject">
-                <div class="task-status-dropdown">
-                  <button 
-                    class="task-status-btn" 
+                  <div class="task-status-dropdown">
+                    <button 
+                      class="task-status-btn" 
                     :class="[statusClass(task.status), { 'disabled': isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')) }]"
-                    @click="toggleTaskStatusDropdown(task)" 
+                      @click="toggleTaskStatusDropdown(task)" 
                     :title="isArchived ? '项目已归档，仅支持查看，不能更改任务状态' : (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态')"
                     :disabled="isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === ''))">
                       {{ task.status }}
@@ -856,16 +859,19 @@
                 <!-- 当前用户已接取 -->
                 <template v-else-if="isCurrentUserAssignee(task)">
                   <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <!-- 逾期显示已逾期标识 -->
-                  <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
-                  <!-- 未逾期显示提交按钮 -->
-                  <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
-                  </button>
+                  <!-- 归档项目不显示任何操作按钮 -->
+                  <template v-if="!isArchived">
+                    <!-- 逾期显示已逾期标识 -->
+                    <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
+                    <!-- 未逾期显示提交按钮 -->
+                    <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
+                </button>
+                  </template>
                 </template>
                 
                 <!-- 当前用户未接取，但可以接取（项目未归档时才允许） -->
@@ -1441,8 +1447,8 @@
         </div>
         <div class="modal-footer">
           <button @click="closeStatisticsModal" class="btn btn-primary">关闭</button>
-        </div>
       </div>
+    </div>
     </div>
     <!-- 分配任务模态框 -->
     <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click="closeAssignTaskModal">
@@ -1557,8 +1563,8 @@
         <div class="crop-modal-footer">
           <button class="btn-cancel" @click="closeCropModal">重新选择图片</button>
           <button class="btn-confirm" @click="applyCrop">完成裁切</button>
-        </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
