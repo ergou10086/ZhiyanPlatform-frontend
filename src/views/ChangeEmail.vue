@@ -95,6 +95,22 @@
             </div>
           </div>
 
+          <!-- 2FA验证码输入框（如果用户启用了2FA） -->
+          <div class="form-group">
+            <label for="twoFactorCode">2FA验证码<span class="optional-label">（如已启用2FA，必填）</span></label>
+            <input
+              type="text"
+              id="twoFactorCode"
+              v-model="form.twoFactorCode"
+              placeholder="请输入6位2FA验证码（如已启用2FA）"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              class="two-factor-input"
+              @input="formatTwoFactorCodeInput"
+            />
+            <p class="form-hint">如果您的账号已启用双因素认证，请输入Microsoft Authenticator中的6位验证码</p>
+          </div>
+
           <button type="submit" class="change-email-btn" :disabled="loading">
             {{ loading ? '提交中...' : '确认修改邮箱' }}
           </button>
@@ -124,33 +140,43 @@ export default {
       form: {
         oldEmail: '',
         newEmail: '',
-        verificationCode: ''
+        verificationCode: '',
+        twoFactorCode: '' // 2FA验证码（可选，如果用户启用了2FA则必填）
       },
       showToast: false,
       toastMessage: '',
       animateLogo: false,
       userId: null
     }
-  },
+  },  
   created() {
-    // 从 localStorage 中恢复当前用户信息，预填旧邮箱和用户ID
+    // 1）优先从路由参数中读取邮箱（例如从忘记密码页跳转时传入）
+    const routeEmail = this.$route && this.$route.query
+      ? (this.$route.query.email || this.$route.query.oldEmail)
+      : null
+
+    if (routeEmail) {
+      this.form.oldEmail = routeEmail
+    }
+
+    // 2）再从 localStorage 中恢复当前用户信息，补全用户ID / 邮箱
     const savedUserInfo = localStorage.getItem('user_info')
     if (savedUserInfo) {
       try {
         const user = JSON.parse(savedUserInfo)
         this.userId = user.id || user.userId || null
-        this.form.oldEmail = user.email || ''
+
+        // 如果还没有从路由里拿到邮箱，则使用登录用户的邮箱
+        if (!this.form.oldEmail) {
+          this.form.oldEmail = user.email || ''
+        }
       } catch (e) {
         console.error('解析 user_info 失败:', e)
       }
     }
   },
   mounted() {
-    const hasAnimated = localStorage.getItem('authPagesAnimated')
-    if (!hasAnimated) {
-      this.animateLogo = true
-      localStorage.setItem('authPagesAnimated', 'true')
-    }
+    this.animateLogo = true
   },
   methods: {
     handleBack() {
@@ -169,6 +195,16 @@ export default {
         value = value.substring(0, 6)
       }
       this.form.verificationCode = value
+      event.target.value = value
+    },
+    formatTwoFactorCodeInput(event) {
+      // 只允许输入数字
+      let value = event.target.value.replace(/[^0-9]/g, '')
+      // 限制6位
+      if (value.length > 6) {
+        value = value.substring(0, 6)
+      }
+      this.form.twoFactorCode = value
       event.target.value = value
     },
     startCountdown() {
@@ -270,6 +306,11 @@ export default {
           oldEmail: this.form.oldEmail,
           newEmail: this.form.newEmail,
           verificationCode: this.form.verificationCode
+        }
+        
+        // 如果提供了2FA验证码，添加到请求中
+        if (this.form.twoFactorCode && this.form.twoFactorCode.trim()) {
+          payload.twoFactorCode = this.form.twoFactorCode.trim()
         }
 
         const response = await authAPI.changeEmail(payload)

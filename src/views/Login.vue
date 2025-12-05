@@ -33,13 +33,13 @@
           </div>
           
           <div class="form-group">
-            <label for="password">密码</label>
+            <label for="password">密码或2FA验证码</label>
             <div class="password-input-wrapper">
               <input
                 :type="showPassword ? 'text' : 'password'"
                 id="password"
                 v-model="loginForm.password"
-                placeholder="请输入密码"
+                placeholder="请输入密码或2FA验证码"
                 required
               />
               <button
@@ -52,6 +52,7 @@
                 <span v-else>👁️</span>
               </button>
             </div>
+            <p class="form-hint">如果已启用2FA，可直接输入6位验证码登录</p>
           </div>
           
           <div class="form-options">
@@ -123,7 +124,8 @@ export default {
       loginForm: {
         email: '',
         password: '',
-        rememberMe: false
+        rememberMe: false,
+        twoFactorCode: '' // 2FA验证码（可选）
       },
       showPassword: false,
       showToast: false,
@@ -202,10 +204,15 @@ export default {
         return
       }
       
-      if (!this.loginForm.password) {
-        alert('请输入密码')
+      // 验证：必须提供密码或2FA验证码之一
+      const inputValue = this.loginForm.password.trim()
+      if (!inputValue) {
+        alert('请输入密码或2FA验证码')
         return
       }
+      
+      // 判断是密码还是2FA验证码（2FA验证码是6位数字）
+      const isTwoFactorCode = /^\d{6}$/.test(inputValue)
       
       if (!isValidEmail(this.loginForm.email)) {
         alert('请输入正确的邮箱格式')
@@ -220,12 +227,21 @@ export default {
       
       this.loading = true
       try {
-        // 调用登录API
-        const response = await authAPI.login({
+        // 构建登录请求体
+        const loginData = {
           email: this.loginForm.email,
-          password: this.loginForm.password,
           rememberMe: this.loginForm.rememberMe
-        })
+        }
+        
+        // 根据输入判断是密码还是2FA验证码
+        if (isTwoFactorCode) {
+          loginData.twoFactorCode = inputValue
+        } else {
+          loginData.password = inputValue
+        }
+        
+        // 调用登录API
+        const response = await authAPI.login(loginData)
         
         if (response.code === 200 && response.data) {
           // 保存登录信息

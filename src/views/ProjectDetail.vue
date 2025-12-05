@@ -999,7 +999,7 @@
                 @click="selectUser(user)"
               >
                 <div class="user-avatar">
-                  <img v-if="user.avatarUrl || user.avatar" :src="user.avatarUrl || user.avatar" alt="用户头像" />
+                  <img v-if="user.avatarUrl || user.avatar || user.avatarData" :src="user.avatarUrl || user.avatar || user.avatarData" alt="用户头像" />
                   <div v-else class="avatar-placeholder">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1009,7 +1009,10 @@
                 </div>
                 <div class="user-info">
                   <div class="user-name">{{ user.name || user.username }}</div>
-                  <div class="user-email">{{ user.email || 'ID: ' + (user.id || user.userId) }}</div>
+                  <div class="user-email">
+                    <span v-if="user.email">{{ maskEmail(user.email) }}</span>
+                    <span v-else>ID: {{ user.id || user.userId }}</span>
+                  </div>
                 </div>
                 <div class="user-select-indicator" v-if="selectedUserIds.includes(user.id || user.userId)">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1855,13 +1858,13 @@ export default {
     this.loadProject() // loadProject方法会自动调用loadProjectTasks和loadTeamMembers
     // 注意：checkAdminPermission 会在 loadProject 完成后被调用，或者在 loadTeamMembers 内部更新权限状态
     document.addEventListener('click', this.handleClickOutside)
-    // 🎯 监听精确的头像更新事件
+    // 监听精确的头像更新事件
     this.$eventBus.on(
       this.$EventTypes.USER_AVATAR_UPDATED, 
       this.handleAvatarUpdated,
       { debounce: 300 } // 300ms防抖，避免频繁更新
     )
-    // 🎯 监听任务状态更新事件（从其他页面触发，如任务审核页面）
+    // 监听任务状态更新事件（从其他页面触发，如任务审核页面）
     this.$eventBus.on(
       this.$EventTypes.TASK_UPDATED,
       this.handleTaskStatusUpdated,
@@ -1937,7 +1940,7 @@ export default {
                     this.$set(this.tasks[taskIndex], 'status', '完成')
                     this.$set(this.tasks[taskIndex], 'status_value', 'DONE')
                     this.$set(this.tasks[taskIndex], 'hasApprovedSubmission', true)
-                    console.log(`[batchUpdateTaskStatus] ✅ 任务 ${task.id}(${task.title}) 状态已更新为"完成"`)
+                    console.log(`[batchUpdateTaskStatus] 任务 ${task.id}(${task.title}) 状态已更新为"完成"`)
                   }
                 }
               }
@@ -1980,7 +1983,7 @@ export default {
             this.selectedTask.hasFinalSubmission = hasFinalSubmission
             this.selectedTask.hasApprovedSubmission = hasApprovedSubmission
             
-            // ✅ 如果有已批准的提交，更新任务状态为"完成"
+            // 如果有已批准的提交，更新任务状态为"完成"
             if (hasApprovedSubmission) {
               this.selectedTask.status = '完成'
               this.selectedTask.status_value = 'DONE'
@@ -1990,7 +1993,7 @@ export default {
               this.selectedTask.status_value = 'PENDING_REVIEW'
             }
             
-            // ✅ 同步更新任务列表中的对应任务
+            // 同步更新任务列表中的对应任务
             const taskIndex = this.tasks.findIndex(t => t.id === taskId)
             if (taskIndex !== -1) {
               this.$set(this.tasks[taskIndex], 'hasSubmission', hasSubmission)
@@ -2248,7 +2251,7 @@ export default {
           const currentUserId = this.getCurrentUserId()
           const currentUserName = this.getCurrentUserName()
           this.tasks = taskList.map(task => {
-            // ✅ 解析执行者信息（后端返回的是TaskDetailDTO.assignees数组）
+            // 解析执行者信息（后端返回的是TaskDetailDTO.assignees数组）
             let assigneeIds = []
             let assigneeNames = ''
             if (task.assignees && Array.isArray(task.assignees) && task.assignees.length > 0) {
@@ -2284,7 +2287,7 @@ export default {
           })
           console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
           
-          // ✅ 批量更新任务状态（检查提交记录，确保状态正确）
+          // 批量更新任务状态（检查提交记录，确保状态正确）
           await this.batchUpdateTaskStatus()
           
           // 同步更新到localStorage
@@ -2613,6 +2616,17 @@ export default {
         const response = await projectAPI.getProjectById(projectId)
         if (response && response.code === 200 && response.data) {
           const apiProject = response.data
+          
+          // 调试：检查后端返回的项目数据
+          console.log('[ProjectDetail] 后端返回的项目数据:', {
+            projectId: apiProject.id,
+            projectName: apiProject.name,
+            creatorId: apiProject.creatorId,
+            creatorName: apiProject.creatorName,
+            完整数据: apiProject
+          })
+          
+          // 使用API返回的最新数据
           this.project = {
             id: apiProject.id,
             name: apiProject.name,
@@ -2627,7 +2641,7 @@ export default {
             visibility: apiProject.visibility || 'PRIVATE',
             imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
             image: normalizeProjectCoverUrl(apiProject.imageUrl),
-            manager: apiProject.creatorName || '未知',
+            manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
             category: apiProject.category || '其他',
             aiCore: '待定',
@@ -2873,6 +2887,20 @@ export default {
       } finally {
         this.isSearching = false
       }
+    },
+    maskEmail(email) {
+      if (!email || typeof email !== 'string') return ''
+      const [local, domain] = email.split('@')
+      if (!domain) {
+        return email
+      }
+      if (!local || local.length <= 2) {
+        return '*@' + domain
+      }
+      const start = local.slice(0, 2)
+      const end = local.slice(-2)
+      const stars = '*'.repeat(Math.max(local.length - 4, 1))
+      return `${start}${stars}${end}@${domain}`
     },
     selectUser(user) {
       // 后端返回的字段是 id，不是 userId
