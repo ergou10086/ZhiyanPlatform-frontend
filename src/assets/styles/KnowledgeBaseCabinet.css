@@ -323,6 +323,9 @@
   border-bottom: 2px solid #f1f5f9;
   margin-bottom: 24px;
   position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .cabinet-view .doc-meta::after {
@@ -348,6 +351,7 @@
   background-clip: text;
   letter-spacing: -0.8px;
   position: relative;
+  margin-right: 16px;
 }
 
 .cabinet-view .doc-updated { 
@@ -358,6 +362,7 @@
   align-items: center;
   gap: 8px;
   padding-left: 2px;
+  margin-right: auto;
 }
 
 /* ========== 编辑器 ========== */
@@ -503,6 +508,111 @@
 }
 
 /* ========== 按钮样式 ========== */
+.cabinet-view {
+  height: 100%;
+}
+
+/* ===== Wiki 文档导出按钮及下拉菜单 ===== */
+
+.export-btn-wrapper {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+  align-self: flex-start;
+  margin-top: 0;
+}
+
+.export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 18px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 40%, #3b82f6 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s ease;
+}
+
+.export-btn span {
+  white-space: nowrap;
+}
+
+.export-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.45);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.export-btn svg {
+  display: block;
+}
+
+.export-arrow {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.2s ease;
+}
+
+.export-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.25),
+    0 0 0 1px rgba(148, 163, 184, 0.18);
+  padding: 6px 0;
+  z-index: 1000;
+  animation: kb-export-slide-down 0.18s ease-out;
+  overflow: hidden;
+}
+
+.export-option {
+  width: 100%;
+  padding: 9px 16px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.export-option + .export-option {
+  border-top: 1px solid #e5e7eb;
+}
+
+.export-option:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+@keyframes kb-export-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .cabinet-view .btn { 
   height: 42px; 
   padding: 0 24px; 
