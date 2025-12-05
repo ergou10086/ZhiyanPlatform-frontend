@@ -81,14 +81,29 @@
         <div class="doc-meta" v-if="activeDoc">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
-          <button class="export-btn" @click="exportDocument" :disabled="!activeDoc" title="导出文档">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-            <span>导出</span>
-          </button>
+          <div class="export-btn-wrapper" @mouseleave="showExportMenu = false">
+            <button
+              class="export-btn"
+              @click.stop="toggleExportMenu"
+              :disabled="!activeDoc || isArchived || exporting"
+              :title="isArchived ? '项目已归档，仅支持查看' : '导出文档'"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span>{{ exporting ? '导出中...' : '导出' }}</span>
+              <svg class="export-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div v-if="showExportMenu" class="export-dropdown" @click.stop>
+              <button class="export-option" @click="exportWiki('MARKDOWN')">导出为 Markdown</button>
+              <button class="export-option" @click="exportWiki('WORD')">导出为 Word</button>
+              <button class="export-option" @click="exportWiki('PDF')">导出为 PDF</button>
+            </div>
+          </div>
         </div>
         <div class="doc-meta" v-else>
           <div class="doc-title">暂无文档</div>
@@ -814,6 +829,10 @@ export default {
       isCreatingDoc: false, // 防止重复创建文档
       loadingDocIds: new Set(), // 正在加载的文档ID集合，避免重复加载
 
+      // 导出相关
+      showExportMenu: false,
+      exporting: false,
+
       // 版本历史相关
       showVersionHistoryDialog: false,
 
@@ -968,6 +987,66 @@ export default {
     }
   },
   methods: {
+    /**
+     * 切换导出菜单显示
+     */
+    toggleExportMenu() {
+      if (!this.activeDoc || this.isArchived) return
+      this.showExportMenu = !this.showExportMenu
+    },
+
+    /**
+     * 导出当前Wiki文档为指定格式
+     * @param {String} format MARKDOWN | WORD | PDF
+     */
+    async exportWiki(format) {
+      if (!this.activeDoc || !this.activeId) {
+        this.$message?.error('没有可导出的文档')
+        return
+      }
+      if (!wikiAPI || !wikiAPI.importExport || !wikiAPI.importExport.exportPage) {
+        this.$message?.error('导出接口未就绪，稍后重试')
+        return
+      }
+
+      this.exporting = true
+      this.showExportMenu = false
+
+      try {
+        const pageId = this.activeId
+        const exportFormat = format || 'MARKDOWN'
+        const response = await wikiAPI.importExport.exportPage(pageId, exportFormat, false, false)
+
+        const blob = response?.data instanceof Blob
+          ? response.data
+          : new Blob([response], { type: 'application/octet-stream' })
+
+        let extension = '.md'
+        if (exportFormat === 'PDF') {
+          extension = '.pdf'
+        } else if (exportFormat === 'WORD') {
+          extension = '.docx'
+        }
+        const fileName = `${this.activeDoc.title || '未命名文档'}${extension}`
+
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+
+        this.$message?.success('文档导出成功！')
+      } catch (error) {
+        console.error('[exportWiki] 导出失败:', error)
+        this.$message?.error('文档导出失败')
+      } finally {
+        this.exporting = false
+      }
+    },
+
     /**
      * 从API加载Wiki树形结构
      */
