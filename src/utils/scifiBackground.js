@@ -36,11 +36,15 @@ const runtime = {
 
 const NODE_COUNT = 160          // 点的数量（密度控制）
 const SPACE = 600               // 点云空间尺度（值越大越疏）
-const LINE_THRESHOLD = 95      // 连线距离阈值（决定连线多少）
+const LINE_THRESHOLD = 95       // 连线距离阈值（决定连线多少）
 const MAX_LINES = 300           // 最大连线数量上限（性能安全阈）
 const RIPPLE_LIFETIME = 1.3     // 涟漪持续时间（秒）
 const MOUSE_INFLUENCE = 0.3     // 鼠标微交互影响系数（0~1，越大越明显）
 const CAMERA_SWAY = 14          // 摄像机随鼠标轻微摆动幅度
+const POINT_OPACITY = 0.75      // 点的基础透明度（0~1）
+const LINE_BASE_OPACITY = 0.1  // 线的基础透明度（0~1）
+const LINE_MAX_OPACITY = 0.3   // 线的最大透明度（0~1）
+const RIPPLE_OPACITY = 0.4      // 涟漪的初始透明度（0~1）
 
 function isDarkMode() {
   const doc = document.documentElement
@@ -99,14 +103,14 @@ function initPointsAndLines(palette) {
   const velocities = []
   for (let i = 0; i < NODE_COUNT; i++) {
     positions.push(
-      (Math.random() - 0.5) * SPACE,
-      (Math.random() - 0.5) * SPACE * 0.7,
-      (Math.random() - 0.5) * SPACE
+        (Math.random() - 0.5) * SPACE,
+        (Math.random() - 0.5) * SPACE * 0.7,
+        (Math.random() - 0.5) * SPACE
     )
     velocities.push(
-      (Math.random() - 0.5) * 0.08,
-      (Math.random() - 0.5) * 0.08,
-      (Math.random() - 0.5) * 0.08
+        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.08,
+        (Math.random() - 0.5) * 0.08
     )
   }
   runtime.positions = positions
@@ -119,7 +123,7 @@ function initPointsAndLines(palette) {
     color: palette.point,
     size: 3,
     transparent: true,
-    opacity: 0.95
+    opacity: POINT_OPACITY  // 使用自定义点透明度
   })
   runtime.points = new Points(geometry, pointsMat)
   runtime.scene.add(runtime.points)
@@ -132,7 +136,7 @@ function initPointsAndLines(palette) {
   const lineMat = new LineBasicMaterial({
     color: palette.line,
     transparent: true,
-    opacity: 0.35,
+    opacity: LINE_BASE_OPACITY,  // 使用自定义线基础透明度
     linewidth: 1
   })
   runtime.lines = new LineSegments(lineGeometry, lineMat)
@@ -175,19 +179,20 @@ function spawnRipple() {
   const mat = new MeshBasicMaterial({
     color: palette.ripple,
     transparent: true,
-    opacity: 0.6,
+    opacity: RIPPLE_OPACITY,  // 使用自定义涟漪透明度
     depthWrite: false
   })
   const mesh = new Mesh(geo, mat)
   mesh.position.set(
-    (runtime.mouse.x || 0) * 120,
-    (runtime.mouse.y || 0) * 80,
-    -40 + Math.random() * 20
+      (runtime.mouse.x || 0) * 120,
+      (runtime.mouse.y || 0) * 80,
+      -40 + Math.random() * 20
   )
   mesh.scale.set(1, 1, 1)
   runtime.scene.add(mesh)
   runtime.ripples.push({ mesh, born: now })
 }
+
 
 function updateRipples(delta) {
   const now = performance.now()
@@ -266,6 +271,7 @@ function updatePointsAndLines(delta) {
   runtime.lines.geometry.setDrawRange(0, lineCount * 2)
   runtime.lines.geometry.attributes.position.needsUpdate = true
   runtime.lines.material.opacity = 0.18 + Math.min(lineCount / MAX_LINES, 1) * 0.17
+  runtime.lines.material.opacity = LINE_BASE_OPACITY + Math.min(lineCount / MAX_LINES, 1) * (LINE_MAX_OPACITY - LINE_BASE_OPACITY)
 
   // 摄像机轻微跟随鼠标，保持安静科技感
   runtime.camera.position.x = mx * CAMERA_SWAY
