@@ -133,24 +133,33 @@ export default {
     }
   },
   created() {
-    // 从 localStorage 中恢复当前用户信息，预填旧邮箱和用户ID
+    // 1）优先从路由参数中读取邮箱（例如从忘记密码页跳转时传入）
+    const routeEmail = this.$route && this.$route.query
+      ? (this.$route.query.email || this.$route.query.oldEmail)
+      : null
+
+    if (routeEmail) {
+      this.form.oldEmail = routeEmail
+    }
+
+    // 2）再从 localStorage 中恢复当前用户信息，补全用户ID / 邮箱
     const savedUserInfo = localStorage.getItem('user_info')
     if (savedUserInfo) {
       try {
         const user = JSON.parse(savedUserInfo)
         this.userId = user.id || user.userId || null
-        this.form.oldEmail = user.email || ''
+
+        // 如果还没有从路由里拿到邮箱，则使用登录用户的邮箱
+        if (!this.form.oldEmail) {
+          this.form.oldEmail = user.email || ''
+        }
       } catch (e) {
         console.error('解析 user_info 失败:', e)
       }
     }
   },
   mounted() {
-    const hasAnimated = localStorage.getItem('authPagesAnimated')
-    if (!hasAnimated) {
-      this.animateLogo = true
-      localStorage.setItem('authPagesAnimated', 'true')
-    }
+    this.animateLogo = true
   },
   methods: {
     handleBack() {
