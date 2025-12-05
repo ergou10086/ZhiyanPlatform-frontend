@@ -134,6 +134,72 @@
           </div>
         </div>
 
+        <!-- 关联链接卡片 -->
+        <div class="info-card">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label">关联链接</h3>
+              <button
+                v-if="isLoggedIn && isViewingSelf"
+                @click="saveProfileLinks()"
+                class="edit-btn"
+                :disabled="isSavingLinks"
+              >
+                {{ isSavingLinks ? '保存中...' : '保存' }}
+              </button>
+              <button
+                v-if="isLoggedIn && isViewingSelf && canAddMoreLinks && !showAddLinkRow"
+                @click="showAddLinkRow = true"
+                class="edit-btn"
+              >
+                添加
+              </button>
+            </div>
+            <div class="links-container">
+              <div v-if="profileLinks.length === 0" class="link-empty">
+                <p>还没有添加任何关联链接</p>
+              </div>
+              <div v-else class="link-list">
+                <div v-for="(link, index) in profileLinks" :key="index" class="link-item">
+                  <a :href="link.url" target="_blank" rel="noopener noreferrer" class="link-text">
+                    {{ link.label || link.url }}
+                  </a>
+                  <span class="link-url">{{ link.url }}</span>
+                  <button
+                    v-if="isLoggedIn && isViewingSelf"
+                    class="link-remove-btn"
+                    @click="removeProfileLink(index)"
+                    :disabled="isSavingLinks"
+                    title="移除链接"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="isLoggedIn && isViewingSelf && canAddMoreLinks && showAddLinkRow"
+              class="link-add-row"
+            >
+              <input
+                v-model="newProfileLink.label"
+                class="link-input"
+                placeholder="链接名称（可选）"
+                maxlength="50"
+              />
+              <input
+                v-model="newProfileLink.url"
+                class="link-input"
+                placeholder="https://example.com"
+                maxlength="500"
+              />
+              <button @click="addProfileLink" class="add-link-btn" :disabled="isSavingLinks">
+                添加
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 机构信息卡片 -->
         <div class="info-card">
           <div class="info-item">
@@ -881,6 +947,14 @@ export default {
       selectedAchievementIds: [],
       showProjectDropdown: false,
       showLinkedAchievementsModal: false,
+      // 关联链接
+      profileLinks: [],
+      newProfileLink: {
+        label: '',
+        url: ''
+      },
+      showAddLinkRow: false,
+      isSavingLinks: false,
       // 隐私设置
       privacySettings: {
         profileVisibility: 'public',
@@ -914,6 +988,10 @@ export default {
     visibleLinkedAchievements() {
       // 主页上最多展示 6 条成果
       return this.linkedAchievements.slice(0, 6)
+    },
+
+    canAddMoreLinks() {
+      return this.profileLinks.length < 6
     },
 
     isViewingSelf() {
@@ -1087,6 +1165,22 @@ export default {
         parallelTasks.push(
           (async () => {
             try {
+              const linkResp = await profileAPI.getUserProfileLinks(userId)
+              if (linkResp && linkResp.code === 200 && Array.isArray(linkResp.data)) {
+                this.profileLinks = linkResp.data
+              } else {
+                this.profileLinks = []
+              }
+            } catch (error) {
+              console.error('加载他人关联链接失败:', error)
+              this.profileLinks = []
+            }
+          })()
+        )
+
+        parallelTasks.push(
+          (async () => {
+            try {
               const achvResp = await profileAPI.getUserAchievements(userId)
               if (achvResp && achvResp.code === 200 && achvResp.data) {
                 this.linkedAchievements = await this.mapAchievementsList(achvResp.data)
@@ -1136,11 +1230,16 @@ export default {
           // 如果description为空字符串，显示默认文本；否则显示实际内容
           const displayIntro = description && description.trim() !== '' 
             ? description 
-            : '这个人很懒，什么都没有留下...'
+            : '这个人很懒，什么都没有留下..'
           this.$set(this.userInfo, 'introduction', displayIntro)
           this.$set(this.userInfo, 'description', description) // 同时设置description字段（保持原始值）
           this.$set(this.userInfo, 'role', data.role || this.userInfo.role)
           this.$set(this.userInfo, 'status', data.status || this.userInfo.status)
+          if (Array.isArray(data.profileLinks)) {
+            this.profileLinks = data.profileLinks
+          } else {
+            await this.loadMyProfileLinks()
+          }
           
           // 更新2FA状态（重要：确保2FA状态同步）
           if (data.twoFactorEnabled !== undefined) {
@@ -1176,6 +1275,7 @@ export default {
                 userData.twoFactorEnabled = Boolean(data.twoFactorEnabled)
                 console.log('✅ 已更新localStorage中的2FA状态:', userData.twoFactorEnabled)
               }
+              userData.profileLinks = Array.isArray(data.profileLinks) ? data.profileLinks : []
               localStorage.setItem('user_info', JSON.stringify(userData))
               console.log('✅ 已更新 localStorage 中的用户信息')
               console.log('✅ localStorage中的description:', userData.description)
@@ -1270,6 +1370,7 @@ export default {
               status: userData.status || 'ACTIVE'
             }
             console.log('加载用户信息（从localStorage）:', this.userInfo)
+            this.profileLinks = Array.isArray(userData.profileLinks) ? userData.profileLinks : []
 
             // 从后端获取最新的用户信息，确保包含 description 字段
             this.loadMyProfileFromServer()
@@ -1277,6 +1378,7 @@ export default {
             // 查看自己的资料时，加载当前用户的研究方向和学术成果
             this.loadResearchTags()
             this.loadLinkedAchievements()
+            this.showAddLinkRow = false
             
             // 加载2FA状态（确保状态同步）
             this.load2FAStatus()
@@ -1302,6 +1404,8 @@ export default {
           role: 'GUEST',
           status: 'GUEST'
         }
+        this.profileLinks = []
+            this.showAddLinkRow = false
       }
     },
     loadUserAvatar() {
@@ -2314,6 +2418,95 @@ export default {
         console.error('保存研究方向标签失败:', error)
         alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
       }
+    },
+    
+    // ===== 关联链接相关方法 =====
+    async loadMyProfileLinks() {
+      if (!this.isLoggedIn) return
+      try {
+        const response = await profileAPI.getMyProfileLinks()
+        if (response && response.code === 200 && Array.isArray(response.data)) {
+          this.profileLinks = response.data
+        } else {
+          this.profileLinks = []
+        }
+        this.showAddLinkRow = false
+      } catch (error) {
+        console.error('加载关联链接失败:', error)
+        this.profileLinks = []
+        this.showAddLinkRow = false
+      }
+    },
+
+    async loadUserProfileLinks(userId) {
+      try {
+        const response = await profileAPI.getUserProfileLinks(userId)
+        if (response && response.code === 200 && Array.isArray(response.data)) {
+          this.profileLinks = response.data
+        } else {
+          this.profileLinks = []
+        }
+        this.showAddLinkRow = false
+      } catch (error) {
+        console.error('加载用户关联链接失败:', error)
+        this.profileLinks = []
+        this.showAddLinkRow = false
+      }
+    },
+
+    async saveProfileLinks(nextLinks = this.profileLinks) {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      this.isSavingLinks = true
+      try {
+        const response = await profileAPI.updateProfileLinks(nextLinks)
+        if (response && response.code === 200) {
+          this.profileLinks = Array.isArray(response.data) ? response.data : nextLinks
+          this.showSuccessToast('关联链接已更新')
+          this.showAddLinkRow = false
+        } else {
+          throw new Error(response?.msg || '更新失败')
+        }
+      } catch (error) {
+        console.error('保存关联链接失败:', error)
+        alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
+      } finally {
+        this.isSavingLinks = false
+      }
+    },
+
+    async addProfileLink() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      if (!this.canAddMoreLinks) {
+        alert('关联链接最多6个')
+        return
+      }
+
+      const url = (this.newProfileLink.url || '').trim()
+      let label = (this.newProfileLink.label || '').trim()
+
+      if (!url) {
+        alert('请填写链接地址')
+        return
+      }
+      if (!/^https?:\/\//i.test(url)) {
+        alert('链接需以 http 或 https 开头')
+        return
+      }
+
+      if (!label) {
+        label = url
+      }
+
+      const nextLinks = [...this.profileLinks, { label, url }]
+      await this.saveProfileLinks(nextLinks)
+      this.newProfileLink = { label: '', url: '' }
+      this.showAddLinkRow = false
+    },
+
+    async removeProfileLink(index) {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      const nextLinks = this.profileLinks.filter((_, i) => i !== index)
+      await this.saveProfileLinks(nextLinks)
     },
     
     // ===== 学术成果关联相关方法 =====
