@@ -336,7 +336,17 @@
           </div>
         </div>
         <div class="mindmap-content">
-          <div v-if="!mindmapData" class="mindmap-empty">
+          <div v-if="isGeneratingMindmap" class="mindmap-loading">
+            <div class="empty-mindmap-icon">
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                <path d="M21 12a9 9 0 0 1-9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="empty-mindmap-text">正在生成思维导图…</p>
+            <p class="empty-mindmap-hint">请稍候，AI 正在根据对话内容整理结构</p>
+          </div>
+          <div v-else-if="!mindmapData" class="mindmap-empty">
             <div class="empty-mindmap-icon">
               <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/>
@@ -350,7 +360,24 @@
             <p class="empty-mindmap-text">暂无思维导图</p>
             <p class="empty-mindmap-hint">点击右上角刷新按钮，由AI根据对话内容生成思维导图</p>
           </div>
-          <div v-else class="mindmap-display" v-html="mindmapData"></div>
+          <div
+            v-else
+            class="mindmap-display-outer"
+            :class="{ 'is-panning': isPanningMindmap }"
+            @mousedown="onMindmapMouseDown"
+            @mousemove="onMindmapMouseMove"
+            @mouseup="onMindmapMouseUp"
+            @mouseleave="onMindmapMouseUp"
+            @wheel.prevent="onMindmapWheel"
+            @dragstart.prevent
+          >
+            <div
+              class="mindmap-display"
+              :style="mindmapTransformStyle"
+              @dragstart.prevent
+              v-html="mindmapData"
+            ></div>
+          </div>
         </div>
       </div>
     </div>
@@ -429,7 +456,22 @@ export default {
       copiedMsgIndex: null, // 当前已复制的消息索引
       // 思维导图相关
       mindmapData: null, // 思维导图数据
-      showMindmap: true // 思维导图展开/收起状态
+      showMindmap: true, // 思维导图展开/收起状态
+      isGeneratingMindmap: false, // 是否正在生成思维导图
+      mindmapScale: 1, // 思维导图缩放倍数
+      mindmapOffsetX: 0, // 思维导图平移X
+      mindmapOffsetY: 0, // 思维导图平移Y
+      isPanningMindmap: false, // 是否正在拖动画布
+      mindmapLastX: 0, // 上一次鼠标X
+      mindmapLastY: 0 // 上一次鼠标Y
+    }
+  },
+  computed: {
+    mindmapTransformStyle() {
+      return {
+        transform: `translate(${this.mindmapOffsetX}px, ${this.mindmapOffsetY}px) scale(${this.mindmapScale})`,
+        transformOrigin: 'center center'
+      }
     }
   },
   mounted() {
@@ -664,6 +706,12 @@ export default {
           isFileOnly: false
         }
         this.messages.push(textMessage)
+
+        // 如果用户在对话中提到“思维导图”，也触发右侧加载动画
+        if (userTextContent.includes('思维导图')) {
+          this.mindmapData = null
+          this.isGeneratingMindmap = true
+        }
       }
       
       this.isSending = true
@@ -825,20 +873,30 @@ export default {
     
     // 从最新的AI消息中提取思维导图图片URL并更新右侧面板
     updateMindmapFromLastMessage() {
-      if (!this.messages || this.messages.length === 0) return
+      if (!this.messages || this.messages.length === 0) {
+        this.isGeneratingMindmap = false
+        return
+      }
       // 寻找最后一条AI消息
       const lastAiMessage = [...this.messages].reverse().find(m => m.type === 'left' && m.content)
-      if (!lastAiMessage || !lastAiMessage.content) return
+      if (!lastAiMessage || !lastAiMessage.content) {
+        this.isGeneratingMindmap = false
+        return
+      }
       const content = lastAiMessage.content
       // 匹配常见图片URL后缀
       const urlMatch = content.match(/https?:\/\/\S+\.(?:png|jpe?g|gif|webp)/i)
       if (!urlMatch) {
+        // 没有找到思维导图链接，也结束加载状态
+        this.isGeneratingMindmap = false
         return
       }
       const url = urlMatch[0]
       console.log('[思维导图] 检测到图片URL:', url)
       // 在右侧思维导图面板中显示图片
       this.mindmapData = `<div class="mindmap-image-wrapper"><img src="${url}" alt="思维导图" style="max-width: 100%; height: auto; border-radius: 8px;" /></div>`
+      // 成功解析到思维导图后关闭加载状态
+      this.isGeneratingMindmap = false
     },
     
     scrollToBottom() {
@@ -1697,30 +1755,64 @@ export default {
     },
     
     /**
-     * 生成思维导图 - 调用后端API
+     * 生成思维导图 - 控制右侧加载状态
+     * 实际生成由左侧 AI 对话完成，解析到图片链接后再更新 mindmapData
      */
     async generateMindmap() {
-      try {
-        // TODO: 调用后端API生成思维导图
-        // 示例：根据当前对话内容生成思维导图
-        // const response = await cozeAPI.generateMindmap({
-        //   conversationId: this.conversationId,
-        //   messages: this.messages
-        // })
-        // this.mindmapData = response.data.mindmapHtml
-        
-        // 临时提示：等待后端接口
-        console.log('等待后端AI生成思维导图...')
-        alert('思维导图生成功能需要后端API支持，请联系后端开发人员实现')
-        
-        // 清空当前数据，显示空状态
-        this.mindmapData = null
-      } catch (error) {
-        console.error('生成思维导图失败:', error)
-        alert('生成思维导图失败，请稍后重试')
-      }
+      // 清空当前思维导图，进入“正在生成”状态
+      this.mindmapData = null
+      this.isGeneratingMindmap = true
+      // 实际生成流程：请在左侧对话中向 AI 发送生成思维导图的指令
+      // 或者后续接入后端专门的思维导图生成接口
     },
     
+    /**
+     * 思维导图拖拽开始（左键按下）
+     */
+    onMindmapMouseDown(event) {
+      if (event.button !== 0) return // 只响应左键
+      this.isPanningMindmap = true
+      this.mindmapLastX = event.clientX
+      this.mindmapLastY = event.clientY
+    },
+
+    /**
+     * 思维导图拖拽移动
+     */
+    onMindmapMouseMove(event) {
+      if (!this.isPanningMindmap) return
+      // 如果已经松开鼠标键，但没有收到 mouseup 事件，则自动结束拖拽
+      if ((event.buttons & 1) === 0) {
+        this.isPanningMindmap = false
+        return
+      }
+      const dx = event.clientX - this.mindmapLastX
+      const dy = event.clientY - this.mindmapLastY
+      this.mindmapOffsetX += dx
+      this.mindmapOffsetY += dy
+      this.mindmapLastX = event.clientX
+      this.mindmapLastY = event.clientY
+    },
+
+    /**
+     * 思维导图拖拽结束
+     */
+    onMindmapMouseUp() {
+      this.isPanningMindmap = false
+    },
+
+    /**
+     * 思维导图滚轮缩放
+     */
+    onMindmapWheel(event) {
+      const delta = event.deltaY
+      const zoomFactor = 0.1
+      let newScale = this.mindmapScale + (delta > 0 ? -zoomFactor : zoomFactor)
+      // 限制缩放范围
+      newScale = Math.min(3, Math.max(0.3, newScale))
+      this.mindmapScale = newScale
+    },
+
     /**
      * 切换思维导图显示/隐藏
      */

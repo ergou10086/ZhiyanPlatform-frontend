@@ -7,7 +7,9 @@
           <img src="@/assets/image/logo.svg" alt="Logo" class="logo-img" />
         </div>
         <h1 class="system-title" :class="{ animated: animateLogo }">高校科研团队协作与成果管理平台</h1>
-        <p class="system-subtitle" :class="{ animated: animateLogo }">University Research Team Collaboration and Achievement Management Platform</p>
+        <p class="system-subtitle" :class="{ animated: animateLogo }">
+          面向科研组织和团队管理的科学研究项目的项目、团队、成果的一体化管理平台
+        </p>
       </div>
     </div>
     
@@ -35,7 +37,9 @@
               required
             />
           </div>
-          
+          <div class="email-invalid-link" @click="goToChangeEmail">
+            该邮箱失效？
+          </div>
           <div class="form-group">
             <label for="code">验证码<span class="required-asterisk">*</span></label>
             <div class="code-input-group">
@@ -258,6 +262,14 @@ export default {
     goToLogin() {
       this.$router.push('/login')
     },
+    goToChangeEmail() {
+      this.$router.push({
+        path: '/change-email',
+        query: {
+          email: this.resetForm.email || ''
+        }
+      })
+    },
     showSuccessToast(message) {
       this.toastMessage = message
       this.showToast = true
@@ -269,6 +281,6 @@ export default {
       }, 1000)
     }
   }
-}
+}  
 </script>
 
