@@ -2725,6 +2725,24 @@ export default {
       }
     },
 
+    // 生成标准化的文件名（避免中文编码问题）
+    generateStandardFileName(originalName, extension = 'md') {
+      const timestamp = Date.now()
+      const randomStr = Math.random().toString(36).substring(2, 8) // 6位随机字符串
+      
+      // 如果有原始文件名，尝试提取扩展名
+      let ext = extension
+      if (originalName) {
+        const lastDot = originalName.lastIndexOf('.')
+        if (lastDot > 0) {
+          ext = originalName.substring(lastDot + 1).toLowerCase()
+        }
+      }
+      
+      // 生成格式: achievement-{timestamp}-{random}.{ext}
+      return `achievement-${timestamp}-${randomStr}.${ext}`
+    },
+
     // 上传Markdown文件
     async uploadMarkdownFile(achievementId) {
       try {
@@ -2740,12 +2758,8 @@ export default {
           throw new Error('成果内容不能为空')
         }
         
-        // 生成文件名
-        const title = this.taskResultTitle?.trim() || '未命名成果'
-        // 清理文件名中的非法字符
-        const safeTitle = title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50)
-        const timestamp = Date.now()
-        const fileName = `${safeTitle}_${timestamp}.md`
+        // 生成标准化的文件名: achievement-{timestamp}-{random}.md
+        const fileName = this.generateStandardFileName(this.taskResultTitle || 'achievement', 'md')
         
         // 创建文件对象
         const content = this.taskResultOutput
@@ -2796,14 +2810,29 @@ export default {
       
       for (let i = 0; i < totalAttachments; i++) {
         const attachment = attachments[i]
-        const fileName = attachment.fileName || attachment.name || `附件_${i + 1}`
+        const originalFileName = attachment.fileName || attachment.name || `attachment_${i + 1}`
         
-        this.updateProgress(`正在上传附件 (${i + 1}/${totalAttachments}): ${fileName}`)
+        this.updateProgress(`正在上传附件 (${i + 1}/${totalAttachments}): ${originalFileName}`)
         
         try {
-          // 如果附件是文件对象，直接上传
+          // 如果附件是文件对象，需要重命名为标准化格式
           if (attachment.file && attachment.file instanceof File) {
-            const response = await knowledgeAPI.uploadFile(attachment.file, achievementId)
+            // 生成标准化的文件名
+            const standardFileName = this.generateStandardFileName(originalFileName)
+            
+            // 创建新的文件对象，使用标准化文件名
+            const renamedFile = new File(
+              [attachment.file],
+              standardFileName,
+              {
+                type: attachment.file.type || 'application/octet-stream',
+                lastModified: attachment.file.lastModified || Date.now()
+              }
+            )
+            
+            console.log(`[uploadAttachments] 附件重命名: ${originalFileName} -> ${standardFileName}`)
+            
+            const response = await knowledgeAPI.uploadFile(renamedFile, achievementId)
             
             // 检查响应
             if (response && response.code !== undefined && response.code !== 200) {
@@ -2823,7 +2852,7 @@ export default {
             this.updateProgress('', 1) // 增加进度，避免卡住
           }
         } catch (error) {
-          console.warn(`附件上传失败: ${fileName}`, error)
+          console.warn(`附件上传失败: ${originalFileName}`, error)
           failCount++
           // 继续上传其他附件，但也要更新进度
           this.updateProgress('', 1)
