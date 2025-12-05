@@ -40,6 +40,38 @@
           </div>
         </div>
       </div>
+
+      <!-- 日期区间任务悬浮弹窗 -->
+      <div v-if="showDateTaskModal" class="date-task-popover">
+        <div class="date-task-popover-header">
+          <div>
+            <h3 class="date-task-popover-title">{{ dateRangeTitle }}</h3>
+            <p class="date-task-popover-subtitle">{{ dateRangeDescription }}</p>
+          </div>
+          <button class="date-task-popover-close" @click="closeDateTaskModal">×</button>
+        </div>
+        <div class="date-task-popover-body">
+          <div v-if="dateRangeTasks.length === 0" class="date-task-empty">
+            <p>该时间段内没有截止的任务</p>
+          </div>
+          <div v-else class="date-task-list">
+            <div
+              v-for="task in dateRangeTasks"
+              :key="task.id"
+              class="date-task-item"
+              :class="getPriorityClass(task.priority)"
+            >
+              <div class="task-info">
+                <h4 class="task-name">{{ task.title }}</h4>
+                <p class="task-due">截止日期：{{ formatDueDate(task.dueDate) }}</p>
+              </div>
+              <div class="task-badge" :class="getPriorityClass(task.priority)">
+                {{ getPriorityText(task.priority) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 任务提醒 -->
@@ -120,7 +152,11 @@ export default {
       selectedDate: null,
       myTasks: [], // 存储用户的所有任务
       isLoadingTasks: false,
-      showTaskList: false // 控制任务列表展开/收起
+      showTaskList: false, // 控制任务列表展开/收起
+      showDateTaskModal: false,
+      dateRangeTasks: [],
+      dateRangeTitle: '',
+      dateRangeDescription: ''
     }
   },
   computed: {
@@ -233,8 +269,64 @@ export default {
     },
     selectDate(day) {
       if (day.isCurrentMonth) {
+        if (this.selectedDate && day.date && this.selectedDate.toDateString() === day.date.toDateString()) {
+          this.selectedDate = null
+          this.showDateTaskModal = false
+          this.dateRangeTasks = []
+          this.dateRangeTitle = ''
+          this.dateRangeDescription = ''
+          console.log('取消选择日期')
+          return
+        }
+
         this.selectedDate = day.date
-        console.log('选择日期:', day.date)
+
+        const clickedDate = new Date(day.date)
+        const today = new Date()
+        clickedDate.setHours(0, 0, 0, 0)
+        today.setHours(0, 0, 0, 0)
+
+        let startDate
+        let endDate
+
+        if (clickedDate.getTime() < today.getTime()) {
+          startDate = clickedDate
+          endDate = today
+          this.dateRangeTitle = '从选择日期到今天截止的任务'
+        } else if (clickedDate.getTime() > today.getTime()) {
+          startDate = today
+          endDate = clickedDate
+          this.dateRangeTitle = '从今天到选择日期截止的任务'
+        } else {
+          startDate = today
+          endDate = today
+          this.dateRangeTitle = '今天截止的任务'
+        }
+
+        const formatDate = (d) => {
+          const y = d.getFullYear()
+          const m = String(d.getMonth() + 1).padStart(2, '0')
+          const dayNum = String(d.getDate()).padStart(2, '0')
+          return `${y}-${m}-${dayNum}`
+        }
+
+        this.dateRangeDescription = `${formatDate(startDate)} 至 ${formatDate(endDate)}`
+
+        const startTime = startDate.getTime()
+        const endTime = endDate.getTime()
+
+        this.dateRangeTasks = (this.myTasks || []).filter(task => {
+          if (!task.dueDate) {
+            return false
+          }
+          const due = new Date(task.dueDate)
+          due.setHours(0, 0, 0, 0)
+          const t = due.getTime()
+          return t >= startTime && t <= endTime
+        })
+
+        this.showDateTaskModal = true
+        console.log('选择日期:', this.selectedDate, '区间任务数量:', this.dateRangeTasks.length)
       }
     },
     async loadTasks() {
@@ -301,6 +393,9 @@ export default {
     toggleTaskList() {
       this.showTaskList = !this.showTaskList
     },
+    closeDateTaskModal() {
+      this.showDateTaskModal = false
+    },
     formatDueDate(dateStr) {
       if (!dateStr) return '未设置截止日期'
       
@@ -357,7 +452,7 @@ export default {
   box-shadow: var(--shadow-md);
   flex-shrink: 0; /* 防止被压缩 */
   align-self: flex-start; /* 顶部对齐，不拉伸 */
-  overflow: hidden; /* 隐藏溢出，防止页面延伸 */
+  overflow: visible; /* 允许悬浮窗溢出显示 */
   max-height: 100vh; /* 限制最大高度为视口高度 */
 }
 
@@ -373,6 +468,10 @@ export default {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-primary);
   transition: all var(--transition-normal);
+}
+
+.calendar-widget {
+  position: relative;
 }
 
 .calendar-widget:hover,
@@ -547,6 +646,86 @@ export default {
 .task-badge.priority-low {
   background: var(--success-color);
   color: white;
+}
+/* 日期区间任务悬浮弹窗 */
+.date-task-popover {
+  position: absolute;
+  top: 50%;
+  left: -276px; /* 260px 宽度 + 16px 间距 */
+  transform: translateY(-50%);
+  width: 260px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-primary);
+  padding: var(--space-4);
+  z-index: 20;
+}
+
+.date-task-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.date-task-popover-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+.date-task-popover-subtitle {
+  margin: var(--space-1) 0 0 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.date-task-popover-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+}
+
+.date-task-popover-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.date-task-popover-body {
+  margin-top: var(--space-3);
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.date-task-empty {
+  padding: var(--space-3);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.date-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.date-task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  border-left: 3px solid;
+  box-shadow: var(--shadow-sm);
 }
 
 /* 过渡动画 */
