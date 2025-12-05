@@ -95,6 +95,22 @@
             </div>
           </div>
 
+          <!-- 2FA验证码输入框（如果用户启用了2FA） -->
+          <div class="form-group">
+            <label for="twoFactorCode">2FA验证码<span class="optional-label">（如已启用2FA，必填）</span></label>
+            <input
+              type="text"
+              id="twoFactorCode"
+              v-model="form.twoFactorCode"
+              placeholder="请输入6位2FA验证码（如已启用2FA）"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              class="two-factor-input"
+              @input="formatTwoFactorCodeInput"
+            />
+            <p class="form-hint">如果您的账号已启用双因素认证，请输入Microsoft Authenticator中的6位验证码</p>
+          </div>
+
           <button type="submit" class="change-email-btn" :disabled="loading">
             {{ loading ? '提交中...' : '确认修改邮箱' }}
           </button>
@@ -124,7 +140,8 @@ export default {
       form: {
         oldEmail: '',
         newEmail: '',
-        verificationCode: ''
+        verificationCode: '',
+        twoFactorCode: '' // 2FA验证码（可选，如果用户启用了2FA则必填）
       },
       showToast: false,
       toastMessage: '',
@@ -178,6 +195,16 @@ export default {
         value = value.substring(0, 6)
       }
       this.form.verificationCode = value
+      event.target.value = value
+    },
+    formatTwoFactorCodeInput(event) {
+      // 只允许输入数字
+      let value = event.target.value.replace(/[^0-9]/g, '')
+      // 限制6位
+      if (value.length > 6) {
+        value = value.substring(0, 6)
+      }
+      this.form.twoFactorCode = value
       event.target.value = value
     },
     startCountdown() {
@@ -279,6 +306,11 @@ export default {
           oldEmail: this.form.oldEmail,
           newEmail: this.form.newEmail,
           verificationCode: this.form.verificationCode
+        }
+        
+        // 如果提供了2FA验证码，添加到请求中
+        if (this.form.twoFactorCode && this.form.twoFactorCode.trim()) {
+          payload.twoFactorCode = this.form.twoFactorCode.trim()
         }
 
         const response = await authAPI.changeEmail(payload)

@@ -11,6 +11,7 @@ import Input from './components/Input.vue'
 import authStore from './store/auth'
 import tokenManager from './utils/tokenManager'
 import EventBus, { eventBus } from './utils/eventBus'
+import showToast from './utils/toast'
 import { responsiveMixin, device, preventIOSBounce } from './utils/responsive'
 
 Vue.config.productionTip = false
@@ -400,6 +401,9 @@ const authWrapper = {
 }
 
 Vue.prototype.$auth = authWrapper
+
+// 全局简易 Toast：居中黑底白字，默认显示 1 秒
+Vue.prototype.$toast = showToast
 
 new Vue({
   router,

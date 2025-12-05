@@ -87,6 +87,22 @@
               required
             />
           </div>
+
+          <!-- 2FA验证码输入框（如果用户启用了2FA） -->
+          <div class="form-group">
+            <label for="twoFactorCode">2FA验证码<span class="optional-label">（如已启用2FA，必填）</span></label>
+            <input
+              type="text"
+              id="twoFactorCode"
+              v-model="resetForm.twoFactorCode"
+              placeholder="请输入6位2FA验证码（如已启用2FA）"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              class="two-factor-input"
+              @input="formatTwoFactorCodeInput"
+            />
+            <p class="form-hint">如果您的账号已启用双因素认证，请输入Microsoft Authenticator中的6位验证码</p>
+          </div>
           
           <button type="submit" class="complete-btn" :disabled="loading">
             {{ loading ? '重置中...' : '重置密码' }}
@@ -120,7 +136,8 @@ export default {
         email: '',
         code: '',
         newPassword: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        twoFactorCode: '' // 2FA验证码（可选，如果用户启用了2FA则必填）
       },
       showToast: false,
       toastMessage: '',
@@ -214,13 +231,21 @@ export default {
       
       this.loading = true
       try {
-        // 调用重置密码API
-        const response = await authAPI.resetPassword({
+        // 构建重置密码请求体
+        const resetData = {
           email: this.resetForm.email,
           verificationCode: this.resetForm.code,
           newPassword: this.resetForm.newPassword,
           confirmPassword: this.resetForm.confirmPassword
-        })
+        }
+        
+        // 如果提供了2FA验证码，添加到请求中
+        if (this.resetForm.twoFactorCode && this.resetForm.twoFactorCode.trim()) {
+          resetData.twoFactorCode = this.resetForm.twoFactorCode.trim()
+        }
+        
+        // 调用重置密码API
+        const response = await authAPI.resetPassword(resetData)
         
         if (response.code === 200) {
           this.showSuccessToast('密码重置成功！请使用新密码登录')
@@ -257,6 +282,16 @@ export default {
         value = value.substring(0, 6)
       }
       this.resetForm.code = value
+      event.target.value = value
+    },
+    formatTwoFactorCodeInput(event) {
+      // 只允许输入数字
+      let value = event.target.value.replace(/[^0-9]/g, '')
+      // 限制6位
+      if (value.length > 6) {
+        value = value.substring(0, 6)
+      }
+      this.resetForm.twoFactorCode = value
       event.target.value = value
     },
     goToLogin() {

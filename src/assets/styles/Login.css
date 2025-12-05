@@ -169,6 +169,14 @@
   margin-bottom: 20px;
 }
 
+.login-container .form-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+  margin-bottom: 0;
+  line-height: 1.4;
+}
+
 .login-container .form-group label {
   display: block;
   margin-bottom: 8px;

@@ -323,6 +323,56 @@
           </div>
         </div>
 
+        <!-- 2FA双因素认证设置卡片 -->
+        <div class="info-card two-factor-card" v-if="isLoggedIn && isViewingSelf">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label">双因素认证 (2FA)</h3>
+            </div>
+            
+            <div class="two-factor-content">
+              <div class="two-factor-status">
+                <div class="two-factor-status-info">
+                  <span class="two-factor-status-label">当前状态：</span>
+                  <span class="two-factor-status-value" :class="{ enabled: twoFactorEnabled, disabled: !twoFactorEnabled }">
+                    {{ twoFactorEnabled ? '已启用' : '未启用' }}
+                  </span>
+                </div>
+                <p class="two-factor-description">
+                  使用 Microsoft Authenticator 应用扫描二维码，为您的账号添加额外的安全保护。
+                  启用后，登录时需要输入验证码。
+                </p>
+              </div>
+
+              <div class="two-factor-actions">
+                <button 
+                  v-if="!twoFactorEnabled" 
+                  @click="handleEnable2FA" 
+                  class="two-factor-btn two-factor-btn-enable"
+                  :disabled="twoFactorLoading"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  启用2FA
+                </button>
+                <button 
+                  v-else 
+                  @click="handleDisable2FA" 
+                  class="two-factor-btn two-factor-btn-disable"
+                  :disabled="twoFactorLoading"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  禁用2FA
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 游客登录提示卡片 -->
         <div v-if="!isLoggedIn" class="info-card login-prompt-card">
           <div class="info-item">
@@ -629,6 +679,132 @@
       @change="handleAvatarUpload" 
       style="display: none"
     />
+
+    <!-- 2FA启用模态框 -->
+    <div v-if="show2FAEnableModal" class="modal-overlay" @click="close2FAEnableModal">
+      <div class="modal-content two-factor-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>启用双因素认证</h3>
+          <button @click="close2FAEnableModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="two-factor-setup-content">
+            <div class="two-factor-steps">
+              <div class="step-item active">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                  <h4>下载 Microsoft Authenticator</h4>
+                  <p>在您的手机上安装 Microsoft Authenticator 应用</p>
+                </div>
+              </div>
+              <div class="step-item" :class="{ active: twoFactorQRCode }">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                  <h4>扫描二维码</h4>
+                  <p>使用 Microsoft Authenticator 扫描下方二维码</p>
+                </div>
+              </div>
+              <div class="step-item" :class="{ active: twoFactorConfirming }">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                  <h4>输入验证码</h4>
+                  <p>在应用中输入显示的6位验证码以确认启用</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="twoFactorQRCode" class="two-factor-qr-section">
+              <div class="qr-code-container">
+                <img 
+                  :src="twoFactorQRCode" 
+                  alt="2FA二维码" 
+                  class="qr-code-image"
+                  @error="handleQRCodeImageError"
+                  @load="handleQRCodeImageLoad"
+                />
+              </div>
+              <p class="qr-code-hint">使用 Microsoft Authenticator 扫描此二维码</p>
+            </div>
+
+            <div v-if="twoFactorQRCode" class="two-factor-verify-section">
+              <label class="two-factor-input-label">输入验证码</label>
+              <input 
+                v-model="twoFactorCode" 
+                type="text" 
+                class="two-factor-code-input"
+                placeholder="请输入6位验证码"
+                maxlength="6"
+                @keyup.enter="confirmEnable2FA"
+                ref="twoFactorCodeInput"
+              />
+              <p class="two-factor-input-hint">请输入 Microsoft Authenticator 中显示的6位验证码</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="close2FAEnableModal" class="modal-btn modal-btn-cancel">取消</button>
+          <button 
+            v-if="twoFactorQRCode" 
+            @click="confirmEnable2FA" 
+            class="modal-btn modal-btn-confirm"
+            :disabled="!twoFactorCode || twoFactorCode.length !== 6 || twoFactorLoading"
+          >
+            {{ twoFactorLoading ? '验证中...' : '确认启用' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2FA禁用模态框 -->
+    <div v-if="show2FADisableModal" class="modal-overlay" @click="close2FADisableModal">
+      <div class="modal-content two-factor-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>禁用双因素认证</h3>
+          <button @click="close2FADisableModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="two-factor-disable-content">
+            <p class="two-factor-disable-warning">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              禁用2FA后，您的账号将失去额外的安全保护。请确认您要禁用双因素认证。
+            </p>
+            <div class="two-factor-verify-section">
+              <label class="two-factor-input-label">输入验证码以确认</label>
+              <input 
+                v-model="twoFactorDisableCode" 
+                type="text" 
+                class="two-factor-code-input"
+                placeholder="请输入6位验证码"
+                maxlength="6"
+                @keyup.enter="confirmDisable2FA"
+                ref="twoFactorDisableCodeInput"
+              />
+              <p class="two-factor-input-hint">请输入 Microsoft Authenticator 中显示的6位验证码</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="close2FADisableModal" class="modal-btn modal-btn-cancel">取消</button>
+          <button 
+            @click="confirmDisable2FA" 
+            class="modal-btn modal-btn-confirm"
+            :disabled="!twoFactorDisableCode || twoFactorDisableCode.length !== 6 || twoFactorLoading"
+          >
+            {{ twoFactorLoading ? '验证中...' : '确认禁用' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -710,7 +886,16 @@ export default {
         profileVisibility: 'public',
         tagsVisibility: 'public',
         achievementsVisibility: 'public'
-      }
+      },
+      // 2FA相关
+      twoFactorEnabled: false,
+      twoFactorLoading: false,
+      show2FAEnableModal: false,
+      show2FADisableModal: false,
+      twoFactorQRCode: null,
+      twoFactorCode: '',
+      twoFactorDisableCode: '',
+      twoFactorConfirming: false
     }
   },
   computed: {
@@ -802,9 +987,14 @@ export default {
     this.loadPrivacySettings()
     this.loadPresetTags()
     this.loadUserProjects()
+    this.load2FAStatus()
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
-    this.$root.$on('userInfoUpdated', this.loadUserInfo)
+    this.$root.$on('userInfoUpdated', () => {
+      this.loadUserInfo()
+      // 同时重新加载2FA状态
+      this.load2FAStatus()
+    })
   },
   beforeRouteUpdate(to, from, next) {
     const isReturningToSelf = !!from.query.userId && (typeof to.query.userId === 'undefined' || to.query.userId === null || to.query.userId === '')
@@ -952,6 +1142,12 @@ export default {
           this.$set(this.userInfo, 'role', data.role || this.userInfo.role)
           this.$set(this.userInfo, 'status', data.status || this.userInfo.status)
           
+          // 更新2FA状态（重要：确保2FA状态同步）
+          if (data.twoFactorEnabled !== undefined) {
+            this.twoFactorEnabled = Boolean(data.twoFactorEnabled)
+            console.log('✅ 从服务器更新2FA状态:', this.twoFactorEnabled)
+          }
+          
           console.log('[Profile] 更新后的userInfo.introduction:', this.userInfo.introduction)
           console.log('[Profile] 更新后的userInfo.description:', this.userInfo.description)
           console.log('[Profile] 更新后的完整userInfo:', JSON.stringify(this.userInfo))
@@ -975,10 +1171,16 @@ export default {
               if (data.avatar || data.avatarUrl || data.avatarData) {
                 userData.avatar = data.avatar || data.avatarUrl || data.avatarData
               }
+              // 更新2FA状态（重要：确保2FA状态被保存）
+              if (data.twoFactorEnabled !== undefined) {
+                userData.twoFactorEnabled = Boolean(data.twoFactorEnabled)
+                console.log('✅ 已更新localStorage中的2FA状态:', userData.twoFactorEnabled)
+              }
               localStorage.setItem('user_info', JSON.stringify(userData))
               console.log('✅ 已更新 localStorage 中的用户信息')
               console.log('✅ localStorage中的description:', userData.description)
               console.log('✅ localStorage中的introduction:', userData.introduction)
+              console.log('✅ localStorage中的twoFactorEnabled:', userData.twoFactorEnabled)
             } catch (error) {
               console.error('更新 localStorage 失败:', error)
             }
@@ -987,10 +1189,12 @@ export default {
             const userDataToSave = {
               ...data,
               description: description,
-              introduction: description
+              introduction: description,
+              twoFactorEnabled: data.twoFactorEnabled !== undefined ? Boolean(data.twoFactorEnabled) : false
             }
             localStorage.setItem('user_info', JSON.stringify(userDataToSave))
             console.log('✅ 首次保存用户信息到 localStorage')
+            console.log('✅ 保存的2FA状态:', userDataToSave.twoFactorEnabled)
           }
           
           this.isProfileLoading = false
@@ -1073,6 +1277,9 @@ export default {
             // 查看自己的资料时，加载当前用户的研究方向和学术成果
             this.loadResearchTags()
             this.loadLinkedAchievements()
+            
+            // 加载2FA状态（确保状态同步）
+            this.load2FAStatus()
           }
         } catch (error) {
           console.error('解析用户信息失败:', error)
@@ -1700,22 +1907,27 @@ export default {
             const userInfoResp = await authAPI.getCurrentUserInfo()
             if (userInfoResp && userInfoResp.code === 200 && userInfoResp.data) {
               const updatedData = userInfoResp.data
-              // 更新本地 userInfo
-              this.userInfo.introduction = updatedData.introduction || updatedData.description || trimmedIntro
-              
-              // 更新 localStorage 中的用户信息
-              const savedUserInfo = localStorage.getItem('user_info')
-              if (savedUserInfo) {
-                try {
-                  const userData = JSON.parse(savedUserInfo)
-                  userData.introduction = updatedData.introduction || updatedData.description || trimmedIntro
-                  userData.description = updatedData.description || updatedData.introduction || trimmedIntro
-                  localStorage.setItem('user_info', JSON.stringify(userData))
-                  console.log('个人简介已更新到user_info')
-                } catch (error) {
-                  console.error('更新user_info简介失败:', error)
+            // 更新本地 userInfo
+            this.userInfo.introduction = updatedData.introduction || updatedData.description || trimmedIntro
+            
+            // 更新 localStorage 中的用户信息
+            const savedUserInfo = localStorage.getItem('user_info')
+            if (savedUserInfo) {
+              try {
+                const userData = JSON.parse(savedUserInfo)
+                userData.introduction = updatedData.introduction || updatedData.description || trimmedIntro
+                userData.description = updatedData.description || updatedData.introduction || trimmedIntro
+                // 同时更新2FA状态（如果后端返回了）
+                if (updatedData.twoFactorEnabled !== undefined) {
+                  userData.twoFactorEnabled = Boolean(updatedData.twoFactorEnabled)
+                  this.twoFactorEnabled = Boolean(updatedData.twoFactorEnabled)
                 }
+                localStorage.setItem('user_info', JSON.stringify(userData))
+                console.log('个人简介已更新到user_info')
+              } catch (error) {
+                console.error('更新user_info简介失败:', error)
               }
+            }
             } else {
               // 如果获取失败，直接使用保存的值
               this.userInfo.introduction = trimmedIntro
@@ -2374,6 +2586,252 @@ export default {
         console.error('保存隐私设置失败:', error)
         alert('保存失败，请稍后重试')
       }
+    },
+
+    // ===== 2FA双因素认证相关方法 =====
+    async load2FAStatus() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      try {
+        // 优先从后端获取最新状态（确保数据准确）
+        try {
+          const response = await authAPI.getCurrentUserInfo()
+          console.log('获取2FA状态 - 后端响应:', response)
+          console.log('获取2FA状态 - response.data:', response?.data)
+          console.log('获取2FA状态 - response.data.twoFactorEnabled:', response?.data?.twoFactorEnabled)
+          if (response && response.code === 200 && response.data) {
+            const twoFactorEnabled = Boolean(response.data.twoFactorEnabled)
+            this.twoFactorEnabled = twoFactorEnabled
+            console.log('✅ 从后端获取2FA状态:', twoFactorEnabled, '(原始值:', response.data.twoFactorEnabled, ')')
+            
+            // 更新localStorage中的2FA状态
+            const savedUserInfo = localStorage.getItem('user_info')
+            if (savedUserInfo) {
+              try {
+                const userData = JSON.parse(savedUserInfo)
+                userData.twoFactorEnabled = twoFactorEnabled
+                localStorage.setItem('user_info', JSON.stringify(userData))
+                console.log('✅ 已更新localStorage中的2FA状态:', twoFactorEnabled)
+              } catch (e) {
+                console.error('更新localStorage中的2FA状态失败:', e)
+              }
+            }
+            return
+          }
+        } catch (error) {
+          console.warn('从后端获取2FA状态失败，使用本地缓存:', error)
+        }
+        
+        // 如果后端获取失败，从localStorage读取
+        const savedUserInfo = localStorage.getItem('user_info')
+        if (savedUserInfo) {
+          try {
+            const userData = JSON.parse(savedUserInfo)
+            this.twoFactorEnabled = Boolean(userData.twoFactorEnabled)
+            console.log('从localStorage读取2FA状态:', this.twoFactorEnabled)
+          } catch (e) {
+            console.error('解析localStorage用户信息失败:', e)
+            this.twoFactorEnabled = false
+          }
+        } else {
+          this.twoFactorEnabled = false
+        }
+      } catch (error) {
+        console.error('加载2FA状态失败:', error)
+        this.twoFactorEnabled = false
+      }
+    },
+
+    async handleEnable2FA() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      this.twoFactorLoading = true
+      try {
+        const response = await authAPI.enableTwoFactorAuth()
+        console.log('启用2FA完整响应:', JSON.stringify(response, null, 2))
+        
+        if (response && response.code === 200 && response.data) {
+          // 处理base64数据，确保有正确的前缀
+          let qrCodeBase64 = response.data.qrCodeBase64
+          
+          console.log('原始二维码数据:', {
+            exists: !!qrCodeBase64,
+            type: typeof qrCodeBase64,
+            length: qrCodeBase64 ? qrCodeBase64.length : 0,
+            startsWithData: qrCodeBase64 ? qrCodeBase64.startsWith('data:') : false,
+            preview: qrCodeBase64 ? qrCodeBase64.substring(0, 50) + '...' : 'null'
+          })
+          
+          if (qrCodeBase64) {
+            // 如果base64字符串不包含data URL前缀，则添加
+            if (!qrCodeBase64.startsWith('data:')) {
+              qrCodeBase64 = 'data:image/png;base64,' + qrCodeBase64
+              console.log('已添加data URL前缀')
+            }
+            
+            // 验证base64字符串格式
+            if (!qrCodeBase64.startsWith('data:image/')) {
+              console.error('二维码数据格式不正确:', qrCodeBase64.substring(0, 100))
+              throw new Error('二维码数据格式不正确')
+            }
+            
+            this.twoFactorQRCode = qrCodeBase64
+            console.log('✅ 二维码数据已设置，最终格式:', qrCodeBase64.substring(0, 50) + '...')
+          } else {
+            console.error('后端未返回二维码数据，响应数据:', response.data)
+            throw new Error('后端未返回二维码数据')
+          }
+          
+          this.show2FAEnableModal = true
+          this.twoFactorCode = ''
+          this.twoFactorConfirming = false
+          
+          // 聚焦到验证码输入框
+          this.$nextTick(() => {
+            if (this.$refs.twoFactorCodeInput) {
+              this.$refs.twoFactorCodeInput.focus()
+            }
+          })
+        } else {
+          console.error('启用2FA响应格式错误:', response)
+          throw new Error(response?.msg || '启用2FA失败')
+        }
+      } catch (error) {
+        console.error('启用2FA失败:', error)
+        alert('启用2FA失败: ' + (error.msg || error.message || '请稍后重试'))
+      } finally {
+        this.twoFactorLoading = false
+      }
+    },
+
+    async confirmEnable2FA() {
+      if (!this.twoFactorCode || this.twoFactorCode.length !== 6) {
+        alert('请输入6位验证码')
+        return
+      }
+      
+      this.twoFactorLoading = true
+      this.twoFactorConfirming = true
+      try {
+        const response = await authAPI.confirmEnableTwoFactorAuth(this.twoFactorCode)
+        if (response && response.code === 200) {
+          this.twoFactorEnabled = true
+          this.show2FAEnableModal = false
+          this.twoFactorQRCode = null
+          this.twoFactorCode = ''
+          this.twoFactorConfirming = false
+          
+          // 更新本地用户信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              userData.twoFactorEnabled = true
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('✅ 已更新localStorage中的2FA状态为启用')
+            } catch (error) {
+              console.error('更新user_info失败:', error)
+            }
+          }
+          
+          // 重新从后端获取最新状态，确保数据同步
+          await this.load2FAStatus()
+          
+          this.showSuccessToast('2FA已成功启用')
+        } else {
+          throw new Error(response.msg || '确认启用2FA失败')
+        }
+      } catch (error) {
+        console.error('确认启用2FA失败:', error)
+        alert('验证码错误或已过期，请重新输入')
+        this.twoFactorCode = ''
+        if (this.$refs.twoFactorCodeInput) {
+          this.$refs.twoFactorCodeInput.focus()
+        }
+      } finally {
+        this.twoFactorLoading = false
+        this.twoFactorConfirming = false
+      }
+    },
+
+    handleDisable2FA() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      this.show2FADisableModal = true
+      this.twoFactorDisableCode = ''
+      this.$nextTick(() => {
+        if (this.$refs.twoFactorDisableCodeInput) {
+          this.$refs.twoFactorDisableCodeInput.focus()
+        }
+      })
+    },
+
+    async confirmDisable2FA() {
+      if (!this.twoFactorDisableCode || this.twoFactorDisableCode.length !== 6) {
+        alert('请输入6位验证码')
+        return
+      }
+      
+      this.twoFactorLoading = true
+      try {
+        const response = await authAPI.disableTwoFactorAuth(this.twoFactorDisableCode)
+        if (response && response.code === 200) {
+          this.twoFactorEnabled = false
+          this.show2FADisableModal = false
+          this.twoFactorDisableCode = ''
+          
+          // 更新本地用户信息
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              userData.twoFactorEnabled = false
+              localStorage.setItem('user_info', JSON.stringify(userData))
+              console.log('✅ 已更新localStorage中的2FA状态为禁用')
+            } catch (error) {
+              console.error('更新user_info失败:', error)
+            }
+          }
+          
+          // 重新从后端获取最新状态，确保数据同步
+          await this.load2FAStatus()
+          
+          this.showSuccessToast('2FA已成功禁用')
+        } else {
+          throw new Error(response.msg || '禁用2FA失败')
+        }
+      } catch (error) {
+        console.error('禁用2FA失败:', error)
+        alert('验证码错误或已过期，请重新输入')
+        this.twoFactorDisableCode = ''
+        if (this.$refs.twoFactorDisableCodeInput) {
+          this.$refs.twoFactorDisableCodeInput.focus()
+        }
+      } finally {
+        this.twoFactorLoading = false
+      }
+    },
+
+    close2FAEnableModal() {
+      this.show2FAEnableModal = false
+      this.twoFactorQRCode = null
+      this.twoFactorCode = ''
+      this.twoFactorConfirming = false
+    },
+
+    close2FADisableModal() {
+      this.show2FADisableModal = false
+      this.twoFactorDisableCode = ''
+    },
+
+    handleQRCodeImageError(event) {
+      console.error('二维码图片加载失败:', event)
+      console.error('图片src:', event.target?.src?.substring(0, 100))
+      alert('二维码图片加载失败，请刷新页面重试')
+    },
+
+    handleQRCodeImageLoad(event) {
+      console.log('✅ 二维码图片加载成功')
     }
   }
 }
