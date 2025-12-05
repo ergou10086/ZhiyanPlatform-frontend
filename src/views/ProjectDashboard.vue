@@ -362,6 +362,43 @@
             <div class="task-list-header">
               <span class="task-list-title">成果详情</span>
               <span class="task-list-count">共 {{ achievements.length }} 个成果</span>
+              <!-- 导出按钮 -->
+              <div class="export-dropdown" @click.stop>
+                <button class="export-btn" @click="toggleExportMenu">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M17 8L12 13L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 3V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>导出</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="dropdown-arrow" :class="{ 'rotated': showExportMenu }">
+                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+                <div v-if="showExportMenu" class="export-menu">
+                  <div class="export-menu-item" @click="exportAchievements('csv')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>导出为 CSV</span>
+                  </div>
+                  <div class="export-menu-item" @click="exportAchievements('excel')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>导出为 Excel</span>
+                  </div>
+                  <div class="export-menu-item" @click="exportAchievements('json')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M4 7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H20C20.5304 5 21.0391 5.21071 21.4142 5.58579C21.7893 5.96086 22 6.46957 22 7V19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H6C5.46957 21 4.96086 20.7893 4.58579 20.4142C4.21071 20.0391 4 19.5304 4 19V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M8 12L10 14L16 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>导出为 JSON</span>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="task-list-items">
               <div 
@@ -431,21 +468,22 @@
                   <line x1="50" y1="150" x2="380" y2="150" stroke="#e2e8f0" stroke-dasharray="4"/>
                 </g>
                 
-                <!-- Wiki文档区域（上层，紫色） -->
-                <path 
-                  :d="wikiAreaPath"
-                  :fill="contributionHoverType === 'wiki' ? 'url(#wikiGradientHover)' : 'url(#wikiGradient)'"
-                  :class="['area-path', 'wiki-area', { 'active': contributionHoverType === 'wiki', 'dimmed': contributionHoverType === 'achievement' }]"
-                  @mousemove="showContributionTooltip($event, 'wiki')"
-                  @mouseleave="hideContributionTooltip"
-                />
-                
                 <!-- 成果区域（下层，蓝色） -->
                 <path 
                   :d="achievementAreaPath"
                   :fill="contributionHoverType === 'achievement' ? 'url(#achievementGradientHover)' : 'url(#achievementGradient)'"
                   :class="['area-path', 'achievement-area', { 'active': contributionHoverType === 'achievement', 'dimmed': contributionHoverType === 'wiki' }]"
                   @mousemove="showContributionTooltip($event, 'achievement')"
+                  @mouseleave="hideContributionTooltip"
+                />
+                
+                <!-- Wiki文档区域（上层，紫色） -->
+                <path 
+                  v-if="wikiAreaPath && wikiAreaPath.trim() !== '' && hasWikiData"
+                  :d="wikiAreaPath"
+                  :fill="contributionHoverType === 'wiki' ? 'url(#wikiGradientHover)' : 'url(#wikiGradient)'"
+                  :class="['area-path', 'wiki-area', { 'active': contributionHoverType === 'wiki', 'dimmed': contributionHoverType === 'achievement' }]"
+                  @mousemove="showContributionTooltip($event, 'wiki')"
                   @mouseleave="hideContributionTooltip"
                 />
                 
@@ -887,6 +925,8 @@ export default {
       milestoneSubmissions: [],
       // 成员任务统计数据 [{name, totalTasks, completedTasks}]
       memberTaskStats: [],
+      // 导出菜单显示状态
+      showExportMenu: false,
       // 双向柱状图配置
       barWidth: 50,
       // 成员任务统计tooltip
@@ -946,43 +986,59 @@ export default {
     // 添加滚动监听，用于检测何时滚动到图表section
     this.setupScrollObserver()
     
-    // 并行加载所有数据，显著提升加载速度
+    // 点击外部关闭导出菜单
+    document.addEventListener('click', this.handleClickOutside)
+    
+    // 优化加载策略：先加载关键数据，立即显示页面
     try {
       this.isLoading = true
       this.loadingProgress = 10
       
-      // 先获取任务列表（其他数据依赖它）
-      const allTasks = await this.fetchAllTasks()
-      this.allTasks = allTasks
-      this.loadingProgress = 30
-      
-      // 并行加载所有其他数据
-      await Promise.all([
-        this.loadTaskStatistics(allTasks),
-        this.loadMemberWorktimes(allTasks),
-        this.loadCompletionTrend(),
-        this.loadAchievements(),
-        this.loadProjectMembers(),
-        this.loadTaskSubmissions(),
-        this.loadWikiStatistics(),
-        this.loadMilestoneTasks()
+      // 第一步：并行加载关键数据（第一屏需要的数据）
+      // 使用快速模式：先加载前几页任务，剩余任务异步加载
+      const [allTasks, projectMembers] = await Promise.all([
+        this.fetchAllTasks(true), // 快速模式
+        this.loadProjectMembers()
       ])
       
-      this.loadingProgress = 90
+      this.allTasks = allTasks
+      this.loadingProgress = 40
+      
+      // 第二步：加载第一屏的关键数据（KPI和任务统计）
+      await Promise.all([
+        this.loadTaskStatistics(allTasks),
+        this.loadMemberWorktimes(allTasks)
+      ])
+      
+      this.loadingProgress = 60
+      
+      // 立即显示页面（关键数据已加载完成）
+      this.isLoading = false
+      this.loadingProgress = 100
       
       // 数字滚动动画
       Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
       // 饼图动画
       this.animatePieChart()
       
-      this.loadingProgress = 100
-    } catch (error) {
-      console.error('[ProjectDashboard] 加载数据失败:', error)
-    } finally {
-      // 延迟隐藏加载状态，让动画完成
+      // 第三步：异步加载非关键数据（不阻塞页面显示）
+      // 使用 requestIdleCallback 或 setTimeout 延迟加载，避免阻塞主线程
       setTimeout(() => {
-        this.isLoading = false
-      }, 300)
+        Promise.all([
+          this.loadCompletionTrend(),
+          this.loadAchievements(),
+          this.loadTaskSubmissions(),
+          this.loadWikiStatistics(),
+          this.loadMilestoneTasks()
+        ]).catch(error => {
+          console.error('[ProjectDashboard] 非关键数据加载失败:', error)
+        })
+      }, 100)
+      
+    } catch (error) {
+      console.error('[ProjectDashboard] 加载关键数据失败:', error)
+      // 即使关键数据加载失败，也显示页面
+      this.isLoading = false
     }
   },
   beforeDestroy() {
@@ -992,6 +1048,8 @@ export default {
     if (this.scrollObserver) {
       this.scrollObserver.disconnect()
     }
+    // 移除点击外部监听
+    document.removeEventListener('click', this.handleClickOutside)
   },
   computed: {
     // 计算总工时
@@ -1149,11 +1207,25 @@ export default {
       // 向上取整到合适的刻度
       return Math.max(Math.ceil(maxTotal / 5) * 5, 5)
     },
+    // 检查是否有Wiki数据
+    hasWikiData() {
+      if (!this.memberContributionData || this.memberContributionData.length === 0) {
+        return false
+      }
+      return this.memberContributionData.some(m => m.wikiCount > 0)
+    },
     // 计算Wiki文档区域的SVG路径（堆叠在成果之上）
     wikiAreaPath() {
       if (!this.memberContributionData || this.memberContributionData.length === 0) {
         return ''
       }
+      
+      // 检查是否有Wiki数据
+      const hasWiki = this.memberContributionData.some(m => m.wikiCount > 0)
+      if (!hasWiki) {
+        return ''
+      }
+      
       const data = this.memberContributionData
       const maxY = this.maxContribution || 1
       const chartHeight = 140 // 图表高度（从y=30到y=170）
@@ -1161,31 +1233,61 @@ export default {
       const chartLeft = 50 // 图表左边界
       const chartRight = 380 // 图表右边界
       
-      // 构建路径点
-      let pathPoints = []
+      // 构建路径点（Wiki区域的顶部和底部）
+      let topPathPoints = [] // Wiki区域顶部
+      let bottomPathPoints = [] // Wiki区域底部（即成果区域顶部）
+      
       data.forEach((member, index) => {
         const x = this.getContributionX(index)
-        // Wiki + Achievement 的总高度（从底部开始）
-        const totalValue = member.wikiCount + member.achievementCount
-        const totalY = chartBottom - (totalValue / maxY) * chartHeight
-        pathPoints.push({ x, y: totalY })
+        // 计算成果区域的顶部位置（Wiki区域的底部）
+        const achievementTopY = chartBottom - (member.achievementCount / maxY) * chartHeight
+        // 计算Wiki区域的顶部位置（从成果顶部向上堆叠）
+        const wikiTopY = achievementTopY - (member.wikiCount / maxY) * chartHeight
+        
+        topPathPoints.push({ x, y: wikiTopY })
+        bottomPathPoints.push({ x, y: achievementTopY })
       })
       
       // 构建SVG路径
-      if (pathPoints.length === 0) return ''
+      if (topPathPoints.length === 0) return ''
       
-      // 如果只有一个数据点，从左边界画到右边界形成面积图
-      if (pathPoints.length === 1) {
-        const p = pathPoints[0]
-        return `M ${chartLeft} ${chartBottom} L ${chartLeft} ${p.y} L ${chartRight} ${p.y} L ${chartRight} ${chartBottom} Z`
+      // 如果只有一个数据点
+      if (topPathPoints.length === 1) {
+        const top = topPathPoints[0]
+        const bottom = bottomPathPoints[0]
+        // 确保有高度差，即使很小也要显示
+        if (Math.abs(top.y - bottom.y) < 0.1) {
+          // 如果高度差太小，至少显示1像素
+          const adjustedTop = Math.max(top.y - 1, 30)
+          return `M ${chartLeft} ${bottom.y} L ${chartLeft} ${adjustedTop} L ${chartRight} ${adjustedTop} L ${chartRight} ${bottom.y} Z`
+        }
+        return `M ${chartLeft} ${bottom.y} L ${chartLeft} ${top.y} L ${chartRight} ${top.y} L ${chartRight} ${bottom.y} Z`
       }
       
-      // 多个数据点时，使用平滑曲线
-      let path = `M ${chartLeft} ${chartBottom} L ${pathPoints[0].x} ${chartBottom}`
-      pathPoints.forEach(p => {
+      // 多个数据点时，构建堆叠面积图
+      // 路径构建：从左下角 -> 沿顶部边界到右上角 -> 沿底部边界返回左下角
+      const firstBottom = bottomPathPoints[0]
+      const lastTop = topPathPoints[topPathPoints.length - 1]
+      const lastBottom = bottomPathPoints[bottomPathPoints.length - 1]
+      
+      // 从左侧边界开始，到第一个数据点的底部
+      let path = `M ${chartLeft} ${firstBottom.y} L ${firstBottom.x} ${firstBottom.y}`
+      
+      // 沿顶部路径（从左到右）- Wiki 区域的顶部边界
+      topPathPoints.forEach(p => {
         path += ` L ${p.x} ${p.y}`
       })
-      path += ` L ${pathPoints[pathPoints.length - 1].x} ${chartBottom} L ${chartRight} ${chartBottom} Z`
+      
+      // 到右侧边界，然后沿底部路径返回
+      path += ` L ${lastTop.x} ${lastBottom.y} L ${chartRight} ${lastBottom.y}`
+      
+      // 底部路径（从右到左，反向）- 成果区域的顶部边界
+      for (let i = bottomPathPoints.length - 1; i >= 0; i--) {
+        path += ` L ${bottomPathPoints[i].x} ${bottomPathPoints[i].y}`
+      }
+      
+      // 返回到左侧边界并闭合
+      path += ` L ${chartLeft} ${firstBottom.y} Z`
       
       return path
     },
@@ -1538,9 +1640,9 @@ export default {
     },
 
     /**
-     * 获取所有任务列表（公共方法，避免重复请求）
+     * 获取所有任务列表（优化版：先快速加载第一页，然后异步加载剩余）
      */
-    async fetchAllTasks() {
+    async fetchAllTasks(quickMode = false) {
       const projectId = this.$route.params.id
       if (!projectId) {
         console.warn('[ProjectDashboard] 项目ID不存在')
@@ -1552,6 +1654,60 @@ export default {
         
         let allTasks = []
         let page = 0
+        const size = 100
+        const maxQuickPages = 3 // 快速模式下最多加载3页
+        let hasMore = true
+
+        while (hasMore) {
+          const response = await taskAPI.getProjectTasks(projectId, page, size)
+          
+          if (response && response.code === 200 && response.data) {
+            const tasksData = response.data
+            let taskList = []
+            
+            if (tasksData.content && Array.isArray(tasksData.content)) {
+              taskList = tasksData.content
+              const totalPages = tasksData.totalPages || 0
+              hasMore = (page + 1) < totalPages
+            } else if (Array.isArray(tasksData)) {
+              taskList = tasksData
+              hasMore = taskList.length === size
+            } else {
+              hasMore = false
+            }
+            
+            allTasks = allTasks.concat(taskList)
+            page++
+            
+            // 快速模式：只加载前几页
+            if (quickMode && page >= maxQuickPages) {
+              // 异步加载剩余任务
+              this.fetchRemainingTasks(projectId, page, allTasks)
+              hasMore = false
+            } else if (taskList.length < size) {
+              hasMore = false
+            }
+          } else {
+            hasMore = false
+          }
+        }
+
+        return Array.isArray(allTasks) ? allTasks : []
+
+      } catch (error) {
+        console.error('[ProjectDashboard] 获取任务列表失败:', error)
+        return []
+      }
+    },
+
+    /**
+     * 异步加载剩余任务（不阻塞页面显示）
+     */
+    async fetchRemainingTasks(projectId, startPage, existingTasks) {
+      try {
+        const { taskAPI } = await import('@/api/task')
+        let allTasks = [...existingTasks]
+        let page = startPage
         const size = 100
         let hasMore = true
 
@@ -1584,16 +1740,12 @@ export default {
           }
         }
 
-        console.log('[ProjectDashboard] 获取到的任务列表:', allTasks.length, '个')
-        // 打印第一个任务的详细信息，用于调试成员字段
-        if (allTasks.length > 0) {
-          console.log('[ProjectDashboard] 第一个任务详情:', allTasks[0])
-        }
-        return Array.isArray(allTasks) ? allTasks : []
-
+        // 更新任务列表和统计数据
+        this.allTasks = allTasks
+        this.loadTaskStatistics(allTasks)
+        this.loadMemberWorktimes(allTasks)
       } catch (error) {
-        console.error('[ProjectDashboard] 获取任务列表失败:', error)
-        return []
+        console.error('[ProjectDashboard] 加载剩余任务失败:', error)
       }
     },
 
@@ -2681,8 +2833,6 @@ export default {
         // 获取Wiki树结构，从中统计每个成员的贡献
         const treeResponse = await wikiPageAPI.getProjectWikiTree(projectId)
         
-        console.log('[ProjectDashboard] Wiki树响应:', treeResponse)
-        
         if (treeResponse && treeResponse.code === 200 && treeResponse.data) {
           const wikiTree = treeResponse.data
           
@@ -2712,19 +2862,6 @@ export default {
               const hasChildren = page.children && Array.isArray(page.children) && page.children.length > 0
               const isDocument = pageType === 'DOCUMENT' || pageType === 'document' || !hasChildren
               
-              // 打印完整的页面信息用于调试
-              console.log('[ProjectDashboard] Wiki页面详情:', JSON.stringify({
-                title: page.title,
-                pageType: pageType,
-                isDocument: isDocument,
-                hasChildren: hasChildren,
-                creatorId: page.creatorId,
-                createdBy: page.createdBy,
-                creatorName: page.creatorName,
-                authorId: page.authorId,
-                authorName: page.authorName
-              }))
-              
               // 只统计文档类型，不统计目录/节点
               if (isDocument) {
                 totalCount++
@@ -2741,14 +2878,10 @@ export default {
                 } else if (creatorId && creatorId !== '' && creatorId !== 'undefined') {
                   // 从成员映射中查找
                   memberName = memberIdToName.get(creatorId)
-                  console.log('[ProjectDashboard] 查找成员ID:', creatorId, '结果:', memberName)
                 }
                 
                 if (memberName && memberName !== '未知') {
                   memberWikiCount.set(memberName, (memberWikiCount.get(memberName) || 0) + 1)
-                  console.log('[ProjectDashboard] 统计Wiki:', page.title, '-> 成员:', memberName)
-                } else {
-                  console.log('[ProjectDashboard] 无法确定创建者:', page.title, 'creatorId:', creatorId)
                 }
               }
               
@@ -2778,9 +2911,6 @@ export default {
           }
           this.totalWikiCount = totalCount
           
-          console.log('[ProjectDashboard] Wiki统计数据加载完成:', this.wikiStatistics)
-          console.log('[ProjectDashboard] 成员Wiki统计:', Array.from(memberWikiCount.entries()))
-          
           // 更新成员贡献数据
           this.updateMemberContributionData()
         } else {
@@ -2803,24 +2933,21 @@ export default {
     updateMemberContributionData() {
       const memberMap = new Map()
       
-      console.log('[ProjectDashboard] 开始更新成员贡献数据')
-      console.log('[ProjectDashboard] 成果数据:', this.achievements)
-      console.log('[ProjectDashboard] Wiki统计:', this.wikiStatistics)
-      console.log('[ProjectDashboard] 项目成员:', this.projectMembers)
-      
-      // 记录没有成员名称的成果数量
-      let unassignedAchievements = 0
-      
-      // 从成果数据中统计每个成员的成果数量
+      // 1）先根据成果统计每个成员的成果数量
       if (Array.isArray(this.achievements) && this.achievements.length > 0) {
         this.achievements.forEach(achievement => {
-          // 尝试多种方式获取成员名称
-          let memberName = achievement.creatorName || achievement.responsibleName || achievement.ownerName || null
+          // 优先使用负责人姓名，与左侧列表保持一致
+          let memberName = achievement.responsibleName || achievement.creatorName || achievement.ownerName || null
           
-          // 如果没有名称，尝试从项目成员中查找
+          // 将 "未知" 或空字符串视为无效姓名
+          if (memberName === '未知' || (typeof memberName === 'string' && memberName.trim() === '')) {
+            memberName = null
+          }
+          
+          // 如果没有有效姓名，尝试通过成员ID在项目成员列表中反查
           if (!memberName) {
             const memberId = achievement.creatorId || achievement.responsibleId
-            if (memberId && this.projectMembers.length > 0) {
+            if (memberId && Array.isArray(this.projectMembers) && this.projectMembers.length > 0) {
               const member = this.projectMembers.find(m => 
                 String(m.userId) === String(memberId) || 
                 String(m.id) === String(memberId) ||
@@ -2832,42 +2959,22 @@ export default {
             }
           }
           
-          // 如果还是没有名称，记录为未分配
           if (!memberName) {
-            unassignedAchievements++
-          } else {
-            if (!memberMap.has(memberName)) {
-              memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
-            }
-            memberMap.get(memberName).achievementCount++
+            return
           }
+          
+          if (!memberMap.has(memberName)) {
+            memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
+          }
+          memberMap.get(memberName).achievementCount++
         })
       }
       
-      // 如果所有成果都没有成员名称，按项目成员均分
-      if (unassignedAchievements > 0 && memberMap.size === 0 && this.projectMembers.length > 0) {
-        console.log('[ProjectDashboard] 成果无成员信息，按项目成员分配')
-        const achievementCount = this.achievements.length
-        const memberCount = Math.min(this.projectMembers.length, 5) // 最多显示5个成员
-        const perMember = Math.ceil(achievementCount / memberCount)
-        let remaining = achievementCount
-        
-        for (let i = 0; i < memberCount && remaining > 0; i++) {
-          const member = this.projectMembers[i]
-          const memberName = member.nickname || member.username || member.name || member.realName || `成员${i + 1}`
-          const count = Math.min(perMember, remaining)
-          memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: count })
-          remaining -= count
-        }
-      }
-      
-      // 从Wiki统计中获取成员贡献
-      if (this.wikiStatistics && this.wikiStatistics.memberStats && this.wikiStatistics.memberStats.length > 0) {
-        console.log('[ProjectDashboard] Wiki成员统计:', this.wikiStatistics.memberStats)
+      // 2）合并 Wiki 统计的真实数据
+      if (this.wikiStatistics && Array.isArray(this.wikiStatistics.memberStats) && this.wikiStatistics.memberStats.length > 0) {
         this.wikiStatistics.memberStats.forEach(stat => {
           const memberName = stat.memberName || stat.name
           const wikiCount = stat.documentCount || stat.count || 0
-          console.log('[ProjectDashboard] Wiki成员:', memberName, 'Wiki数量:', wikiCount)
           if (memberName && wikiCount > 0) {
             if (!memberMap.has(memberName)) {
               memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
@@ -2877,32 +2984,15 @@ export default {
         })
       }
       
-      // 如果Wiki有数据但没有分配到任何成员，按比例分配给有成果的成员
-      const totalWikiAssigned = Array.from(memberMap.values()).reduce((sum, m) => sum + m.wikiCount, 0)
-      if (this.totalWikiCount > 0 && totalWikiAssigned === 0 && memberMap.size > 0) {
-        console.log('[ProjectDashboard] Wiki数据未分配到成员，按比例分配')
-        const members = Array.from(memberMap.values())
-        const totalAchievements = members.reduce((sum, m) => sum + m.achievementCount, 0) || 1
-        
-        members.forEach(member => {
-          // 按成果比例分配Wiki数量
-          const ratio = member.achievementCount / totalAchievements
-          member.wikiCount = Math.max(1, Math.round(this.totalWikiCount * ratio))
-        })
-      }
-      
-      // 转换为数组并排序（按总贡献降序）
+      // 3）只展示真实数据（wikiCount 或 achievementCount 至少一个 > 0），按总贡献排序
       this.memberContributionData = Array.from(memberMap.values())
         .filter(m => m.name && (m.achievementCount > 0 || m.wikiCount > 0))
         .sort((a, b) => (b.wikiCount + b.achievementCount) - (a.wikiCount + a.achievementCount))
         .slice(0, 8) // 最多显示8个成员
-      
-      console.log('[ProjectDashboard] 成员贡献数据更新完成:', this.memberContributionData)
-      console.log('[ProjectDashboard] 各成员数据:', this.memberContributionData.map(m => `${m.name}: wiki=${m.wikiCount}, achievement=${m.achievementCount}`))
     },
 
     /**
-     * 获取成员在图表中的X坐标
+     * 获取成员在贡献图中的X坐标（用于面积图X轴布局）
      */
     getContributionX(index) {
       const data = this.memberContributionData
@@ -3403,6 +3493,93 @@ export default {
     hideContributionTooltip() {
       this.contributionHoverType = null
       this.tooltip.show = false
+    },
+
+    /**
+     * 切换导出菜单显示状态
+     */
+    toggleExportMenu() {
+      this.showExportMenu = !this.showExportMenu
+    },
+
+    /**
+     * 导出成果数据
+     */
+    exportAchievements(format) {
+      this.showExportMenu = false
+      
+      if (!this.achievements || this.achievements.length === 0) {
+        alert('没有可导出的成果数据')
+        return
+      }
+
+      const projectId = this.$route.params.id
+      const projectName = '项目成果'
+      const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      let filename = `${projectName}_成果列表_${timestamp}`
+
+      if (format === 'csv') {
+        this.exportToCSV(filename)
+      } else if (format === 'excel') {
+        this.exportToExcel(filename)
+      } else if (format === 'json') {
+        this.exportToJSON(filename)
+      }
+    },
+
+    /**
+     * 导出为CSV格式
+     */
+    exportToCSV(filename) {
+      const headers = ['标题', '类型', '负责人', '创建时间', '更新时间', '状态']
+      const rows = this.achievements.map(achievement => [
+        achievement.title || '未命名成果',
+        achievement.typeName || achievement.type || '未知',
+        achievement.responsibleName || '未知',
+        achievement.createTime || achievement.createdAt || '',
+        achievement.updateTime || achievement.updatedAt || '',
+        achievement.status || '未知'
+      ])
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      ].join('\n')
+
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `${filename}.csv`
+      link.click()
+    },
+
+    /**
+     * 导出为Excel格式（使用CSV格式，可以Excel打开）
+     */
+    exportToExcel(filename) {
+      // 使用CSV格式，Excel可以打开
+      this.exportToCSV(filename.replace('.csv', ''))
+    },
+
+    /**
+     * 导出为JSON格式
+     */
+    exportToJSON(filename) {
+      const jsonContent = JSON.stringify(this.achievements, null, 2)
+      const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `${filename}.json`
+      link.click()
+    },
+
+    /**
+     * 处理点击外部关闭导出菜单
+     */
+    handleClickOutside(event) {
+      if (this.showExportMenu && !event.target.closest('.export-dropdown')) {
+        this.showExportMenu = false
+      }
     },
 
     /**
@@ -4434,6 +4611,116 @@ export default {
   background: #f1f5f9;
   padding: 4px 10px;
   border-radius: 12px;
+}
+
+/* 导出按钮和下拉菜单 */
+.export-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.export-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
+}
+
+.export-btn:active {
+  transform: translateY(0);
+}
+
+.export-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.export-btn .dropdown-arrow {
+  width: 12px;
+  height: 12px;
+  transition: transform 0.2s ease;
+}
+
+.export-btn .dropdown-arrow.rotated {
+  transform: rotate(180deg);
+}
+
+.export-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.export-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.export-menu-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.export-menu-item:first-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+}
+
+.export-menu-item:last-child {
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+.export-menu-item svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #64748b;
+}
+
+.export-menu-item:hover svg {
+  color: #3b82f6;
 }
 
 .task-list-items {
