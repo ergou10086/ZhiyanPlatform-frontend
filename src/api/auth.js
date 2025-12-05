@@ -308,6 +308,37 @@ export const authAPI = {
   supplementOAuth2Info(data) {
     console.log('[authAPI.supplementOAuth2Info] 补充信息创建账号, provider:', data.provider)
     return api.post('/zhiyan/auth/oauth2/supplement', data)
+  },
+
+  // ==================== 2FA 双因素认证 ====================
+
+  /**
+   * 启用2FA - 生成密钥和二维码
+   * @returns {Promise} 返回包含qrCodeBase64、qrCodeText、secretKey的响应
+   */
+  enableTwoFactorAuth() {
+    console.log('[authAPI.enableTwoFactorAuth] 启用2FA')
+    return api.post('/zhiyan/auth/2fa/enable')
+  },
+
+  /**
+   * 确认启用2FA - 验证验证码后正式启用
+   * @param {String} code - 2FA验证码
+   * @returns {Promise} 返回操作结果
+   */
+  confirmEnableTwoFactorAuth(code) {
+    console.log('[authAPI.confirmEnableTwoFactorAuth] 确认启用2FA')
+    return api.post('/zhiyan/auth/2fa/confirm', { code })
+  },
+
+  /**
+   * 禁用2FA - 需要验证当前2FA验证码才能禁用
+   * @param {String} code - 2FA验证码
+   * @returns {Promise} 返回操作结果
+   */
+  disableTwoFactorAuth(code) {
+    console.log('[authAPI.disableTwoFactorAuth] 禁用2FA')
+    return api.post('/zhiyan/auth/2fa/disable', { code })
   }
 }
 
