@@ -2245,7 +2245,7 @@ export default {
         console.warn('项目ID不存在，无法加载文件列表')
         return
       }
-      
+
       this.loadingFiles = true
       try {
         const response = await knowledgeAPI.getProjectAchievements(projectId, 0, 1000)
@@ -2975,3 +2975,5 @@ export default {
 }
 
 </script>
+
+//
