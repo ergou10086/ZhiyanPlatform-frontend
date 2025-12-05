@@ -3067,3 +3067,37 @@
   background: #64748b;
 }
 
+
+/* 涓婁紶杩涘害瀵硅瘽妗嗘牱寮?*/
+.upload-progress-content {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.progress-message {
+  margin-bottom: 15px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.progress-count {
+  margin-top: 10px;
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 纭繚瀵硅瘽妗嗗眳涓樉绀?*/
+.el-dialog__wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 鏆楄壊妯″紡涓嬬殑涓婁紶杩涘害鏍峰紡 */
+.dark-mode .progress-message {
+  color: #cbd5e1;
+}
+
+.dark-mode .progress-count {
+  color: #94a3b8;
+}
