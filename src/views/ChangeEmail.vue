@@ -131,7 +131,7 @@ export default {
       animateLogo: false,
       userId: null
     }
-  },
+  },  
   created() {
     // 1）优先从路由参数中读取邮箱（例如从忘记密码页跳转时传入）
     const routeEmail = this.$route && this.$route.query
