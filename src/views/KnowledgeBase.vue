@@ -138,6 +138,8 @@
 import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import '@/assets/styles/KnowledgeBase.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 export default {
   name: 'KnowledgeBase',
@@ -158,7 +160,8 @@ export default {
       pageSize: 8, // 每页显示8个项目（2行，每行4个）
       // 登录状态与当前用户
       isAuthenticated: false,
-      currentUserId: null
+      currentUserId: null,
+      scifiBgCleanup: null
     }
   },
   computed: {
@@ -189,10 +192,20 @@ export default {
     this.loadUserProjects()
     window.addEventListener('storage', this.handleStorageChange)
     document.addEventListener('click', this.handleClickOutside)
+    // 科技感背景（仅本页面）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
   },
   beforeDestroy() {
     window.removeEventListener('storage', this.handleStorageChange)
     document.removeEventListener('click', this.handleClickOutside)
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
+    }
   },
   methods: {
     refreshAuthState() {

@@ -159,6 +159,8 @@
 import Sidebar from '@/components/Sidebar.vue'
 import { normalizeProjectCoverUrl, normalizeImageUrl, preloadImages } from '@/utils/imageUtils'
 import '@/assets/styles/ProjectSquare.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 export default {
   name: 'ProjectSquare',
@@ -183,7 +185,8 @@ export default {
       isAuthenticated: false,
       currentUserId: null,
       imagesReady: false,
-      loadingStartTime: 0
+      loadingStartTime: 0,
+      scifiBgCleanup: null
     }
   },
   computed: {
@@ -243,6 +246,12 @@ export default {
     
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
+    // 科技感背景（仅本页面，低侵入）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
   },
   activated() {
     this.refreshAuthState()
@@ -287,6 +296,10 @@ export default {
     // 保存页面状态（组件销毁前）
     this.savePageState()
     document.removeEventListener('click', this.handleClickOutside)
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
+    }
   },
   methods: {
     /**
