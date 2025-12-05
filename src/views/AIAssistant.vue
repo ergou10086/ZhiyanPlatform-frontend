@@ -274,6 +274,23 @@
               </div>
             </div>
 
+            <!-- 成果标题 
+            <div class="control-item">
+              <label class="control-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                成果标题（可选）
+              </label>
+              <input
+                v-model="taskResultTitle"
+                type="text"
+                class="control-input"
+                placeholder="例如：实验数据分析报告"
+                :disabled="isUploading"
+              />
+            </div> -->
+
             <!-- 选择任务按钮 -->
             <div class="control-item">
               <label class="control-label">
@@ -755,6 +772,31 @@
         </div>
       </div>
     </div>
+
+    <!-- 上传进度对话框 - 使用teleport挂载到body -->
+    <teleport to="body">
+      <el-dialog
+        v-if="uploadProgress"
+        :model-value="true"
+        title="上传进度"
+        :close-on-click-modal="false"
+        :show-close="false"
+        :close-on-press-escape="false"
+        width="30%"
+      >
+        <div class="upload-progress-content">
+          <p class="progress-message">{{ uploadProgress.message || '处理中...' }}</p>
+          <el-progress 
+            :percentage="Math.round((uploadProgress.current / uploadProgress.total) * 100)"
+            :status="uploadProgress.current === uploadProgress.total ? 'success' : null"
+            :stroke-width="8"
+          />
+          <p class="progress-count">
+            已完成: {{ uploadProgress.current || 0 }}/{{ uploadProgress.total || 0 }}
+          </p>
+        </div>
+      </el-dialog>
+    </teleport>
     </div>
 </template>
 
@@ -763,7 +805,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
 import { taskAPI } from '@/api/task'
-import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate } from '@/api/taskResult'
+import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate, linkTasksToAchievement } from '@/api/taskResult'
 import difyAPI from '@/api/dify'
 import vSelect from 'vue-select'
 import 'vue-select/dist/vue-select.css'
@@ -866,7 +908,11 @@ export default {
       currentStreamController: null, // 当前流式请求的控制器
       currentAbortController: null, // 用于中断请求的AbortController
       // ⭐ 复制功能状态
-      copiedMessageIndex: null // 当前已复制的消息索引
+      copiedMessageIndex: null, // 当前已复制的消息索引
+      // 上传相关状态
+      uploadProgress: null, // { total: 0, current: 0, message: '' }
+      isUploading: false,
+      taskResultTitle: '' // 成果标题
     }
   },
   computed: {
@@ -2551,36 +2597,350 @@ export default {
 
     // 上传为成果
     async uploadTaskResult() {
-      if (!this.taskResultOutput) {
-        alert('没有可上传的内容')
+      // 验证输入
+      if (!this.taskResultOutput || !this.taskResultOutput.trim()) {
+        this.$message.warning('没有可上传的内容')
         return
       }
 
       if (!this.taskResultProjectId) {
-        alert('请先选择项目')
+        this.$message.warning('请先选择项目')
+        return
+      }
+
+      // 防止重复提交
+      if (this.isUploading) {
+        this.$message.warning('正在上传中，请稍候...')
         return
       }
 
       try {
-        // TODO: 调用后端 API 上传成果
-        // 这里需要根据实际的后端 API 接口来实现
-        // const response = await knowledgeAPI.uploadAchievement({
-        //   projectId: this.taskResultProjectId,
-        //   title: 'AI生成的成果',
-        //   content: this.taskResultOutput,
-        //   markdown: this.taskResultOutput
-        // })
+        this.isUploading = true
         
-        // 临时提示
-        alert('成果上传功能待实现，请等待后端接口接入')
-        console.log('准备上传成果:', {
-          projectId: this.taskResultProjectId,
-          content: this.taskResultOutput.substring(0, 100) + '...'
-        })
+        // 1. 获取任务附件（如果启用）
+        this.updateProgress('正在获取任务附件...')
+        const attachments = this.includeAttachments && this.selectedTaskIds.length > 0
+          ? await this.fetchTaskAttachments(this.selectedTaskIds)
+          : []
+        
+        // 计算总步骤数：创建成果(1) + 上传Markdown(1) + 上传附件(n) + 关联任务(1)
+        const totalSteps = 1 + 1 + attachments.length + (this.selectedTaskIds.length > 0 ? 1 : 0)
+        
+        // 初始化进度
+        this.uploadProgress = {
+          total: totalSteps,
+          current: 0,
+          message: '准备上传...'
+        }
+        
+        // 2. 创建成果
+        this.updateProgress('正在创建成果记录...')
+        const achievement = await this.createAchievement()
+        
+        if (!achievement || !achievement.id) {
+          throw new Error('创建成果失败：未返回成果ID')
+        }
+        
+        // 3. 上传Markdown文件
+        await this.uploadMarkdownFile(achievement.id)
+        
+        // 4. 上传附件
+        if (attachments.length > 0) {
+          await this.uploadAttachments(achievement.id, attachments)
+        }
+        
+        // 5. 关联任务
+        if (this.selectedTaskIds.length > 0) {
+          await this.linkTasks(achievement.id)
+        }
+
+        // 6. 完成
+        this.updateProgress('上传完成！', 0)
+        this.$message.success('成果上传成功')
+        
+        // 延迟关闭进度条，让用户看到完成状态
+        setTimeout(() => {
+          this.resetForm()
+        }, 1500)
+
       } catch (error) {
-        console.error('上传成果失败:', error)
-        alert('上传成果失败: ' + (error.message || '未知错误'))
+        console.error('上传失败:', error)
+        const errorMessage = error.message || error.msg || '未知错误'
+        this.$message.error(`上传失败: ${errorMessage}`)
+        
+        // 更新进度显示错误
+        if (this.uploadProgress) {
+          this.uploadProgress.message = `上传失败: ${errorMessage}`
+        }
+      } finally {
+        this.isUploading = false
+        // 延迟关闭进度条
+        setTimeout(() => {
+          if (this.uploadProgress && this.uploadProgress.current < this.uploadProgress.total) {
+            this.uploadProgress = null
+          }
+        }, 2000)
       }
+    },
+
+    // 创建成果
+    async createAchievement() {
+      try {
+        // 生成成果标题
+        const achievementTitle = this.taskResultTitle?.trim() || 
+          `AI生成的任务成果_${new Date().toLocaleDateString('zh-CN')}`
+        
+        const response = await knowledgeAPI.createAchievement({
+          projectId: this.taskResultProjectId,
+          title: achievementTitle,
+          content: this.taskResultOutput,
+          type: 'report', // 使用 report 类型，对应后端的 report 枚举
+          description: `由 ${this.selectedTaskIds.length} 个任务生成的成果`
+        })
+        
+        // 处理响应数据
+        let achievementData = null
+        if (response && typeof response === 'object') {
+          if (response.code === 200) {
+            achievementData = response.data
+          } else if (response.data && !response.code) {
+            // 兼容直接返回数据的情况
+            achievementData = response.data
+          } else {
+            throw new Error(response.msg || response.message || '创建成果失败')
+          }
+        } else {
+          achievementData = response
+        }
+        
+        if (!achievementData || !achievementData.id) {
+          throw new Error('创建成果失败：响应数据无效')
+        }
+        
+        this.updateProgress('成果创建成功', 1)
+        return achievementData
+      } catch (error) {
+        console.error('创建成果失败:', error)
+        throw error
+      }
+    },
+
+    // 上传Markdown文件
+    async uploadMarkdownFile(achievementId) {
+      try {
+        this.updateProgress('正在上传Markdown文件...')
+        
+        // 验证 achievementId
+        if (!achievementId) {
+          throw new Error('成果ID不能为空')
+        }
+        
+        // 验证内容
+        if (!this.taskResultOutput || !this.taskResultOutput.trim()) {
+          throw new Error('成果内容不能为空')
+        }
+        
+        // 生成文件名
+        const title = this.taskResultTitle?.trim() || '未命名成果'
+        // 清理文件名中的非法字符
+        const safeTitle = title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50)
+        const timestamp = Date.now()
+        const fileName = `${safeTitle}_${timestamp}.md`
+        
+        // 创建文件对象
+        const content = this.taskResultOutput
+        const file = new File(
+          [content],
+          fileName,
+          { 
+            type: 'text/markdown;charset=utf-8',
+            lastModified: Date.now()
+          }
+        )
+        
+        // 验证文件对象
+        console.log('[uploadMarkdownFile] 文件对象信息:')
+        console.log('  文件名:', file.name)
+        console.log('  文件大小:', file.size, 'bytes')
+        console.log('  文件类型:', file.type)
+        console.log('  成果ID:', achievementId, '类型:', typeof achievementId)
+        
+        if (file.size === 0) {
+          throw new Error('文件内容为空，无法上传')
+        }
+        
+        const response = await knowledgeAPI.uploadFile(file, achievementId)
+        
+        // 检查响应
+        if (response && response.code !== undefined && response.code !== 200) {
+          throw new Error(response.msg || response.message || 'Markdown文件上传失败')
+        }
+        
+        this.updateProgress('Markdown文件上传成功', 1)
+      } catch (error) {
+        console.error('上传Markdown文件失败:', error)
+        const errorMessage = error.message || error.msg || '未知错误'
+        throw new Error(`上传Markdown文件失败: ${errorMessage}`)
+      }
+    },
+
+    // 上传附件
+    async uploadAttachments(achievementId, attachments) {
+      if (!attachments || attachments.length === 0) {
+        return
+      }
+      
+      const totalAttachments = attachments.length
+      let successCount = 0
+      let failCount = 0
+      
+      for (let i = 0; i < totalAttachments; i++) {
+        const attachment = attachments[i]
+        const fileName = attachment.fileName || attachment.name || `附件_${i + 1}`
+        
+        this.updateProgress(`正在上传附件 (${i + 1}/${totalAttachments}): ${fileName}`)
+        
+        try {
+          // 如果附件是文件对象，直接上传
+          if (attachment.file && attachment.file instanceof File) {
+            const response = await knowledgeAPI.uploadFile(attachment.file, achievementId)
+            
+            // 检查响应
+            if (response && response.code !== undefined && response.code !== 200) {
+              throw new Error(response.msg || '附件上传失败')
+            }
+            
+            successCount++
+            this.updateProgress('', 1) // 增加进度
+          } else if (attachment.url) {
+            // 如果附件是URL，需要先下载再上传
+            // TODO: 实现URL附件下载和上传逻辑
+            console.warn('URL附件上传暂未实现:', attachment.url)
+            this.updateProgress('', 1) // 增加进度，避免卡住
+          } else {
+            console.warn('附件格式不支持:', attachment)
+            failCount++
+            this.updateProgress('', 1) // 增加进度，避免卡住
+          }
+        } catch (error) {
+          console.warn(`附件上传失败: ${fileName}`, error)
+          failCount++
+          // 继续上传其他附件，但也要更新进度
+          this.updateProgress('', 1)
+        }
+      }
+      
+      // 显示上传结果摘要
+      if (failCount > 0) {
+        this.updateProgress(`附件上传完成：成功 ${successCount} 个，失败 ${failCount} 个`, 0)
+      } else {
+        this.updateProgress(`所有附件上传成功 (${successCount} 个)`, 0)
+      }
+    },
+
+    // 关联任务
+    async linkTasks(achievementId) {
+      if (!this.selectedTaskIds || this.selectedTaskIds.length === 0) {
+        return
+      }
+      
+      try {
+        this.updateProgress(`正在关联 ${this.selectedTaskIds.length} 个任务...`)
+        
+        const response = await linkTasksToAchievement(achievementId, this.selectedTaskIds)
+        
+        // 检查响应
+        if (response && response.code !== undefined && response.code !== 200) {
+          throw new Error(response.msg || '关联任务失败')
+        }
+        
+        this.updateProgress('任务关联成功', 1)
+      } catch (error) {
+        console.warn('关联任务失败:', error)
+        // 不抛出错误，允许继续，但也要更新进度
+        const errorMsg = error.message || error.msg || '未知错误'
+        this.updateProgress(`任务关联失败: ${errorMsg}，但成果已创建`, 1)
+      }
+    },
+
+    // 更新进度
+    updateProgress(message, increment = 0) {
+      if (!this.uploadProgress) {
+        return
+      }
+      
+      // 更新消息
+      if (message !== undefined && message !== null && message !== '') {
+        this.uploadProgress.message = message
+      }
+      
+      // 更新进度
+      if (increment > 0) {
+        this.uploadProgress.current = Math.min(
+          this.uploadProgress.current + increment,
+          this.uploadProgress.total
+        )
+      }
+      
+      // 确保进度不超过总数
+      if (this.uploadProgress.current > this.uploadProgress.total) {
+        this.uploadProgress.current = this.uploadProgress.total
+      }
+      
+      // 触发视图更新
+      this.$forceUpdate()
+    },
+
+    // 获取任务附件
+    async fetchTaskAttachments(taskIds) {
+      if (!taskIds || taskIds.length === 0) {
+        return []
+      }
+
+      const attachments = []
+      
+      try {
+        // TODO: 调用后端API获取任务附件
+        // 这里需要根据实际的后端API来实现
+        // 示例实现：
+        // for (const taskId of taskIds) {
+        //   const response = await taskAPI.getTaskAttachments(taskId)
+        //   if (response && response.data) {
+        //     const taskAttachments = Array.isArray(response.data) 
+        //       ? response.data 
+        //       : [response.data]
+        //     
+        //     // 根据过滤器筛选附件
+        //     const filtered = taskAttachments.filter(att => {
+        //       if (!this.attachmentFilters || this.attachmentFilters.length === 0) {
+        //         return true
+        //       }
+        //       const fileExt = (att.fileName || att.name || '').split('.').pop()?.toLowerCase()
+        //       return this.attachmentFilters.includes(fileExt)
+        //     })
+        //     
+        //     attachments.push(...filtered)
+        //   }
+        // }
+        
+        console.log('获取任务附件，任务IDs:', taskIds, '过滤器:', this.attachmentFilters)
+        console.log('当前返回空数组，等待后端接口实现')
+      } catch (error) {
+        console.warn('获取任务附件失败:', error)
+        // 不抛出错误，允许继续上传流程
+      }
+      
+      return attachments
+    },
+
+    // 重置表单
+    resetForm() {
+      this.taskResultTitle = ''
+      this.taskResultOutput = ''
+      this.selectedTaskIds = []
+      this.selectedTaskSummaries = []
+      this.uploadProgress = null
+      this.isUploading = false
     }
   }
 }
