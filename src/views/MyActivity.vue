@@ -1272,7 +1272,13 @@ export default {
           // 单次遍历同时计算状态和优先级
           allTasks.forEach(task => {
             const status = String(task.status || '').toUpperCase()
-            if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+            if (
+              status === 'DONE' ||
+              status === 'COMPLETED' ||
+              status.includes('DONE') ||
+              status.includes('COMPLETED') ||
+              status.includes('完成')
+            ) {
               statusCounts.completed++
             } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
               statusCounts.inProgress++
@@ -1332,7 +1338,13 @@ export default {
           }
           
           // 按状态分类
-          if (status === 'DONE' || status.includes('DONE') || status.includes('完成')) {
+          if (
+            status === 'DONE' ||
+            status === 'COMPLETED' ||
+            status.includes('DONE') ||
+            status.includes('COMPLETED') ||
+            status.includes('完成')
+          ) {
             this.completedTasks.push(taskObj)
           } else if (status === 'IN_PROGRESS' || status.includes('PROGRESS') || status.includes('进行中')) {
             this.inProgressTasks.push(taskObj)
@@ -1367,7 +1379,12 @@ export default {
           .filter(task => {
             const dueDate = new Date(task.dueDate || task.due_date)
             const status = String(task.status || '').toUpperCase()
-            const isCompleted = status === 'DONE' || status.includes('DONE') || status.includes('完成') || status === 'COMPLETED'
+            const isCompleted =
+              status === 'DONE' ||
+              status === 'COMPLETED' ||
+              status.includes('DONE') ||
+              status.includes('COMPLETED') ||
+              status.includes('完成')
             // 排除已完成的任务
             return !isCompleted && dueDate >= now && dueDate <= sevenDaysLater
           })
@@ -1423,7 +1440,12 @@ export default {
       
       allTasks.forEach(task => {
         const status = String(task.status || '').toUpperCase()
-        const isCompleted = status === 'DONE' || status.includes('DONE') || status.includes('完成')
+        const isCompleted =
+          status === 'DONE' ||
+          status === 'COMPLETED' ||
+          status.includes('DONE') ||
+          status.includes('COMPLETED') ||
+          status.includes('完成')
         
         const taskObj = {
           id: task.id || task.taskId,
@@ -1435,28 +1457,36 @@ export default {
           projectId: task.projectId || task.project_id
         }
         
-        // 计算完成趋势：如果任务已完成，检查updatedAt是否在过去7天内
+        // 计算完成趋势：如果任务已完成，检查更新时间/完成时间/截止日期是否在过去7天内
         if (isCompleted) {
           completedCount++
-          const updatedAt = task.updatedAt || task.updated_at || task.completedAt || task.completed_at
-          console.log('[MyActivity] 检查已完成任务:', task.id, task.title, '状态:', task.status, 'updatedAt:', updatedAt)
-          if (updatedAt) {
-            const updateDate = new Date(updatedAt)
-            updateDate.setHours(0, 0, 0, 0)
+          let completedAt =
+            task.updatedAt ||
+            task.updated_at ||
+            task.completedAt ||
+            task.completed_at ||
+            task.completedDate ||
+            task.completed_date ||
+            task.dueDate ||
+            task.due_date
+          console.log('[MyActivity] 检查已完成任务:', task.id, task.title, '状态:', task.status, 'completedAt:', completedAt)
+          if (completedAt) {
+            const completeDate = new Date(completedAt)
+            completeDate.setHours(0, 0, 0, 0)
             
             // 找到这个日期在days数组中的索引
             const dayIndex = days.findIndex(d => {
-              return d.getTime() === updateDate.getTime()
+              return d.getTime() === completeDate.getTime()
             })
             
-            console.log('[MyActivity] 任务更新日期:', updateDate.toLocaleDateString('zh-CN'), 'dayIndex:', dayIndex)
+            console.log('[MyActivity] 任务完成日期:', completeDate.toLocaleDateString('zh-CN'), 'dayIndex:', dayIndex)
             
             if (dayIndex >= 0) {
               trendData[dayIndex]++
               trendCompletedTasksByDay[dayIndex].push(taskObj)
             }
           } else {
-            console.log('[MyActivity] 已完成任务但无更新时间:', task.id, task.title, '完整任务数据:', JSON.stringify(task))
+            console.log('[MyActivity] 已完成任务但无法确定完成日期:', task.id, task.title, '完整任务数据:', JSON.stringify(task))
           }
         }
         

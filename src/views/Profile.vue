@@ -91,8 +91,46 @@
         <!-- 邮箱地址卡片 -->
         <div class="info-card">
           <div class="info-item">
-            <h3 class="info-label">邮箱地址</h3>
-            <p class="info-value">{{ userInfo.email }}</p>
+            <div class="intro-header">
+              <h3 class="info-label">邮箱地址</h3>
+              <button
+                v-if="isLoggedIn && isViewingSelf"
+                @click="goToChangeEmail"
+                class="edit-btn"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                修改邮箱
+              </button>
+            </div>
+            <p class="info-value">
+              <span v-if="userInfo.email">
+                {{ maskEmail(userInfo.email) }}
+              </span>
+              <span v-else>
+                未设置邮箱
+              </span>
+            </p>
           </div>
         </div>
 
@@ -1140,11 +1178,32 @@ export default {
       })
       
       this.showSuccessToast('退出登录成功！')
-      
       // 延迟跳转到登录页面，让用户看到提示
       setTimeout(() => {
       this.$router.push('/login')
       }, 1000)
+    },
+    goToChangeEmail() {
+      if (!this.isLoggedIn) {
+        this.modalMessage = '请先登录才能修改邮箱'
+        this.showModal = true
+        return
+      }
+      this.$router.push({ name: 'ChangeEmail' })
+    },
+    maskEmail(email) {
+      if (!email || typeof email !== 'string') return ''
+      const [local, domain] = email.split('@')
+      if (!domain) {
+        return email
+      }
+      if (!local || local.length <= 2) {
+        return '*@' + domain
+      }
+      const start = local.slice(0, 2)
+      const end = local.slice(-2)
+      const stars = '*'.repeat(Math.max(local.length - 4, 1))
+      return `${start}${stars}${end}@${domain}`
     },
     // 头像裁切相关方法
     closeAvatarCropModal() {

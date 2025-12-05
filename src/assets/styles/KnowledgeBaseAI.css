@@ -2865,9 +2865,34 @@
 
 .ai-view .mindmap-content {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   padding: 0;
   background: #fafbfc;
+}
+
+/* 思维导图加载状态 */
+.ai-view .mindmap-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #94a3b8;
+}
+
+/* 思维导图加载动画：仅在加载状态下让圆环旋转 */
+.ai-view .mindmap-loading .empty-mindmap-icon svg {
+  animation: mindmap-spin 1.2s linear infinite;
+  transform-origin: center center;
+}
+
+@keyframes mindmap-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 思维导图空状态 */
@@ -2912,8 +2937,31 @@
   align-items: flex-start;
   padding: 40px 20px;
   width: 100%;
-  overflow-x: auto;
-  overflow-y: auto;
+  overflow: visible;
+}
+
+/* 思维导图平移缩放容器 */
+.ai-view .mindmap-display-outer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.ai-view .mindmap-display-outer.is-panning {
+  cursor: grabbing;
+}
+
+/* 禁用思维导图图片的原生拖拽和选中行为，避免拖动时把图片拖出来 */
+.ai-view .mindmap-display,
+.ai-view .mindmap-display * {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ai-view .mindmap-display img {
+  pointer-events: none;
 }
 
 .ai-view .mindmap-node {

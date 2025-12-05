@@ -682,24 +682,24 @@
   color: #667eea;
 }
 
-/* 成功提示Toast样式 */
+/* 成功提示Toast样式（居中小弹窗，与登录页保持一致） */
 .profile-container .success-toast {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: #ffffff;
   padding: 16px 24px;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 500;
   z-index: 9999;
-  animation: fadeInOut 1s ease-in-out;
+  animation: profile-fadeInOut 1s ease-in-out;
   pointer-events: none;
 }
 
-@keyframes fadeInOut {
+@keyframes profile-fadeInOut {
   0% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.8);
