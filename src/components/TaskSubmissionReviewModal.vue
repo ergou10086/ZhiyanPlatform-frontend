@@ -343,7 +343,7 @@ export default {
 
     async handleSubmitReview() {
       if (!this.reviewData.reviewStatus) {
-        alert('请选择审核结果')
+        this.$toast && this.$toast('请选择审核结果')
         return
       }
 
@@ -354,16 +354,16 @@ export default {
 
         if (response.code === 200) {
           const statusText = this.reviewData.reviewStatus === 'APPROVED' ? '批准' : '拒绝'
-          alert(`审核${statusText}成功`)
+          this.$toast && this.$toast(`审核${statusText}成功`)
           this.$emit('success', response.data)
           this.handleClose()
         } else {
-          alert(response.msg || '审核失败')
+          this.$toast && this.$toast(response.msg || '审核失败')
         }
       } catch (error) {
         console.error('审核失败', error)
         const errorMsg = error?.msg || error?.message || (typeof error === 'string' ? error : '未知错误')
-        alert('审核失败：' + errorMsg)
+        this.$toast && this.$toast('审核失败：' + errorMsg)
       } finally {
         this.isSubmitting = false
       }

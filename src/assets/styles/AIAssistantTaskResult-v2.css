@@ -290,6 +290,42 @@
   font-style: italic;
 }
 
+/* 文本输入框 */
+.ai-assistant-container .control-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.ai-assistant-container .control-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.ai-assistant-container .control-input:hover:not(:disabled) {
+  border-color: #5EB6E4;
+}
+
+.ai-assistant-container .control-input:focus {
+  outline: none;
+  border-color: #0044CC;
+  box-shadow: 0 0 0 3px rgba(0, 68, 204, 0.1);
+}
+
+.ai-assistant-container .control-input:disabled {
+  background: #f8f9fa;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
 /* 下拉框增强包装：用于自定义箭头，保持与整体 UI 一致 */
 .ai-assistant-container .control-select-wrapper {
   position: relative;
