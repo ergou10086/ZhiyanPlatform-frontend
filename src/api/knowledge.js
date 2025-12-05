@@ -53,7 +53,24 @@ api.interceptors.request.use(
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
       console.log('知识库API请求 (FormData):', config.method?.toUpperCase(), config.url)
-      console.log('FormData 包含', config.data.getAll('files')?.length || 0, '个文件')
+      // 检查所有可能的文件键名
+      const fileKeys = ['file', 'files']
+      let fileCount = 0
+      for (const key of fileKeys) {
+        const files = config.data.getAll(key)
+        if (files && files.length > 0) {
+          fileCount += files.length
+          console.log(`FormData 包含 ${files.length} 个文件 (键: ${key})`)
+          files.forEach((f, i) => {
+            console.log(`  文件 ${i + 1}:`, f.name || f.fileName || '未命名', `(${f.size || 0} bytes)`)
+          })
+        }
+      }
+      // 显示所有 FormData 的键
+      console.log('FormData 所有键:', Array.from(config.data.keys()))
+      if (fileCount === 0) {
+        console.warn('⚠️ FormData 中没有找到文件！')
+      }
     } else {
       console.log('知识库API请求:', config.method?.toUpperCase(), config.url)
       console.log('请求数据:', config.data)
@@ -264,10 +281,34 @@ export const knowledgeAPI = {
    * @param {Number} achievementId - 成果ID
    */
   uploadFile(file, achievementId) {
-    console.log('[knowledgeAPI.uploadFile] 上传单个文件, achievementId:', achievementId, 'fileName:', file?.name)
+    console.log('[knowledgeAPI.uploadFile] 上传单个文件')
+    console.log('  achievementId:', achievementId, '类型:', typeof achievementId)
+    console.log('  file:', file)
+    console.log('  fileName:', file?.name)
+    console.log('  fileSize:', file?.size, 'bytes')
+    console.log('  fileType:', file?.type)
+    
+    // 验证文件对象
+    if (!file || !(file instanceof File) && !(file instanceof Blob)) {
+      console.error('❌ 文件对象无效:', file)
+      return Promise.reject(new Error('文件对象无效'))
+    }
+    
+    // 验证文件大小
+    if (file.size === 0) {
+      console.warn('⚠️ 文件大小为 0')
+    }
+    
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('achievementId', achievementId)
+    // 确保 achievementId 是字符串或数字
+    const achievementIdStr = String(achievementId)
+    formData.append('achievementId', achievementIdStr)
+    
+    console.log('FormData 已创建，包含键:', Array.from(formData.keys()))
+    console.log('FormData file 值:', formData.get('file'))
+    console.log('FormData achievementId 值:', formData.get('achievementId'))
+    
     return api.post('/zhiyan/achievement/file/upload', formData)
   },
 
