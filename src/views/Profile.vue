@@ -123,7 +123,14 @@
                 修改邮箱
               </button>
             </div>
-            <p class="info-value">{{ userInfo.email || '未设置邮箱' }}</p>
+            <p class="info-value">
+              <span v-if="userInfo.email">
+                {{ maskEmail(userInfo.email) }}
+              </span>
+              <span v-else>
+                未设置邮箱
+              </span>
+            </p>
           </div>
         </div>
 
@@ -1171,7 +1178,6 @@ export default {
       })
       
       this.showSuccessToast('退出登录成功！')
-      
       // 延迟跳转到登录页面，让用户看到提示
       setTimeout(() => {
       this.$router.push('/login')
@@ -1184,6 +1190,20 @@ export default {
         return
       }
       this.$router.push({ name: 'ChangeEmail' })
+    },
+    maskEmail(email) {
+      if (!email || typeof email !== 'string') return ''
+      const [local, domain] = email.split('@')
+      if (!domain) {
+        return email
+      }
+      if (!local || local.length <= 2) {
+        return '*@' + domain
+      }
+      const start = local.slice(0, 2)
+      const end = local.slice(-2)
+      const stars = '*'.repeat(Math.max(local.length - 4, 1))
+      return `${start}${stars}${end}@${domain}`
     },
     // 头像裁切相关方法
     closeAvatarCropModal() {
