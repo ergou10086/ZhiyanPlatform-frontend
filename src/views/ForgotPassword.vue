@@ -37,7 +37,9 @@
               required
             />
           </div>
-          
+          <div class="email-invalid-link" @click="goToChangeEmail">
+            该邮箱失效？
+          </div>
           <div class="form-group">
             <label for="code">验证码<span class="required-asterisk">*</span></label>
             <div class="code-input-group">
@@ -259,6 +261,14 @@ export default {
     },
     goToLogin() {
       this.$router.push('/login')
+    },
+    goToChangeEmail() {
+      this.$router.push({
+        path: '/change-email',
+        query: {
+          email: this.resetForm.email || ''
+        }
+      })
     },
     showSuccessToast(message) {
       this.toastMessage = message
