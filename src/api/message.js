@@ -78,6 +78,16 @@ export function markAllAsRead() {
 }
 
 /**
+ * 清空所有已读消息（真删除）
+ */
+export function clearReadMessages() {
+  return request({
+    url: '/zhiyan/message/clear',
+    method: 'delete'
+  })
+}
+
+/**
  * 删除消息
  * @param {number} messageId - 消息ID
  */

@@ -49,6 +49,20 @@
             </svg>
             <span>全部已读</span>
           </button>
+
+          <button
+            class="toolbar-btn"
+            @click="handleClearReadMessages"
+            :disabled="!hasReadMessages || clearReadLoading"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>清空已读</span>
+          </button>
         </div>
 
         <!-- 标签页切换 -->
@@ -406,6 +420,7 @@ import {
   getUnreadCount, 
   markAsRead, 
   markAllAsRead,
+  clearReadMessages,
   deleteMessage,
   sendMessageToUser,
   sendMessageToProject,
@@ -430,6 +445,7 @@ export default {
       currentPage: 0,
       pageSize: 10,
       hasMore: true,
+      clearReadLoading: false,
       pollingTimer: null,
       detailDialogVisible: false,
       detailMessage: null,
@@ -783,6 +799,37 @@ export default {
       } catch (error) {
         console.error('标记全部已读失败:', error)
         this.$message.error('操作失败')
+      }
+    },
+
+    /**
+     * 清空所有已读消息（真删除）
+     */
+    async handleClearReadMessages() {
+      if (this.clearReadLoading) return
+
+      try {
+        await this.$confirm('确定清空所有已读消息吗？此操作不可撤销。', '提示', {
+          confirmButtonText: '清空',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        this.clearReadLoading = true
+        await clearReadMessages()
+
+        // 仅保留未读消息
+        this.messages = this.messages.filter(msg => !msg.isRead)
+        // 保持未读数不变（只删除已读）
+
+        this.$message.success('已清空所有已读消息')
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('清空已读消息失败:', error)
+          this.$message.error('清空失败，请稍后重试')
+        }
+      } finally {
+        this.clearReadLoading = false
       }
     },
 
@@ -1292,6 +1339,11 @@ export default {
         return filtered
       }
       return filtered.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
+    },
+
+    // 是否存在已读消息，用于控制“清空已读”按钮
+    hasReadMessages() {
+      return this.messages.some(msg => msg.isRead)
     },
 
     /**
