@@ -47,13 +47,19 @@ export function normalizeUserInfo(userInfo) {
   normalized.description = description
   normalized.introduction = description
   
+  // 保存2FA状态（重要：确保2FA状态被正确保存）
+  if (userInfo.twoFactorEnabled !== undefined) {
+    normalized.twoFactorEnabled = Boolean(userInfo.twoFactorEnabled)
+  }
+  
   // 添加调试日志
   console.log('🔄 规范化用户信息:', {
     原始avatar: userInfo.avatar || userInfo.avatarUrl,
     规范化后: avatarUrl,
     nickname: normalized.nickname,
     hasAvatar: !!avatarUrl,
-    description: description
+    description: description,
+    twoFactorEnabled: normalized.twoFactorEnabled
   })
   
   return normalized

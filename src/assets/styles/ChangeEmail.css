@@ -238,6 +238,46 @@
   box-shadow: none;
 }
 
+/* 2FA验证码输入框样式 */
+.change-email-container .two-factor-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 4px;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+
+.change-email-container .two-factor-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.3);
+}
+
+.change-email-container .two-factor-input::placeholder {
+  letter-spacing: 0;
+  font-weight: 400;
+  color: #9ca3af;
+}
+
+.change-email-container .optional-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.change-email-container .form-hint {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+  margin-bottom: 0;
+  line-height: 1.4;
+}
+
 .change-email-container .success-toast {
   position: fixed;
   bottom: 32px;
