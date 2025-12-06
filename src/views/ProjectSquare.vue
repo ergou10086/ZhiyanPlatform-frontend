@@ -158,6 +158,7 @@
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import { normalizeProjectCoverUrl, normalizeImageUrl, preloadImages } from '@/utils/imageUtils'
+import { cacheProjectCoverIfNeeded, getCachedProjectCover } from '@/utils/projectImageCache'
 import '@/assets/styles/ProjectSquare.css'
 import '@/assets/styles/scifiBackground.css'
 import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
@@ -168,6 +169,40 @@ export default {
     Sidebar
   },
   data() {
+    // 在 data() 中同步初始化项目列表，优先使用本地缓存，避免首次挂载时出现空白
+    let initialProjects = []
+    let initialIsLoading = true
+    try {
+      const cachedProjects = localStorage.getItem('projects')
+      if (cachedProjects) {
+        const projects = JSON.parse(cachedProjects)
+        const accessibleProjects = Array.isArray(projects)
+          ? projects.filter(p => {
+              // data() 中无法访问 this.canDisplayProject，这里只做最基本的存在性检查
+              return p && (p.visibility !== 'PRIVATE' || p.visibility === 'PRIVATE')
+            })
+          : []
+        if (accessibleProjects.length > 0) {
+          initialProjects = accessibleProjects.map(project => {
+            const normalizedUrl = normalizeProjectCoverUrl(project.image || project.imageUrl)
+            const cached = normalizedUrl ? getCachedProjectCover(project.id, normalizedUrl) : null
+            const finalImage = cached && cached.dataUrl ? cached.dataUrl : normalizedUrl
+            return {
+              ...project,
+              status: project.status, // 详细的状态映射在后续 loadProjects 中会统一处理
+              image: finalImage,
+              imageUrl: normalizedUrl
+            }
+          })
+          initialIsLoading = false
+        }
+      }
+    } catch (e) {
+      // 初始化失败时退回到空列表，由后续逻辑接管
+      initialProjects = []
+      initialIsLoading = true
+    }
+    
     return {
       sidebarOpen: false,
       searchText: '',
@@ -175,10 +210,10 @@ export default {
       statusOpen: false,
       currentPage: 1,
       pageSize: 8, // 每页显示8个项目（2行，每行4个）
-      projects: [],
+      projects: initialProjects,
       showModal: false,
       modalMessage: '',
-      isLoading: true, // 添加加载状态
+      isLoading: initialIsLoading, // 如果有本地缓存，则初始不显示 loading
       showToast: false,
       toastMessage: '',
       saveStateTimer: null, // 防抖定时器
@@ -520,37 +555,42 @@ export default {
     async loadProjects(backgroundUpdate = false) {
       this.refreshAuthState()
 
-      // 非后台加载时，立即进入 loading 状态并记录开始时间（包括使用缓存的路径）
+      // 非后台加载时，优先尝试直接使用本地缓存渲染，避免出现整体 loading 态
       if (!backgroundUpdate) {
-        this.isLoading = true
-        this.loadingStartTime = Date.now()
-
-        // 先尝试从缓存加载
         const cachedProjects = localStorage.getItem('projects')
         if (cachedProjects) {
           try {
             const projects = JSON.parse(cachedProjects)
             const accessibleProjects = projects.filter(p => this.canDisplayProject(p))
             if (accessibleProjects.length > 0) {
-              // 先准备好缓存数据
-              this.projects = accessibleProjects.map(project => ({
-                ...project,
-                status: this.getStatusDisplay(project.status),
-                image: normalizeProjectCoverUrl(project.image || project.imageUrl),
-                imageUrl: normalizeProjectCoverUrl(project.imageUrl || project.image)
-              }))
-              // 首次加载时，仅对当前页项目阻塞式预加载封面图，避免图片逐个出现
-              await this.preloadProjectImages(true, this.paginatedProjects)
+              // 使用缓存数据直接渲染网格
+              this.projects = accessibleProjects.map(project => {
+                const normalizedUrl = normalizeProjectCoverUrl(project.image || project.imageUrl)
+                const cached = getCachedProjectCover(project.id, normalizedUrl)
+                const finalImage = cached && cached.dataUrl ? cached.dataUrl : normalizedUrl
+                return {
+                  ...project,
+                  status: this.getStatusDisplay(project.status),
+                  image: finalImage,
+                  imageUrl: normalizedUrl
+                }
+              })
 
-              // 确保 loading 至少展示一小段时间，避免一闪而过
-              const minDuration = 1200
-              const elapsed = Date.now() - (this.loadingStartTime || Date.now())
-              if (elapsed < minDuration) {
-                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed))
-              }
+              // 为当前页项目和后续页面的封面触发后台静默缓存拉取，不阻塞首屏展示
+              try {
+                const currentPageProjects = [...this.paginatedProjects]
+                setTimeout(() => {
+                  currentPageProjects.forEach(p => {
+                    if (p && p.imageUrl) {
+                      cacheProjectCoverIfNeeded(p.id, p.imageUrl).catch(() => {})
+                    }
+                  })
+                }, 0)
+              } catch (e) {}
 
+              // 首屏不再阻塞等待预加载，保持页面立即可见
               this.isLoading = false
-              // 后台更新数据
+              // 后台静默更新最新项目数据
               setTimeout(() => this.loadProjects(true), 100)
               return
             }
@@ -558,6 +598,10 @@ export default {
             // 缓存读取失败，继续从API加载
           }
         }
+
+        // 本地无可用缓存时，再进入 loading 状态
+        this.isLoading = true
+        this.loadingStartTime = Date.now()
       }
       
       try {
@@ -594,6 +638,10 @@ export default {
               
               // 规范化图片 URL（转换为完整的 MinIO URL）
               imageUrl = normalizeProjectCoverUrl(imageUrl)
+
+              // 尝试使用本地已缓存的 dataURL 作为封面，避免重复从网络加载
+              const cached = getCachedProjectCover(project.id, imageUrl)
+              const finalImage = cached && cached.dataUrl ? cached.dataUrl : imageUrl
               
               // 调试：检查后端返回的创建者信息
               console.log(`[ProjectSquare] 项目 ${project.id} (${project.name}) 创建者信息:`, {
@@ -618,7 +666,7 @@ export default {
                 aiCore: '待定',
                 category: project.category || '其他',
                 tags: project.tags || [],
-                image: imageUrl,
+                image: finalImage,
                 imageUrl: imageUrl,
                 startDate: project.startDate,
                 endDate: project.endDate,
@@ -671,6 +719,18 @@ export default {
           
           // 保存合并后的数据到localStorage（先保存，不等待成员数量）
           localStorage.setItem('projects', JSON.stringify(this.projects))
+
+          // 后台静默为所有项目触发封面缓存拉取，不阻塞当前渲染
+          try {
+            const projectsForCache = [...this.projects]
+            setTimeout(() => {
+              projectsForCache.forEach(p => {
+                if (p && p.imageUrl) {
+                  cacheProjectCoverIfNeeded(p.id, p.imageUrl).catch(() => {})
+                }
+              })
+            }, backgroundUpdate ? 0 : 50)
+          } catch (e) {}
           
           // 如果不是后台更新模式，在结束 loading 前，对当前页项目阻塞式预加载封面图
           if (!backgroundUpdate) {
