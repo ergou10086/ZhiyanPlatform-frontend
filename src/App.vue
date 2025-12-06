@@ -1,6 +1,8 @@
 <template>
   <div id="app">
-    <router-view/>
+    <keep-alive include="ProjectSquare,ProjectKnowledge,KnowledgeBase">
+      <router-view/>
+    </keep-alive>
     <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
     <GlobalMessageNotification v-if="!isAuthPage" />
     <!-- 全局用户信息组件，悬浮在右上角，但在登录相关页面不显示 -->
