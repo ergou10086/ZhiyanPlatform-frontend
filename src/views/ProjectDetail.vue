@@ -1872,6 +1872,18 @@ export default {
       { debounce: 500 } // 500ms防抖，避免频繁刷新
     )
   },
+  beforeRouteUpdate(to, from, next) {
+    // 当路由中的项目ID发生变化时，先清空当前详情，再加载新项目，避免短暂显示上一个项目
+    if (to.params && to.params.id && to.params.id !== from.params.id) {
+      this.isLoading = true
+      this.project = null
+      this.tasks = []
+      this.teamMembers = []
+      this.inviteSlots = []
+      this.loadProject(to.params.id)
+    }
+    next()
+  },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
     // 取消事件监听
@@ -2440,8 +2452,8 @@ export default {
         }
       }
     },
-    async loadProject() {
-      const projectId = this.$route.params.id
+    async loadProject(projectIdOverride) {
+      const projectId = projectIdOverride || this.$route.params.id
       // 先尝试从缓存加载，立即显示
       try {
         const cachedProject = localStorage.getItem(`project_detail_${projectId}`)
