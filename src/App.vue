@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <keep-alive include="ProjectSquare,ProjectDetail,ProjectKnowledge,KnowledgeBase">
+    <keep-alive include="ProjectSquare,ProjectKnowledge,KnowledgeBase">
       <router-view/>
     </keep-alive>
     <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
