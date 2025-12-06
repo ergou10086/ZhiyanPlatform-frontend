@@ -431,15 +431,15 @@
                     <div class="log-meta">
                       <div class="log-source" v-if="log.source">
                         <span class="source-label">来源：</span>
-                        <span class="source-name">{{ log.source }}</span>
+                        <span class="source-name">{{ getSourceText(log.source) }}</span>
                       </div>
                       <div class="log-operator" v-if="log.operator">
                         <span class="operator-label">操作人：</span>
                         <span class="operator-name">{{ log.operator }}</span>
                       </div>
-                      <div class="log-ip" v-if="log.ip">
-                        <span class="ip-label">IP：</span>
-                        <span class="ip-value">{{ log.ip }}</span>
+                      <div class="log-project" v-if="log.projectId">
+                        <span class="project-label">项目ID：</span>
+                        <span class="project-value">{{ log.projectId }}</span>
                       </div>
                     </div>
                   </div>
@@ -2173,21 +2173,41 @@ export default {
         }
         
         // 映射日志数据（根据后端UnifiedOperationLogVO结构）
-        const newLogs = logs.map(log => ({
-          id: log.id,
-          type: log.operationType,
-          module: log.operationModule,
-          source: log.source,
-          description: log.description || log.title,
-          targetName: log.title,
-          timestamp: log.time,
-          projectId: log.projectId,
-          operator: log.username,
-          userId: log.userId,
-          ip: log.ip,
-          userAgent: log.userAgent,
-          relatedId: log.relatedId
-        }))
+        const newLogs = logs.map(log => {
+          // 构建描述信息：优先使用description，其次使用title，最后根据操作类型和模块生成
+          let description = log.description
+          
+          // 如果没有description，使用title
+          if (!description && log.title) {
+            description = log.title
+          }
+          
+          // 如果还是没有，根据操作类型和模块生成描述
+          if (!description && log.operationType && log.operationModule) {
+            const typeText = this.getLogTypeText(log.operationType)
+            const moduleText = log.operationModule || ''
+            description = `${moduleText} - ${typeText}`
+          }
+          
+          // 如果还是没有，使用默认描述
+          if (!description) {
+            description = '操作日志'
+          }
+          
+          return {
+            id: log.id,
+            type: log.operationType,
+            module: log.operationModule,
+            source: log.source,
+            description: description,
+            targetName: log.title,
+            timestamp: log.time,
+            projectId: log.projectId,
+            operator: log.username,
+            userId: log.userId,
+            relatedId: log.relatedId
+          }
+        })
         
         if (this.logPage === 0) {
           this.activityLogs = newLogs
@@ -2211,13 +2231,38 @@ export default {
     filterActivityLogs() {
       let filtered = [...this.activityLogs]
       
-      // 按关键词搜索（类型过滤由后端处理）
+      // 按类型过滤
+      if (this.logFilterType && this.logFilterType !== 'all') {
+        filtered = filtered.filter(log => {
+          // 根据source和operationType判断日志类型
+          const source = log.source || ''
+          const type = log.type || ''
+          
+          if (this.logFilterType === 'submission') {
+            // 任务提交：任务模块的SUBMIT操作
+            return source === 'TASK' && (type === 'SUBMIT' || type === 'REVIEW')
+          } else if (this.logFilterType === 'upload') {
+            // 成果上传：成果模块的FILE_UPLOAD操作
+            return source === 'ACHIEVEMENT' && type === 'FILE_UPLOAD'
+          } else if (this.logFilterType === 'comment') {
+            // 评论回复：暂时没有专门的评论日志，可以扩展
+            return false
+          } else if (this.logFilterType === 'review') {
+            // 审核操作：任务模块的REVIEW或COMPLETE操作
+            return source === 'TASK' && (type === 'REVIEW' || type === 'COMPLETE')
+          }
+          return true
+        })
+      }
+      
+      // 按关键词搜索
       if (this.logSearchKeyword.trim()) {
         const keyword = this.logSearchKeyword.toLowerCase()
         filtered = filtered.filter(log => 
           (log.description && log.description.toLowerCase().includes(keyword)) ||
           (log.targetName && log.targetName.toLowerCase().includes(keyword)) ||
-          (log.projectName && log.projectName.toLowerCase().includes(keyword))
+          (log.module && log.module.toLowerCase().includes(keyword)) ||
+          (log.type && this.getLogTypeText(log.type).toLowerCase().includes(keyword))
         )
       }
       
@@ -2238,19 +2283,49 @@ export default {
     },
     
     getLogTypeText(type) {
+      if (!type) return '未知操作'
+      
       const typeMap = {
+        // 通用操作
         'CREATE': '创建',
         'UPDATE': '更新',
         'DELETE': '删除',
-        'ASSIGN': '分配',
         'STATUS_CHANGE': '状态变更',
-        'SUBMIT': '提交',
-        'REVIEW': '审核',
+        
+        // 任务操作
+        'ASSIGN': '分配任务',
+        'SUBMIT': '提交任务',
+        'REVIEW': '审核任务',
+        'COMPLETE': '完成任务',
+        
+        // 项目操作
         'MEMBER_ADD': '添加成员',
         'MEMBER_REMOVE': '移除成员',
-        'ROLE_CHANGE': '角色变更'
+        'ROLE_CHANGE': '角色变更',
+        
+        // Wiki操作
+        'MOVE': '移动Wiki页面',
+        
+        // 成果操作
+        'UPDATE_STATUS': '更新成果状态',
+        'UPDATE_DETAIL': '更新成果详情',
+        'FILE_UPLOAD': '上传文件',
+        'FILE_DELETE': '删除文件'
       }
+      
       return typeMap[type] || type
+    },
+    
+    getSourceText(source) {
+      if (!source) return ''
+      const sourceMap = {
+        'PROJECT': '项目管理',
+        'TASK': '任务管理',
+        'WIKI': '知识库Wiki管理',
+        'ACHIEVEMENT': '成果管理',
+        'LOGIN': '登录'
+      }
+      return sourceMap[source] || source
     },
     
     formatDateTime(datetime) {
@@ -3949,14 +4024,14 @@ export default {
 
 .log-source,
 .log-operator,
-.log-ip {
+.log-project {
   display: flex;
   align-items: center;
 }
 
 .source-label,
 .operator-label,
-.ip-label {
+.project-label {
   margin-right: 4px;
   font-weight: 500;
 }
@@ -3969,7 +4044,7 @@ export default {
   color: #6366f1;
 }
 
-.ip-value {
+.project-value {
   color: #64748b;
   font-family: monospace;
 }
