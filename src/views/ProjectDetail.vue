@@ -1575,6 +1575,7 @@
 import '@/assets/styles/ProjectDetail.css'
 import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage, preloadImages } from '@/utils/imageUtils'
 import { addTimestampToUrl } from '@/utils/imageUtils'
+import { cacheProjectCoverIfNeeded, getCachedProjectCover } from '@/utils/projectImageCache'
 import TaskSubmissionModal from '@/components/TaskSubmissionModal.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
 import { getTaskSubmissions, getLatestSubmission } from '@/api/taskSubmission'
@@ -2448,12 +2449,37 @@ export default {
           const parsed = JSON.parse(cachedProject)
           // 检查缓存是否过期（3分钟）
           if (parsed.timestamp && Date.now() - parsed.timestamp < 3 * 60 * 1000) {
-            this.project = parsed.data.project
+            // 规范化并尝试使用封面缓存
+            const rawProject = parsed.data.project || null
+            let normalizedUrl = null
+            let finalImage = null
+            if (rawProject) {
+              normalizedUrl = normalizeProjectCoverUrl(rawProject.imageUrl || rawProject.image)
+              if (normalizedUrl) {
+                const cachedCover = getCachedProjectCover(rawProject.id, normalizedUrl)
+                finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : normalizedUrl
+              }
+            }
+
+            this.project = rawProject
+              ? {
+                  ...rawProject,
+                  image: finalImage || rawProject.image,
+                  imageUrl: normalizedUrl || rawProject.imageUrl || rawProject.image
+                }
+              : null
             this.teamMembers = parsed.data.teamMembers || []
             this.tasks = parsed.data.tasks || []
             this.isLoading = false
             // 使用缓存数据时也提前预加载项目图片和头像
             this.preloadDetailImages()
+            // 后台静默刷新封面缓存
+            try {
+              const proj = this.project
+              if (proj && proj.id && proj.imageUrl) {
+                cacheProjectCoverIfNeeded(proj.id, proj.imageUrl).catch(() => {})
+              }
+            } catch (e) {}
             // 后台更新数据（包括团队成员）
             this.loadProjectFromAPI().then(() => {
               // 在数据加载完成后再检查权限
@@ -2467,8 +2493,69 @@ export default {
           }
         }
       } catch (e) {
-        // 缓存读取失败，继续从API加载
+        // 缓存读取失败，继续后续逻辑
       }
+
+      // 如果没有可用的详情缓存，优先尝试使用项目广场列表缓存，立即渲染基础信息
+      try {
+        const savedProjects = localStorage.getItem('projects')
+        if (savedProjects) {
+          const projects = JSON.parse(savedProjects)
+          const foundProject = projects.find(p => String(p.id) === String(projectId))
+          if (foundProject) {
+            // 规范化封面 URL 并尝试使用 dataURL 缓存
+            const normalizedImageUrl = normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image)
+            const cachedCover = normalizedImageUrl
+              ? getCachedProjectCover(foundProject.id, normalizedImageUrl)
+              : null
+            const finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : normalizedImageUrl
+
+            this.project = {
+              id: foundProject.id,
+              name: foundProject.name || foundProject.title,
+              title: foundProject.title || foundProject.name,
+              description: foundProject.description || foundProject.dataAssets || foundProject.direction || '暂无描述',
+              startDate: foundProject.startDate || foundProject.start_date || '',
+              endDate: foundProject.endDate || foundProject.end_date || '',
+              period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
+                `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
+                '未设置',
+              status: this.getStatusValue(foundProject.status),
+              visibility: foundProject.visibility || 'PRIVATE',
+              imageUrl: normalizedImageUrl || getDefaultProjectImage('Project Image'),
+              image: finalImage || normalizedImageUrl,
+              manager: foundProject.creatorName || '未知',
+              teamSize: foundProject.teamSize,
+              category: foundProject.category,
+              aiCore: foundProject.aiCore,
+              tags: foundProject.tags || [],
+              tasks: foundProject.tasks || [],
+              created_by: foundProject.created_by || 1,
+              creatorName: foundProject.creatorName || '未知'
+            }
+            this.projectStatus = this.project.status || null
+            this.isArchived = this.projectStatus === 'ARCHIVED' || this.projectStatus === '已归档'
+            // 立即使用列表缓存中的团队成员和邀请槽
+            this.teamMembers = foundProject.teamMembers || []
+            this.inviteSlots = foundProject.inviteSlots || []
+
+            this.isLoading = false
+            // 预加载当前详情需要的图片
+            this.preloadDetailImages()
+            // 后台更新完整详情和权限
+            this.loadProjectFromAPI().then(() => {
+              this.checkAdminPermission()
+            }).catch(error => {
+              console.error('后台更新项目数据失败:', error)
+              this.checkAdminPermission()
+            })
+            return
+          }
+        }
+      } catch (e) {
+        // 使用列表缓存失败时，继续从API加载
+      }
+
       // 优先从后端API获取最新的项目数据
       try {
         const { projectAPI } = await import('@/api/project')
@@ -2486,6 +2573,10 @@ export default {
           })
           
           // 使用API返回的最新数据
+          let detailImageUrl = normalizeProjectCoverUrl(apiProject.imageUrl)
+          const cachedCover = getCachedProjectCover(apiProject.id, detailImageUrl)
+          const finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : detailImageUrl || getDefaultProjectImage('Project Image')
+
           this.project = {
             id: apiProject.id,
             name: apiProject.name,
@@ -2498,8 +2589,8 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
-            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            imageUrl: detailImageUrl || getDefaultProjectImage('Project Image'),
+            image: finalImage,
             manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
             category: apiProject.category || '其他',
@@ -2627,6 +2718,10 @@ export default {
           })
           
           // 使用API返回的最新数据
+          let detailImageUrl = normalizeProjectCoverUrl(apiProject.imageUrl)
+          const cachedCover = getCachedProjectCover(apiProject.id, detailImageUrl)
+          const finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : detailImageUrl || getDefaultProjectImage('Project Image')
+
           this.project = {
             id: apiProject.id,
             name: apiProject.name,
@@ -2639,8 +2734,8 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
-            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            imageUrl: detailImageUrl || getDefaultProjectImage('Project Image'),
+            image: finalImage,
             manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
             category: apiProject.category || '其他',
