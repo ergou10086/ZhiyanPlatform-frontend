@@ -21,6 +21,7 @@ import OAuth2Bind from '../views/OAuth2Bind.vue'
 import OAuth2Supplement from '../views/OAuth2Supplement.vue'
 import OAuth2Error from '../views/OAuth2Error.vue'
 import ChangeEmail from '../views/ChangeEmail.vue'
+import NotFound from '../views/NotFound.vue'
 
 Vue.use(VueRouter)
 
@@ -134,6 +135,12 @@ const routes = [
     path: '/task-review',
     redirect: '/my-activity'
   },
+  // 404页面 - 必须放在最后，作为catch-all路由
+  {
+    path: '*',
+    name: 'NotFound',
+    component: NotFound
+  }
 ]
 
 const router = new VueRouter({
