@@ -111,8 +111,8 @@
           <div class="project-image-section">
             <div class="project-image-container">
               <img 
-                v-if="project.imageUrl || project.image" 
-                :src="project.imageUrl || project.image" 
+                v-if="project.image || project.imageUrl" 
+                :src="project.image || project.imageUrl" 
                 alt="项目图片" 
                 class="project-image"
                 @load="onImageLoad"
@@ -1575,7 +1575,7 @@
 import '@/assets/styles/ProjectDetail.css'
 import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage, preloadImages } from '@/utils/imageUtils'
 import { addTimestampToUrl } from '@/utils/imageUtils'
-import { cacheProjectCoverIfNeeded, getCachedProjectCover } from '@/utils/projectImageCache'
+import { cacheProjectCoverIfNeeded, getCachedProjectCover, saveProjectCover } from '@/utils/projectImageCache'
 import TaskSubmissionModal from '@/components/TaskSubmissionModal.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
 import { getTaskSubmissions, getLatestSubmission } from '@/api/taskSubmission'
@@ -4734,29 +4734,101 @@ export default {
         }
         if (response && response.code === 200 && response.data) {
           // 更新项目图片URL
-          const imageUrl = response.data.imageUrl
-          console.log('[uploadCroppedImage] 提取到的imageUrl:', imageUrl)
-          if (!imageUrl) {
+          const rawUrl = response.data.imageUrl
+          console.log('[uploadCroppedImage] 提取到的imageUrl:', rawUrl)
+          if (!rawUrl) {
             console.warn('[uploadCroppedImage] ⚠️ 警告：imageUrl 为空或不存在！')
             console.warn('[uploadCroppedImage] response.data 的所有字段:', response.data)
             alert('上传成功但未获取到图片URL')
             return
           }
-          // ✅ 使用 Vue.set 来确保响应式更新
-          this.$set(this.project, 'imageUrl', imageUrl)
-          this.$set(this.project, 'image', imageUrl)
-          console.log('[uploadCroppedImage] 项目对象已更新:', {
+          // 规范化后端返回的 URL
+          const normalizedUrl = normalizeProjectCoverUrl(rawUrl)
+
+          // ✅ 使用裁剪后的 dataURL 作为当前页面立即显示的图片，避免闪现旧图
+          this.$set(this.project, 'image', imageDataUrl || normalizedUrl)
+          this.$set(this.project, 'imageUrl', normalizedUrl || rawUrl)
+
+          console.log('[uploadCroppedImage] 项目对象已更新为新封面:', {
             imageUrl: this.project.imageUrl,
             image: this.project.image
           })
-          // 保存到localStorage
+
+          // ✅ 覆盖本地封面缓存，使后续进入广场/详情时直接使用新图
+          try {
+            if (this.project && this.project.id) {
+              saveProjectCover(this.project.id, imageDataUrl || normalizedUrl, normalizedUrl || rawUrl)
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 覆盖封面缓存失败:', e)
+          }
+
+          // ✅ 同步更新 localStorage('projects') 中对应项目的图片字段
+          try {
+            const savedProjects = localStorage.getItem('projects')
+            if (savedProjects) {
+              const projectList = JSON.parse(savedProjects)
+              if (Array.isArray(projectList)) {
+                const updatedList = projectList.map(p => {
+                  if (!p || String(p.id) !== String(this.project.id)) return p
+                  return {
+                    ...p,
+                    image: imageDataUrl || normalizedUrl || rawUrl,
+                    imageUrl: normalizedUrl || rawUrl
+                  }
+                })
+                localStorage.setItem('projects', JSON.stringify(updatedList))
+              }
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 更新 projects 缓存失败:', e)
+          }
+
+          // ✅ 更新项目详情缓存 project_detail_<id>
+          try {
+            const projectId = this.project?.id
+            if (projectId) {
+              const cacheKey = `project_detail_${projectId}`
+              const raw = localStorage.getItem(cacheKey)
+              if (raw) {
+                const parsed = JSON.parse(raw)
+                if (parsed && parsed.data && parsed.data.project) {
+                  parsed.data.project = {
+                    ...parsed.data.project,
+                    image: imageDataUrl || normalizedUrl || rawUrl,
+                    imageUrl: normalizedUrl || rawUrl
+                  }
+                  localStorage.setItem(cacheKey, JSON.stringify(parsed))
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 更新 project_detail 缓存失败:', e)
+          }
+
+          // 保存到localStorage（保持原有逻辑，写入 this.project 及相关字段）
           this.saveProjectData()
+
+          // ✅ 通过根实例广播项目封面更新事件，通知项目广场等页面立即更新
+          try {
+            const projectId = this.project?.id
+            if (projectId && this.$root && this.$root.$emit) {
+              this.$root.$emit('projectCoverUpdated', {
+                projectId,
+                image: imageDataUrl || normalizedUrl || rawUrl,
+                imageUrl: normalizedUrl || rawUrl
+              })
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 发送 projectCoverUpdated 事件失败:', e)
+          }
+
           // ✅ 强制Vue重新渲染（以防万一）
           this.$forceUpdate()
           console.log('[uploadCroppedImage] ✅ 强制更新Vue视图')
-          console.log('[uploadCroppedImage] ✅ 图片URL已设置:', imageUrl)
+          console.log('[uploadCroppedImage] ✅ 图片URL已设置并缓存:', normalizedUrl || rawUrl)
           this.showSuccessToast('项目图片上传成功！')
-          console.log('[uploadCroppedImage] 项目图片上传成功，URL:', imageUrl)
+          console.log('[uploadCroppedImage] 项目图片上传成功，新URL:', normalizedUrl || rawUrl)
         } else {
           console.error('[uploadCroppedImage] ❌ 响应不符合预期')
           console.error('[uploadCroppedImage] response:', response)
