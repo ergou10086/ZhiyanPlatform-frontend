@@ -287,6 +287,11 @@ export default {
     }).catch(err => {
       console.warn('科幻背景初始化失败，已忽略：', err)
     })
+
+    // 监听项目封面更新事件，确保从详情页返回时项目广场立即显示新封面
+    if (this.$root && this.$root.$on) {
+      this.$root.$on('projectCoverUpdated', this.handleProjectCoverUpdated)
+    }
   },
   activated() {
     this.refreshAuthState()
@@ -334,6 +339,10 @@ export default {
     if (this.scifiBgCleanup) {
       this.scifiBgCleanup()
       this.scifiBgCleanup = null
+    }
+
+    if (this.$root && this.$root.$off) {
+      this.$root.$off('projectCoverUpdated', this.handleProjectCoverUpdated)
     }
   },
   methods: {
@@ -1081,6 +1090,39 @@ export default {
         localStorage.removeItem('project_square_from_detail')
       } catch (e) {
         // 忽略错误
+      }
+    },
+    handleProjectCoverUpdated(payload) {
+      if (!payload || !payload.projectId) return
+      const { projectId, image, imageUrl } = payload
+      const idStr = String(projectId)
+
+      // 更新当前列表中的对应项目
+      const index = this.projects.findIndex(p => String(p.id) === idStr)
+      if (index !== -1) {
+        this.$set(this.projects[index], 'image', image || imageUrl)
+        this.$set(this.projects[index], 'imageUrl', imageUrl || image)
+      }
+
+      // 同步更新本地缓存（防止后续刷新丢失）
+      try {
+        const saved = localStorage.getItem('projects')
+        if (saved) {
+          const list = JSON.parse(saved)
+          if (Array.isArray(list)) {
+            const updated = list.map(p => {
+              if (!p || String(p.id) !== idStr) return p
+              return {
+                ...p,
+                image: image || imageUrl,
+                imageUrl: imageUrl || image
+              }
+            })
+            localStorage.setItem('projects', JSON.stringify(updated))
+          }
+        }
+      } catch (e) {
+        // 忽略缓存更新错误
       }
     },
     viewProjectDetail(project) {
