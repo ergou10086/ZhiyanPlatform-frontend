@@ -354,6 +354,8 @@ import { authAPI } from '@/api/auth'
 import { projectAPI } from '@/api/project'
 import { taskAPI } from '@/api/task'
 import '@/assets/styles/Home.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 export default {
   name: 'Home',
@@ -378,7 +380,8 @@ export default {
       isLoadingTasks: false, // 是否正在加载任务
       taskDetailModalOpen: false, // 任务详情弹窗是否打开
       selectedTask: null, // 选中的任务
-      showOAuth2SuccessToast: false // OAuth2授权成功提示
+      showOAuth2SuccessToast: false, // OAuth2授权成功提示
+      scifiBgCleanup: null
     }
   },
   mounted() {
@@ -404,12 +407,23 @@ export default {
     
     // 监听任务状态变化事件，刷新任务列表
     this.$root.$on('taskStatusChanged', this.handleTaskStatusChanged)
+
+    // 仅首页启用科技感背景（低侵入）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
   },
   beforeDestroy() {
     // 移除事件监听
     document.removeEventListener('click', this.handleClickOutside)
     // 移除任务状态变化事件监听
     this.$root.$off('taskStatusChanged', this.handleTaskStatusChanged)
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
+    }
   },
   methods: {
     handleOAuth2Callback() {
