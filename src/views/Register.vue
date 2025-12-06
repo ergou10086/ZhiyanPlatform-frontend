@@ -64,16 +64,35 @@
           </div>
           
           <div class="form-group">
-            <label for="password">密码设置(6-16位)<span class="required-asterisk">*</span></label>
+            <label for="password">密码设置(7-25位，必须包含字母)<span class="required-asterisk">*</span></label>
             <input
               type="password"
               id="password"
               v-model="registerForm.password"
-              placeholder="请输入密码"
+              placeholder="请输入密码（7-25位，必须包含字母）"
               required
-              minlength="6"
-              maxlength="16"
+              minlength="7"
+              maxlength="25"
+              @input="updatePasswordStrength"
             />
+            <!-- 密码强度显示 -->
+            <div v-if="registerForm.password" class="password-strength-indicator">
+              <div class="strength-bar">
+                <div 
+                  class="strength-fill" 
+                  :style="{ 
+                    width: `${(passwordStrength.level / 5) * 100}%`,
+                    backgroundColor: passwordStrength.color
+                  }"
+                ></div>
+              </div>
+              <div class="strength-label" :style="{ color: passwordStrength.color }">
+                {{ passwordStrength.label }}
+              </div>
+            </div>
+            <div v-if="registerForm.password && registerForm.email && registerForm.password.toLowerCase() === registerForm.email.toLowerCase()" class="password-warning">
+              ⚠️ 密码不能与邮箱相同
+            </div>
           </div>
           
           <div class="form-group">
@@ -153,7 +172,7 @@
 
 <script>
 import { authAPI } from '@/api/auth'
-import { formatApiError, isValidEmail, validatePassword, saveLoginData } from '@/utils/auth'
+import { formatApiError, isValidEmail, validatePassword, saveLoginData, calculatePasswordStrength } from '@/utils/auth'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import '@/assets/styles/Register.css'
 
@@ -181,7 +200,8 @@ export default {
       showModal: false,
       modalMessage: '',
       animateLogo: false,
-      isVerified: false // 滑动验证是否通过
+      isVerified: false, // 滑动验证是否通过
+      passwordStrength: { level: 0, label: '', color: '#ef4444' } // 密码强度
     }
   },
   mounted() {
@@ -286,9 +306,22 @@ export default {
         return
       }
       
+      // 检查密码是否与邮箱相同
+      if (this.registerForm.password.toLowerCase() === this.registerForm.email.toLowerCase()) {
+        this.showErrorModal('密码不能与邮箱相同')
+        return
+      }
+      
       const passwordValidation = validatePassword(this.registerForm.password)
       if (!passwordValidation.isValid) {
         this.showErrorModal(passwordValidation.message)
+        return
+      }
+      
+      // 检查密码强度
+      const strength = calculatePasswordStrength(this.registerForm.password)
+      if (strength.level < 2) {
+        this.showErrorModal('密码强度不足，请使用字母、数字和特殊字符组合')
         return
       }
       
@@ -462,6 +495,13 @@ export default {
     },
     handleVerifyFailed() {
       this.isVerified = false
+    },
+    updatePasswordStrength() {
+      if (this.registerForm.password) {
+        this.passwordStrength = calculatePasswordStrength(this.registerForm.password)
+      } else {
+        this.passwordStrength = { level: 0, label: '', color: '#ef4444' }
+      }
     }
   }
 }
