@@ -812,6 +812,8 @@ import 'vue-select/dist/vue-select.css'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
 import '@/assets/styles/AIAssistantTaskResult-v2.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 // ⭐ Markdown渲染和代码高亮
 import { marked } from 'marked'
@@ -912,7 +914,8 @@ export default {
       // 上传相关状态
       uploadProgress: null, // { total: 0, current: 0, message: '' }
       isUploading: false,
-      taskResultTitle: '' // 成果标题
+      taskResultTitle: '', // 成果标题
+      scifiBgCleanup: null
     }
   },
   computed: {
@@ -1043,14 +1046,12 @@ export default {
     //   this.syncTaskStatusChanges()
     // }, 60000)
 
-    // // 监听任务状态变化事件
-    // this.$root.$on('taskStatusChanged', (data) => {
-    //   console.log('收到任务状态变化通知:', data)
-    //   if (data.projectId === this.currentProject.id) {
-    //     console.log('当前项目任务状态发生变化，立即同步')
-    //     this.syncTaskStatusChanges()
-    //   }
-    // })
+    // 科技感背景（仅本页面，低侵入）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
   },
   beforeDestroy() {
     // 页面销毁前保存当前会话
@@ -1079,6 +1080,12 @@ export default {
     if (this.taskResultStatusTimer) {
       clearInterval(this.taskResultStatusTimer)
       this.taskResultStatusTimer = null
+    }
+
+    // 销毁科技感背景
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
     }
   },
   methods: {
