@@ -2729,8 +2729,8 @@
 
 /* 鏆楄壊妯″紡涓嬬殑鏂囦欢闈㈡澘鏍峰紡 */
 .dark-mode .ai-assistant-container .uploaded-files-panel {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border-color: #475569;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  border-color: #475569 !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -2748,8 +2748,8 @@
 }
 
 .dark-mode .ai-assistant-container .file-item {
-  background: #1e293b;
-  border-color: #334155;
+  background: #1e293b !important;
+  border-color: #334155 !important;
 }
 
 .dark-mode .ai-assistant-container .file-item:hover {
@@ -2766,8 +2766,8 @@
 }
 
 .dark-mode .ai-assistant-container .file-icon {
-  background: linear-gradient(135deg, #334155 0%, #475569 100%);
-  color: #60a5fa;
+  background: linear-gradient(135deg, #334155 0%, #475569 100%) !important;
+  color: #60a5fa !important;
 }
 
 .dark-mode .ai-assistant-container .empty-files {
@@ -2790,6 +2790,12 @@
   background: #64748b;
 }
 
+
+/* 通用：黑夜模式下，任何上传文件面板统一使用深色背景 */
+.dark-mode .uploaded-files-panel {
+  background: linear-gradient(135deg, #1e293b 0%, #020617 100%) !important;
+  border-color: #1f2937 !important;
+}
 
 /* 宸蹭笂浼犳枃浠堕潰鏉?*/
 .ai-assistant-container .uploaded-files-panel {
