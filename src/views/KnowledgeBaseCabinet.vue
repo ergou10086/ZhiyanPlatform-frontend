@@ -3,20 +3,20 @@
     <div class="cabinet-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- 左侧列表 -->
       <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
-      <div class="toolbar">
+        <div class="toolbar">
           <div class="toolbar-buttons" v-if="!sidebarCollapsed">
-          <button
-            class="btn primary small"
-            @click="createNewDocument"
-            :disabled="isArchived"
-            :title="isArchived ? '项目已归档，仅支持查看' : '新建文档'"
-          >+ 新建文档</button>
-          <button
-            class="btn secondary small"
-            @click="createNewFolder"
-            :disabled="isArchived"
-            :title="isArchived ? '项目已归档，仅支持查看' : '新建节点'"
-          >+ 新建节点</button>
+            <button
+              class="btn primary small"
+              @click="createNewDocument"
+              :disabled="isArchived"
+              :title="isArchived ? '项目已归档，仅支持查看' : '新建文档'"
+            >+ 新建文档</button>
+            <button
+              class="btn secondary small"
+              @click="createNewFolder"
+              :disabled="isArchived"
+              :title="isArchived ? '项目已归档，仅支持查看' : '新建节点'"
+            >+ 新建节点</button>
           </div>
           <div class="search-container" v-if="!sidebarCollapsed">
             <input
@@ -32,14 +32,23 @@
             </svg>
           </div>
         </div>
+
+        <!-- 左侧空状态：没有任何节点和文档时提示 -->
+        <div
+          v-if="!sidebarCollapsed && folders.length === 0 && docs.length === 0"
+          class="list-empty-hint"
+        >
+          <p>应该先创建节点再创建文档</p>
+        </div>
+
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
             <div class="title-actions">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                 :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
-              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                   :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
               <button class="delete-node-btn"
                       @click.stop="confirmDeleteNode(folder.id, 'folder', folder.name)"
                       title="删除节点">
@@ -193,13 +202,13 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
                 <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-                <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2"/>
+                <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               {{ imageCount }} 张图片
             </span>
             <span class="stat-item">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               {{ fileCount }} 个文件
             </span>
@@ -258,21 +267,16 @@
               </div>
             </div>
           </div>
-          
-          <!-- 空状态 -->
-          <div class="attachments-empty" v-else>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <p>暂无附件</p>
-            <span>点击上方按钮上传文件</span>
-          </div>
         </div>
+        
+        <!-- 空状态 -->
+        <div class="attachments-empty" v-if="filteredAttachments.length === 0">
 
-        <div class="editor-footer">
-          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc || isArchived">版本历史</button>
-          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc || isArchived">差异对比</button>
-          <div class="flex-spacer" />
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>暂无附件</p>
+          <span>点击上方按钮上传文件</span>
           <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing" :disabled="isArchived" :title="isArchived ? '项目已归档，仅支持查看' : '编辑文档'">
             编辑
           </button>
@@ -4085,8 +4089,9 @@ export default {
   font-weight: 600;
 }
 .group-title { 
-  color: #6b7280; 
-  font-size: 12px; 
+  color: #4b5563; 
+  font-size: 16px; 
+  font-weight: 600;
   margin: 10px 0 6px; 
   display: flex;
   align-items: center;
@@ -4161,7 +4166,7 @@ export default {
   border-radius: 8px;
   cursor: pointer;
   color: #374151;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4171,6 +4176,7 @@ export default {
 
 .doc-list .doc-item .doc-title {
   flex: 1;
+  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

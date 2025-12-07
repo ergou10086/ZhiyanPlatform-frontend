@@ -151,7 +151,7 @@
   --breakpoint-2xl: 1536px;
 }
 
-/* 深色模式变量 */
+/* 深色模式变量（根据系统偏好） */
 @media (prefers-color-scheme: dark) {
   :root {
     --bg-primary: #0f172a;
@@ -167,6 +167,22 @@
     --border-primary: #334155;
     --border-secondary: #475569;
   }
+}
+
+/* 深色模式变量（应用内主题切换：html 上带有 .dark-mode 类时生效） */
+html.dark-mode {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-glass: rgba(15, 23, 42, 0.8);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --text-disabled: #64748b;
+
+  --border-primary: #334155;
+  --border-secondary: #475569;
 }
 
 /* 全局重置样式 */
