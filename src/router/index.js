@@ -15,6 +15,7 @@ import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
+import ProjectOperationLog from '../views/ProjectOperationLog.vue'
 import MyActivity from '../views/MyActivity.vue'
 import OAuth2Callback from '../views/OAuth2Callback.vue'
 import OAuth2Bind from '../views/OAuth2Bind.vue'
@@ -104,6 +105,11 @@ const routes = [
     path: '/project-dashboard/:id',
     name: 'ProjectDashboard',
     component: ProjectDashboard
+  },
+  {
+    path: '/project-operation-log/:id',
+    name: 'ProjectOperationLog',
+    component: ProjectOperationLog
   },
   {
     path: '/knowledge-base',
@@ -223,6 +229,7 @@ router.beforeEach((to, from, next) => {
     '/project-detail',
     '/project-knowledge',
     '/project-dashboard',
+    '/project-operation-log',
     '/project',
     '/my-activity'
   ]
