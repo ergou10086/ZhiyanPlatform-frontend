@@ -54,6 +54,21 @@
   backdrop-filter: blur(20px);
 }
 
+/* 左侧空状态提示样式 */
+.cabinet-view .list-empty-hint {
+  margin-top: 40px;
+  padding: 32px 16px 24px;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.cabinet-view .list-empty-hint p {
+  margin: 0;
+}
+
 .cabinet-view .list-pane::before {
   content: '';
   position: absolute;
@@ -130,26 +145,29 @@
 }
 
 .cabinet-view .group-title { 
-  color: #334155; 
-  font-size: 14px; 
+  color: #1e293b; 
+  font-size: 18px; 
   margin: 8px 0 4px; 
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 12px 14px;
-  min-height: 44px;
-  border-radius: 10px;
-  font-weight: 600;
+  padding: 16px 18px;
+  min-height: 52px;
+  border-radius: 14px;
+  font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
   position: relative;
-  gap: 8px;
-  line-height: 1.4;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  margin-bottom: 6px;
+  gap: 10px;
+  line-height: 1.3;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.12) 0%, rgba(94, 182, 228, 0.06) 100%);
+  border: 2px solid rgba(94, 182, 228, 0.25);
+  margin-bottom: 8px;
+  box-shadow: 
+    0 4px 12px rgba(94, 182, 228, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .cabinet-view .group-title svg {
@@ -157,11 +175,13 @@
 }
 
 .cabinet-view .group-title:hover {
-  color: #1e293b;
-  background: linear-gradient(135deg, rgba(94, 182, 228, 0.12) 0%, rgba(94, 182, 228, 0.06) 100%);
-  border-color: rgba(94, 182, 228, 0.3);
-  transform: translateX(2px);
-  box-shadow: 0 2px 8px rgba(94, 182, 228, 0.15);
+  color: #0f172a;
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.18) 0%, rgba(94, 182, 228, 0.10) 100%);
+  border-color: rgba(94, 182, 228, 0.4);
+  transform: translateX(3px) translateY(-1px);
+  box-shadow: 
+    0 6px 20px rgba(94, 182, 228, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .cabinet-view .folder-icon {
@@ -196,36 +216,40 @@
 }
 
 .cabinet-view .doc-list li { 
-  padding: 11px 14px; 
-  border-radius: 10px; 
+  padding: 10px 12px 10px 20px; 
+  border-radius: 8px; 
   cursor: pointer; 
-  color: #475569; 
+  color: #64748b; 
   font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 4px;
+  font-weight: 400;
+  margin-bottom: 3px;
+  margin-left: 8px;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   border: 1px solid transparent;
-  background: rgba(248, 250, 252, 0.3);
+  background: rgba(248, 250, 252, 0.4);
+  border-left: 3px solid rgba(94, 182, 228, 0.2);
 }
 
 .cabinet-view .doc-list li:hover { 
-  background: linear-gradient(135deg, rgba(94, 182, 228, 0.10) 0%, rgba(94, 182, 228, 0.05) 100%);
-  color: #1e293b;
-  transform: translateX(4px);
-  border-color: rgba(94, 182, 228, 0.2);
-  box-shadow: 0 2px 6px rgba(94, 182, 228, 0.1);
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.08) 0%, rgba(94, 182, 228, 0.03) 100%);
+  color: #334155;
+  transform: translateX(6px);
+  border-color: rgba(94, 182, 228, 0.15);
+  border-left-color: rgba(94, 182, 228, 0.4);
+  box-shadow: 0 1px 4px rgba(94, 182, 228, 0.08);
 }
 
 .cabinet-view .doc-list li.active { 
-  background: linear-gradient(135deg, rgba(94, 182, 228, 0.16) 0%, rgba(0, 68, 204, 0.10) 100%);
+  background: linear-gradient(135deg, rgba(94, 182, 228, 0.12) 0%, rgba(0, 68, 204, 0.06) 100%);
   color: #0044CC;
-  font-weight: 600;
+  font-weight: 500;
   box-shadow: 
-    0 3px 10px rgba(94, 182, 228, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(94, 182, 228, 0.35);
-  transform: translateX(4px);
+    0 2px 8px rgba(94, 182, 228, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(94, 182, 228, 0.25);
+  border-left-color: rgba(0, 68, 204, 0.6);
+  transform: translateX(6px);
 }
 
 .cabinet-view .doc-list li:last-child {
@@ -235,14 +259,14 @@
 .cabinet-view .doc-list li.active::before {
   content: '';
   position: absolute;
-  left: 0;
+  left: -3px;
   top: 50%;
   transform: translateY(-50%);
-  width: 3px;
-  height: 60%;
+  width: 4px;
+  height: 70%;
   background: linear-gradient(180deg, #5EB6E4 0%, #0044CC 100%);
   border-radius: 0 2px 2px 0;
-  box-shadow: 0 0 6px rgba(94, 182, 228, 0.4);
+  box-shadow: 0 0 8px rgba(94, 182, 228, 0.5);
 }
 
 /* ========== 折叠按钮 ========== */
@@ -973,12 +997,19 @@
   padding: 12px 40px 12px 16px;
   border: 2px solid #e2e8f0;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 18px !important;
+  font-weight: 700;
   transition: all 0.2s ease;
   background: #ffffff;
   color: #1e293b;
   font-family: inherit;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* 节点下拉列表里的节点文字也要比文档大一号 */
+.cabinet-view .node-picker-item span {
+  font-size: 16px !important;
+  font-weight: 600;
 }
 
 .cabinet-view .node-input:focus {

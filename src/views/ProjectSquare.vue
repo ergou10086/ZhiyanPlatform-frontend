@@ -193,6 +193,15 @@ export default {
               image: finalImage,
               imageUrl: normalizedUrl
             }
+
+          // 为避免因后端排序规则变化导致项目卡片顺序抖动，统一按id升序排序
+          backendProjects = Array.isArray(backendProjects)
+            ? [...backendProjects].sort((a, b) => {
+                const idA = Number(a && a.id) || 0
+                const idB = Number(b && b.id) || 0
+                return idA - idB
+              })
+            : []
           })
           initialIsLoading = false
         }
@@ -570,7 +579,16 @@ export default {
         if (cachedProjects) {
           try {
             const projects = JSON.parse(cachedProjects)
-            const accessibleProjects = projects.filter(p => this.canDisplayProject(p))
+            // 为避免因后端或缓存写入顺序变化导致卡片乱跳，先按id升序固定排序
+            const sortedProjects = Array.isArray(projects)
+              ? [...projects].sort((a, b) => {
+                  const idA = Number(a && a.id) || 0
+                  const idB = Number(b && b.id) || 0
+                  return idA - idB
+                })
+              : []
+
+            const accessibleProjects = sortedProjects.filter(p => this.canDisplayProject(p))
             if (accessibleProjects.length > 0) {
               // 使用缓存数据直接渲染网格
               this.projects = accessibleProjects.map(project => {
@@ -631,6 +649,14 @@ export default {
           } else {
             backendProjects = []
           }
+          // 统一按id升序排序，避免因为后端排序变化导致前端卡片顺序抖动
+          backendProjects = Array.isArray(backendProjects)
+            ? [...backendProjects].sort((a, b) => {
+                const idA = Number(a && a.id) || 0
+                const idB = Number(b && b.id) || 0
+                return idA - idB
+              })
+            : []
           
           // 获取localStorage中的旧项目数据（如果有的话）
           const savedProjects = localStorage.getItem('projects')
@@ -701,6 +727,12 @@ export default {
                 ),
                 inviteSlots: localProject?.inviteSlots || []
               }
+            })
+            // 再按id升序排一次，确保最终 this.projects 顺序稳定
+            .sort((a, b) => {
+              const idA = Number(a && a.id) || 0
+              const idB = Number(b && b.id) || 0
+              return idA - idB
             })
             .filter(project => {
               const canShow = this.canDisplayProject(project)
