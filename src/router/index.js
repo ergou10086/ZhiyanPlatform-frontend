@@ -146,7 +146,16 @@ const routes = [
 const router = new VueRouter({
   mode: 'history',
   base: process.env.BASE_URL,
-  routes
+  routes,
+  // 每次路由切换后将页面滚动到顶部，避免沿用上一页的滚动位置
+  scrollBehavior(to, from, savedPosition) {
+    // 如果浏览器有记录（如浏览器前进/后退），优先使用记录的位置
+    if (savedPosition) {
+      return savedPosition
+    }
+    // 否则一律回到页面顶部
+    return { x: 0, y: 0 }
+  }
 })
 
 // 路由守卫

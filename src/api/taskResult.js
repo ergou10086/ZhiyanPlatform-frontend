@@ -22,6 +22,16 @@ export function generateTaskResultDraft(request) {
 }
 
 /**
+ * 批量查询任务附件
+ * @param {Array<Number>} taskIds - 任务ID列表
+ * @returns {Promise} Map<任务ID(字符串), 附件URL列表>
+ */
+export function getTasksAttachments(taskIds) {
+  console.log('[taskResultAPI.getTasksAttachments] 批量查询任务附件, taskIds:', taskIds)
+  return api.post('/zhiyan/projects/tasks/submissions/tasks/attachments/batch', taskIds)
+}
+
+/**
  * 查询AI生成任务状态
  * @param {String} jobId - 生成任务ID
  * @returns {Promise} 返回任务状态和结果
@@ -122,7 +132,8 @@ export default {
   getAIDrafts,
   saveAIDraft,
   createTaskResultAchievement,
-  getTaskResultDetail
+  getTaskResultDetail,
+  getTasksAttachments
 }
 
 
