@@ -394,10 +394,10 @@
                   >
                   <select v-model="logFilterType" class="filter-select" @change="filterActivityLogs">
                     <option value="all">全部类型</option>
-                    <option value="submission">任务提交</option>
-                    <option value="upload">成果上传</option>
-                    <option value="comment">评论回复</option>
-                    <option value="review">审核操作</option>
+                    <option value="submission">项目</option>
+                    <option value="upload">任务</option>
+                    <option value="comment">成果</option>
+                    <option value="review">Wiki</option>
                   </select>
                 </div>
               </div>
