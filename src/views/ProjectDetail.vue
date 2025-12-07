@@ -33,7 +33,6 @@
         <div class="project-header-top">
           <h1 class="project-title">
             {{ project.title }}
-            <button class="dashboard-btn" @click="goToProjectDashboard">仪表盘</button>
           </h1>
           <div class="project-actions" v-if="canManageProject">
             <button class="btn secondary" @click="editProject">
@@ -104,6 +103,18 @@
                 @click="goToAIAssistant"
               >
                 AI实验分析助手
+              </button>
+              <button
+                class="btn"
+                @click="goToProjectDashboard"
+              >
+                仪表盘
+              </button>
+              <button
+                class="btn"
+                @click="goToOperationLog"
+              >
+                操作日志
               </button>
             </div>
           </div>
@@ -2902,6 +2913,25 @@ export default {
     goToAIAssistant() {
       const projectId = this.project?.id || this.$route.params.id
       this.$router.push({ path: '/ai-assistant', query: { projectId } })
+    },
+    goToOperationLog() {
+      const projectId = this.project?.id || this.$route.params.id
+      if (!projectId) {
+        console.error('项目ID为空，无法跳转')
+        alert('项目ID无效，无法跳转到操作日志')
+        return
+      }
+      this.$router.push({
+        name: 'ProjectOperationLog',
+        params: { id: String(projectId) }
+      }).catch(err => {
+        if (err.name !== 'NavigationDuplicated') {
+          console.error('路由跳转失败:', err)
+          this.$router.push(`/project-operation-log/${projectId}`).catch(e => {
+            console.error('路径跳转也失败:', e)
+          })
+        }
+      })
     },
     addTeamMember() {
       const name = prompt('请输入成员姓名:')

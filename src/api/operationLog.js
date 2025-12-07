@@ -127,15 +127,147 @@ export function getProjectOperationLogs(projectId, params) {
 }
 
 /**
- * 导出操作日志
+ * 获取项目内所有类型的操作日志（聚合查询）
+ * @param {string} projectId - 项目ID
  * @param {Object} params - 查询参数
  * @returns {Promise}
  */
-export function exportOperationLogs(params) {
+export function getProjectAllLogs(projectId, params) {
   return request({
-    url: '/zhiyan/activelog/export',
+    url: `/zhiyan/activelog/projects/${projectId}/all`,
     method: 'get',
-    params: params,
+    params: {
+      page: params.page || 0,
+      size: params.size || 20
+    }
+  })
+}
+
+/**
+ * 获取项目内项目操作日志（带筛选）
+ * @param {string} projectId - 项目ID
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getProjectProjectLogs(projectId, params) {
+  return request({
+    url: `/zhiyan/activelog/projects/${projectId}/project-logs`,
+    method: 'get',
+    params: {
+      operationType: params.operationType,
+      username: params.username,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      page: params.page || 0,
+      size: params.size || 20
+    }
+  })
+}
+
+/**
+ * 获取项目内任务操作日志（带筛选）
+ * @param {string} projectId - 项目ID
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getProjectTaskLogs(projectId, params) {
+  return request({
+    url: `/zhiyan/activelog/projects/${projectId}/task-logs`,
+    method: 'get',
+    params: {
+      taskId: params.taskId,
+      operationType: params.operationType,
+      username: params.username,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      page: params.page || 0,
+      size: params.size || 20
+    }
+  })
+}
+
+/**
+ * 获取项目内Wiki操作日志（带筛选）
+ * @param {string} projectId - 项目ID
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getProjectWikiLogs(projectId, params) {
+  return request({
+    url: `/zhiyan/activelog/projects/${projectId}/wiki-logs`,
+    method: 'get',
+    params: {
+      wikiPageId: params.wikiPageId,
+      operationType: params.operationType,
+      username: params.username,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      page: params.page || 0,
+      size: params.size || 20
+    }
+  })
+}
+
+/**
+ * 获取项目内成果操作日志（带筛选）
+ * @param {string} projectId - 项目ID
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function getProjectAchievementLogs(projectId, params) {
+  return request({
+    url: `/zhiyan/activelog/projects/${projectId}/achievement-logs`,
+    method: 'get',
+    params: {
+      achievementId: params.achievementId,
+      operationType: params.operationType,
+      username: params.username,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      page: params.page || 0,
+      size: params.size || 20
+    }
+  })
+}
+
+/**
+ * 导出项目操作日志
+ * @param {string} projectId - 项目ID
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export function exportProjectLogs(projectId, params) {
+  return request({
+    url: `/zhiyan/activelog/export/projects/${projectId}/project-logs`,
+    method: 'get',
+    params: {
+      operationType: params.operationType,
+      username: params.username,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      limit: params.limit
+    },
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 导出我的操作日志
+ * @param {Object} params - 查询参数
+ * @param {string} params.startTime - 开始时间，格式：yyyy-MM-dd HH:mm:ss
+ * @param {string} params.endTime - 结束时间，格式：yyyy-MM-dd HH:mm:ss
+ * @param {number} params.limit - 导出条数限制，不传则导出全部
+ * @returns {Promise}
+ */
+export function exportMyLogs(params = {}) {
+  return request({
+    url: '/zhiyan/activelog/export/my-logs',
+    method: 'get',
+    params: {
+      startTime: params.startTime,
+      endTime: params.endTime,
+      limit: params.limit
+    },
     responseType: 'blob'
   })
 }
