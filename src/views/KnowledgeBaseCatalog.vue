@@ -3991,7 +3991,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  /* 与附件预览保持一致的最高层级，盖住成果详情和档案面板 */
+  z-index: 12000;
 }
 
 .modal-content {
@@ -4000,9 +4001,9 @@ export default {
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(0, 0, 0, 0.05);
-  max-width: 620px;
-  width: 90%;
-  max-height: 88vh;
+  max-width: 520px;
+  width: 88%;
+  max-height: 70vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4014,7 +4015,7 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 24px 28px 18px;
+  padding: 20px 24px 12px;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
@@ -4057,7 +4058,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0;
+  padding: 16px 24px 4px;
   background: #ffffff;
 }
 
@@ -4268,9 +4269,50 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 24px 20px;
+  padding: 12px 24px 18px;
   background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
   border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.modal-body p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #4b5563;
+}
+
+.modal-footer .btn {
+  min-width: 96px;
+  height: 38px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.modal-footer .btn.btn-secondary,
+.modal-footer .btn.secondary {
+  background: #ffffff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.modal-footer .btn.btn-secondary:hover,
+.modal-footer .btn.secondary:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.modal-footer .btn.btn-primary,
+.modal-footer .btn.primary {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.modal-footer .btn.btn-primary:hover,
+.modal-footer .btn.primary:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 /* 文件信息样式覆盖 */
@@ -4489,7 +4531,8 @@ export default {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.75);
-  z-index: 10000;
+  /* 层级最高：高于成果详情弹窗的 11000 */
+  z-index: 12000;
   display: flex;
   align-items: center;
   justify-content: center;
