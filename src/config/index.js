@@ -1,14 +1,13 @@
 // 应用配置文件，带有安全的默认值和可选的运行时覆盖
 
-const isProduction = typeof process !== 'undefined' &&
-    process.env &&
-    process.env.NODE_ENV === 'production'
-
+// Vue CLI 会在构建时进行静态替换
+// 生产构建时：process.env.NODE_ENV 会被替换为 'production'
+// 开发构建时：process.env.NODE_ENV 会被替换为 'development'
 const DEFAULT_HOST =
-    (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
-    (isProduction
-        ? ''   // 生产环境使用相对路径，由 Nginx 代理转发
-        : 'http://localhost:9006')  // 开发环境使用本地后端
+  (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
+  (process.env.NODE_ENV === 'production'
+    ? ''   // 生产环境使用相对路径，由 Nginx 代理转发
+    : 'http://localhost:9006')  // 开发环境使用本地后端
 
 const DEFAULTS = {
   api: {
