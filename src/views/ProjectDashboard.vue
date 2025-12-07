@@ -4202,7 +4202,8 @@ export default {
   overflow-y:scroll;
   scroll-snap-type:y mandatory;
   scroll-behavior:smooth;
-  background:linear-gradient(135deg, #f0f9ff 0%, #faf5ff 50%, #f0f9ff 100%);
+  /* 使用全局背景变量，白天为浅色，黑夜为深色 */
+  background: var(--bg-secondary);
 }
 
 /* 隐藏滚动条但保留滚动功能 */
@@ -4383,7 +4384,8 @@ export default {
 
 /* 现代统计卡片 */
 .stat-card-modern {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  /* 使用主题主背景，跟随明暗模式 */
+  background: var(--bg-primary, #ffffff);
   border-radius: 20px;
   padding: 24px 24px;
   box-shadow: 
@@ -4395,7 +4397,7 @@ export default {
   position: relative;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--border-primary, rgba(226, 232, 240, 0.8));
 }
 
 .stat-card-modern::before {
@@ -4479,7 +4481,7 @@ export default {
 
 /* 现代图表卡片 */
 .chart-card-modern {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--bg-primary, #ffffff);
   border-radius: 20px;
   padding: 20px;
   box-shadow: 
@@ -4567,14 +4569,15 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #f8fafc;
+  /* 使用主题背景，暗色模式下会变成深色卡片 */
+  background: var(--bg-primary, #f8fafc);
   border-radius: 12px;
   transition: all 0.3s ease;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-primary, transparent);
 }
 
 .legend-item-modern:hover {
-  background: #f1f5f9;
+  background: var(--bg-tertiary, #f1f5f9);
   transform: translateX(4px);
 }
 
@@ -4588,19 +4591,21 @@ export default {
 .legend-text {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  /* 文字使用主题颜色，暗色模式下变为浅色 */
+  color: var(--text-primary, #475569);
   flex: 1;
 }
 
 .legend-value {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary, #111827);
 }
 
 .legend-percent {
   font-size: 12px;
   font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
   color: #94a3b8;
   padding: 2px 8px;
   background: white;
@@ -5080,6 +5085,21 @@ export default {
 .commit-content {
   flex: 1;
   padding-bottom: 8px;
+}
+
+.task-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  margin-bottom: 2px;
+}
+
+.task-item-assignee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary, #6b7280);
 }
 
 .commit-message {
@@ -7406,6 +7426,135 @@ export default {
   color: #94a3b8;
   font-size: 14px;
 }
+
+/* =========================
+   深色模式适配（整体仪表盘）
+   ========================= */
+/* 由于本文件样式未使用主题变量，这里通过 dark-mode 统一覆盖主要卡片与文字颜色 */
+:deep(html.dark-mode) .dashboard-container {
+  color: #e5e7eb;
+}
+
+:deep(html.dark-mode) .dashboard-container .stat-card-modern,
+:deep(html.dark-mode) .dashboard-container .chart-card-modern,
+:deep(html.dark-mode) .dashboard-container .member-task-chart-card,
+:deep(html.dark-mode) .dashboard-container .submission-stats-card,
+:deep(html.dark-mode) .dashboard-container .submission-timeline-card,
+:deep(html.dark-mode) .dashboard-container .member-task-item,
+:deep(html.dark-mode) .dashboard-container .card.glass,
+:deep(html.dark-mode) .dashboard-container .charts-grid .chart-item {
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* 仪表盘内主要标题/文字颜色变亮 */
+:deep(html.dark-mode) .dashboard-container .page-title,
+:deep(html.dark-mode) .dashboard-container .stat-label,
+:deep(html.dark-mode) .dashboard-container .stat-value,
+:deep(html.dark-mode) .dashboard-container .stat-description,
+:deep(html.dark-mode) .dashboard-container .chart-title,
+:deep(html.dark-mode) .dashboard-container .chart-subtitle,
+:deep(html.dark-mode) .dashboard-container .task-item-name,
+:deep(html.dark-mode) .dashboard-container .task-item-assignee span,
+:deep(html.dark-mode) .dashboard-container .legend-text,
+:deep(html.dark-mode) .dashboard-container .legend-value,
+:deep(html.dark-mode) .dashboard-container .card .card-title,
+:deep(html.dark-mode) .dashboard-container .timeline-task-name,
+:deep(html.dark-mode) .dashboard-container .member-task-item .task-item-name,
+:deep(html.dark-mode) .dashboard-container .charts-grid .card-title {
+  color: #e5e7eb;
+}
+
+/* 次级文字微微变暗但保持可读 */
+:deep(html.dark-mode) .dashboard-container .task-item-assignee,
+:deep(html.dark-mode) .dashboard-container .task-item-assignee span,
+:deep(html.dark-mode) .dashboard-container .timeline-meta,
+:deep(html.dark-mode) .dashboard-container .timeline-time,
+:deep(html.dark-mode) .dashboard-container .no-data-hint {
+  color: #9ca3af;
+}
+
+/* 仪表盘卡片边框在暗色下使用深色描边 */
+:deep(html.dark-mode) .dashboard-container .stat-card-modern,
+:deep(html.dark-mode) .dashboard-container .chart-card-modern,
+:deep(html.dark-mode) .dashboard-container .member-task-chart-card,
+:deep(html.dark-mode) .dashboard-container .submission-stats-card,
+:deep(html.dark-mode) .dashboard-container .submission-timeline-card,
+:deep(html.dark-mode) .dashboard-container .charts-grid .chart-item {
+  border-color: #1f2937;
+}
+
+/* 左侧任务列表小卡片在暗色模式下使用深色背景与浅色文字 */
+:deep(html.dark-mode) .dashboard-container .task-item-compact {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+:deep(html.dark-mode) .dashboard-container .task-item-compact .task-item-name {
+  color: #f9fafb;
+}
+
+:deep(html.dark-mode) .dashboard-container .task-item-compact .task-item-assignee {
+  color: #cbd5e1;
+}
 </style>
 
+<!-- 全局样式：确保左侧任务列表在黑夜模式下为黑框白字 -->
+<style>
+html.dark-mode .dashboard-container .task-item-compact {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
 
+html.dark-mode .dashboard-container .task-item-compact .task-item-name {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .dashboard-container .task-item-compact .task-item-assignee {
+  color: #cbd5e1 !important;
+}
+/* 可视化图表相关卡片：黑夜模式下改为深色背景 */
+html.dark-mode .dashboard-container .kpi-card,
+html.dark-mode .dashboard-container .kpi-card-large,
+html.dark-mode .dashboard-container .stat-card,
+html.dark-mode .dashboard-container .achievement-card,
+html.dark-mode .dashboard-container .achievements-list-card,
+html.dark-mode .dashboard-container .member-contribution-chart,
+html.dark-mode .dashboard-container .submission-stats-card,
+html.dark-mode .dashboard-container .submission-timeline-card,
+html.dark-mode .dashboard-container .member-task-chart-card,
+html.dark-mode .dashboard-container .line-chart,
+html.dark-mode .dashboard-container .line-chart-empty,
+html.dark-mode .dashboard-container .bar-chart-empty,
+html.dark-mode .dashboard-container .pie-empty {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .line-chart .empty-text,
+html.dark-mode .dashboard-container .bar-chart-empty .empty-text {
+  color: #9ca3af !important;
+}
+
+/* 成员任务负载卡片在黑夜模式下使用深色背景 */
+html.dark-mode .dashboard-container .card.glass.gradient-border {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
+
+/* 里程碑时间线左侧任务卡片：黑夜模式下黑框白字 */
+html.dark-mode .dashboard-container .timeline .steps li {
+  background: #020617 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .timeline .steps li .name {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .dashboard-container .timeline .steps li .date,
+html.dark-mode .dashboard-container .timeline .steps li .milestone-members span {
+  color: #cbd5e1 !important;
+}
+</style>
