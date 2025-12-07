@@ -3,11 +3,22 @@ import config from '@/config'
 
 /**
  * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ * 增强健壮性：只有在看起来是 JSON 字符串时才尝试解析，
+ * 避免对错误页/纯文本执行 JSON.parse 导致控制台频繁 SyntaxError。
  */
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
+
+  const trimmed = data.trim()
+  if (!trimmed) return data
+
+  // 仅当响应内容以 "{" 或 "[" 开头时，才视为 JSON 尝试解析
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    return data
+  }
+
   try {
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    return JSON.parse(trimmed.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
   } catch (e) {
     console.error('JSON解析错误:', e)
     return data
