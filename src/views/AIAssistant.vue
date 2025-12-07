@@ -295,7 +295,9 @@
             <div class="control-item">
               <label class="control-label">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 11H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 选择任务
               </label>
@@ -328,47 +330,32 @@
                   <span>包含相关附件参与生成</span>
                 </label>
                 <div v-if="includeAttachments" class="attachment-filters">
-                  <div class="filters-label">附件类型</div>
-                  <div class="filters-list">
-                    <label
-                      v-for="opt in attachmentFilterOptions"
-                      :key="opt.value"
-                      class="filter-item"
-                    >
-                      <input
-                        type="checkbox"
-                        :value="opt.value"
-                        v-model="attachmentFilters"
+                  <div class="filters-label">选择参与生成的附件</div>
+                  <div v-if="attachmentsLoading" class="filters-list">
+                    <span>正在加载附件...</span>
+                  </div>
+                  <div v-else class="filters-list">
+                    <template v-if="availableAttachments && availableAttachments.length">
+                      <label
+                        v-for="file in availableAttachments"
+                        :key="file.taskId + '-' + file.url"
+                        class="filter-item"
                       >
-                      <span>{{ opt.label }}</span>
-                    </label>
+                        <input
+                          type="checkbox"
+                          :value="file.url"
+                          v-model="selectedAttachmentUrls"
+                        >
+                        <span>{{ file.name }}</span>
+                      </label>
+                    </template>
+                    <p v-else class="no-attachments-text">当前选中任务暂无可用附件</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- 生成按钮 -->
-            <div class="control-item control-action">
-              <button
-                class="control-generate-btn"
-                :disabled="selectedTaskIds.length === 0 || isGeneratingTaskResult"
-                @click="generateTaskResultDraft"
-              >
-                <svg v-if="!isGeneratingTaskResult" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <div v-else class="loading-spinner-small"></div>
-                <span v-if="!isGeneratingTaskResult">生成成果草稿</span>
-                <span v-else>正在生成...</span>
-              </button>
-              <button
-                v-if="isGeneratingTaskResult && taskResultJobId"
-                class="control-cancel-btn"
-                @click="cancelTaskResultGenerate"
-              >
-                取消生成
-              </button>
-            </div>
+            <!-- 生成按钮移动到右侧“生成结果”模块 -->
           </div>
 
           <!-- 右侧滚动内容区 -->
@@ -378,8 +365,10 @@
               <div class="section-header">
                 <h3 class="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M9 7H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   已选择的任务 <span v-if="selectedTaskSummaries.length > 0" class="task-count">({{ selectedTaskSummaries.length }})</span>
                 </h3>
@@ -417,7 +406,9 @@
                 </div>
                 <div v-else class="empty-state-inline">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p>请从左侧选择任务</p>
                 </div>
@@ -450,11 +441,36 @@
               <div class="section-header">
                 <h3 class="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   生成结果
                 </h3>
-                <div class="section-actions" v-if="taskResultOutput">
+                <div class="section-actions">
+                  <!-- 左侧：生成/取消生成 -->
+                  <button
+                    class="result-action-btn primary"
+                    :disabled="selectedTaskIds.length === 0 || isGeneratingTaskResult"
+                    @click="generateTaskResultDraft"
+                  >
+                    <svg v-if="!isGeneratingTaskResult" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div v-else class="loading-spinner-small"></div>
+                    <span v-if="!isGeneratingTaskResult">生成成果草稿</span>
+                    <span v-else>正在生成...</span>
+                  </button>
+                  <button
+                    v-if="isGeneratingTaskResult && taskResultJobId"
+                    class="result-action-btn"
+                    @click="cancelTaskResultGenerate"
+                  >
+                    取消生成
+                  </button>
+
+                  <!-- 右侧：仅在已有结果时显示的编辑/导出/保存 -->
+                  <template v-if="taskResultOutput">
                   <template v-if="!isEditing">
                     <button class="result-action-btn" @click="startEditing">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -496,6 +512,7 @@
                       <span>保存</span>
                     </button>
                   </template>
+                  </template>
                 </div>
               </div>
               <div class="section-body result-body">
@@ -511,7 +528,9 @@
                 </div>
                 <div v-else class="empty-state-inline">
                   <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p>生成的成果草稿会显示在这里</p>
                 </div>
@@ -805,7 +824,7 @@ import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
 import { taskAPI } from '@/api/task'
-import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate, linkTasksToAchievement } from '@/api/taskResult'
+import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate, linkTasksToAchievement, getTasksAttachments } from '@/api/taskResult'
 import difyAPI from '@/api/dify'
 import vSelect from 'vue-select'
 import 'vue-select/dist/vue-select.css'
@@ -891,12 +910,12 @@ export default {
       isEditing: false, // 是否正在编辑成果内容
       editedContent: '', // 编辑中的内容
       includeAttachments: true,
-      attachmentFilters: ['pdf', 'docx'],
-      attachmentFilterOptions: [
-        { value: 'pdf', label: 'PDF (.pdf)' },
-        { value: 'docx', label: 'Word (.docx)' },
-        { value: 'pptx', label: 'PPT (.pptx)' }
-      ],
+      // 可用附件列表（根据当前选择的任务实时加载）
+      availableAttachments: [], // [{ taskId, url, name }]
+      // 已选择参与生成的附件 URL 列表
+      selectedAttachmentUrls: [],
+      // 附件加载状态
+      attachmentsLoading: false,
       taskResultJobId: null,
       taskResultStatus: '',
       taskResultProgress: 0,
@@ -946,6 +965,27 @@ export default {
 
       console.log('最终过滤后的任务列表:', filtered)
       return filtered
+    }
+  },
+  watch: {
+    // 选中任务变化时，如果开启了附件参与，则重新加载附件列表
+    selectedTaskIds(newVal) {
+      if (this.includeAttachments && newVal && newVal.length > 0) {
+        this.loadTaskAttachments()
+      } else {
+        this.availableAttachments = []
+        this.selectedAttachmentUrls = []
+      }
+    },
+    // 开关“包含附件”时联动加载/清空
+    includeAttachments(val) {
+      if (val) {
+        if (this.selectedTaskIds && this.selectedTaskIds.length > 0) {
+          this.loadTaskAttachments()
+        }
+      } else {
+        this.selectedAttachmentUrls = []
+      }
     }
   },
   mounted() {
@@ -1205,6 +1245,62 @@ export default {
       }
     },
 
+    async loadTaskAttachments() {
+      if (!this.selectedTaskIds || this.selectedTaskIds.length === 0) {
+        this.availableAttachments = []
+        this.selectedAttachmentUrls = []
+        return
+      }
+
+      this.attachmentsLoading = true
+      try {
+        const resp = await getTasksAttachments(this.selectedTaskIds)
+
+        let data = resp
+        if (data && typeof data.code !== 'undefined' && data.data) {
+          data = data.data
+        } else if (data && data.data) {
+          data = data.data
+        }
+
+        const list = []
+        if (data && typeof data === 'object') {
+          Object.keys(data).forEach(taskIdStr => {
+            const urls = data[taskIdStr] || []
+            urls.forEach(url => {
+              if (!url) return
+              const name = this.extractFileNameFromUrl(url)
+              list.push({
+                taskId: taskIdStr,
+                url,
+                name
+              })
+            })
+          })
+        }
+
+        this.availableAttachments = list
+
+        // 默认全部选中
+        this.selectedAttachmentUrls = list.map(item => item.url)
+      } catch (e) {
+        console.error('[任务成果] 加载任务附件失败:', e)
+        this.availableAttachments = []
+        this.selectedAttachmentUrls = []
+      } finally {
+        this.attachmentsLoading = false
+      }
+    },
+
+    extractFileNameFromUrl(url) {
+      if (!url || typeof url !== 'string') return '附件'
+      const idx = url.lastIndexOf('/')
+      if (idx >= 0 && idx < url.length - 1) {
+        return url.substring(idx + 1)
+      }
+      return url
+    },
+
     closeTaskSelectDialog() {
       this.showTaskSelectDialog = false
     },
@@ -1271,8 +1367,9 @@ export default {
         achievementTitle: '',
         targetAudience: '',
         additionalRequirements: this.taskResultPrompt && this.taskResultPrompt.trim() ? this.taskResultPrompt.trim() : undefined,
-        includeAttachments: this.includeAttachments,
-        attachmentFilters: this.includeAttachments ? this.attachmentFilters : []
+        includeAttachments: this.includeAttachments && this.selectedAttachmentUrls.length > 0,
+        // 这里将选中的附件URL列表传给后端，由后端决定如何处理
+        attachmentFilters: this.includeAttachments ? this.selectedAttachmentUrls : []
       }
 
       try {

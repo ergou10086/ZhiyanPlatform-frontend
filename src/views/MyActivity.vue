@@ -2234,22 +2234,21 @@ export default {
       // 按类型过滤
       if (this.logFilterType && this.logFilterType !== 'all') {
         filtered = filtered.filter(log => {
-          // 根据source和operationType判断日志类型
-          const source = log.source || ''
-          const type = log.type || ''
+          // 根据source字段判断日志类型
+          const source = (log.source || '').toUpperCase()
           
           if (this.logFilterType === 'submission') {
-            // 任务提交：任务模块的SUBMIT操作
-            return source === 'TASK' && (type === 'SUBMIT' || type === 'REVIEW')
+            // 项目：筛选所有项目相关的日志
+            return source === 'PROJECT'
           } else if (this.logFilterType === 'upload') {
-            // 成果上传：成果模块的FILE_UPLOAD操作
-            return source === 'ACHIEVEMENT' && type === 'FILE_UPLOAD'
+            // 任务：筛选所有任务相关的日志
+            return source === 'TASK'
           } else if (this.logFilterType === 'comment') {
-            // 评论回复：暂时没有专门的评论日志，可以扩展
-            return false
+            // 成果：筛选所有成果相关的日志
+            return source === 'ACHIEVEMENT'
           } else if (this.logFilterType === 'review') {
-            // 审核操作：任务模块的REVIEW或COMPLETE操作
-            return source === 'TASK' && (type === 'REVIEW' || type === 'COMPLETE')
+            // Wiki：筛选所有Wiki相关的日志
+            return source === 'WIKI'
           }
           return true
         })
