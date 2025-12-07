@@ -183,6 +183,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px 10px;
+  /* 附件超过约 4 行时，内部滚动显示 */
+  max-height: 90px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .ai-assistant-container .attachment-filters .filter-item {
