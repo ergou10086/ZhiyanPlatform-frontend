@@ -1,6 +1,6 @@
 /**
  * 低侵入 Three.js 科技感背景
- * - 仅点、线、轻量涟漪（无重模型，轻量 GPU 占用）
+ * - 仅点、线（无重模型，轻量 GPU 占用）
  * - 自动适配浅/深色主题（依据 html/body 的 dark-mode / theme-dark 类）
  * - pointer-events: none，不影响页面交互
  * - 提供 mount / destroy 接口，由页面控制启停
@@ -11,7 +11,6 @@
  * SPACE            点分布空间尺寸，越大分布越松，单位为场景坐标
  * LINE_THRESHOLD   点之间连线的距离阈值，越大线越多，轻量建议 140~200
  * MAX_LINES        单帧最多绘制的线段数量，硬限制防止性能抖动
- * RIPPLE_LIFETIME  涟漪存活时间（秒），过长会叠加过多透明面片
  * MOUSE_INFLUENCE  鼠标微交互强度（0~1），影响点的轻微偏移与连线变化
  * CAMERA_SWAY      鼠标带动摄像机的轻微摆动幅度，建议 0~25
  */
@@ -25,7 +24,6 @@ const runtime = {
   camera: null,
   points: null,
   lines: null,
-  ripples: [],
   container: null,
   frameId: null,
   positions: [],
@@ -38,13 +36,11 @@ const NODE_COUNT = 140          // 点的数量（密度控制）
 const SPACE = 600               // 点云空间尺度（值越大越疏）
 const LINE_THRESHOLD = 90       // 连线距离阈值（决定连线多少）
 const MAX_LINES = 300           // 最大连线数量上限（性能安全阈）
-const RIPPLE_LIFETIME = 1.3     // 涟漪持续时间（秒）
 const MOUSE_INFLUENCE = 0.3     // 鼠标微交互影响系数（0~1，越大越明显）
 const CAMERA_SWAY = 14          // 摄像机随鼠标轻微摆动幅度
 const POINT_OPACITY = 0.45      // 点的基础透明度（0~1）
 const LINE_BASE_OPACITY = 0.05  // 线的基础透明度（0~1）
 const LINE_MAX_OPACITY = 0.15   // 线的最大透明度（0~1）
-const RIPPLE_OPACITY = 0.15     // 涟漪的初始透明度（0~1）
 
 function isDarkMode() {
   const doc = document.documentElement
@@ -57,13 +53,11 @@ function getPalette() {
     ? {
         point: '#7dd3fc',
         line: '#60a5fa',
-        ripple: '#93c5fd',
         bg: 'rgba(10, 22, 40, 0.9)'
       }
     : {
         point: '#2563eb',
         line: '#1e40af',
-        ripple: '#3b82f6',
         bg: 'rgba(245, 248, 255, 0.9)'
       }
 }
@@ -155,7 +149,6 @@ function addEventListeners() {
     runtime.mouse.x = (e.clientX / window.innerWidth) * 2 - 1
     runtime.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
     runtime.mouse.lastMove = performance.now()
-    spawnRipple()
   }
 
   runtime._onMouseLeave = () => {
@@ -167,47 +160,6 @@ function addEventListeners() {
   window.addEventListener('resize', runtime._onResize, { passive: true })
   window.addEventListener('mousemove', runtime._onMouseMove, { passive: true })
   window.addEventListener('mouseleave', runtime._onMouseLeave, { passive: true })
-}
-
-function spawnRipple() {
-  const now = performance.now()
-  if (runtime.ripples.length > 6) return
-
-  const { PlaneGeometry, MeshBasicMaterial, Mesh } = three
-  const palette = getPalette()
-  const geo = new PlaneGeometry(1, 1)
-  const mat = new MeshBasicMaterial({
-    color: palette.ripple,
-    transparent: true,
-    opacity: RIPPLE_OPACITY,  // 使用自定义涟漪透明度
-    depthWrite: false
-  })
-  const mesh = new Mesh(geo, mat)
-  mesh.position.set(
-      (runtime.mouse.x || 0) * 120,
-      (runtime.mouse.y || 0) * 80,
-      -40 + Math.random() * 20
-  )
-  mesh.scale.set(1, 1, 1)
-  runtime.scene.add(mesh)
-  runtime.ripples.push({ mesh, born: now })
-}
-
-
-function updateRipples(delta) {
-  const now = performance.now()
-  runtime.ripples = runtime.ripples.filter((r) => {
-    const age = (now - r.born) / 1000
-    if (age > RIPPLE_LIFETIME) {
-      runtime.scene.remove(r.mesh)
-      return false
-    }
-    const t = age / RIPPLE_LIFETIME
-    const scale = 1 + t * 40
-    r.mesh.scale.set(scale, scale, scale)
-    r.mesh.material.opacity = 0.6 * (1 - t)
-    return true
-  })
 }
 
 function updatePointsAndLines(delta) {
@@ -287,7 +239,6 @@ function animate() {
   runtime._last = now
 
   updatePointsAndLines(delta)
-  updateRipples(delta)
 
   runtime.renderer.render(runtime.scene, runtime.camera)
   runtime.frameId = requestAnimationFrame(animate)
@@ -332,9 +283,6 @@ export function destroySciFiBackground() {
   runtime._onResize = null
   runtime._onMouseMove = null
   runtime._onMouseLeave = null
-
-  runtime.ripples.forEach((r) => runtime.scene?.remove(r.mesh))
-  runtime.ripples = []
 
   if (runtime.scene && runtime.points) runtime.scene.remove(runtime.points)
   if (runtime.scene && runtime.lines) runtime.scene.remove(runtime.lines)
