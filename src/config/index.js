@@ -1,10 +1,14 @@
 // 应用配置文件，带有安全的默认值和可选的运行时覆盖
 
+const isProduction = typeof process !== 'undefined' &&
+    process.env &&
+    process.env.NODE_ENV === 'production'
+
 const DEFAULT_HOST =
-  (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
-  (process.env.NODE_ENV === 'production'
-    ? 'https://your-production-api.com'
-    : 'http://localhost:9006')
+    (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
+    (isProduction
+        ? ''   // 生产环境使用相对路径，由 Nginx 代理转发
+        : 'http://localhost:9006')  // 开发环境使用本地后端
 
 const DEFAULTS = {
   api: {
