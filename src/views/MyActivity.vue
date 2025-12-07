@@ -2890,9 +2890,9 @@ export default {
 }
 
 .filter-btn.active {
-  background: white;
+  background: var(--bg-primary, #ffffff);
   color: #667eea;
-  border-color: white;
+  border-color: var(--bg-primary, #ffffff);
 }
 
 /* 通用卡片样式 */
@@ -2930,6 +2930,8 @@ export default {
   border-radius: 6px;
   font-size: 14px;
   background: var(--bg-primary, #ffffff);
+  /* 使用主题文字颜色，暗色模式下会变为浅色 */
+  color: var(--text-primary, #111827);
   cursor: pointer;
 }
 
@@ -2959,9 +2961,9 @@ export default {
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px;
-  /* 自定义滚动条样式 */
+  /* 自定义滚动条样式，使用主题变量 */
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-color: var(--border-secondary, #cbd5e1) var(--bg-tertiary, #f1f5f9);
 }
 
 .task-cards-list > .task-card-clean {
@@ -2973,22 +2975,22 @@ export default {
 }
 
 .task-cards-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--bg-tertiary, #f1f5f9);
   border-radius: 3px;
 }
 
 .task-cards-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-secondary, #cbd5e1);
   border-radius: 3px;
 }
 
 .task-cards-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--gray-400, #94a3b8);
 }
 
 .task-card-clean {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 10px;
   display: grid;
   grid-template-columns: 1fr auto;
@@ -3003,7 +3005,7 @@ export default {
 
 .task-card-clean:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: #d1d5db;
+  border-color: var(--border-secondary, #d1d5db);
 }
 
 .task-card-clean.overdue {
@@ -3061,7 +3063,8 @@ export default {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  /* 使用主题主文字颜色，暗色模式下会变为浅色 */
+  color: var(--text-primary, #111827);
   flex: 1;
   line-height: 1.4;
   overflow: hidden;
@@ -3102,14 +3105,15 @@ export default {
 }
 
 .task-status-badge.status-UNKNOWN {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--bg-tertiary, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
 }
 
 .task-description {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  /* 使用次级文字颜色，暗色模式下会变亮 */
+  color: var(--text-secondary, #6b7280);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -3137,12 +3141,14 @@ export default {
 }
 
 .meta-label { 
-  color: #9ca3af; 
+  /* 标签文字使用次级颜色，暗色模式下会变亮 */
+  color: var(--text-secondary, #9ca3af); 
   font-size: 13px;
   font-weight: 400;
 }
 .meta-value { 
-  color: #374151; 
+  /* 数值文字使用主文字颜色，暗色模式下为浅色 */
+  color: var(--text-primary, #374151); 
   font-weight: 500;
   font-size: 13px;
   max-width: 160px;
@@ -3158,7 +3164,8 @@ export default {
   font-weight: 600;
 }
 .meta-sep { 
-  color: #d1d5db; 
+  /* 分隔点使用边框颜色，暗色模式下同样变亮 */
+  color: var(--border-secondary, #d1d5db); 
   margin: 0 4px;
   font-size: 13px;
 }
@@ -3169,7 +3176,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding-left: 16px;
-  border-left: 1px solid #e5e7eb;
+  border-left: 1px solid var(--border-primary, #e5e7eb);
   justify-content: flex-end;
   flex-shrink: 0;
 }
@@ -3233,10 +3240,10 @@ export default {
 }
 
 .dashboard-card {
-  background: white;
+  background: var(--bg-primary, #ffffff);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
 }
 
 .dashboard-card.projects-overview,
@@ -3266,7 +3273,7 @@ export default {
 .review-mode-toggle {
   display: flex;
   gap: 4px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary, #f3f4f6);
   border-radius: 8px;
   padding: 4px;
 }
@@ -3275,7 +3282,7 @@ export default {
   padding: 6px 12px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   font-size: 13px;
   font-weight: 500;
   border-radius: 6px;
@@ -3285,13 +3292,13 @@ export default {
 }
 
 .toggle-btn:hover {
-  color: #374151;
-  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-primary, #374151);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .toggle-btn.active {
-  background: #ffffff;
-  color: #3b82f6;
+  background: var(--bg-primary, #ffffff);
+  color: var(--primary-color, #3b82f6);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -3307,7 +3314,7 @@ export default {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary, #111827);
 }
 
 /* 项目列表 */
@@ -3327,7 +3334,7 @@ export default {
   align-items: center;
   padding: 20px;
   min-height: 80px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -3335,8 +3342,8 @@ export default {
 }
 
 .project-item:hover {
-  background: #f9fafb;
-  border-color: #3b82f6;
+  background: var(--bg-primary, #f9fafb);
+  border-color: var(--primary-color, #3b82f6);
 }
 
 .project-info {
@@ -3357,7 +3364,8 @@ export default {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  /* 项目名称使用主文字颜色，暗色模式下变成白字 */
+  color: var(--text-primary, #111827);
   flex: 1;
 }
 
@@ -3390,7 +3398,7 @@ export default {
 .project-description {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3408,7 +3416,7 @@ export default {
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: #e5e7eb;
+  background: var(--border-secondary, #e5e7eb);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -3421,18 +3429,18 @@ export default {
 
 .progress-text {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   min-width: 40px;
 }
 
 .project-link {
   padding: 4px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   cursor: pointer;
 }
 
 .project-link:hover {
-  color: #3b82f6;
+  color: var(--primary-color, #3b82f6);
 }
 
 /* 任务统计 */
@@ -3467,8 +3475,8 @@ export default {
 }
 
 .chart-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
@@ -3509,8 +3517,8 @@ export default {
 
 .card-overview,
 .card-trend {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -3529,6 +3537,14 @@ export default {
 
 .card-trend {
   min-height: 400px; /* 与左侧总览保持一致的高度 */
+}
+
+/* 深色模式下，任务统计内部卡片使用深色背景，避免出现白色方块 */
+:deep(html.dark-mode) .my-activity-container .chart-card,
+:deep(html.dark-mode) .my-activity-container .card-overview,
+:deep(html.dark-mode) .my-activity-container .card-trend {
+  background: #020617;
+  border-color: #1f2937;
 }
 
 .card-header-row {

@@ -3422,3 +3422,18 @@
   color: #e5e7eb;
 }
 
+/* 黑夜模式下：通用 section 卡片（包括左下角“已上传文件”区域）使用深色背景 */
+.dark-mode .ai-view .section-card {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+.dark-mode .ai-view .section-card .section-title {
+  color: #f9fafb !important;
+}
+
+.dark-mode .ai-view .section-card .section-subtitle {
+  color: #cbd5e1 !important;
+}
+
