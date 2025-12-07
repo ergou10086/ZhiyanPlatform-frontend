@@ -3058,6 +3058,44 @@
   min-height: 750px;
 }
 
+/* ========== 移动端适配：聊天在上，思维导图在下，且始终可见 ========== */
+@media (max-width: 768px) {
+  /* 主内容上下堆叠 */
+  .ai-view .main-content-layout {
+    flex-direction: column;
+  }
+
+  .ai-view .main-content-layout .chat-card {
+    flex: 0 0 auto;
+  }
+
+  .ai-view .mindmap-card {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    margin-top: 12px;
+  }
+
+  /* 即使之前在桌面被收起，移动端也按展开样式展示思维导图 */
+  .ai-view .mindmap-card.collapsed {
+    flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .ai-view .mindmap-card.collapsed .mindmap-content {
+    display: block;
+  }
+
+  .ai-view .mindmap-card.collapsed .mindmap-title {
+    display: flex;
+  }
+
+  .ai-view .mindmap-card.collapsed .mindmap-actions {
+    flex-direction: row;
+  }
+}
+
 /* 中心节点 */
 .ai-view .center-node {
   position: absolute;
@@ -3239,29 +3277,22 @@
     overflow: visible !important;
   }
 
-  /* 聊天框占满宽度，高度自适应 */
+  /* 聊天框占满宽度，整体高度有限制，内部滚动 */
   .ai-view .main-content-layout .chat-card {
     flex: none !important;
     width: 100% !important;
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
   }
 
-  /* 聊天窗口不限制高度 */
+  /* 聊天窗口内部滚动，避免把思维导图挤到页面很下方 */
   .ai-view .chat-window {
-    height: auto !important;
-    min-height: 300px;
-    max-height: none !important;
-    overflow: visible !important;
+    max-height: 60vh !important;
+    overflow-y: auto !important;
   }
 
-  /* 消息列表不限制高度 */
+  /* 消息列表保持内部滚动 */
   .ai-view .chat-messages {
-    height: auto !important;
-    max-height: none !important;
-    overflow: visible !important;
+    max-height: 50vh !important;
+    overflow-y: auto !important;
   }
 
   /* 思维导图占满宽度，高度自适应 */
