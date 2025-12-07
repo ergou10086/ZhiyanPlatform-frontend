@@ -65,6 +65,30 @@
   min-height: 0;
 }
 
+/* 中小屏：将对话模式从左右结构改为上下结构，并让文件面板始终为完整卡片 */
+@media (max-width: 1024px) {
+  .ai-assistant-container .chat-mode-content {
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+
+  .ai-assistant-container .ai-chat-section {
+    height: auto;
+  }
+
+  .ai-assistant-container .uploaded-files-panel {
+    height: auto;
+    width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  }
+
+  .ai-assistant-container .files-panel-body {
+    max-height: 32vh; /* 文件区域高度明显小于聊天区域，但不至于只有一条线 */
+  }
+}
+
 /* 主布局容器 */
 .ai-assistant-container .task-result-mode-content {
   display: flex;
