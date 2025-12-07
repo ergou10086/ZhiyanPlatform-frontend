@@ -127,15 +127,22 @@ export function getProjectOperationLogs(projectId, params) {
 }
 
 /**
- * 导出操作日志
+ * 导出我的操作日志
  * @param {Object} params - 查询参数
+ * @param {string} params.startTime - 开始时间，格式：yyyy-MM-dd HH:mm:ss
+ * @param {string} params.endTime - 结束时间，格式：yyyy-MM-dd HH:mm:ss
+ * @param {number} params.limit - 导出条数限制，不传则导出全部
  * @returns {Promise}
  */
-export function exportOperationLogs(params) {
+export function exportMyLogs(params = {}) {
   return request({
-    url: '/zhiyan/activelog/export',
+    url: '/zhiyan/activelog/export/my-logs',
     method: 'get',
-    params: params,
+    params: {
+      startTime: params.startTime,
+      endTime: params.endTime,
+      limit: params.limit
+    },
     responseType: 'blob'
   })
 }
