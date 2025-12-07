@@ -394,8 +394,18 @@ import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css' // 代码高亮主题
 
-// 配置 marked 选项
+// 自定义 Markdown 渲染配置
+const renderer = new marked.Renderer()
+
+// 统一让 Markdown 中的所有链接在新标签页中打开
+renderer.link = function(href, title, text) {
+  const safeHref = href || ''
+  const titleAttr = title ? ` title="${title}"` : ''
+  return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`
+}
+
 marked.setOptions({
+  renderer,
   highlight: function(code, lang) {
     // 代码高亮
     if (lang && hljs.getLanguage(lang)) {

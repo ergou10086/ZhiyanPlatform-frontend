@@ -2682,7 +2682,8 @@ export default {
 <style scoped>
 .my-activity-container {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  /* 使用全局背景变量，跟随主题切换 */
+  background-color: var(--bg-secondary);
 }
 
 /* 顶部导航栏 - 与其他页面一致 */
@@ -2781,10 +2782,10 @@ export default {
 }
 
 .activity-side-nav {
-  background: #ffffff;
+  background: var(--bg-primary, #ffffff);
   border-radius: 12px;
   padding: 16px 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2801,7 +2802,7 @@ export default {
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 15px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2810,15 +2811,15 @@ export default {
 }
 
 .activity-nav-item:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--bg-tertiary, #f3f4f6);
+  color: var(--text-primary, #111827);
 }
 
 .activity-nav-item.active {
-  background: #eef2ff;
-  color: #4338ca;
+  background: var(--accent-soft, #eef2ff);
+  color: var(--accent-main, #4338ca);
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px #c7d2fe;
+  box-shadow: inset 0 0 0 1px var(--accent-border, #c7d2fe);
 }
 
 .activity-page-content {
@@ -2897,10 +2898,10 @@ export default {
 
 /* 通用卡片样式 */
 .section-card {
-  background: white;
+  background: var(--bg-primary, #ffffff);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
 }
 
 .section-header {
@@ -2914,7 +2915,7 @@ export default {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary, #111827);
 }
 
 .section-controls {
@@ -2926,10 +2927,10 @@ export default {
 .sort-select,
 .filter-select {
   padding: 6px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-primary, #d1d5db);
   border-radius: 6px;
   font-size: 14px;
-  background: white;
+  background: var(--bg-primary, #ffffff);
   cursor: pointer;
 }
 
@@ -2943,7 +2944,7 @@ export default {
 
 .search-input {
   padding: 6px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-primary, #d1d5db);
   border-radius: 6px;
   font-size: 14px;
   width: 200px;
