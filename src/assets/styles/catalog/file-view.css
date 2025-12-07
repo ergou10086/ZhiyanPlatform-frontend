@@ -11,7 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  /* 提高层级，高于上传/档案面板的 10000，确保始终显示在最上面 */
+  z-index: 11000;
   animation: fadeIn 0.3s ease-out;
 }
 

@@ -399,6 +399,18 @@
                     <option value="comment">成果</option>
                     <option value="review">Wiki</option>
                   </select>
+                  <button 
+                    class="export-btn" 
+                    @click="exportLogs"
+                    :disabled="isExporting || filteredActivityLogs.length === 0"
+                    title="导出日志"
+                  >
+                    <svg v-if="!isExporting" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span v-if="isExporting" class="export-spinner"></span>
+                    <span>{{ isExporting ? '导出中...' : '导出' }}</span>
+                  </button>
                 </div>
               </div>
               <div v-if="isLoadingLogs" class="loading-state">
@@ -530,7 +542,7 @@ import {
 } from '@/api/taskSubmission'
 import { taskAPI } from '@/api/task'
 import { projectAPI } from '@/api/project'
-import { getMyActivityLogs } from '@/api/operationLog'
+import { getMyActivityLogs, exportMyLogs } from '@/api/operationLog'
 
 export default {
   name: 'MyActivity',
@@ -625,6 +637,7 @@ export default {
       logPage: 0,
       logPageSize: 20,
       hasMoreLogs: true,
+      isExporting: false,
       
       // 审核弹窗
       reviewModalVisible: false,
@@ -2674,6 +2687,81 @@ export default {
       return '未分配'
     },
     
+    async exportLogs() {
+      if (this.isExporting) return
+      
+      // 如果没有日志数据，提示用户
+      if (this.activityLogs.length === 0) {
+        this.$message?.warning?.('暂无日志数据可导出') || alert('暂无日志数据可导出')
+        return
+      }
+      
+      this.isExporting = true
+      try {
+        // 计算时间范围（使用已加载日志的最早和最晚时间）
+        let startTime = null
+        let endTime = null
+        
+        const timestamps = this.activityLogs
+          .map(log => log.timestamp ? new Date(log.timestamp).getTime() : null)
+          .filter(Boolean)
+          .sort((a, b) => a - b)
+        
+        if (timestamps.length > 0) {
+          startTime = new Date(timestamps[0])
+          endTime = new Date(timestamps[timestamps.length - 1])
+        }
+        
+        // 格式化时间参数
+        const formatDateTime = (date) => {
+          if (!date) return null
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          const seconds = String(date.getSeconds()).padStart(2, '0')
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        }
+        
+        // 构建导出参数（不传时间参数则导出所有日志）
+        const params = {}
+        if (startTime && endTime) {
+          params.startTime = formatDateTime(startTime)
+          params.endTime = formatDateTime(endTime)
+        }
+        
+        // 调用导出接口
+        const response = await exportMyLogs(params)
+        
+        // 创建下载链接
+        const blob = new Blob([response], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        
+        // 生成文件名（包含时间戳）
+        const now = new Date()
+        const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+        link.download = `我的操作日志_${timestamp}.xlsx`
+        
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        this.$message?.success?.('导出成功') || alert('导出成功')
+      } catch (error) {
+        console.error('导出日志失败:', error)
+        const errorMsg = error.response?.data?.message || error.message || '未知错误'
+        this.$message?.error?.('导出失败：' + errorMsg) || alert('导出失败：' + errorMsg)
+      } finally {
+        this.isExporting = false
+      }
+    },
+    
   }
 }
 </script>
@@ -2949,6 +3037,46 @@ export default {
   border-radius: 6px;
   font-size: 14px;
   width: 200px;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #9ca3af;
+  border-color: #9ca3af;
+}
+
+.export-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
 }
 
 /* 任务卡片列表 - 单列布局，更清晰 */
