@@ -187,15 +187,77 @@ export function validatePassword(password) {
   if (!password) {
     result.isValid = false
     result.message = '密码不能为空'
-  } else if (password.length < 6) {
+  } else if (password.length < 7) {
     result.isValid = false
-    result.message = '密码长度不能少于6位'
-  } else if (password.length > 16) {
+    result.message = '密码长度不能少于7位'
+  } else if (password.length > 25) {
     result.isValid = false
-    result.message = '密码长度不能超过16位'
+    result.message = '密码长度不能超过25位'
+  } else if (!/[a-zA-Z]/.test(password)) {
+    result.isValid = false
+    result.message = '密码必须包含至少一个字母'
   }
   
   return result
+}
+
+/**
+ * 计算密码强度等级
+ * 五级密码强度：
+ * 5 - 无懈可击：>12位，有大写字母、小写字母和特殊字符
+ * 4 - 高强度：≥10位，包含三种及以上字符组合（数字+字母+符号）
+ * 3 - 稳健：≥8位，包含三种及以上字符组合（数字+字母+符号）
+ * 2 - 入门：>7位，仅两种字符组合
+ * 1 - 无效：密码强度不够平台最低标准
+ * 0 - 不符合基本要求
+ * @param {string} password - 密码
+ * @returns {Object} 强度信息 {level: 0-5, label: '描述', color: '颜色'}
+ */
+export function calculatePasswordStrength(password) {
+  if (!password || password.length < 7) {
+    return { level: 0, label: '无效', color: '#ef4444' }
+  }
+
+  // 检查字符类型
+  const hasDigit = /[0-9]/.test(password)
+  const hasLowercase = /[a-z]/.test(password)
+  const hasUppercase = /[A-Z]/.test(password)
+  const hasSpecialChar = /[^a-zA-Z0-9]/.test(password)
+  
+  let charTypeCount = 0
+  if (hasDigit) charTypeCount++
+  if (hasLowercase || hasUppercase) charTypeCount++
+  if (hasSpecialChar) charTypeCount++
+  
+  const length = password.length
+  
+  // 5 - 无懈可击：>12位，有大写字母、小写字母和特殊字符
+  if (length > 12 && hasLowercase && hasUppercase && hasSpecialChar) {
+    return { level: 5, label: '无懈可击', color: '#10b981' }
+  }
+  
+  // 4 - 高强度：≥10位，包含三种及以上字符组合（数字+字母+符号）
+  if (length >= 10 && charTypeCount >= 3) {
+    return { level: 4, label: '高强度', color: '#22c55e' }
+  }
+  
+  // 3 - 稳健：≥8位，包含三种及以上字符组合（数字+字母+符号）
+  if (length >= 8 && charTypeCount >= 3) {
+    return { level: 3, label: '稳健', color: '#3b82f6' }
+  }
+  
+  // 2 - 入门：>7位，仅两种字符组合
+  if (length > 7 && charTypeCount === 2) {
+    return { level: 2, label: '入门', color: '#f59e0b' }
+  }
+  
+  // 1 - 无效：密码强度不够平台最低标准
+  if (length > 7 && charTypeCount === 1) {
+    return { level: 1, label: '无效', color: '#ef4444' }
+  }
+  
+  // 0 - 不符合基本要求
+  return { level: 0, label: '无效', color: '#ef4444' }
 }
 
 /**
