@@ -268,3 +268,134 @@
     padding: 8px 6px;
   }
 }
+
+/* 深色模式适配 */
+.dark-mode .archive-overlay {
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.dark-mode .archive-slide-panel {
+  background: #020617;
+  box-shadow: -4px 0 24px rgba(15, 23, 42, 0.95);
+}
+
+.dark-mode .panel-header {
+  background: #020617;
+  border-bottom-color: #1f2937;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.9);
+}
+
+.dark-mode .panel-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .panel-close-btn {
+  background: #020617;
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+.dark-mode .panel-close-btn:hover {
+  background: #111827;
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+.dark-mode .panel-content {
+  background: #020617;
+}
+
+.dark-mode .search-input {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .search-input::placeholder {
+  color: #6b7280;
+}
+
+.dark-mode .search-icon {
+  color: #6b7280;
+}
+
+.dark-mode .clear-search-btn {
+  color: #6b7280;
+}
+
+.dark-mode .clear-search-btn:hover {
+  background: #020617;
+  color: #e5e7eb;
+}
+
+.dark-mode .search-results-info {
+  color: #9ca3af;
+}
+
+.dark-mode .archive-slide-panel .table-wrap {
+  background: #020617;
+}
+
+.dark-mode .archive-slide-panel .doc-table thead th {
+  background: #020617;
+  color: #9ca3af;
+}
+
+.dark-mode .archive-slide-panel .doc-table tbody td {
+  color: #e5e7eb;
+}
+
+.dark-mode .archive-slide-panel .doc-table tbody tr:nth-child(odd) {
+  background-color: #020617;
+}
+
+.dark-mode .archive-slide-panel .doc-table tbody tr:nth-child(even) {
+  background-color: #020617;
+}
+
+.dark-mode .archive-slide-panel .ops a {
+  color: #60a5fa;
+}
+
+.dark-mode .archive-slide-panel .ops a.delete-link {
+  color: #f97373;
+}
+
+/* 成果名称小卡片在暗色模式下的样式 */
+.dark-mode .archive-slide-panel .file-info {
+  background: #020617;
+  border-radius: 14px;
+  padding: 10px 22px;
+  box-shadow: 0 0 0 1px #1f2937;
+}
+
+.dark-mode .archive-slide-panel .file-name {
+  color: #f9fafb;
+}
+
+.dark-mode .pagination.line {
+  border-top-color: #1f2937;
+}
+
+.dark-mode .pagination .pager-text {
+  color: #9ca3af;
+}
+
+.dark-mode .pagination .pager,
+.dark-mode .pagination .page-num {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .pagination .page-num.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.dark-mode .pagination .pager:disabled {
+  background: #020617;
+  color: #4b5563;
+  border-color: #111827;
+}
