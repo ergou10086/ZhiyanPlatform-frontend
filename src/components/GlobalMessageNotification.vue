@@ -1545,7 +1545,7 @@ export default {
   position: fixed;
   top: 12px;
   right: 215px;
-  z-index: 1500;
+  z-index: 10005;
   display: block;
   visibility: visible;
 }
@@ -1604,7 +1604,7 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 1501;
+  z-index: 10004;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2630,9 +2630,9 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 230px;
+    right: 260px;
     top: 10px;
-    z-index: 1500;
+    z-index: 10005;
   }
 
   .message-button {
@@ -2668,9 +2668,9 @@ export default {
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 210px;
+    right: 240px;
     top: 10px;
-    z-index: 1500;
+    z-index: 10005;
   }
 
   .message-button {
