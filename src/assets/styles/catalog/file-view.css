@@ -1078,6 +1078,31 @@
   transition: color 0.2s ease;
 }
 
+/* =============================
+   单文件预览卡片 - 暗黑模式适配
+   ============================= */
+.dark-mode .file-preview-card {
+  background: linear-gradient(135deg, #020617 0%, #020617 100%);
+  border-color: #1f2937;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode .file-preview-card::before {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
+}
+
+.dark-mode .file-preview-name {
+  color: #e5e7eb;
+}
+
+.dark-mode .file-preview-meta {
+  color: #9ca3af;
+}
+
+.dark-mode .file-preview-hint {
+  color: #9ca3af;
+}
+
 .file-preview-card:hover .file-preview-name {
   color: #0044CC;
 }
@@ -1170,5 +1195,12 @@
 .dark-mode .file-preview-card:hover .file-preview-size {
   background: #475569;
   color: #cbd5e1;
+}
+
+/* 在文件预览弹窗内，强制单文件卡片在暗黑模式下使用深色背景 */
+html.dark-mode .file-preview-dialog .single-file-card-container,
+html.dark-mode .file-preview-dialog .single-file-card-container .file-preview-card {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
 }
 

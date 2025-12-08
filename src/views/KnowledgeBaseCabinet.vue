@@ -385,7 +385,7 @@
                   @focus="showNodePicker = true"
                   @input="showNodePicker = true"
                   @click="showNodePicker = true"
-                  placeholder="请选择节点（可选）"
+                  placeholder="请选择节点（必选）"
                   class="node-input"
                   autocomplete="off"
                 />
@@ -400,12 +400,6 @@
                   未找到匹配的节点
                 </div>
                 <template v-else>
-                  <div 
-                    class="node-picker-item" 
-                    :class="{ 'selected': selectedNodeId === null }"
-                    @click="selectNode(null, '根目录')">
-                    <span>根目录</span>
-                  </div>
                   <div 
                     v-for="node in filteredNodeList" 
                     :key="node.id" 
@@ -467,7 +461,7 @@
           </div>
           <div class="dialog-actions">
              <button class="btn secondary" @click="closeNewDocDialog" :disabled="isCreatingDoc">取消</button>
-             <button class="btn primary" @click="confirmNewDoc" :disabled="!selectedFile || !newDocTitle.trim() || isCreatingDoc">
+             <button class="btn primary" @click="confirmNewDoc" :disabled="!newDocTitle.trim() || isCreatingDoc">
                {{ isCreatingDoc ? '创建中...' : '确认创建' }}
              </button>
           </div>
@@ -1618,13 +1612,14 @@ export default {
         this.$message?.error('项目已归档，仅支持查看，不能新建Wiki文档')
         return
       }
-      if (!this.selectedFile) {
-        this.$message?.error('请选择要上传的Markdown文件')
-        return
-      }
       
       if (!this.newDocTitle.trim()) {
         this.$message?.error('请输入文档名称')
+        return
+      }
+      
+      if (this.selectedNodeId === null || this.selectedNodeId === undefined) {
+        this.$message?.error('请选择节点')
         return
       }
       
@@ -1647,15 +1642,18 @@ export default {
           console.log('[confirmNewDoc] 选择的父节点ID:', parentId)
         }
         
-        // 读取文件内容
-        const fileContent = await this.readFileContent(this.selectedFile)
+        // 读取文件内容（如果上传了文件）
+        let fileContent = ''
+        if (this.selectedFile) {
+          fileContent = await this.readFileContent(this.selectedFile)
+        }
         
         // 调用后端API创建Wiki文档
         const response = await wikiAPI.page.createPage({
           projectId: this.projectId,
           title: this.newDocTitle.trim(),
           pageType: 'DOCUMENT',
-          content: fileContent,
+          content: fileContent, // 如果没上传文件，这里会是空字符串
           parentId: parentId, // 作为字符串传递，后端会自动转换为Long
           isPublic: false,
           changeDescription: '创建文档'
