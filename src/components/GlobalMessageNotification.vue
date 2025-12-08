@@ -1417,6 +1417,12 @@ export default {
             if (detailOverlay && (detailOverlay === event.target || detailOverlay.contains(event.target))) {
               return
             }
+            // 如果当前有 ElementUI 的对话框或确认框打开，则不关闭消息面板
+            const dialogWrapper = document.querySelector('.el-dialog__wrapper')
+            const msgBoxWrapper = document.querySelector('.el-message-box__wrapper')
+            if (dialogWrapper || msgBoxWrapper) {
+              return
+            }
             binding.value()
           }
         }
@@ -1538,8 +1544,8 @@ export default {
 .message-notification {
   position: fixed;
   top: 12px;
-  right: 220px;
-  z-index: 10003;
+  right: 215px;
+  z-index: 1500;
   display: block;
   visibility: visible;
 }
@@ -1598,7 +1604,7 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 10004;
+  z-index: 1501;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2624,9 +2630,9 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 210px;
+    right: 230px;
     top: 10px;
-    z-index: 10005;
+    z-index: 1500;
   }
 
   .message-button {
@@ -2662,9 +2668,9 @@ export default {
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 200px;
+    right: 210px;
     top: 10px;
-    z-index: 10005;
+    z-index: 1500;
   }
 
   .message-button {
