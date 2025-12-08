@@ -165,7 +165,6 @@
                   <p class="project-description">{{ project.description }}</p>
                   <div class="project-meta">
                     <span :class="['status-badge', `status-${project.status}`]">{{ getProjectStatusText(project.status) }}</span>
-                    <span class="progress-text">{{ project.progress }}% 完成</span>
                   </div>
                 </div>
               </div>

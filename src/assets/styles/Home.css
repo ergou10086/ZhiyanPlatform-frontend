@@ -744,6 +744,7 @@
   transition: all var(--transition-normal);
   cursor: pointer;
   box-sizing: border-box;
+  min-height: 120px;
 }
 
 .home-container .project-card:hover {
@@ -822,16 +823,15 @@
 }
 
 .home-container .project-meta {
+  position: absolute;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-3);
-  flex-wrap: nowrap;
+  gap: var(--space-2);
   margin: 0;
-  margin-left: auto;
   padding: 0;
-  text-align: right;
-  flex-shrink: 0;
 }
 
 .home-container .status-badge {
