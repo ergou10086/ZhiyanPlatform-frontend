@@ -369,6 +369,69 @@
   box-shadow: 0 0 0 1px #1f2937;
 }
 
+/* ===== 暗黑模式下的整体面板样式修复 ===== */
+/* 遮罩在暗黑模式下更深一些，避免看起来发灰偏亮 */
+.dark-mode .archive-overlay {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+/* 整个右侧滑出面板改为深色背景和浅色文字 */
+.dark-mode .archive-slide-panel {
+  background: #020617;
+  color: #e5e7eb;
+  box-shadow: -4px 0 18px rgba(0, 0, 0, 0.65);
+}
+
+/* 头部区域：背景和边框改为深色 */
+.dark-mode .archive-slide-panel .panel-header {
+  background: #020617;
+  border-bottom-color: #1f2937;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+.dark-mode .archive-slide-panel .panel-title {
+  color: #e5e7eb;
+}
+
+/* 关闭按钮在暗色下的样式 */
+.dark-mode .archive-slide-panel .panel-close-btn {
+  background: #020617;
+  border-color: #1f2937;
+  color: #9ca3af;
+}
+
+.dark-mode .archive-slide-panel .panel-close-btn:hover {
+  background: #111827;
+  border-color: #ef4444;
+  color: #fecaca;
+}
+
+/* 面板内部内容区域背景统一为深色 */
+.dark-mode .archive-slide-panel .panel-content {
+  background: #020617;
+}
+
+/* 搜索输入框在暗黑模式下的样式 */
+.dark-mode .archive-slide-panel .search-input {
+  background: #020617;
+  border-color: #1f2937;
+  color: #e5e7eb;
+}
+
+.dark-mode .archive-slide-panel .search-input::placeholder {
+  color: #6b7280;
+}
+
+.dark-mode .archive-slide-panel .search-results-info {
+  color: #9ca3af;
+}
+
+.dark-mode .archive-slide-panel .file-preview-card {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7) !important;
+}
+
 .dark-mode .archive-slide-panel .file-name {
   color: #f9fafb;
 }
