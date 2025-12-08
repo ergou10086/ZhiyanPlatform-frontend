@@ -5475,6 +5475,7 @@ export default {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5742,6 +5743,7 @@ export default {
     linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0)) border-box,
     linear-gradient(135deg,#cfe8ff 0%, #b6e3ff 30%, #a5f3fc 100%) border-box;
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
 }
 .gradient-border::after{
@@ -6250,6 +6252,7 @@ export default {
   line-height:1.4;
   display:-webkit-box;
   -webkit-line-clamp:2;
+  line-clamp: 2;
   -webkit-box-orient:vertical;
   overflow:hidden;
 }
@@ -7551,5 +7554,116 @@ html.dark-mode .dashboard-container .timeline .steps li .name {
 html.dark-mode .dashboard-container .timeline .steps li .date,
 html.dark-mode .dashboard-container .timeline .steps li .milestone-members span {
   color: #cbd5e1 !important;
+}
+
+/* 成果列表相关样式在黑夜模式下的修复 */
+html.dark-mode .dashboard-container .task-list-compact {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
+
+html.dark-mode .dashboard-container .task-list-header {
+  border-bottom-color: #1f2937 !important;
+}
+
+html.dark-mode .dashboard-container .task-list-title,
+html.dark-mode .dashboard-container .task-list-count {
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .achievement-type-badge-small {
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .achievement-list-empty .empty-text {
+  color: #9ca3af !important;
+}
+
+/* 成果类型徽章在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .badge-paper {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+  color: #dbeafe !important;
+}
+
+html.dark-mode .dashboard-container .badge-patent {
+  background: linear-gradient(135deg, #92400e 0%, #b45309 100%) !important;
+  color: #fef3c7 !important;
+}
+
+html.dark-mode .dashboard-container .badge-dataset {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+  color: #d1fae5 !important;
+}
+
+html.dark-mode .dashboard-container .badge-model {
+  background: linear-gradient(135deg, #6b21a8 0%, #7c3aed 100%) !important;
+  color: #e9d5ff !important;
+}
+
+html.dark-mode .dashboard-container .badge-report {
+  background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%) !important;
+  color: #fecaca !important;
+}
+
+html.dark-mode .dashboard-container .badge-custom {
+  background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%) !important;
+  color: #e0e7ff !important;
+}
+
+html.dark-mode .dashboard-container .badge-default {
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
+  color: #f1f5f9 !important;
+}
+
+/* 成果日期在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .achievement-date {
+  color: #94a3b8 !important;
+}
+
+html.dark-mode .dashboard-container .achievement-date svg {
+  color: #64748b !important;
+}
+
+/* 任务列表计数标签在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .task-list-count {
+  background: #374151 !important;
+  color: #d1d5db !important;
+}
+
+/* 成果状态点在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .task-item-status.status-paper {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-patent {
+  background: #f59e0b !important;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-dataset {
+  background: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-model {
+  background: #8b5cf6 !important;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-report {
+  background: #ef4444 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-custom {
+  background: #6366f1 !important;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-default {
+  background: #64748b !important;
+  box-shadow: 0 0 8px rgba(100, 116, 139, 0.6) !important;
 }
 </style>
