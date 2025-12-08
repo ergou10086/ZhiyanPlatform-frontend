@@ -381,10 +381,10 @@ export default {
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 9999;
-  padding: 20px;
+  padding: 80px 20px 20px;
 }
 
 .modal-content {
@@ -392,7 +392,7 @@ export default {
   border-radius: 12px;
   max-width: 700px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -429,7 +429,7 @@ export default {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 18px 24px 20px;
   overflow-y: auto;
   flex: 1;
 }

@@ -399,6 +399,18 @@
                     <option value="comment">成果</option>
                     <option value="review">Wiki</option>
                   </select>
+                  <button 
+                    class="export-btn" 
+                    @click="exportLogs"
+                    :disabled="isExporting || filteredActivityLogs.length === 0"
+                    title="导出日志"
+                  >
+                    <svg v-if="!isExporting" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span v-if="isExporting" class="export-spinner"></span>
+                    <span>{{ isExporting ? '导出中...' : '导出' }}</span>
+                  </button>
                 </div>
               </div>
               <div v-if="isLoadingLogs" class="loading-state">
@@ -530,7 +542,7 @@ import {
 } from '@/api/taskSubmission'
 import { taskAPI } from '@/api/task'
 import { projectAPI } from '@/api/project'
-import { getMyActivityLogs } from '@/api/operationLog'
+import { getMyActivityLogs, exportMyLogs } from '@/api/operationLog'
 
 export default {
   name: 'MyActivity',
@@ -625,6 +637,7 @@ export default {
       logPage: 0,
       logPageSize: 20,
       hasMoreLogs: true,
+      isExporting: false,
       
       // 审核弹窗
       reviewModalVisible: false,
@@ -2674,6 +2687,81 @@ export default {
       return '未分配'
     },
     
+    async exportLogs() {
+      if (this.isExporting) return
+      
+      // 如果没有日志数据，提示用户
+      if (this.activityLogs.length === 0) {
+        this.$message?.warning?.('暂无日志数据可导出') || alert('暂无日志数据可导出')
+        return
+      }
+      
+      this.isExporting = true
+      try {
+        // 计算时间范围（使用已加载日志的最早和最晚时间）
+        let startTime = null
+        let endTime = null
+        
+        const timestamps = this.activityLogs
+          .map(log => log.timestamp ? new Date(log.timestamp).getTime() : null)
+          .filter(Boolean)
+          .sort((a, b) => a - b)
+        
+        if (timestamps.length > 0) {
+          startTime = new Date(timestamps[0])
+          endTime = new Date(timestamps[timestamps.length - 1])
+        }
+        
+        // 格式化时间参数
+        const formatDateTime = (date) => {
+          if (!date) return null
+          const year = date.getFullYear()
+          const month = String(date.getMonth() + 1).padStart(2, '0')
+          const day = String(date.getDate()).padStart(2, '0')
+          const hours = String(date.getHours()).padStart(2, '0')
+          const minutes = String(date.getMinutes()).padStart(2, '0')
+          const seconds = String(date.getSeconds()).padStart(2, '0')
+          return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+        }
+        
+        // 构建导出参数（不传时间参数则导出所有日志）
+        const params = {}
+        if (startTime && endTime) {
+          params.startTime = formatDateTime(startTime)
+          params.endTime = formatDateTime(endTime)
+        }
+        
+        // 调用导出接口
+        const response = await exportMyLogs(params)
+        
+        // 创建下载链接
+        const blob = new Blob([response], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const url = window.URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        
+        // 生成文件名（包含时间戳）
+        const now = new Date()
+        const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+        link.download = `我的操作日志_${timestamp}.xlsx`
+        
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
+        
+        this.$message?.success?.('导出成功') || alert('导出成功')
+      } catch (error) {
+        console.error('导出日志失败:', error)
+        const errorMsg = error.response?.data?.message || error.message || '未知错误'
+        this.$message?.error?.('导出失败：' + errorMsg) || alert('导出失败：' + errorMsg)
+      } finally {
+        this.isExporting = false
+      }
+    },
+    
   }
 }
 </script>
@@ -2890,9 +2978,9 @@ export default {
 }
 
 .filter-btn.active {
-  background: white;
+  background: var(--bg-primary, #ffffff);
   color: #667eea;
-  border-color: white;
+  border-color: var(--bg-primary, #ffffff);
 }
 
 /* 通用卡片样式 */
@@ -2930,6 +3018,8 @@ export default {
   border-radius: 6px;
   font-size: 14px;
   background: var(--bg-primary, #ffffff);
+  /* 使用主题文字颜色，暗色模式下会变为浅色 */
+  color: var(--text-primary, #111827);
   cursor: pointer;
 }
 
@@ -2949,6 +3039,46 @@ export default {
   width: 200px;
 }
 
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  background: #3b82f6;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.export-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #9ca3af;
+  border-color: #9ca3af;
+}
+
+.export-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
 /* 任务卡片列表 - 单列布局，更清晰 */
 .task-cards-list {
   display: flex;
@@ -2959,9 +3089,9 @@ export default {
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px;
-  /* 自定义滚动条样式 */
+  /* 自定义滚动条样式，使用主题变量 */
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f1f5f9;
+  scrollbar-color: var(--border-secondary, #cbd5e1) var(--bg-tertiary, #f1f5f9);
 }
 
 .task-cards-list > .task-card-clean {
@@ -2973,22 +3103,22 @@ export default {
 }
 
 .task-cards-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--bg-tertiary, #f1f5f9);
   border-radius: 3px;
 }
 
 .task-cards-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-secondary, #cbd5e1);
   border-radius: 3px;
 }
 
 .task-cards-list::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--gray-400, #94a3b8);
 }
 
 .task-card-clean {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 10px;
   display: grid;
   grid-template-columns: 1fr auto;
@@ -3003,7 +3133,7 @@ export default {
 
 .task-card-clean:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  border-color: #d1d5db;
+  border-color: var(--border-secondary, #d1d5db);
 }
 
 .task-card-clean.overdue {
@@ -3061,7 +3191,8 @@ export default {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  /* 使用主题主文字颜色，暗色模式下会变为浅色 */
+  color: var(--text-primary, #111827);
   flex: 1;
   line-height: 1.4;
   overflow: hidden;
@@ -3102,14 +3233,15 @@ export default {
 }
 
 .task-status-badge.status-UNKNOWN {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--bg-tertiary, #f3f4f6);
+  color: var(--text-secondary, #6b7280);
 }
 
 .task-description {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  /* 使用次级文字颜色，暗色模式下会变亮 */
+  color: var(--text-secondary, #6b7280);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -3137,12 +3269,14 @@ export default {
 }
 
 .meta-label { 
-  color: #9ca3af; 
+  /* 标签文字使用次级颜色，暗色模式下会变亮 */
+  color: var(--text-secondary, #9ca3af); 
   font-size: 13px;
   font-weight: 400;
 }
 .meta-value { 
-  color: #374151; 
+  /* 数值文字使用主文字颜色，暗色模式下为浅色 */
+  color: var(--text-primary, #374151); 
   font-weight: 500;
   font-size: 13px;
   max-width: 160px;
@@ -3158,7 +3292,8 @@ export default {
   font-weight: 600;
 }
 .meta-sep { 
-  color: #d1d5db; 
+  /* 分隔点使用边框颜色，暗色模式下同样变亮 */
+  color: var(--border-secondary, #d1d5db); 
   margin: 0 4px;
   font-size: 13px;
 }
@@ -3169,7 +3304,7 @@ export default {
   align-items: center;
   gap: 8px;
   padding-left: 16px;
-  border-left: 1px solid #e5e7eb;
+  border-left: 1px solid var(--border-primary, #e5e7eb);
   justify-content: flex-end;
   flex-shrink: 0;
 }
@@ -3233,10 +3368,10 @@ export default {
 }
 
 .dashboard-card {
-  background: white;
+  background: var(--bg-primary, #ffffff);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.1));
 }
 
 .dashboard-card.projects-overview,
@@ -3266,7 +3401,7 @@ export default {
 .review-mode-toggle {
   display: flex;
   gap: 4px;
-  background: #f3f4f6;
+  background: var(--bg-tertiary, #f3f4f6);
   border-radius: 8px;
   padding: 4px;
 }
@@ -3275,7 +3410,7 @@ export default {
   padding: 6px 12px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   font-size: 13px;
   font-weight: 500;
   border-radius: 6px;
@@ -3285,13 +3420,13 @@ export default {
 }
 
 .toggle-btn:hover {
-  color: #374151;
-  background: rgba(255, 255, 255, 0.5);
+  color: var(--text-primary, #374151);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .toggle-btn.active {
-  background: #ffffff;
-  color: #3b82f6;
+  background: var(--bg-primary, #ffffff);
+  color: var(--primary-color, #3b82f6);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -3307,7 +3442,7 @@ export default {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary, #111827);
 }
 
 /* 项目列表 */
@@ -3327,7 +3462,7 @@ export default {
   align-items: center;
   padding: 20px;
   min-height: 80px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
@@ -3335,8 +3470,8 @@ export default {
 }
 
 .project-item:hover {
-  background: #f9fafb;
-  border-color: #3b82f6;
+  background: var(--bg-primary, #f9fafb);
+  border-color: var(--primary-color, #3b82f6);
 }
 
 .project-info {
@@ -3357,7 +3492,8 @@ export default {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  /* 项目名称使用主文字颜色，暗色模式下变成白字 */
+  color: var(--text-primary, #111827);
   flex: 1;
 }
 
@@ -3390,7 +3526,7 @@ export default {
 .project-description {
   margin: 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -3408,7 +3544,7 @@ export default {
 .progress-bar {
   flex: 1;
   height: 6px;
-  background: #e5e7eb;
+  background: var(--border-secondary, #e5e7eb);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -3421,18 +3557,18 @@ export default {
 
 .progress-text {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   min-width: 40px;
 }
 
 .project-link {
   padding: 4px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   cursor: pointer;
 }
 
 .project-link:hover {
-  color: #3b82f6;
+  color: var(--primary-color, #3b82f6);
 }
 
 /* 任务统计 */
@@ -3467,8 +3603,8 @@ export default {
 }
 
 .chart-card {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 12px;
   padding: 10px 12px;
   display: flex;
@@ -3509,8 +3645,8 @@ export default {
 
 .card-overview,
 .card-trend {
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-primary, #e5e7eb);
   border-radius: 12px;
   padding: 12px;
   display: flex;
@@ -3529,6 +3665,14 @@ export default {
 
 .card-trend {
   min-height: 400px; /* 与左侧总览保持一致的高度 */
+}
+
+/* 深色模式下，任务统计内部卡片使用深色背景，避免出现白色方块 */
+:deep(html.dark-mode) .my-activity-container .chart-card,
+:deep(html.dark-mode) .my-activity-container .card-overview,
+:deep(html.dark-mode) .my-activity-container .card-trend {
+  background: #020617;
+  border-color: #1f2937;
 }
 
 .card-header-row {

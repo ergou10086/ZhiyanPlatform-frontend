@@ -734,7 +734,16 @@ export default {
         'receiverUsername': '接收者用户名',
         'messageType': '消息类型',
         'businessId': '业务ID',
-        'businessType': '业务类型'
+        'businessType': '业务类型',
+        // 文件相关
+        'fileIds': '文件ID列表',
+        'fileCount': '文件数量',
+        'fileNames': '文件名称',
+        'uploaderId': '上传人ID',
+        'uploaderName': '上传人',
+        'redirectUrl': '跳转链接',
+        'achievementId': '成果ID',
+        'achievementTitle': '成果名称'
       }
       
       try {
@@ -746,8 +755,24 @@ export default {
         if (typeof data !== 'object' || data === null) {
           return []
         }
-        
-        return Object.entries(data).map(([key, value]) => {
+
+        // 如果是带有文件信息的扩展数据，只展示与文件相关的几个关键字段
+        const hasFileInfo = Object.prototype.hasOwnProperty.call(data, 'fileCount') ||
+          Object.prototype.hasOwnProperty.call(data, 'fileNames') ||
+          Object.prototype.hasOwnProperty.call(data, 'uploaderName') ||
+          Object.prototype.hasOwnProperty.call(data, 'achievementTitle')
+
+        let entries
+        if (hasFileInfo) {
+          const allowedKeys = ['fileCount', 'fileNames', 'uploaderName', 'achievementTitle']
+          entries = allowedKeys
+            .filter(key => Object.prototype.hasOwnProperty.call(data, key))
+            .map(key => [key, data[key]])
+        } else {
+          entries = Object.entries(data)
+        }
+
+        return entries.map(([key, value]) => {
           // 对项目ID做特殊处理：展示项目名称而不是纯ID
           if (key === 'projectId') {
             const projectName = this.getProjectNameById(value)
@@ -1252,11 +1277,19 @@ export default {
           }
         }
 
+        const rawReadFlag = item.readFlag
+        const isRead = rawReadFlag === true || rawReadFlag === 'true' || rawReadFlag === 1 || rawReadFlag === '1'
+        console.log('🧪 transformMessages item:', {
+          id: item.recipientId || item.id,
+          rawReadFlag,
+          computedIsRead: isRead
+        })
+
         return {
           id: item.recipientId || item.id,
           title: item.title || '',
           content: item.content || '',
-          isRead: item.readFlag || false,
+          isRead,
           createdAt: createdAt,
           scene: item.scene || '',
           businessId: item.businessId,
@@ -1377,6 +1410,17 @@ export default {
             // 检查是否点击了铃铛按钮
             const messageButton = document.querySelector('.message-button')
             if (messageButton && (messageButton === event.target || messageButton.contains(event.target))) {
+              return
+            }
+            // 如果点击发生在消息详情弹窗区域内，则不关闭消息面板
+            const detailOverlay = document.querySelector('.message-detail-overlay')
+            if (detailOverlay && (detailOverlay === event.target || detailOverlay.contains(event.target))) {
+              return
+            }
+            // 如果当前有 ElementUI 的对话框或确认框打开，则不关闭消息面板
+            const dialogWrapper = document.querySelector('.el-dialog__wrapper')
+            const msgBoxWrapper = document.querySelector('.el-message-box__wrapper')
+            if (dialogWrapper || msgBoxWrapper) {
               return
             }
             binding.value()
@@ -1500,8 +1544,8 @@ export default {
 .message-notification {
   position: fixed;
   top: 12px;
-  right: 220px;
-  z-index: 10003;
+  right: 215px;
+  z-index: 10005;
   display: block;
   visibility: visible;
 }
@@ -1951,12 +1995,14 @@ export default {
 
 .unread-dot {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 8px;
-  height: 8px;
-  background: var(--danger-color);
+  top: 18px;
+  right: 18px;
+  width: 12px;
+  height: 12px;
+  background: #ff4d4f;
   border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .delete-btn {
@@ -2584,7 +2630,7 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 210px;
+    right: 260px;
     top: 10px;
     z-index: 10005;
   }
@@ -2622,7 +2668,7 @@ export default {
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 200px;
+    right: 240px;
     top: 10px;
     z-index: 10005;
   }
