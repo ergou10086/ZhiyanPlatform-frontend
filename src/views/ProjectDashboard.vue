@@ -952,7 +952,7 @@ export default {
     // 点击外部关闭导出菜单
     document.addEventListener('click', this.handleClickOutside)
     
-    // 优化加载策略：先加载关键数据，立即显示页面
+    // 优化加载策略：先加载关键数据，尽快结束全屏加载遮罩
     try {
       this.isLoading = true
       this.loadingProgress = 10
@@ -967,27 +967,22 @@ export default {
       this.allTasks = allTasks
       this.loadingProgress = 40
       
-      // 第二步：加载第一屏的关键数据（KPI和任务统计）
-      await Promise.all([
-        this.loadTaskStatistics(allTasks),
-        this.loadMemberWorktimes(allTasks)
-      ])
-      
-      this.loadingProgress = 60
+      // 第二步：仅加载首屏必须的 KPI / 任务统计，确保尽快结束遮罩
+      await this.loadTaskStatistics(allTasks)
+      this.loadingProgress = 70
       
       // 立即显示页面（关键数据已加载完成）
       this.isLoading = false
       this.loadingProgress = 100
       
-      // 数字滚动动画
+      // 数字滚动动画 + 饼图动画
       Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
-      // 饼图动画
       this.animatePieChart()
       
-      // 第三步：异步加载非关键数据（不阻塞页面显示）
-      // 使用 requestIdleCallback 或 setTimeout 延迟加载，避免阻塞主线程
+      // 第三步：其余统计和图表异步加载（不再阻塞界面显示）
       setTimeout(() => {
         Promise.all([
+          this.loadMemberWorktimes(allTasks),
           this.loadCompletionTrend(),
           this.loadAchievements(),
           this.loadTaskSubmissions(),
@@ -996,7 +991,7 @@ export default {
         ]).catch(error => {
           console.error('[ProjectDashboard] 非关键数据加载失败:', error)
         })
-      }, 100)
+      }, 50)
       
     } catch (error) {
       console.error('[ProjectDashboard] 加载关键数据失败:', error)

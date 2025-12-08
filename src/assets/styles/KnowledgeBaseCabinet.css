@@ -1,4 +1,125 @@
 /* ========== 基础样式 ========== */
+/* Artistic Document Action Buttons */
+.document-actions {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+  padding: 8px 0;
+  position: relative;
+}
+
+.document-actions::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+}
+
+.document-actions .action-btn {
+  position: relative;
+  white-space: nowrap;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  min-width: 100px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #334155;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    0 4px 6px -1px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.document-actions .action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(99, 102, 241, 0) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  border-radius: 6px;
+}
+
+.document-actions .action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 6px 8px -2px rgba(0, 0, 0, 0.05);
+  color: #1e293b;
+}
+
+.document-actions .action-btn:hover::before {
+  opacity: 1;
+}
+
+.document-actions .action-btn:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.document-actions .action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  background: #f1f5f9;
+  color: #94a3b8;
+  box-shadow: none;
+}
+
+/* Style for the saved button */
+.document-actions .action-btn.saved {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 2px 4px rgba(79, 70, 229, 0.2),
+    0 4px 6px -1px rgba(99, 102, 241, 0.1);
+}
+
+.document-actions .action-btn.saved:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 
+    0 4px 12px rgba(79, 70, 229, 0.25),
+    0 6px 8px -2px rgba(99, 102, 241, 0.15);
+}
+
+.document-actions .action-btn.saved:active {
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Button icons */
+.document-actions .action-btn i {
+  margin-right: 6px;
+  font-size: 0.9em;
+  transition: transform 0.2s ease;
+}
+
+.document-actions .action-btn:hover i {
+  transform: translateX(2px);
+}
+
 .cabinet-view {
   display: flex;
   flex-direction: column;
@@ -531,9 +652,189 @@
   flex: 1; 
 }
 
-/* ========== 按钮样式 ========== */
-.cabinet-view {
-  height: 100%;
+/* ========== 文档操作按钮 ========== */
+.document-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 16px 0;
+  border-top: 1px solid #f0f0f0;
+  width: 100%;
+  flex-wrap: nowrap;
+}
+
+/* 版本控制按钮组 - 左侧 */
+.version-actions {
+  display: flex;
+  gap: 12px;
+  margin-right: auto;
+  flex-shrink: 0;
+}
+
+/* 操作按钮组 - 右侧 */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.document-actions .btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d9d9d9;
+  height: 36px;
+  min-width: 80px;
+  background: #fff;
+  color: #595959;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.document-actions .btn.primary {
+  background-color: #1890ff;
+  color: white;
+  border-color: #1890ff;
+}
+
+.document-actions .btn.primary:hover:not(:disabled) {
+  background-color: #40a9ff;
+  border-color: #40a9ff;
+}
+
+.document-actions .btn.primary:disabled {
+  background-color: #bae7ff;
+  border-color: #bae7ff;
+  cursor: not-allowed;
+}
+
+.document-actions .btn.secondary {
+  background-color: #fff;
+  color: #595959;
+  border-color: #d9d9d9;
+}
+
+.document-actions .btn.secondary:hover:not(:disabled) {
+  color: #1890ff;
+  border-color: #1890ff;
+  background-color: #f0f9ff;
+}
+
+.document-actions .btn.secondary:disabled {
+  color: #bfbfbf;
+  background-color: #f5f5f5;
+  border-color: #e8e8e8;
+  cursor: not-allowed;
+}
+
+/* 版本对比按钮组样式 */
+.version-actions .btn {
+  background-color: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #595959;
+}
+
+.version-actions .btn:hover:not(:disabled) {
+  background-color: #fff;
+  color: #1890ff;
+  border-color: #1890ff;
+}
+
+.version-actions .btn:disabled {
+  color: #bfbfbf;
+  background-color: #f5f5f5;
+  border-color: #e8e8e8;
+  cursor: not-allowed;
+}
+
+/* 按钮悬停效果 */
+.document-actions .btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.document-actions .btn:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* 暗色模式适配 */
+.dark-mode .document-actions {
+  border-top-color: #2d3748;
+}
+
+.dark-mode .document-actions .btn {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.dark-mode .document-actions .btn.primary {
+  background-color: #3182ce;
+  border-color: #3182ce;
+  color: white;
+}
+
+.dark-mode .document-actions .btn.primary:hover:not(:disabled) {
+  background-color: #4299e1;
+  border-color: #4299e1;
+}
+
+.dark-mode .document-actions .btn.secondary:hover:not(:disabled) {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #63b3ed;
+}
+
+.dark-mode .version-actions .btn {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.dark-mode .version-actions .btn:hover:not(:disabled) {
+  background-color: #2d3748;
+  color: #63b3ed;
+  border-color: #63b3ed;
+}
+
+/* 按钮组之间的分隔线 */
+.version-actions::after {
+  content: '';
+  display: inline-block;
+  width: 1px;
+  height: 24px;
+  background-color: #e5e7eb;
+  margin: 0 8px;
+}
+
+.dark-mode .version-actions::after {
+  background-color: #4a5568;
+}
+
+/* 响应式调整 */
+@media (max-width: 640px) {
+  .document-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .version-actions,
+  .action-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .version-actions::after {
+    display: none;
+  }
 }
 
 /* ===== Wiki 文档导出按钮及下拉菜单 ===== */
