@@ -637,7 +637,7 @@
               <!-- 下方：任务完成时间线散点图 -->
               <div class="card glass gradient-border chart-item timeline-chart-item">
                 <div class="card-title timeline-title">任务完成时间线</div>
-                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0">
+                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0" @click="handleTimelineOutsideClick">
                   <svg viewBox="0 0 700 160" preserveAspectRatio="xMidYMid meet" class="timeline-scatter-svg">
                     <defs>
                       <radialGradient id="bubbleGradient1" cx="30%" cy="30%">
@@ -671,7 +671,24 @@
                       <text v-for="(member, i) in timelineMemberNames" :key="'member-' + i" :x="getTimelineMemberX(i)" y="155" text-anchor="middle" class="axis-label member-label">{{ truncateMemberName(member) }}</text>
                     </g>
                     <g class="scatter-bubbles" :class="{ 'bubbles-animated': timelineScatterAnimated }">
-                      <circle v-for="(point, i) in taskCompletionTimeline" :key="'bubble-' + i" :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)" :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)" :r="getBubbleRadius(i, point)" :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`" :class="['task-bubble', `bubble-float-${(i % 3) + 1}`]" :style="{ '--delay': `${i * 0.1}s` }" @mouseenter="showTimelineTooltip($event, point)" @mousemove="updateTimelineTooltip($event)" @mouseleave="hideTimelineTooltip"/>
+                      <circle
+                        v-for="(point, i) in taskCompletionTimeline"
+                        :key="'bubble-' + i"
+                        :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)"
+                        :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)"
+                        :r="getBubbleRadius(i, point)"
+                        :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`"
+                        :class="[
+                          'task-bubble',
+                          `bubble-float-${(i % 3) + 1}`,
+                          { 'bubble-exploding': activeTimelineBubbleIndex === i }
+                        ]"
+                        :style="{
+                          '--delay': `${i * 0.1}s`,
+                          opacity: timelineTooltip.show && activeTimelineBubbleIndex === i ? 0 : 1
+                        }"
+                        @click.stop="handleTimelineBubbleClick($event, point, i)"
+                      />
                     </g>
                   </svg>
                   <div v-if="timelineTooltip.show" class="timeline-scatter-tooltip" :style="{ left: timelineTooltip.x + 'px', top: timelineTooltip.y + 'px' }">
@@ -913,6 +930,8 @@ export default {
       timelineMemberNames: [],
       // 时间线日期范围
       timelineDateRange: { min: null, max: null },
+      // 当前被点击触发动画的时间线气泡索引
+      activeTimelineBubbleIndex: null,
       // 时间线tooltip
       timelineTooltip: {
         show: false,
@@ -1505,6 +1524,27 @@ export default {
         backgroundColor: backgroundColor,
         minHeight: `${Math.max(size * 2, 80)}px`  // 增加到80px，高度更大
       }
+    },
+
+    /**
+     * 点击时间线气泡：触发爆炸动画并显示任务信息
+     */
+    handleTimelineBubbleClick(event, point, index) {
+      // 触发当前气泡的爆炸动画，并记录当前激活的气泡
+      this.activeTimelineBubbleIndex = index
+
+      // 稍微延迟再显示 tooltip，让信息像是从爆炸中“生长”出来
+      setTimeout(() => {
+        this.showTimelineTooltip(event, point)
+      }, 150)
+    },
+
+    /**
+     * 点击时间线空白区域：关闭任务信息并恢复气泡
+     */
+    handleTimelineOutsideClick() {
+      this.hideTimelineTooltip()
+      this.activeTimelineBubbleIndex = null
     },
 
     /**
@@ -7316,6 +7356,11 @@ export default {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) brightness(1.15);
 }
 
+/* 点击时的爆炸动画状态（使用更高优先级，覆盖浮动动画） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .task-bubble.bubble-exploding {
+  animation: bubbleExplode 0.6s ease-out forwards !important;
+}
+
 /* 入场动画 */
 @keyframes bubbleEnter {
   0% {
@@ -7328,6 +7373,24 @@ export default {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* 气泡爆炸动画：快速放大并淡出，再回到正常状态由 JS 移除 class */
+@keyframes bubbleExplode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.8);
+    opacity: 0.9;
+    filter: drop-shadow(0 8px 26px rgba(59, 130, 246, 0.55));
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
   }
 }
 
