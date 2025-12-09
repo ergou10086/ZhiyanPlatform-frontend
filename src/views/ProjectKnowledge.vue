@@ -39,9 +39,9 @@
           <!-- 文件预览区域 - 显示在选项栏下方 -->
           <div v-if="activeTab==='ai'" class="sidebar-file-preview">
             <div class="sidebar-file-header">
-              <span class="sidebar-file-title">已上传文件 ({{ uploadedFiles.length }})</span>
+              <span class="sidebar-file-title">已上传文件 ({{ uploadedFiles.length + uploadingFiles.length }})</span>
             </div>
-            <div v-if="uploadedFiles.length === 0" class="sidebar-file-empty">
+            <div v-if="uploadedFiles.length === 0 && uploadingFiles.length === 0" class="sidebar-file-empty">
               <div class="sidebar-empty-icon">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -51,7 +51,8 @@
               <p class="sidebar-empty-text">暂无文件</p>
             </div>
             <div v-else class="sidebar-file-list">
-              <div v-for="(file, index) in uploadedFiles" :key="index" class="sidebar-file-item">
+              <!-- 上传中的文件 -->
+              <div v-for="file in uploadingFiles" :key="file.id" class="sidebar-file-item uploading">
                 <div class="sidebar-file-icon">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -59,10 +60,25 @@
                   </svg>
                 </div>
                 <div class="sidebar-file-info">
-                  <div class="sidebar-file-name">{{ file.name }}</div>
-                  <div class="sidebar-file-size">{{ formatFileSize(file.size) }}</div>
+                  <div class="sidebar-file-name">{{ file.fileName }}</div>
+                  <div class="sidebar-file-status">上传中...</div>
                 </div>
-                <button class="sidebar-file-remove" @click="removeFile(index)" title="移除">
+                <div class="sidebar-loading-spinner"></div>
+              </div>
+              
+              <!-- 已上传的文件 -->
+              <div v-for="file in uploadedFiles" :key="file.id" class="sidebar-file-item">
+                <div class="sidebar-file-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="sidebar-file-info">
+                  <div class="sidebar-file-name">{{ file.fileName }}</div>
+                  <div class="sidebar-file-size">{{ formatFileSize(file.fileSize) }}</div>
+                </div>
+                <button class="sidebar-file-remove" @click="removeUploadedFile(file.id)" title="移除">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
@@ -243,7 +259,8 @@ export default {
       archiveRows: [],
       permissionErrorShown: false, // 标记是否已显示权限错误，防止重复显示
       showPermissionDialog: false, // 控制权限错误弹窗显示
-      uploadedFiles: [] // AI赋能页面上传的文件列表
+      uploadedFiles: [], // AI赋能页面已上传的文件列表
+      uploadingFiles: [] // AI赋能页面上传中的文件列表
     }
   },
   computed: {
@@ -986,33 +1003,30 @@ export default {
           this.$refs.aiComponent.removeKnowledgeFile(file.id)
         }
       }
-      
-      // 从显示列表中删除（这个操作会被 watch 触发的 handleFilesChanged 覆盖，但保留以防万一）
-      this.uploadedFiles.splice(index, 1)
     },
     
     // 处理AI组件传来的文件变化
     handleFilesChanged(filesData) {
-      // 合并本地文件和知识库文件为统一格式
-      const localFiles = filesData.localFiles || []
-      const knowledgeFileIds = filesData.knowledgeFileIds || []
+      console.log('[ProjectKnowledge] 接收到文件变化:', filesData)
       
-      // 将所有文件转换为统一格式显示在左侧栏
-      this.uploadedFiles = [
-        ...localFiles.map((f, index) => ({
-          name: f.name,
-          size: f.size,
-          type: 'local',
-          originalIndex: index
-        })),
-        ...knowledgeFileIds.map((id, index) => ({
-          name: `知识库文件 ${id}`,
-          size: 0,
-          type: 'knowledge',
-          id: id,
-          originalIndex: index
-        }))
-      ]
+      // 更新已上传文件列表
+      if (filesData.uploadedFiles) {
+        this.uploadedFiles = filesData.uploadedFiles
+      }
+      
+      // 更新上传中文件列表
+      if (filesData.uploadingFiles) {
+        this.uploadingFiles = filesData.uploadingFiles
+      }
+    },
+    
+    // 移除已上传的文件
+    removeUploadedFile(fileId) {
+      console.log('[ProjectKnowledge] 移除文件:', fileId)
+      // 通知 AI 组件移除文件
+      if (this.$refs.aiComponent && this.$refs.aiComponent.removeUploadedFile) {
+        this.$refs.aiComponent.removeUploadedFile(fileId)
+      }
     }
   }
 }
