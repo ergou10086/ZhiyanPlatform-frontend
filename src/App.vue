@@ -1,8 +1,14 @@
 <template>
   <div id="app">
-    <keep-alive include="ProjectSquare">
-      <router-view/>
-    </keep-alive>
+    <div class="app-wrapper">
+      <div class="app-content">
+        <keep-alive include="ProjectSquare">
+          <router-view/>
+        </keep-alive>
+      </div>
+      <!-- 全局页脚 -->
+      <Footer v-if="!isAuthPage" />
+    </div>
     <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
     <GlobalMessageNotification v-if="!isAuthPage" />
     <!-- 全局用户信息组件，悬浮在右上角，但在登录相关页面不显示 -->
@@ -25,6 +31,7 @@ import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
 import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
 import GlobalMessageNotification from '@/components/GlobalMessageNotification.vue'
 import FloatingMessageReminder from '@/components/FloatingMessageReminder.vue'
+import Footer from '@/components/Footer.vue'
 
 export default {
   name: 'App',
@@ -32,7 +39,8 @@ export default {
     GlobalUserProfile,
     GlobalErrorDialog,
     GlobalMessageNotification,
-    FloatingMessageReminder
+    FloatingMessageReminder,
+    Footer
   },
   data() {
     return {
@@ -149,6 +157,16 @@ export default {
   min-height: 100vh;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1;
 }
 
 /* 主题切换动画 - 圆形扩散效果（全局样式） */

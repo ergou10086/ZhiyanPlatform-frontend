@@ -3693,7 +3693,7 @@ export default {
 }
 
 .modal-content {
-  background: #ffffff;
+  background: #1e293b;
   border-radius: 20px;
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
@@ -3713,22 +3713,22 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px 24px 12px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  background: linear-gradient(135deg, #1e293b 0%, #1e293b 100%);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
 }
 
 .modal-title {
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 700;
-  color: #0f172a;
+  color: #e2e8f0;
 }
 
 .modal-subtitle {
   margin: 0 0 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #0044CC;
+  color: #9ca3af;
 }
 
 .modal-close {
@@ -3756,7 +3756,7 @@ export default {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 24px 4px;
-  background: #ffffff;
+  background: #1e293b;
 }
 
 .loading-container {
@@ -3820,7 +3820,7 @@ export default {
 }
 
 .file-card {
-  background: #ffffff;
+  background: #1e293b;
   border: 1.5px solid #e2e8f0;
   border-radius: 14px;
   cursor: pointer;
@@ -3892,7 +3892,7 @@ export default {
 .file-name {
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: #e2e8f0;
   line-height: 1.5;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4034,6 +4034,12 @@ export default {
   word-break: break-all;
 }
 
+/* 黑夜模式下，文件查看弹窗顶部信息条强制使用深色背景 */
+html.dark-mode .file-view-dialog .file-info {
+  background: #020617 !important;
+  color: #e5e7eb;
+}
+
 /* 已关联任务标签样式（上传 & 查看 共用） */
 .linked-tasks-list {
   margin-top: 8px;
@@ -4167,8 +4173,8 @@ export default {
   padding: 0 12px;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
-  background: #fff;
-  color: #374151;
+  background: #ffffff;
+  color: #111827;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -4181,8 +4187,38 @@ export default {
 }
 
 .status-select:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  outline: none;
+  border-color: #5EB6E4;
+  box-shadow: 0 0 0 2px rgba(94, 182, 228, 0.2);
+  background-color: #1e293b;
+}
+
+/* ===== 暗黑模式下的成果状态选择器样式 ===== */
+.dark-mode .status-selector label {
+  color: #e5e7eb;
+}
+
+.dark-mode .status-select {
+  background: #020617;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark-mode .status-select option {
+  background: #020617;
+  color: #f9fafb;
+}
+
+/* ===== 白日模式下（非 dark-mode）强制使用浅色样式 ===== */
+html:not(.dark-mode) .status-select {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+html:not(.dark-mode) .status-select option {
+  background: #ffffff !important;
+  color: #111827 !important;
 }
 
 /* 状态徽章样式（用于列表显示） */
@@ -4242,7 +4278,7 @@ export default {
   max-width: 1400px;
   height: 90vh;
   max-height: 900px;
-  background: #ffffff;
+  background: #1e293b;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   display: flex;
@@ -4256,9 +4292,10 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 1px solid #334155;
+  background: #1e293b;
   flex-shrink: 0;
+  color: #ffffff;
 }
 
 .file-preview-title {
@@ -4279,7 +4316,7 @@ export default {
 .file-preview-name-text {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4287,7 +4324,7 @@ export default {
 
 .file-preview-size-text {
   font-size: 14px;
-  color: #6b7280;
+  color: #e2e8f0;
   font-weight: normal;
 }
 
@@ -4303,7 +4340,7 @@ export default {
   height: 36px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: #e2e8f0;
   cursor: pointer;
   border-radius: 8px;
   display: flex;
@@ -4314,15 +4351,16 @@ export default {
 
 .file-preview-download-btn:hover,
 .file-preview-close-btn:hover {
-  background: #e5e7eb;
-  color: #111827;
+  background: #334155;
+  color: #ffffff;
 }
 
 .file-preview-content {
   flex: 1;
   overflow: auto;
   position: relative;
-  background: #ffffff;
+  background: #1e293b;
+  color: #ffffff;
 }
 
 /* 加载状态 */
@@ -4333,7 +4371,7 @@ export default {
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #6b7280;
+  color: #ffffff;
 }
 
 .loading-spinner {
@@ -4390,7 +4428,7 @@ export default {
 .file-preview-pdf-container {
   width: 100%;
   height: 100%;
-  background: #f9fafb;
+  background: #1e293b;
 }
 
 .file-preview-pdf {
@@ -4405,7 +4443,8 @@ export default {
   height: 100%;
   padding: 24px;
   overflow: auto;
-  background: #ffffff;
+  background: #1e293b;
+  color: #ffffff;
 }
 
 .file-preview-text {
@@ -4414,9 +4453,9 @@ export default {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
-  color: #111827;
   white-space: pre-wrap;
   word-wrap: break-word;
+  color: #ffffff;
 }
 
 .file-preview-text code {

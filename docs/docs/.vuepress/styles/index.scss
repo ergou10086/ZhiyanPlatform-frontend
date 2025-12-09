@@ -1,0 +1,222 @@
+// 智研平台帮助文档 - 蓝白色调样式定制
+
+// 主色调变量
+$zhiyan-blue: #2573F5;
+$zhiyan-blue-light: #328EFB;
+$zhiyan-blue-dark: #0C2D67;
+$zhiyan-white: #F5FBFE;
+$zhiyan-bg: #F5FBFE;
+
+// 覆盖默认主题颜色
+:root {
+  --c-brand: #{$zhiyan-blue};
+  --c-brand-light: #{$zhiyan-blue-light};
+  --c-brand-lighter: #{$zhiyan-blue-light};
+  --c-brand-dark: #{$zhiyan-blue-dark};
+  --c-bg: #{$zhiyan-bg};
+  --c-bg-light: #ffffff;
+  --c-bg-lighter: #{$zhiyan-white};
+  --c-text: #2c3e50;
+  --c-text-light: #3a5169;
+  --c-text-lighter: #4e6e8e;
+  --c-text-lightest: #6a8bad;
+  --c-border: #eaecef;
+  --c-tip: #{$zhiyan-blue};
+  --c-warning: #e7c000;
+  --c-danger: #cc0000;
+  --c-badge-tip: #{$zhiyan-blue};
+}
+
+// 主页样式定制
+.home {
+  .hero {
+    background: linear-gradient(135deg, #{$zhiyan-white} 0%, #{$zhiyan-bg} 100%);
+    padding: 4rem 2rem;
+    
+    .hero-image {
+      max-width: 200px;
+      margin-bottom: 2rem;
+      filter: drop-shadow(0 4px 12px rgba(37, 115, 245, 0.15));
+    }
+    
+    .hero-text {
+      color: #{$zhiyan-blue-dark};
+      font-weight: 600;
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .description {
+      color: #{$zhiyan-blue-dark};
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    
+    .actions {
+      margin-top: 2rem;
+      
+      .action-button {
+        background: #{$zhiyan-blue};
+        border-color: #{$zhiyan-blue};
+        color: white;
+        font-weight: 500;
+        padding: 0.8rem 2rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          background: #{$zhiyan-blue-dark};
+          border-color: #{$zhiyan-blue-dark};
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(37, 115, 245, 0.3);
+        }
+        
+        &.secondary {
+          background: transparent;
+          color: #{$zhiyan-blue};
+          border-color: #{$zhiyan-blue};
+          
+          &:hover {
+            background: #{$zhiyan-blue};
+            color: white;
+          }
+        }
+      }
+    }
+  }
+  
+  .features {
+    background: white;
+    padding: 4rem 2rem;
+    border-top: 1px solid #{$zhiyan-white};
+    
+    .feature {
+      border: 1px solid #{$zhiyan-white};
+      border-radius: 8px;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      background: #{$zhiyan-bg};
+      
+      &:hover {
+        border-color: #{$zhiyan-blue-light};
+        box-shadow: 0 4px 16px rgba(37, 115, 245, 0.1);
+        transform: translateY(-4px);
+      }
+      
+      .title {
+        color: #{$zhiyan-blue-dark};
+        font-weight: 600;
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+      }
+      
+      .details {
+        color: #{$zhiyan-blue-dark};
+        opacity: 0.8;
+        line-height: 1.8;
+      }
+    }
+  }
+}
+
+// 导航栏样式
+.navbar {
+  background: white;
+  border-bottom: 1px solid #{$zhiyan-white};
+  box-shadow: 0 2px 8px rgba(37, 115, 245, 0.05);
+  
+  .site-name {
+    color: #{$zhiyan-blue-dark};
+    font-weight: 600;
+  }
+  
+  .nav-link {
+    color: #{$zhiyan-blue-dark};
+    
+    &:hover {
+      color: #{$zhiyan-blue};
+    }
+  }
+}
+
+// 侧边栏样式
+.sidebar {
+  background: #{$zhiyan-bg};
+  border-right: 1px solid #{$zhiyan-white};
+  
+  .sidebar-link {
+    color: #{$zhiyan-blue-dark};
+    
+    &.active {
+      color: #{$zhiyan-blue};
+      border-left-color: #{$zhiyan-blue};
+    }
+    
+    &:hover {
+      color: #{$zhiyan-blue};
+    }
+  }
+}
+
+// 代码块样式
+div[class*="language-"] {
+  background: #{$zhiyan-blue-dark};
+  
+  &::before {
+    color: #{$zhiyan-white};
+  }
+}
+
+// 链接样式
+a {
+  color: #{$zhiyan-blue};
+  
+  &:hover {
+    color: #{$zhiyan-blue-dark};
+  }
+}
+
+// 按钮样式
+button, .btn {
+  background: #{$zhiyan-blue};
+  color: white;
+  border-color: #{$zhiyan-blue};
+  
+  &:hover {
+    background: #{$zhiyan-blue-dark};
+    border-color: #{$zhiyan-blue-dark};
+  }
+}
+
+// 页脚样式
+.footer {
+  background: #{$zhiyan-blue-dark};
+  color: #{$zhiyan-white};
+  border-top: 1px solid #{$zhiyan-blue};
+  
+  a {
+    color: #{$zhiyan-white};
+    
+    &:hover {
+      color: #{$zhiyan-blue-light};
+    }
+  }
+}
+
+// 响应式调整
+@media (max-width: 719px) {
+  .home {
+    .hero {
+      padding: 2rem 1rem;
+      
+      .hero-text {
+        font-size: 2rem;
+      }
+    }
+    
+    .features {
+      padding: 2rem 1rem;
+    }
+  }
+}
+

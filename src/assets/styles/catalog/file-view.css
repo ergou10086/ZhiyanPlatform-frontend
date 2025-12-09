@@ -832,6 +832,154 @@
   color: #9ca3af;
 }
 
+/* ===== 文件查看弹窗 - 深色模式整体适配 ===== */
+.dark-mode .file-view-overlay {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+}
+
+.dark-mode .file-view-dialog {
+  background: #020617;
+  border-color: #1e293b;
+  box-shadow: 0 25px 60px -18px rgba(15, 23, 42, 0.95);
+}
+
+.dark-mode .file-view-header {
+  background: linear-gradient(135deg, #020617 0%, #020617 100%);
+  border-bottom-color: #1f2937;
+}
+
+.dark-mode .achievement-info h3 {
+  color: #e5e7eb;
+}
+
+.dark-mode .file-count-info {
+  color: #94a3b8;
+}
+
+.dark-mode .file-view-content {
+  background: #020617;
+}
+
+.dark-mode .multi-file-content {
+  background: #0f172a;
+}
+
+.dark-mode .file-list {
+  border-right: 1px solid #1e293b;
+}
+
+.dark-mode .file-item {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.5);
+}
+
+.dark-mode .file-item:hover {
+  background: #1e293b;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.5);
+}
+
+.dark-mode .file-item.active {
+  background: #1e293b;
+  border-color: #3b82f6;
+}
+
+.dark-mode .file-icon-wrapper {
+  background: #1e293b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.dark-mode .file-details .file-name {
+  color: #f8fafc;
+}
+
+.dark-mode .file-meta {
+  color: #94a3b8;
+}
+
+.dark-mode .file-size {
+  color: #cbd5e1;
+}
+
+.dark-mode .file-type {
+  color: #93c5fd;
+}
+
+.dark-mode .file-separator {
+  color: #475569;
+}
+
+.dark-mode .action-btn {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.dark-mode .action-btn:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .file-view-footer {
+  background: #0f172a;
+  border-top: 1px solid #1e293b;
+}
+
+.dark-mode .detail-label {
+  color: #e2e8f0;
+}
+
+.dark-mode .detail-value {
+  color: #94a3b8;
+}
+
+.dark-mode .file-details {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.dark-mode .achievement-description {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.dark-mode .achievement-description .detail-label {
+  color: #e2e8f0;
+}
+
+.dark-mode .desc-label {
+  color: #94a3b8;
+}
+
+.dark-mode .desc-value {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.dark-mode .custom-description .desc-value {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #e5f2ff;
+}
+
+.dark-mode .text-content pre,
+.dark-mode .content-display {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+.dark-mode .content-editor {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
 /* 单文件卡片容器样式 */
 .single-file-card-container {
   margin-top: 24px;
@@ -930,6 +1078,31 @@
   transition: color 0.2s ease;
 }
 
+/* =============================
+   单文件预览卡片 - 暗黑模式适配
+   ============================= */
+.dark-mode .file-preview-card {
+  background: linear-gradient(135deg, #020617 0%, #020617 100%);
+  border-color: #1f2937;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode .file-preview-card::before {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%);
+}
+
+.dark-mode .file-preview-name {
+  color: #e5e7eb;
+}
+
+.dark-mode .file-preview-meta {
+  color: #9ca3af;
+}
+
+.dark-mode .file-preview-hint {
+  color: #9ca3af;
+}
+
 .file-preview-card:hover .file-preview-name {
   color: #0044CC;
 }
@@ -1022,5 +1195,12 @@
 .dark-mode .file-preview-card:hover .file-preview-size {
   background: #475569;
   color: #cbd5e1;
+}
+
+/* 在文件预览弹窗内，强制单文件卡片在暗黑模式下使用深色背景 */
+html.dark-mode .file-preview-dialog .single-file-card-container,
+html.dark-mode .file-preview-dialog .single-file-card-container .file-preview-card {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
 }
 

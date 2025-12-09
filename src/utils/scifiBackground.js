@@ -38,8 +38,8 @@ const LINE_THRESHOLD = 90       // 连线距离阈值（决定连线多少）
 const MAX_LINES = 300           // 最大连线数量上限（性能安全阈）
 const MOUSE_INFLUENCE = 0.3     // 鼠标微交互影响系数（0~1，越大越明显）
 const CAMERA_SWAY = 14          // 摄像机随鼠标轻微摆动幅度
-const POINT_OPACITY = 0.45      // 点的基础透明度（0~1）
-const LINE_BASE_OPACITY = 0.05  // 线的基础透明度（0~1）
+const POINT_OPACITY = 0.25      // 点的基础透明度（0~1）
+const LINE_BASE_OPACITY = 0.35  // 线的基础透明度（0~1）
 const LINE_MAX_OPACITY = 0.15   // 线的最大透明度（0~1）
 
 function isDarkMode() {

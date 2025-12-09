@@ -100,7 +100,8 @@
                     <!-- 被打回标识 -->
                     <div v-if="task.isRejected" class="rejected-badge" title="任务提交已被打回">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M10 15L15 20M15 15L10 20M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                       </svg>
                       <span class="alert-text">已打回</span>
                     </div>
@@ -164,7 +165,6 @@
                   <p class="project-description">{{ project.description }}</p>
                   <div class="project-meta">
                     <span :class="['status-badge', `status-${project.status}`]">{{ getProjectStatusText(project.status) }}</span>
-                    <span class="progress-text">{{ project.progress }}% 完成</span>
                   </div>
                 </div>
               </div>
