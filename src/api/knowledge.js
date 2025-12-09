@@ -18,9 +18,28 @@ function parseJSONWithBigInt(data) {
   }
 
   try {
-    return JSON.parse(trimmed.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    // ⚠️ 必须在 JSON.parse 之前用正则替换大整数！
+    // 因为一旦 JSON.parse 执行，大整数就已经被转换成 Number，精度已丢失
+    const processedData = trimmed
+      // 匹配对象属性值中的大整数: "key": 数字 (16位及以上)
+      .replace(/:(\s*)(\d{16,})(\s*[,}\]])/g, ':$1"$2"$3')
+      // 匹配数组开头的大整数: [数字
+      .replace(/\[(\s*)(\d{16,})(\s*[,\]])/g, '[$1"$2"$3')
+      // 匹配数组中间的大整数: ,数字
+      .replace(/,(\s*)(\d{16,})(\s*[,\]])/g, ',$1"$2"$3')
+    
+    return JSON.parse(processedData)
   } catch (e) {
     console.error('JSON解析错误:', e)
+    console.error('原始数据前500字符:', trimmed.substring(0, 500))
+    // 尝试找到出错位置
+    if (e.message && e.message.includes('position')) {
+      const match = e.message.match(/position (\d+)/)
+      if (match) {
+        const pos = parseInt(match[1])
+        console.error(`出错位置附近的内容: ...${trimmed.substring(Math.max(0, pos - 50), Math.min(trimmed.length, pos + 50))}...`)
+      }
+    }
     return data
   }
 }
