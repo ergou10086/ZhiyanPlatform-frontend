@@ -15,6 +15,13 @@ module.exports = {
   devServer: {
     port: 8001,
     host: '0.0.0.0',
+
+    // 添加跨域允许
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    },
     
     // ⭐ 全局禁用压缩（压缩可能导致缓冲）
     compress: false,

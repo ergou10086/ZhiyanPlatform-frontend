@@ -197,7 +197,7 @@
             </p>
           </div>
         </div>
-        <!-- 任务网格 -->
+        <!-- 任务列表横向滚动 -->
         <div v-else class="task-grid">
           <div v-for="task in filteredTasks" :key="task.id" class="task-card" @click="openTaskDetailModal(task)">
             <div class="task-header" @click.stop>
@@ -309,15 +309,6 @@
               <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
             </div>
           </div>
-        </div>
-        <!-- 更多按钮放在任务网格下面 -->
-        <div v-if="allTasks.length > 5" class="more-button-container">
-          <button class="more-button" @click="openTaskListModal">
-            <span class="more-text">更多</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
         </div>
       </div>
       <!-- 团队成员 -->
@@ -481,7 +472,7 @@
       </div>
     </div>
     <!-- 新建任务模态框 -->
-    <div v-if="taskModalOpen" class="modal-overlay" @click="closeTaskModal">
+    <div v-if="taskModalOpen" class="modal-overlay" @click.self="closeTaskModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">新建任务</h3>
@@ -562,7 +553,7 @@
     </div>
 
     <!-- 接取任务确认弹窗（替代浏览器 confirm） -->
-    <div v-if="claimTaskConfirmOpen" class="modal-overlay" @click="cancelClaimTask">
+    <div v-if="claimTaskConfirmOpen" class="modal-overlay" @click.self="cancelClaimTask">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">确认接取任务</h3>
@@ -586,7 +577,7 @@
     </div>
 
     <!-- 取消邀请成员确认弹窗（替代浏览器 confirm） -->
-    <div v-if="removeInviteConfirmOpen" class="modal-overlay" @click="cancelRemoveInviteSlot">
+    <div v-if="removeInviteConfirmOpen" class="modal-overlay" @click.self="cancelRemoveInviteSlot">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">取消邀请成员</h3>
@@ -607,7 +598,7 @@
     </div>
 
     <!-- 移除项目成员确认弹窗（替代浏览器 confirm） -->
-    <div v-if="removeMemberConfirmOpen" class="modal-overlay" @click="cancelRemoveMember">
+    <div v-if="removeMemberConfirmOpen" class="modal-overlay" @click.self="cancelRemoveMember">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">移除项目成员</h3>
@@ -633,7 +624,7 @@
     </div>
 
     <!-- 删除项目确认弹窗（替代浏览器 confirm） -->
-    <div v-if="deleteProjectConfirmOpen" class="modal-overlay" @click="cancelDeleteProject">
+    <div v-if="deleteProjectConfirmOpen" class="modal-overlay" @click.self="cancelDeleteProject">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">删除项目</h3>
@@ -653,7 +644,7 @@
       </div>
     </div>
     <!-- 删除任务确认弹窗（替代浏览器 confirm） -->
-    <div v-if="deleteTaskConfirmOpen" class="modal-overlay" @click="cancelDeleteTask">
+    <div v-if="deleteTaskConfirmOpen" class="modal-overlay" @click.self="cancelDeleteTask">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">删除任务</h3>
@@ -673,7 +664,7 @@
       </div>
     </div>
     <!-- 错误提示弹窗（替代浏览器 alert） -->
-    <div v-if="errorDialogOpen" class="modal-overlay" @click="closeErrorDialog">
+    <div v-if="errorDialogOpen" class="modal-overlay" @click.self="closeErrorDialog">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">提示</h3>
@@ -692,7 +683,7 @@
       </div>
     </div>
     <!-- 角色变更确认弹窗（替代浏览器 confirm） -->
-    <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click="cancelRoleChange">
+    <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click.self="cancelRoleChange">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">{{ roleChangeTitle }}</h3>
@@ -712,7 +703,7 @@
       </div>
     </div>
     <!-- 编辑项目模态框 -->
-    <div v-if="editProjectModalOpen" class="modal-overlay" @click="closeEditProjectModal">
+    <div v-if="editProjectModalOpen" class="modal-overlay" @click.self="closeEditProjectModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">编辑项目</h3>
@@ -788,123 +779,8 @@
         </div>
       </div>
     </div>
-    <!-- 任务列表弹窗 -->
-    <div v-if="taskListModalOpen" class="modal-overlay" @click="closeTaskListModal">
-      <div class="modal-content task-list-modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="modal-title">所有任务</h3>
-          <button class="modal-close" @click="closeTaskListModal">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="task-list-container">
-            <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item" @click="openTaskDetailModal(task)">
-              <div class="task-item-header" @click.stop>
-                <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
-                <div class="task-actions" v-if="canManageProject">
-                  <div class="task-status-dropdown">
-                    <button 
-                      class="task-status-btn" 
-                    :class="[statusClass(task.status), { 'disabled': isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')) }]"
-                      @click="toggleTaskStatusDropdown(task)" 
-                    :title="isArchived ? '项目已归档，仅支持查看，不能更改任务状态' : (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态')"
-                    :disabled="isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === ''))">
-                      {{ task.status }}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </button>
-                    <div class="task-status-menu" v-if="task.showStatusMenu">
-                      <!-- 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
-                      <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
-                      <button @click="changeTaskStatus(task, '阻塞')" class="status-option" :class="{ active: task.status === '阻塞' }">阻塞</button>
-                      <button @click="changeTaskStatus(task, '待审核')" class="status-option" :class="{ active: task.status === '待审核' }">待审核</button>
-                      <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
-                    </div>
-                  </div>
-                  <button
-                    class="task-edit-btn"
-                    @click="editTask(task)"
-                    :disabled="isArchived"
-                    :title="isArchived ? '项目已归档，仅支持查看，不能编辑任务' : '编辑任务'"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button
-                    class="task-delete-btn"
-                    @click="deleteTask(task.id)"
-                    :disabled="isArchived"
-                    :title="isArchived ? '项目已归档，仅支持查看，不能删除任务' : '删除任务'"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="task-item-content" @click="openTaskDetailModal(task)">
-                <h4 class="task-item-title">{{ task.title }}</h4>
-                <p class="task-item-description">{{ task.description }}</p>
-                <div class="task-item-meta">
-                  <span class="task-date" v-if="task.date">截止日期：{{ task.date }}</span>
-                  <span class="task-creator">创建人: {{ task.created_by_name }}</span>
-                  <span v-if="task.assignee_name" class="task-assignee">
-                    负责人: {{ task.assignee_name }}
-                  </span>
-                  <span v-if="task.participantCount" class="task-participant-count">
-                    接取人数: {{ task.assignees ? task.assignees.length : 0 }}/{{ task.participantCount }}
-                  </span>
-                </div>
-              </div>
-              <!-- 任务操作区域 - 支持多人接取 -->
-              <div class="task-item-assign" @click.stop>
-                <!-- 已完成状态 -->
-                <span v-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="assign-status-badge completed">已完成</span>
-                
-                <!-- 当前用户已接取 -->
-                <template v-else-if="isCurrentUserAssignee(task)">
-                  <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <!-- 归档项目不显示任何操作按钮 -->
-                  <template v-if="!isArchived">
-                    <!-- 逾期显示已逾期标识 -->
-                    <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
-                    <!-- 未逾期显示提交按钮 -->
-                    <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
-                </button>
-                  </template>
-                </template>
-                
-                <!-- 当前用户未接取，但可以接取（项目未归档时才允许） -->
-                <button
-                  v-else-if="!isArchived && canClaimTask(task)"
-                  @click="assignTask(task)"
-                  class="assign-btn"
-                  :title="isArchived ? '项目已归档，仅支持查看，不能接取任务' : '接取任务'"
-                >
-                  接取任务
-                </button>
-                
-                <!-- 任务已满员 -->
-                <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     <!-- 编辑任务模态框 -->
-    <div v-if="editTaskModalOpen" class="modal-overlay" @click="closeEditTaskModal">
+    <div v-if="editTaskModalOpen" class="modal-overlay" @click.self="closeEditTaskModal">
       <div class="modal-content task-modal" @click.stop>
         <div class="modal-header">
           <h3>编辑任务</h3>
@@ -964,7 +840,7 @@
       </div>
     </div>
     <!-- 邀请成员弹窗 -->
-    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click="closeInviteMemberModal">
+    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click.self="closeInviteMemberModal">
       <div class="modal-content invite-member-modal" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">邀请成员</h3>
@@ -1070,7 +946,7 @@
       </div>
     </div>
     <!-- 任务详情弹窗 -->
-    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
+    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click.self="closeTaskDetailModal">
       <div class="modal-content task-detail-modal" @click.stop>
         <div class="modal-header">
           <div class="task-detail-header-content">
@@ -1332,7 +1208,7 @@
     </div>
     </div>
     <!-- 任务统计详情弹窗 -->
-    <div v-if="statisticsModalOpen && taskForStatistics" class="modal-overlay" @click="closeStatisticsModal">
+    <div v-if="statisticsModalOpen && taskForStatistics" class="modal-overlay" @click.self="closeStatisticsModal">
       <div class="modal-content statistics-modal" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">任务统计详情</h3>
@@ -1465,7 +1341,7 @@
     </div>
     </div>
     <!-- 分配任务模态框 -->
-    <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click="closeAssignTaskModal">
+    <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click.self="closeAssignTaskModal">
       <div class="modal-content assign-task-modal" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">分配任务</h3>
@@ -1716,22 +1592,13 @@ export default {
       if (this.selectedTaskType) {
         tasks = tasks.filter(task => task.priority === this.selectedTaskType)
       }
-      // 按创建时间排序，返回最新的5个任务
+      // 按创建时间排序，返回所有任务（用于横向滚动展示全部任务）
       return tasks
         .sort((a, b) => new Date(b.created_at || b.id) - new Date(a.created_at || a.id))
-        .slice(0, 5)
     },
     allTasks() {
-      // 返回所有任务（用于判断是否显示更多按钮）
+      // 已不再用于“更多”按钮，仅保留兼容性
       return this.tasks
-    },
-    allFilteredTasks() {
-      // 返回所有任务（用于弹窗显示）
-      let tasks = this.tasks
-      if (this.selectedTaskType) {
-        tasks = tasks.filter(task => task.priority === this.selectedTaskType)
-      }
-      return tasks
     },
     taskCount() {
       return Array.isArray(this.tasks) ? this.tasks.length : 0

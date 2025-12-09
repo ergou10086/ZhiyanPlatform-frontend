@@ -637,7 +637,7 @@
               <!-- 下方：任务完成时间线散点图 -->
               <div class="card glass gradient-border chart-item timeline-chart-item">
                 <div class="card-title timeline-title">任务完成时间线</div>
-                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0">
+                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0" @click="handleTimelineOutsideClick">
                   <svg viewBox="0 0 700 160" preserveAspectRatio="xMidYMid meet" class="timeline-scatter-svg">
                     <defs>
                       <radialGradient id="bubbleGradient1" cx="30%" cy="30%">
@@ -671,7 +671,24 @@
                       <text v-for="(member, i) in timelineMemberNames" :key="'member-' + i" :x="getTimelineMemberX(i)" y="155" text-anchor="middle" class="axis-label member-label">{{ truncateMemberName(member) }}</text>
                     </g>
                     <g class="scatter-bubbles" :class="{ 'bubbles-animated': timelineScatterAnimated }">
-                      <circle v-for="(point, i) in taskCompletionTimeline" :key="'bubble-' + i" :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)" :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)" :r="getBubbleRadius(i, point)" :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`" :class="['task-bubble', `bubble-float-${(i % 3) + 1}`]" :style="{ '--delay': `${i * 0.1}s` }" @mouseenter="showTimelineTooltip($event, point)" @mousemove="updateTimelineTooltip($event)" @mouseleave="hideTimelineTooltip"/>
+                      <circle
+                        v-for="(point, i) in taskCompletionTimeline"
+                        :key="'bubble-' + i"
+                        :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)"
+                        :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)"
+                        :r="getBubbleRadius(i, point)"
+                        :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`"
+                        :class="[
+                          'task-bubble',
+                          `bubble-float-${(i % 3) + 1}`,
+                          { 'bubble-exploding': activeTimelineBubbleIndex === i }
+                        ]"
+                        :style="{
+                          '--delay': `${i * 0.1}s`,
+                          opacity: timelineTooltip.show && activeTimelineBubbleIndex === i ? 0 : 1
+                        }"
+                        @click.stop="handleTimelineBubbleClick($event, point, i)"
+                      />
                     </g>
                   </svg>
                   <div v-if="timelineTooltip.show" class="timeline-scatter-tooltip" :style="{ left: timelineTooltip.x + 'px', top: timelineTooltip.y + 'px' }">
@@ -913,6 +930,8 @@ export default {
       timelineMemberNames: [],
       // 时间线日期范围
       timelineDateRange: { min: null, max: null },
+      // 当前被点击触发动画的时间线气泡索引
+      activeTimelineBubbleIndex: null,
       // 时间线tooltip
       timelineTooltip: {
         show: false,
@@ -952,7 +971,7 @@ export default {
     // 点击外部关闭导出菜单
     document.addEventListener('click', this.handleClickOutside)
     
-    // 优化加载策略：先加载关键数据，立即显示页面
+    // 优化加载策略：先加载关键数据，尽快结束全屏加载遮罩
     try {
       this.isLoading = true
       this.loadingProgress = 10
@@ -967,27 +986,22 @@ export default {
       this.allTasks = allTasks
       this.loadingProgress = 40
       
-      // 第二步：加载第一屏的关键数据（KPI和任务统计）
-      await Promise.all([
-        this.loadTaskStatistics(allTasks),
-        this.loadMemberWorktimes(allTasks)
-      ])
-      
-      this.loadingProgress = 60
+      // 第二步：仅加载首屏必须的 KPI / 任务统计，确保尽快结束遮罩
+      await this.loadTaskStatistics(allTasks)
+      this.loadingProgress = 70
       
       // 立即显示页面（关键数据已加载完成）
       this.isLoading = false
       this.loadingProgress = 100
       
-      // 数字滚动动画
+      // 数字滚动动画 + 饼图动画
       Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
-      // 饼图动画
       this.animatePieChart()
       
-      // 第三步：异步加载非关键数据（不阻塞页面显示）
-      // 使用 requestIdleCallback 或 setTimeout 延迟加载，避免阻塞主线程
+      // 第三步：其余统计和图表异步加载（不再阻塞界面显示）
       setTimeout(() => {
         Promise.all([
+          this.loadMemberWorktimes(allTasks),
           this.loadCompletionTrend(),
           this.loadAchievements(),
           this.loadTaskSubmissions(),
@@ -996,7 +1010,7 @@ export default {
         ]).catch(error => {
           console.error('[ProjectDashboard] 非关键数据加载失败:', error)
         })
-      }, 100)
+      }, 50)
       
     } catch (error) {
       console.error('[ProjectDashboard] 加载关键数据失败:', error)
@@ -1510,6 +1524,27 @@ export default {
         backgroundColor: backgroundColor,
         minHeight: `${Math.max(size * 2, 80)}px`  // 增加到80px，高度更大
       }
+    },
+
+    /**
+     * 点击时间线气泡：触发爆炸动画并显示任务信息
+     */
+    handleTimelineBubbleClick(event, point, index) {
+      // 触发当前气泡的爆炸动画，并记录当前激活的气泡
+      this.activeTimelineBubbleIndex = index
+
+      // 稍微延迟再显示 tooltip，让信息像是从爆炸中“生长”出来
+      setTimeout(() => {
+        this.showTimelineTooltip(event, point)
+      }, 150)
+    },
+
+    /**
+     * 点击时间线空白区域：关闭任务信息并恢复气泡
+     */
+    handleTimelineOutsideClick() {
+      this.hideTimelineTooltip()
+      this.activeTimelineBubbleIndex = null
     },
 
     /**
@@ -5480,6 +5515,7 @@ export default {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5747,6 +5783,7 @@ export default {
     linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0)) border-box,
     linear-gradient(135deg,#cfe8ff 0%, #b6e3ff 30%, #a5f3fc 100%) border-box;
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
 }
 .gradient-border::after{
@@ -6255,6 +6292,7 @@ export default {
   line-height:1.4;
   display:-webkit-box;
   -webkit-line-clamp:2;
+  line-clamp: 2;
   -webkit-box-orient:vertical;
   overflow:hidden;
 }
@@ -7318,6 +7356,11 @@ export default {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) brightness(1.15);
 }
 
+/* 点击时的爆炸动画状态（使用更高优先级，覆盖浮动动画） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .task-bubble.bubble-exploding {
+  animation: bubbleExplode 0.6s ease-out forwards !important;
+}
+
 /* 入场动画 */
 @keyframes bubbleEnter {
   0% {
@@ -7330,6 +7373,24 @@ export default {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* 气泡爆炸动画：快速放大并淡出，再回到正常状态由 JS 移除 class */
+@keyframes bubbleExplode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.8);
+    opacity: 0.9;
+    filter: drop-shadow(0 8px 26px rgba(59, 130, 246, 0.55));
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
   }
 }
 
@@ -7556,5 +7617,116 @@ html.dark-mode .dashboard-container .timeline .steps li .name {
 html.dark-mode .dashboard-container .timeline .steps li .date,
 html.dark-mode .dashboard-container .timeline .steps li .milestone-members span {
   color: #cbd5e1 !important;
+}
+
+/* 成果列表相关样式在黑夜模式下的修复 */
+html.dark-mode .dashboard-container .task-list-compact {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
+
+html.dark-mode .dashboard-container .task-list-header {
+  border-bottom-color: #1f2937 !important;
+}
+
+html.dark-mode .dashboard-container .task-list-title,
+html.dark-mode .dashboard-container .task-list-count {
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .achievement-type-badge-small {
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .achievement-list-empty .empty-text {
+  color: #9ca3af !important;
+}
+
+/* 成果类型徽章在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .badge-paper {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+  color: #dbeafe !important;
+}
+
+html.dark-mode .dashboard-container .badge-patent {
+  background: linear-gradient(135deg, #92400e 0%, #b45309 100%) !important;
+  color: #fef3c7 !important;
+}
+
+html.dark-mode .dashboard-container .badge-dataset {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+  color: #d1fae5 !important;
+}
+
+html.dark-mode .dashboard-container .badge-model {
+  background: linear-gradient(135deg, #6b21a8 0%, #7c3aed 100%) !important;
+  color: #e9d5ff !important;
+}
+
+html.dark-mode .dashboard-container .badge-report {
+  background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%) !important;
+  color: #fecaca !important;
+}
+
+html.dark-mode .dashboard-container .badge-custom {
+  background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%) !important;
+  color: #e0e7ff !important;
+}
+
+html.dark-mode .dashboard-container .badge-default {
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
+  color: #f1f5f9 !important;
+}
+
+/* 成果日期在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .achievement-date {
+  color: #94a3b8 !important;
+}
+
+html.dark-mode .dashboard-container .achievement-date svg {
+  color: #64748b !important;
+}
+
+/* 任务列表计数标签在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .task-list-count {
+  background: #374151 !important;
+  color: #d1d5db !important;
+}
+
+/* 成果状态点在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .task-item-status.status-paper {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-patent {
+  background: #f59e0b !important;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-dataset {
+  background: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-model {
+  background: #8b5cf6 !important;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-report {
+  background: #ef4444 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-custom {
+  background: #6366f1 !important;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-default {
+  background: #64748b !important;
+  box-shadow: 0 0 8px rgba(100, 116, 139, 0.6) !important;
 }
 </style>

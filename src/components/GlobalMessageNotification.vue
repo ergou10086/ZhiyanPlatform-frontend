@@ -1,5 +1,5 @@
 <template>
-  <div class="message-notification">
+  <div class="message-notification" ref="messageNotificationRef">
     <!-- 消息铃铛按钮 -->
     <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="message-badge">
       <el-button 
@@ -260,6 +260,8 @@
       width="480px"
       class="send-message-dialog"
       append-to-body
+      :z-index="13000"
+      modal-class="send-message-modal"
       :show-close="false"
     >
       <!-- 自定义头部 -->
@@ -468,11 +470,23 @@ export default {
     console.log('🔔 GlobalMessageNotification 组件已挂载')
     this.fetchUnreadCount()
     this.startPolling()
+    document.addEventListener('click', this.handleGlobalClick, true)
   },
   beforeDestroy() {
     this.stopPolling()
+    document.removeEventListener('click', this.handleGlobalClick, true)
   },
   methods: {
+    /**
+     * 点击任意非组件区域时关闭消息面板
+     */
+    handleGlobalClick(event) {
+      if (!this.showPanel) return
+      const root = this.$refs.messageNotificationRef
+      if (root && !root.contains(event.target)) {
+        this.closeMessagePanel()
+      }
+    },
     /**
      * 切换消息面板显示
      */
@@ -490,7 +504,7 @@ export default {
      * 关闭消息面板
      */
     closeMessagePanel() {
-      this.showPanel = false
+    this.showPanel = false
     },
 
       /**
@@ -1544,8 +1558,9 @@ export default {
 .message-notification {
   position: fixed;
   top: 12px;
-  right: 215px;
-  z-index: 10005;
+  right: 210px;
+  /* 高于页眉/用户信息（10003），但低于后续抬升的发送消息弹窗 */
+  z-index: 10050;
   display: block;
   visibility: visible;
 }
@@ -1565,6 +1580,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  /* 单独抬高铃铛按钮，确保始终浮在页眉和用户信息之上 */
+  z-index: 10060;
 }
 
 .message-button:hover {
@@ -1604,7 +1622,8 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 10004;
+  /* 保持面板在铃铛下方，但低于全局弹窗 */
+  z-index: 10040;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2073,7 +2092,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10005;
+  /* 细化层级：详情弹窗高于消息面板/铃铛，但低于发送消息 el-dialog */
+  z-index: 10980;
   padding: 16px;
 }
 
@@ -2390,6 +2410,13 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
+/* 抬高发送消息对话框与遮罩的层级，确保盖住消息面板 */
+.send-message-dialog ::v-deep .el-dialog__wrapper,
+.send-message-dialog ::v-deep .el-overlay,
+.send-message-dialog ::v-deep .v-modal {
+  z-index: 13000 !important;
+}
+
 .send-message-dialog ::v-deep .el-dialog__header {
   padding: 0;
   margin: 0;
@@ -2630,9 +2657,9 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 260px;
-    top: 10px;
-    z-index: 10005;
+    right: 300px;
+    top: 12px;
+    z-index: 11000;
   }
 
   .message-button {
@@ -2668,9 +2695,9 @@ export default {
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 240px;
-    top: 10px;
-    z-index: 10005;
+    right: 280px;
+    top: 12px;
+    z-index: 11000;
   }
 
   .message-button {

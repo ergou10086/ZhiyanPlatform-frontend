@@ -3,8 +3,8 @@
     v-if="isHomePage"
     class="floating-message-reminder"
     :class="{ 'has-messages': projectMessages.length > 0, 'expanded': isHovered }"
-    @mouseenter="isHovered = true"
-    @mouseleave="isHovered = false"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
     <!-- 收缩状态：只显示图标和数量 -->
     <div class="reminder-trigger">
@@ -106,7 +106,9 @@ export default {
       handledMessageIds: new Set(),
       // 当前用户参与的项目列表（用于判断是否已经是成员）
       myProjects: [],
-      myProjectsLoaded: false
+      myProjectsLoaded: false,
+      // 定时轮询定时器，用于自动刷新邀请消息
+      pollingTimer: null
     }
   },
   computed: {
@@ -133,8 +135,53 @@ export default {
         this.loadProjectMessages()
       })
     }
+    // 启动轮询，定期刷新邀请消息
+    this.startPolling()
+  },
+  beforeDestroy() {
+    this.stopPolling()
   },
   methods: {
+    // 鼠标移入悬浮入口，展开并尝试刷新一次最新消息
+    handleMouseEnter() {
+      this.isHovered = true
+      const token = localStorage.getItem('access_token')
+      const userInfo = localStorage.getItem('user_info')
+      const isAuthenticated = !!(token && userInfo)
+      if (!isAuthenticated || !this.isHomePage) return
+      // 避免重复请求：只在当前没有加载中时触发一次刷新
+      if (!this.isLoadingMessages) {
+        this.loadProjectMessages()
+      }
+    },
+
+    // 鼠标移出悬浮入口
+    handleMouseLeave() {
+      this.isHovered = false
+    },
+
+    // 启动定时轮询，每 3 秒刷新一次项目邀请消息
+    startPolling() {
+      if (this.pollingTimer) return
+      this.pollingTimer = setInterval(() => {
+        const token = localStorage.getItem('access_token')
+        const userInfo = localStorage.getItem('user_info')
+        const isAuthenticated = !!(token && userInfo)
+        if (!isAuthenticated || !this.isHomePage) return
+        // 后台静默刷新，不影响当前 loading 状态提示
+        if (!this.isLoadingMessages && !this.messageActionLoading) {
+          this.loadProjectMessages()
+        }
+      }, 3000)
+    },
+
+    // 停止轮询
+    stopPolling() {
+      if (this.pollingTimer) {
+        clearInterval(this.pollingTimer)
+        this.pollingTimer = null
+      }
+    },
     // 生成本地存储 key，按用户隔离
     getHandledStorageKey() {
       try {
@@ -242,7 +289,7 @@ export default {
           
           console.log('[FloatingMessageReminder] API返回消息总数:', allMessages.length)
           
-          // 筛选项目邀请/申请消息（不区分已读/未读，只要还没被处理，后端就会保留）
+          // 1) 先筛选项目邀请/申请场景
           const filteredMessages = allMessages
             .filter(msg => {
               const scene = msg.scene || ''
@@ -250,18 +297,14 @@ export default {
                 return false
               }
 
-              // 如果本地记录里已经处理过，直接过滤掉
+              // 1.1 本地已处理过的 recipientId 永远不再显示
               const localId = String(msg.recipientId || msg.messageId || msg.id || '')
               if (localId && this.handledMessageIds.has(localId)) {
                 console.log('[FloatingMessageReminder] 本地已处理，过滤:', localId)
                 return false
               }
 
-              // 根据扩展数据里的状态判断是否已处理
-              // 约定：
-              //  - kind: PROJECT_INVITATION / PROJECT_JOIN_APPLY 才是需要在这里操作的记录
-              //  - 其他 kind（例如项目成员变更结果通知）视为已处理，直接过滤
-              //  - status / handled / processed 等字段标记是否已经同意/拒绝
+              // 2) 根据扩展数据里的状态判断是否已处理
               let extend = null
               try {
                 extend = typeof msg.extendData === 'string'
@@ -279,19 +322,9 @@ export default {
                 return false
               }
 
-              // 兜底：根据文案判断“已加入项目”这类结果通知，直接过滤
-              const titleText = (msg.title || '').toString()
-              const contentText = (msg.content || '').toString()
-              const text = titleText + ' ' + contentText
-              if (text.includes('已加入项目') || text.includes('新成员已加入项目')) {
-                console.log('[FloatingMessageReminder] 按文案识别为结果通知，过滤:', msg.recipientId || msg.messageId, text)
-                return false
-              }
-
               const statusRaw = (extend && extend.status) ? String(extend.status).toUpperCase() : ''
               const handledFlag = extend && (extend.handled === true || extend.processed === true)
 
-              // 明确列出一批“已处理”状态：
               const handledStatusSet = new Set([
                 'ACCEPTED', 'REJECTED', 'APPROVED', 'DENIED',
                 'REFUSED', 'REFUSE', 'REJECT', 'PASS', 'PASSED',
@@ -300,16 +333,11 @@ export default {
 
               const isHandledByStatus = statusRaw && handledStatusSet.has(statusRaw)
 
-              // 如果当前用户已经是该项目的成员，也视为这些邀请/申请不需要再处理
+              // 3) 如果当前用户已经是该项目的成员，也视为不需要再处理
               const projectId = extend && (extend.projectId || extend.project_id)
               const alreadyMember = projectId ? this.isAlreadyMember(projectId) : false
 
-              // 只保留“未处理”的记录
-              const shouldKeep = !(handledFlag || isHandledByStatus || alreadyMember)
-              if (!shouldKeep) {
-                console.log('[FloatingMessageReminder] 过滤已处理消息:', msg.recipientId || msg.messageId, statusRaw, extend)
-              }
-              return shouldKeep
+              return !(handledFlag || isHandledByStatus || alreadyMember)
             })
             .map(msg => {
               // 使用recipientId作为唯一标识（用于处理操作）
@@ -491,8 +519,8 @@ export default {
 .floating-message-reminder {
   position: fixed;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: 100px; /* 稍微靠上，避免贴到底部 */
+  transform: none;
   z-index: 9999;
   transition: all 0.3s ease;
   pointer-events: auto;
@@ -547,16 +575,16 @@ export default {
 .reminder-panel {
   position: absolute;
   right: 48px;
-  top: 0;
+  bottom: 0;
   width: 360px;
-  max-height: 80vh;
+  max-height: 60vh; /* 整个面板最多占视口 60% 高度 */
   background: white;
   border-radius: 12px 0 0 12px;
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
+  /* 面板本身不滚动，由内部内容区域滚动 */
   overflow: hidden;
-  /* 确保面板可以正确计算高度 */
   min-height: 0;
 }
 
@@ -580,12 +608,12 @@ export default {
 
 .panel-content {
   flex: 1;
+  /* 内容区域使用固定的最大高度并允许滚动，保证能看到所有按钮 */
+  max-height: calc(60vh - 72px); /* 60vh 减去 header 高度预估值 */
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px;
   min-height: 0;
-  /* 确保内容区域可以滚动 */
-  max-height: calc(80vh - 80px); /* 减去header高度 */
   -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
 }
 

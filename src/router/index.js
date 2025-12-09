@@ -213,8 +213,27 @@ router.beforeEach((to, from, next) => {
     return
   }
   
+  // 个人页面特殊处理：查看自己的资料需要登录，查看他人资料允许游客访问
+  if (to.path === '/profile') {
+    // 如果有 userId 参数，说明是查看他人资料，允许访问
+    if (to.query.userId) {
+      console.log('查看他人资料，允许访问')
+      next()
+      return
+    }
+    // 如果没有 userId 参数，说明是查看自己的资料，需要登录
+    if (!isAuthenticated) {
+      console.log('未登录用户访问个人页面，重定向到登录页')
+      next({ path: '/login', replace: true })
+    } else {
+      console.log('已登录用户访问个人页面，允许访问')
+      next()
+    }
+    return
+  }
+  
   // 游客可以访问的页面
-  const guestAllowedPages = ['/home', '/project-square', '/profile']
+  const guestAllowedPages = ['/home', '/project-square']
   if (guestAllowedPages.includes(to.path)) {
     console.log('游客可访问页面，允许访问')
     next()

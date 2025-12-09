@@ -392,6 +392,31 @@ export const projectAPI = {
     return api.get(`/zhiyan/projects/tasks/projects/${projectId}/status/${status}`, {
       params: { page, size }
     })
+  },
+
+  /**
+   * 保存项目草稿
+   * @param {Object} draftData - 草稿数据
+   */
+  saveDraft(draftData) {
+    console.log('[projectAPI.saveDraft] 保存项目草稿, 数据:', draftData)
+    return api.post('/zhiyan/projects/draft', draftData)
+  },
+
+  /**
+   * 获取我的项目草稿
+   */
+  getDraft() {
+    console.log('[projectAPI.getDraft] 获取项目草稿')
+    return api.get('/zhiyan/projects/draft')
+  },
+
+  /**
+   * 删除我的项目草稿
+   */
+  deleteDraft() {
+    console.log('[projectAPI.deleteDraft] 删除项目草稿')
+    return api.delete('/zhiyan/projects/draft')
   }
 }
 
