@@ -1,46 +1,77 @@
-# Get Started
+# 快速开始
 
-This is a normal page, which contains VuePress basics.
+欢迎使用智研平台！本指南将帮助您快速了解和使用平台的核心功能
 
-## Pages
 
-You can add markdown files in your vuepress directory, every markdown file will be converted to a page in your site.
 
-See [routing][] for more details.
+## 平台简介
 
-## Content
+智研平台是一个专为高校科研团队设计的协作与成果管理平台，旨在通过技术手段提升科研创新效率，让知识的生产、沉淀与传承更加高效、有序。
 
-Every markdown file [will be rendered to HTML, then converted to a Vue SFC][content].
 
-VuePress support basic markdown syntax and [some extensions][synatex-extensions], you can also [use Vue features][vue-feature] in it.
 
-## Configuration
+## 开始使用平台
 
-VuePress use a `.vuepress/config.js`(or .ts) file as [site configuration][config], you can use it to config your site.
+### 注册
 
-For [client side configuration][client-config], you can create `.vuepress/client.js`(or .ts).
+Zhiyan项目平台的注册需要使用你的邮箱来进行注册
 
-Meanwhile, you can also add configuration per page with [frontmatter][].
+![image-20251209100343146](get-started/image-20251209100343146.png)
 
-## Layouts and customization
+请注意，密码强度的设置，平台的密码最少需要七位，而且携带至少两种字符
 
-Here are common configuration controlling layout of `@vuepress/theme-default`:
+其中所属机构与学校字段建议填写真实信息，方便日后统一组织和管理
 
-- [navbar][]
-- [sidebar][]
+### 登录
 
-Check [default theme docs][default-theme] for full reference.
+#### 第三方登录
 
-You can [add extra style][style] with `.vuepress/styles/index.scss` file.
+GitHub的第三方登录仅仅会获取你的邮箱，头像和昵称都不是强制获取，如果你没有开启Github邮箱的访问权限，第三方登录很可能失败
 
-[routing]: https://vuejs.press/guide/page.html#routing
-[content]: https://vuejs.press/guide/page.html#content
-[synatex-extensions]: https://vuejs.press/guide/markdown.html#syntax-extensions
-[vue-feature]: https://vuejs.press/guide/markdown.html#using-vue-in-markdown
-[config]: https://vuejs.press/guide/configuration.html#client-config-file
-[client-config]: https://vuejs.press/guide/configuration.html#client-config-file
-[frontmatter]: https://vuejs.press/guide/page.html#frontmatter
-[navbar]: https://vuejs.press/reference/default-theme/config.html#navbar
-[sidebar]: https://vuejs.press/reference/default-theme/config.html#sidebar
-[default-theme]: https://vuejs.press/reference/default-theme/
-[style]: https://vuejs.press/reference/default-theme/styles.html#style-file
+只要重定向过一次Github登录，之后就会自动登陆成功
+
+![image-20251209100407756](get-started/image-20251209100407756.png)
+
+#### 2FA相关
+
+强烈建议每位用户在完成注册的第一次登录之后就开启2FA
+
+否则极有可能引发账号的安全问题，而且团队有考虑在日后的更新中强制使用2FA双重因素认证
+
+在个人信息页面开启2FA双重因素认证，推荐使用Microsoft Authenticator
+
+![image-20251209100414464](get-started/image-20251209100414464.png)
+
+#### 安全检查与提示
+
+登录会进行一次安全检测，如果两次登录IP出现不一致的问题，会给你发送系统消息，需要你进行认证，目前IP定位会出现运营商不一致的问题
+
+如果出现了上述问题，忽视即可，但是不要忽视其他的系统发来的安全信息
+
+![image-20251209100444399](get-started/image-20251209100444399.png)
+
+可能出现他人冒充系统账号发送安全信息进行诈骗等安全隐患内容，请注意分辨
+
+![image-20251209100457273](get-started/image-20251209100457273.png)
+
+#### 登录后主页相关
+
+登录完成后就会直接进入主页，快捷操作对应项目位置的导航，主页内部展示用户参与的项目，工作项展示未完成的任务，而且主页的展示包括待审核的任务和各种提醒，包括任务提醒和消息提醒
+
+![image-20251209100522898](get-started/image-20251209100522898.png)
+
+关于注意，如果没有登录，是无法进入除了项目广场的其他浏览位置的，而且游客没有任何除了查看部分公开资源的其他任何权限，实际上，项目是一个强登录需求的项目
+
+
+
+## 个人信息
+
+### 个人信息修改
+
+个人信息页面需要登录才能进入并且访问
+
+![image-20251209101838327](get-started/image-20251209101838327.png)
+
+总体浏览，个人信息页面如上，其中大部分信息都可以修改
+
+### 
