@@ -29,11 +29,53 @@
 <p><img src="@source/get-started/image-20251209100522898.png" alt="image-20251209100522898"></p>
 <p>关于注意，如果没有登录，是无法进入除了项目广场的其他浏览位置的，而且游客没有任何除了查看部分公开资源的其他任何权限，实际上，项目是一个强登录需求的项目</p>
 <h2 id="个人信息" tabindex="-1"><a class="header-anchor" href="#个人信息"><span>个人信息</span></a></h2>
-<h3 id="个人信息修改" tabindex="-1"><a class="header-anchor" href="#个人信息修改"><span>个人信息修改</span></a></h3>
+<h3 id="个人信息页面简述" tabindex="-1"><a class="header-anchor" href="#个人信息页面简述"><span>个人信息页面简述</span></a></h3>
 <p>个人信息页面需要登录才能进入并且访问</p>
 <p><img src="@source/get-started/image-20251209101838327.png" alt="image-20251209101838327"></p>
 <p>总体浏览，个人信息页面如上，其中大部分信息都可以修改</p>
-<h3 id="" tabindex="-1"><a class="header-anchor" href="#"><span></span></a></h3>
+<h3 id="个人基本信息修改" tabindex="-1"><a class="header-anchor" href="#个人基本信息修改"><span>个人基本信息修改</span></a></h3>
+<p>可以查看你的ID，上传头像什么的，这都是很常规的内容，请注意上传头像的格式</p>
+<p>虽然用户名可以修改，但是限制一周一次，不建议频繁修改用户名，可能导致难以理解的问题</p>
+<p><img src="@source/get-started/image-20251209102442396.png" alt="image-20251209102442396"></p>
+<p>其中用户ID在搜索用户等涉及到指定用户操作的需求时候都可以使用</p>
+<h3 id="控制访问隐私" tabindex="-1"><a class="header-anchor" href="#控制访问隐私"><span>控制访问隐私</span></a></h3>
+<p>很多个人信息都可以修改，请注意，其他人是可以看到你的个人信息的</p>
+<p>但是你可以设置其私有性，以控制其他人的访问情况</p>
+<p><img src="@source/get-started/image-20251209102530252.png" alt="image-20251209102530252"></p>
+<p>但是如果设置不当，可能导致项目内成员沟通困难，谨慎设置</p>
+<h3 id="修改邮箱" tabindex="-1"><a class="header-anchor" href="#修改邮箱"><span>修改邮箱</span></a></h3>
+<p>邮箱修改用于应对现有账号使用的邮箱无法使用的情况，所以不止可以在这里进行修改</p>
+<p><img src="https://zhiyanplatform.gitbook.io/zhiyanplatform-docs/~gitbook/image?url=https%3A%2F%2F1758117549-files.gitbook.io%2F~%2Ffiles%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%2FPMA3PoSU9zhy4mD7LoZK%2Fuploads%2FT4nyNzcSDnGVK5FJ5MPl%2F%E5%9B%BE%E7%89%87.png%3Falt%3Dmedia%26token%3Dfa226480-a268-4339-ad7e-b85877890d54&amp;width=768&amp;dpr=4&amp;quality=100&amp;sign=bb7789f7&amp;sv=2" alt="img"></p>
+<p>这也就是为什么我说一定要开启2FA的原因，有了2FA才能最大程度保证你账号的安全修改邮箱</p>
+<h3 id="关联链接" tabindex="-1"><a class="header-anchor" href="#关联链接"><span>关联链接</span></a></h3>
+<p><img src="@source/get-started/image-20251209103321262.png" alt="image-20251209103321262"></p>
+<p>主要是和你高度密切的社交平台等的链接推荐放在这里</p>
+<p>而且推荐放上你的一些科研名片，科研平台信息相关的管理URL，例如ORCID等</p>
+<p>最多可以放六个</p>
+<h3 id="所属机构" tabindex="-1"><a class="header-anchor" href="#所属机构"><span>所属机构</span></a></h3>
+<p>所属机构不要乱填，日后平台可能根据所属机构相关内容扩充业务</p>
+<p><img src="@source/get-started/image-20251209103436296.png" alt="image-20251209103436296"></p>
+<p><s>但是我是测试账号，所以乱写了</s></p>
+<h3 id="个人简介" tabindex="-1"><a class="header-anchor" href="#个人简介"><span>个人简介</span></a></h3>
+<p><img src="@source/get-started/image-20251209103515212.png" alt="image-20251209103515212"></p>
+<p>个人简介就是个人的简单介绍，但是目前不支持富文本，所以用户只能编辑简单的文本</p>
+<p>日后有需要会针对该内容进行调整和扩充</p>
+<h3 id="研究方向" tabindex="-1"><a class="header-anchor" href="#研究方向"><span>研究方向</span></a></h3>
+<p>研究方向就是研究方向，你主要干什么就写什么，研究方向用于在项目内部进行职位的沟通和任务的分配参考，以及项目推荐算法的使用</p>
+<p><img src="@source/get-started/image-20251209103646483.png" alt="image-20251209103646483"></p>
+<h3 id="学术成果" tabindex="-1"><a class="header-anchor" href="#学术成果"><span>学术成果</span></a></h3>
+<p>像Dimensions一样，你参与的项目中，与你有关的（你上传的，你创建的）成果可以进行绑定，用于展示</p>
+<p><img src="@source/get-started/image-20251209103717402.png" alt="image-20251209103717402"></p>
+<p>只能绑定公开的成果，因为项目内私有的成果被其他人查看的时候不会加载</p>
+<h3 id="_2fa" tabindex="-1"><a class="header-anchor" href="#_2fa"><span>2FA</span></a></h3>
+<p>推荐使用Microsoft Authenticator，作为平台的最可靠的安全防线，请务必使用</p>
+<p><img src="@source/get-started/image-20251209103809219.png" alt="image-20251209103809219"></p>
+<h2 id="项目部分" tabindex="-1"><a class="header-anchor" href="#项目部分"><span>项目部分</span></a></h2>
+<h2 id="任务部分" tabindex="-1"><a class="header-anchor" href="#任务部分"><span>任务部分</span></a></h2>
+<h2 id="知识库部分" tabindex="-1"><a class="header-anchor" href="#知识库部分"><span>知识库部分</span></a></h2>
+<h3 id="主页" tabindex="-1"><a class="header-anchor" href="#主页"><span>主页</span></a></h3>
+<h2 id="ai实验分析助手" tabindex="-1"><a class="header-anchor" href="#ai实验分析助手"><span>AI实验分析助手</span></a></h2>
+<h2 id="我的活动" tabindex="-1"><a class="header-anchor" href="#我的活动"><span>我的活动</span></a></h2>
 </div></template>
 
 
