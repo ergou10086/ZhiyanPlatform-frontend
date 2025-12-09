@@ -126,7 +126,7 @@ export default {
         this.loadProjectMessages(true)
       }
     }
-  },
+  },  
   mounted() {
     if (this.isHomePage) {
       // 初始化本地已处理ID集合
