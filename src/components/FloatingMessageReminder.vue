@@ -122,17 +122,19 @@ export default {
     // 监听路由变化，切换页面时重新加载消息
     '$route'(to, from) {
       if (this.isHomePage) {
-        this.loadProjectMessages()
+        // 路由切换时在后台静默刷新，不打断用户当前查看状态
+        this.loadProjectMessages(true)
       }
     }
-  },
+  },  
   mounted() {
     if (this.isHomePage) {
       // 初始化本地已处理ID集合
       this.loadHandledMessageIds()
       // 加载我参与的项目，用于判断自己是否已是成员
       this.loadMyProjects().then(() => {
-        this.loadProjectMessages()
+        // 首次加载使用静默模式，避免一开始就出现 loading 闪烁
+        this.loadProjectMessages(true)
       })
     }
     // 启动轮询，定期刷新邀请消息
@@ -151,7 +153,8 @@ export default {
       if (!isAuthenticated || !this.isHomePage) return
       // 避免重复请求：只在当前没有加载中时触发一次刷新
       if (!this.isLoadingMessages) {
-        this.loadProjectMessages()
+        // 鼠标悬停时是用户主动查看，保留可见的加载态
+        this.loadProjectMessages(false)
       }
     },
 
@@ -170,7 +173,7 @@ export default {
         if (!isAuthenticated || !this.isHomePage) return
         // 后台静默刷新，不影响当前 loading 状态提示
         if (!this.isLoadingMessages && !this.messageActionLoading) {
-          this.loadProjectMessages()
+          this.loadProjectMessages(true)
         }
       }, 3000)
     },
@@ -259,7 +262,7 @@ export default {
      *  - 只筛选 PROJECT_MEMBER_INVITED / PROJECT_MEMBER_APPLY 两种场景
      *  - 真正点击同意/拒绝后，从列表中移除并标记已读
      */
-    async loadProjectMessages() {
+    async loadProjectMessages(silent = false) {
       const token = localStorage.getItem('access_token')
       const userInfo = localStorage.getItem('user_info')
       const isAuthenticated = !!(token && userInfo)
@@ -269,7 +272,10 @@ export default {
         return
       }
       
-      this.isLoadingMessages = true
+      // 非静默模式下才展示加载态
+      if (!silent) {
+        this.isLoadingMessages = true
+      }
       
       try {
         // 使用收件箱接口获取项目相关消息（不按已读状态过滤）
@@ -385,7 +391,9 @@ export default {
         console.error('[FloatingMessageReminder] 加载项目消息失败:', error)
         this.projectMessages = []
       } finally {
-        this.isLoadingMessages = false
+        if (!silent) {
+          this.isLoadingMessages = false
+        }
       }
     },
     /**
@@ -448,7 +456,8 @@ export default {
           // 延迟重新加载消息，确保后端已读状态已更新
           setTimeout(() => {
             console.log('[FloatingMessageReminder] 重新加载消息以同步状态...')
-            this.loadProjectMessages()
+            // 这里使用静默刷新，避免按钮操作后再次出现加载闪烁
+            this.loadProjectMessages(true)
           }, 800)
         } else {
           this.$message.error(response?.msg || '操作失败')

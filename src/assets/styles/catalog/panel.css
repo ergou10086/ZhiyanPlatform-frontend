@@ -20,10 +20,12 @@
 /* 滑动面板样式 */
 .archive-slide-panel {
   position: fixed;
+  /* 顶部贴紧页面，上边框顶格；底部与主内容留出间距对齐 */
   top: 0;
-  right: -600px;
-  width: 600px;
-  height: 100vh;
+  bottom: 0;
+  /* 收窄右侧成果档案面板宽度，给中间主区域更多空间 */
+  right: -480px;
+  width: 480px;
   background: #fff;
   box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
   transition: right 0.3s ease;
@@ -170,20 +172,22 @@
 .archive-slide-panel .doc-table tbody td {
   font-size: 13px;
   padding: 10px 8px;
-  white-space: nowrap;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* 默认允许换行，避免单元格内容把表格撑太宽 */
+  white-space: normal;
 }
 
+/* 只对成果名这一列做更细的控制，支持超长名称多行换行 */
 .archive-slide-panel .doc-table tbody .filename {
-  max-width: 200px;
+  /* 稍微放宽列宽，让短中文名（如“周报”）可以一行显示 */
+  max-width: 260px;
 }
 
 .archive-slide-panel .doc-table .file-name {
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 中文优先整词显示，避免两个字就被拆行；超长英文/数字再按单词换行 */
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .archive-slide-panel .ops {
@@ -417,7 +421,7 @@
   border-color: #1f2937;
   color: #e5e7eb;
 }
-
+  
 .dark-mode .archive-slide-panel .search-input::placeholder {
   color: #6b7280;
 }
