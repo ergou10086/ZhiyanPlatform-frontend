@@ -27,7 +27,7 @@
           </button>
       </div>
     </div>
-
+//
     <!-- 主要内容区域 -->
     <div class="main-content">
       <h1 class="page-main-title">AI 实验分析助手</h1>
@@ -567,6 +567,7 @@
         </div>
         </div>
       </div>
+      
 
       <!-- 选择任务的弹窗 -->
         <div v-if="showTaskSelectDialog" class="file-dialog-overlay ai-view" @click="closeTaskSelectDialog">
@@ -817,29 +818,34 @@
         </div>
       </div>
     </div>
+    
 
     <!-- 上传进度对话框 - 使用teleport挂载到body -->
     <teleport to="body">
       <el-dialog
         v-if="uploadProgress"
         :model-value="true"
-        title="上传进度"
+        title="上传成果"
         :close-on-click-modal="false"
-        :show-close="false"
+        :show-close="!isUploading"
         :close-on-press-escape="false"
+        @close="uploadProgress = null"
         width="30%"
       >
         <div class="upload-progress-content">
           <p class="progress-message">{{ uploadProgress.message || '处理中...' }}</p>
           <el-progress 
-            :percentage="Math.round((uploadProgress.current / uploadProgress.total) * 100)"
-            :status="uploadProgress.current === uploadProgress.total ? 'success' : null"
+            :percentage="uploadProgress.total > 0 ? Math.round((uploadProgress.current / uploadProgress.total) * 100) : 0"
+            :status="uploadProgress.current >= uploadProgress.total && uploadProgress.total > 0 ? 'success' : ''"
             :stroke-width="8"
           />
           <p class="progress-count">
-            已完成: {{ uploadProgress.current || 0 }}/{{ uploadProgress.total || 0 }}
+            已完成: {{ uploadProgress.current || 0 }}/{{ uploadProgress.total || 0 }} 步
           </p>
         </div>
+        <template #footer v-if="!isUploading && uploadProgress.current >= uploadProgress.total">
+          <el-button type="primary" @click="uploadProgress = null">确定</el-button>
+        </template>
       </el-dialog>
     </teleport>
     </div>
@@ -853,6 +859,7 @@ import { taskAPI } from '@/api/task'
 import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate, linkTasksToAchievement, getTasksAttachments } from '@/api/taskResult'
 import difyAPI from '@/api/dify'
 import vSelect from 'vue-select'
+import axios from 'axios'
 import 'vue-select/dist/vue-select.css'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
@@ -941,7 +948,6 @@ export default {
       // 已选择参与生成的附件 URL 列表
       selectedAttachmentUrls: [],
       // 附件加载状态
-      attachmentsLoading: false,
       taskResultJobId: null,
       taskResultStatus: '',
       taskResultProgress: 0,
@@ -956,10 +962,18 @@ export default {
       currentAbortController: null, // 用于中断请求的AbortController
       // ⭐ 复制功能状态
       copiedMessageIndex: null, // 当前已复制的消息索引
+      // 任务附件相关
+      taskAttachments: [], // 所有任务附件列表
+      selectedAttachmentIds: [], // 用户选中的附件ID列表
+      isSelectingAttachments: false, // 是否正在选择附件
+      attachmentsLoading: false, // 附件加载状态
+      selectAllAttachments: false, // 是否全选附件
+      isIndeterminateAttachments: false, // 附件选择状态
       // 上传相关状态
       uploadProgress: null, // { total: 0, current: 0, message: '' }
       isUploading: false,
       taskResultTitle: '', // 成果标题
+      showUploadProgress: false, // 是否显示上传进度对话框
       scifiBgCleanup: null
     }
   },
@@ -991,6 +1005,23 @@ export default {
 
       console.log('最终过滤后的任务列表:', filtered)
       return filtered
+    },
+    
+    // 任务成果相关计算属性
+    selectedTaskAttachmentsCount() {
+      return this.selectedAttachmentIds.length
+    },
+    
+    hasSelectedAttachments() {
+      return this.selectedAttachmentIds.length > 0
+    },
+    
+    canUpload() {
+      return this.taskResultOutput.trim().length > 0 && this.taskResultProjectId
+    },
+    
+    isProcessing() {
+      return this.isUploading || this.attachmentsLoading
     }
   },
   watch: {
@@ -1400,6 +1431,8 @@ export default {
 
       try {
         console.log('[任务成果] 提交AI生成请求:', payload)
+        console.log('[任务成果] 选中的附件数量:', this.selectedAttachmentUrls.length)
+        console.log('[任务成果] 选中的附件URLs:', this.selectedAttachmentUrls)
         const resp = await generateTaskResultDraftApi(payload)
 
         let data = resp
@@ -1462,6 +1495,15 @@ export default {
 
           if (data.draftContent && data.draftContent.markdown) {
             this.taskResultOutput = data.draftContent.markdown
+          }
+
+          // 恢复用户选中的附件URL（从后端响应中）
+          // ⚠️ 只有当后端明确返回了附件列表时才覆盖，否则保留前端已选择的附件
+          if (data.selectedAttachmentUrls && Array.isArray(data.selectedAttachmentUrls) && data.selectedAttachmentUrls.length > 0) {
+            this.selectedAttachmentUrls = data.selectedAttachmentUrls
+            console.log('[任务成果] 从后端恢复选中的附件URL:', this.selectedAttachmentUrls.length, '个')
+          } else {
+            console.log('[任务成果] 后端未返回附件URL，保留前端选择:', this.selectedAttachmentUrls.length, '个')
           }
 
           if (this.taskResultStatus === 'COMPLETED' || this.taskResultStatus === 'FAILED' || this.taskResultStatus === 'CANCELLED') {
@@ -2725,8 +2767,27 @@ export default {
       URL.revokeObjectURL(url)
     },
 
+    // 更新上传进度
+    updateProgress(message, increment = 0) {
+      if (!this.uploadProgress) {
+        this.uploadProgress = { total: 0, current: 0, message: '' }
+      }
+      
+      if (message) {
+        this.uploadProgress.message = message
+      }
+      
+      if (increment > 0) {
+        this.uploadProgress.current += increment
+      }
+      
+      console.log(`📊 进度更新: ${this.uploadProgress.current}/${this.uploadProgress.total} - ${this.uploadProgress.message}`)
+    },
+
     // 上传为成果
     async uploadTaskResult() {
+      console.log('🚀🚀🚀 [uploadTaskResult] v3.0 方法被调用 - 完整重写附件检测逻辑！🚀🚀🚀')
+      
       // 验证输入
       if (!this.taskResultOutput || !this.taskResultOutput.trim()) {
         this.$message.warning('没有可上传的内容')
@@ -2747,14 +2808,114 @@ export default {
       try {
         this.isUploading = true
         
-        // 1. 获取任务附件（如果启用）
-        this.updateProgress('正在获取任务附件...')
-        const attachments = this.includeAttachments && this.selectedTaskIds.length > 0
-          ? await this.fetchTaskAttachments(this.selectedTaskIds)
-          : []
+        // ==================== 第1步：完整的状态诊断 ====================
+        console.log('╔═══════════════════════════════════════════════════════════════════════╗')
+        console.log('║              [uploadTaskResult] 开始上传 - 完整状态诊断              ║')
+        console.log('╚═══════════════════════════════════════════════════════════════════════╝')
         
-        // 计算总步骤数：创建成果(1) + 上传Markdown(1) + 上传附件(n) + 关联任务(1)
-        const totalSteps = 1 + 1 + attachments.length + (this.selectedTaskIds.length > 0 ? 1 : 0)
+        console.log('\n📌 1️⃣ 附件功能开关:')
+        console.log('   includeAttachments =', this.includeAttachments, `(类型: ${typeof this.includeAttachments})`)
+        
+        console.log('\n📌 2️⃣ 选中的任务:')
+        console.log('   selectedTaskIds =', JSON.stringify(this.selectedTaskIds))
+        console.log('   selectedTaskIds.length =', this.selectedTaskIds ? this.selectedTaskIds.length : 'undefined')
+        console.log('   是数组? =', Array.isArray(this.selectedTaskIds))
+        
+        console.log('\n📌 3️⃣ 可用附件列表 (availableAttachments):')
+        console.log('   存在? =', !!this.availableAttachments)
+        console.log('   类型 =', typeof this.availableAttachments)
+        console.log('   是数组? =', Array.isArray(this.availableAttachments))
+        console.log('   长度 =', this.availableAttachments ? this.availableAttachments.length : 'undefined')
+        if (this.availableAttachments && Array.isArray(this.availableAttachments) && this.availableAttachments.length > 0) {
+          console.log('   📎 可用附件详情:')
+          this.availableAttachments.forEach((att, idx) => {
+            console.log(`      [${idx}] taskId=${att.taskId}, name="${att.name}", url="${att.url}"`)
+          })
+        } else {
+          console.log('   ⚠️ 没有可用附件')
+        }
+        
+        console.log('\n📌 4️⃣ 已选中的附件URL (selectedAttachmentUrls) - 【关键检查】:')
+        console.log('   存在? =', !!this.selectedAttachmentUrls)
+        console.log('   类型 =', typeof this.selectedAttachmentUrls)
+        console.log('   是数组? =', Array.isArray(this.selectedAttachmentUrls))
+        console.log('   长度 =', this.selectedAttachmentUrls ? this.selectedAttachmentUrls.length : 'undefined')
+        console.log('   原始值 =', JSON.stringify(this.selectedAttachmentUrls))
+        
+        if (Array.isArray(this.selectedAttachmentUrls) && this.selectedAttachmentUrls.length > 0) {
+          console.log('   ✅ 用户已选中的附件URL:')
+          this.selectedAttachmentUrls.forEach((url, idx) => {
+            console.log(`      [${idx}] ${url}`)
+          })
+        } else {
+          console.log('   ⚠️ selectedAttachmentUrls 为空或不是有效数组')
+        }
+        
+        console.log('\n═══════════════════════════════════════════════════════════════════════')
+        
+        // ==================== 第2步：数据规范化 ====================
+        console.log('\n🔧 数据规范化处理...')
+        
+        // 确保 selectedAttachmentUrls 是有效的数组
+        if (!Array.isArray(this.selectedAttachmentUrls)) {
+          console.warn('⚠️ selectedAttachmentUrls 不是数组，重置为空数组')
+          this.selectedAttachmentUrls = []
+        }
+        
+        // 确保 availableAttachments 是有效的数组
+        if (!Array.isArray(this.availableAttachments)) {
+          console.warn('⚠️ availableAttachments 不是数组，重置为空数组')
+          this.availableAttachments = []
+        }
+        
+        // 确保 selectedTaskIds 是有效的数组
+        if (!Array.isArray(this.selectedTaskIds)) {
+          console.warn('⚠️ selectedTaskIds 不是数组，重置为空数组')
+          this.selectedTaskIds = []
+        }
+        
+        console.log('✅ 数据规范化完成')
+        
+        // ==================== 第3步：判断是否需要上传附件 ====================
+        console.log('\n🎯 附件上传决策分析:')
+        
+        const condition1 = this.includeAttachments === true
+        const condition2 = this.availableAttachments.length > 0
+        const condition3 = this.selectedAttachmentUrls.length > 0
+        
+        console.log('   条件1: includeAttachments === true?', condition1)
+        console.log('   条件2: availableAttachments.length > 0?', condition2, `(当前: ${this.availableAttachments.length})`)
+        console.log('   条件3: selectedAttachmentUrls.length > 0?', condition3, `(当前: ${this.selectedAttachmentUrls.length})`)
+        
+        const shouldUploadAttachments = condition1 && condition2 && condition3
+        
+        console.log('   ➡️ 最终决策: shouldUploadAttachments =', shouldUploadAttachments)
+        
+        if (!shouldUploadAttachments) {
+          console.log('\n❌ 跳过附件上传，原因:')
+          if (!condition1) console.log('      - 用户未勾选"包含相关附件参与生成"复选框')
+          if (!condition2) console.log('      - 没有可用的附件 (availableAttachments 为空)')
+          if (!condition3) console.log('      - 用户未选择任何附件URL (selectedAttachmentUrls 为空)')
+        } else {
+          console.log('\n✅ 将上传附件！')
+        }
+        
+        // ==================== 第4步：计算总步骤数 ====================
+        let estimatedAttachmentCount = 0
+        if (shouldUploadAttachments) {
+          estimatedAttachmentCount = this.selectedAttachmentUrls.length
+        }
+        
+        const totalSteps = 1 + 1 + estimatedAttachmentCount + (this.selectedTaskIds.length > 0 ? 1 : 0)
+        
+        console.log('\n📊 总步骤数计算:')
+        console.log('   创建成果: 1 步')
+        console.log('   上传Markdown: 1 步')
+        console.log('   上传附件:', estimatedAttachmentCount, '步')
+        console.log('   关联任务:', this.selectedTaskIds.length > 0 ? 1 : 0, '步')
+        console.log('   ➡️ 总计:', totalSteps, '步')
+        
+        console.log('\n═══════════════════════════════════════════════════════════════════════\n')
         
         // 初始化进度
         this.uploadProgress = {
@@ -2763,53 +2924,103 @@ export default {
           message: '准备上传...'
         }
         
-        // 2. 创建成果
-        this.updateProgress('正在创建成果记录...')
+        // ==================== 第5步：获取任务附件 ====================
+        let attachments = []
+        
+        if (shouldUploadAttachments) {
+          console.log('🔄 开始下载选中的附件...')
+          this.updateProgress('正在下载选中的附件...', 0)
+          
+          try {
+            attachments = await this.fetchTaskAttachments(this.selectedTaskIds)
+            console.log(`✅ 附件下载完成: ${attachments.length}/${this.selectedAttachmentUrls.length}`)
+            
+            if (attachments.length > 0) {
+              console.log('📎 已下载的附件:')
+              attachments.forEach((att, idx) => {
+                console.log(`   [${idx}] ${att.fileName} (${att.fileSize} bytes, ${att.fileType})`)
+              })
+            } else {
+              console.warn('⚠️ 未能下载任何附件，请检查 fetchTaskAttachments 方法')
+            }
+            
+            // 如果实际下载的附件数量与预估不同，更新总步骤数
+            if (attachments.length !== estimatedAttachmentCount) {
+              const actualTotalSteps = 1 + 1 + attachments.length + (this.selectedTaskIds.length > 0 ? 1 : 0)
+              this.uploadProgress.total = actualTotalSteps
+              console.log(`ℹ️ 更新总步骤数: ${totalSteps} → ${actualTotalSteps}`)
+            }
+          } catch (error) {
+            console.error('❌ 下载附件失败:', error)
+            console.error('错误堆栈:', error.stack)
+            console.log('⚠️ 将继续上传流程，但不包含附件')
+          }
+        } else {
+          console.log('ℹ️ 跳过附件下载步骤')
+        }
+        
+        console.log('\n═══════════════════════════════════════════════════════════════════════')
+        
+        // ==================== 第6步：创建成果 ====================
+        console.log('\n📝 步骤 1/4: 创建成果记录...')
+        this.updateProgress('正在创建成果记录...', 0)
         const achievement = await this.createAchievement()
         
         if (!achievement || !achievement.id) {
           throw new Error('创建成果失败：未返回成果ID')
         }
+        console.log('✅ 成果创建成功, ID:', achievement.id)
         
-        // 3. 上传Markdown文件
+        // ==================== 第7步：上传Markdown文件 ====================
+        console.log('\n📄 步骤 2/4: 上传Markdown文件...')
         await this.uploadMarkdownFile(achievement.id)
+        console.log('✅ Markdown文件上传成功')
         
-        // 4. 上传附件
+        // ==================== 第8步：上传附件 ====================
+        console.log('\n📎 步骤 3/4: 上传附件...')
         if (attachments.length > 0) {
+          console.log(`🔄 开始上传 ${attachments.length} 个附件到成果 ${achievement.id}`)
           await this.uploadAttachments(achievement.id, attachments)
+          console.log('✅ 附件上传完成')
+        } else {
+          console.log('ℹ️ 没有附件需要上传 (attachments 数组长度为 0)')
         }
         
-        // 5. 关联任务
+        // ==================== 第9步：关联任务 ====================
+        console.log('\n🔗 步骤 4/4: 关联任务...')
         if (this.selectedTaskIds.length > 0) {
           await this.linkTasks(achievement.id)
+          console.log('✅ 任务关联成功')
+        } else {
+          console.log('ℹ️ 无需关联任务')
         }
 
-        // 6. 完成
-        this.updateProgress('上传完成！', 0)
+        // ==================== 第10步：完成 ====================
+        this.updateProgress('✅ 上传完成！')
         this.$message.success('成果上传成功')
         
-        // 延迟关闭进度条，让用户看到完成状态
-        setTimeout(() => {
-          this.resetForm()
-        }, 1500)
+        console.log('\n╔═══════════════════════════════════════════════════════════════════════╗')
+        console.log('║                 ✅ [uploadTaskResult] 所有步骤完成                    ║')
+        console.log('╚═══════════════════════════════════════════════════════════════════════╝\n')
 
       } catch (error) {
-        console.error('上传失败:', error)
+        console.error('\n╔═══════════════════════════════════════════════════════════════════════╗')
+        console.error('║                 ❌ [uploadTaskResult] 上传失败                        ║')
+        console.error('╚═══════════════════════════════════════════════════════════════════════╝')
+        console.error('错误对象:', error)
+        console.error('错误消息:', error.message)
+        console.error('错误堆栈:', error.stack)
+        
         const errorMessage = error.message || error.msg || '未知错误'
         this.$message.error(`上传失败: ${errorMessage}`)
         
         // 更新进度显示错误
         if (this.uploadProgress) {
-          this.uploadProgress.message = `上传失败: ${errorMessage}`
+          this.uploadProgress.message = `❌ 上传失败: ${errorMessage}`
         }
       } finally {
         this.isUploading = false
-        // 延迟关闭进度条
-        setTimeout(() => {
-          if (this.uploadProgress && this.uploadProgress.current < this.uploadProgress.total) {
-            this.uploadProgress = null
-          }
-        }, 2000)
+        console.log('\n🏁 uploadTaskResult 方法执行结束\n')
       }
     },
 
@@ -2931,6 +3142,7 @@ export default {
     // 上传附件
     async uploadAttachments(achievementId, attachments) {
       if (!attachments || attachments.length === 0) {
+        console.log('[uploadAttachments] 没有附件需要上传')
         return
       }
       
@@ -2938,10 +3150,13 @@ export default {
       let successCount = 0
       let failCount = 0
       
+      console.log(`[uploadAttachments] 开始上传 ${totalAttachments} 个附件到成果 ${achievementId}`)
+      
       for (let i = 0; i < totalAttachments; i++) {
         const attachment = attachments[i]
         const originalFileName = attachment.fileName || attachment.name || `attachment_${i + 1}`
         
+        console.log(`[uploadAttachments] 正在处理附件 ${i + 1}/${totalAttachments}: ${originalFileName}`)
         this.updateProgress(`正在上传附件 (${i + 1}/${totalAttachments}): ${originalFileName}`)
         
         try {
@@ -2973,9 +3188,82 @@ export default {
             this.updateProgress('', 1) // 增加进度
           } else if (attachment.url) {
             // 如果附件是URL，需要先下载再上传
-            // TODO: 实现URL附件下载和上传逻辑
-            console.warn('URL附件上传暂未实现:', attachment.url)
-            this.updateProgress('', 1) // 增加进度，避免卡住
+            try {
+              console.log(`[uploadAttachments] 开始下载URL附件: ${attachment.url}`)
+              
+              const token = localStorage.getItem('access_token')
+              
+              // 下载文件
+              const fileResponse = await axios.get(attachment.url, {
+                responseType: 'blob',
+                headers: {
+                  'Authorization': token ? `Bearer ${token}` : undefined
+                },
+                timeout: 60000 // 60秒超时
+              })
+              
+              // 从响应头获取文件类型
+              let fileType = fileResponse.headers['content-type'] || 'application/octet-stream'
+              if (fileType === 'application/octet-stream') {
+                const ext = originalFileName.split('.').pop()?.toLowerCase()
+                const mimeTypes = {
+                  'pdf': 'application/pdf',
+                  'doc': 'application/msword',
+                  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                  'xls': 'application/vnd.ms-excel',
+                  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  'ppt': 'application/vnd.ms-powerpoint',
+                  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                  'txt': 'text/plain',
+                  'md': 'text/markdown',
+                  'jpg': 'image/jpeg',
+                  'jpeg': 'image/jpeg',
+                  'png': 'image/png',
+                  'gif': 'image/gif'
+                }
+                fileType = mimeTypes[ext] || fileType
+              }
+              
+              // 创建 File 对象
+              const downloadedFile = new File(
+                [fileResponse.data],
+                originalFileName,
+                {
+                  type: fileType,
+                  lastModified: Date.now()
+                }
+              )
+              
+              // 生成标准化的文件名
+              const standardFileName = this.generateStandardFileName(originalFileName)
+              
+              // 创建重命名后的文件对象
+              const renamedFile = new File(
+                [downloadedFile],
+                standardFileName,
+                {
+                  type: fileType,
+                  lastModified: downloadedFile.lastModified
+                }
+              )
+              
+              console.log(`[uploadAttachments] URL附件下载成功: ${originalFileName} -> ${standardFileName}`)
+              
+              // 上传文件
+              const response = await knowledgeAPI.uploadFile(renamedFile, achievementId)
+              
+              // 检查响应
+              if (response && response.code !== undefined && response.code !== 200) {
+                throw new Error(response.msg || '附件上传失败')
+              }
+              
+              successCount++
+              this.updateProgress('', 1) // 增加进度
+            } catch (urlError) {
+              console.error(`[uploadAttachments] URL附件处理失败: ${originalFileName}`, urlError)
+              failCount++
+              this.updateProgress('', 1) // 增加进度，避免卡住
+            }
           } else {
             console.warn('附件格式不支持:', attachment)
             failCount++
@@ -3022,70 +3310,216 @@ export default {
       }
     },
 
-    // 更新进度
-    updateProgress(message, increment = 0) {
-      if (!this.uploadProgress) {
-        return
-      }
-      
-      // 更新消息
-      if (message !== undefined && message !== null && message !== '') {
-        this.uploadProgress.message = message
-      }
-      
-      // 更新进度
-      if (increment > 0) {
-        this.uploadProgress.current = Math.min(
-          this.uploadProgress.current + increment,
-          this.uploadProgress.total
-        )
-      }
-      
-      // 确保进度不超过总数
-      if (this.uploadProgress.current > this.uploadProgress.total) {
-        this.uploadProgress.current = this.uploadProgress.total
-      }
-      
-      // 触发视图更新
-      this.$forceUpdate()
-    },
-
-    // 获取任务附件
+    // 获取任务附件（将选中的附件URL转换为文件对象）
     async fetchTaskAttachments(taskIds) {
+      console.log('\n╔═══════════════════════════════════════════════════════════════════════╗')
+      console.log('║              [fetchTaskAttachments] 开始获取任务附件                  ║')
+      console.log('╚═══════════════════════════════════════════════════════════════════════╝')
+      
+      // 参数验证
+      console.log('\n📌 参数检查:')
+      console.log('   taskIds =', JSON.stringify(taskIds))
+      console.log('   taskIds.length =', taskIds ? taskIds.length : 'undefined')
+      
       if (!taskIds || taskIds.length === 0) {
+        console.log('❌ taskIds 为空，返回空数组')
         return []
       }
+
+      // 检查选中的附件URL
+      console.log('\n📌 selectedAttachmentUrls 检查:')
+      console.log('   存在? =', !!this.selectedAttachmentUrls)
+      console.log('   类型 =', typeof this.selectedAttachmentUrls)
+      console.log('   是数组? =', Array.isArray(this.selectedAttachmentUrls))
+      console.log('   长度 =', this.selectedAttachmentUrls ? this.selectedAttachmentUrls.length : 'undefined')
+      
+      if (!this.selectedAttachmentUrls || this.selectedAttachmentUrls.length === 0) {
+        console.log('❌ 没有选中的附件URL，返回空数组')
+        return []
+      }
+      
+      console.log('   ✅ 用户选中了', this.selectedAttachmentUrls.length, '个附件URL')
+      this.selectedAttachmentUrls.forEach((url, idx) => {
+        console.log(`      [${idx}] ${url}`)
+      })
 
       const attachments = []
       
       try {
-        // TODO: 调用后端API获取任务附件
-        // 这里需要根据实际的后端API来实现
-        // 示例实现：
-        // for (const taskId of taskIds) {
-        //   const response = await taskAPI.getTaskAttachments(taskId)
-        //   if (response && response.data) {
-        //     const taskAttachments = Array.isArray(response.data) 
-        //       ? response.data 
-        //       : [response.data]
-        //     
-        //     // 根据过滤器筛选附件
-        //     const filtered = taskAttachments.filter(att => {
-        //       if (!this.attachmentFilters || this.attachmentFilters.length === 0) {
-        //         return true
-        //       }
-        //       const fileExt = (att.fileName || att.name || '').split('.').pop()?.toLowerCase()
-        //       return this.attachmentFilters.includes(fileExt)
-        //     })
-        //     
-        //     attachments.push(...filtered)
-        //   }
-        // }
+        console.log('\n📌 availableAttachments 检查:')
+        console.log('   存在? =', !!this.availableAttachments)
+        console.log('   类型 =', typeof this.availableAttachments)
+        console.log('   是数组? =', Array.isArray(this.availableAttachments))
+        console.log('   长度 =', this.availableAttachments ? this.availableAttachments.length : 'undefined')
         
-        console.log('获取任务附件，任务IDs:', taskIds, '过滤器:', this.attachmentFilters)
-        console.log('当前返回空数组，等待后端接口实现')
+        if (!this.availableAttachments || this.availableAttachments.length === 0) {
+          console.error('❌ availableAttachments 为空，无法获取附件信息')
+          return []
+        }
+        
+        console.log('   ✅ 可用附件列表:')
+        this.availableAttachments.forEach((att, idx) => {
+          console.log(`      [${idx}] taskId=${att.taskId}, name="${att.name}", url="${att.url}"`)
+        })
+        
+        // 从 availableAttachments 中获取选中URL对应的附件信息
+        console.log('\n🔍 匹配选中的附件...')
+        const selectedAttachments = this.availableAttachments.filter(att => 
+          this.selectedAttachmentUrls.includes(att.url)
+        )
+        
+        console.log(`✅ 匹配到 ${selectedAttachments.length}/${this.selectedAttachmentUrls.length} 个附件`)
+        
+        if (selectedAttachments.length === 0) {
+          console.error('❌ 没有匹配到任何附件！')
+          console.error('   可能原因: selectedAttachmentUrls 中的URL与 availableAttachments 中的URL不匹配')
+          console.error('   selectedAttachmentUrls:', this.selectedAttachmentUrls)
+          console.error('   availableAttachments URLs:', this.availableAttachments.map(a => a.url))
+          return []
+        }
+        
+        console.log('   匹配的附件:')
+        selectedAttachments.forEach((att, idx) => {
+          console.log(`      [${idx}] ${att.name}`)
+        })
+        
+        // 遍历选中的附件，下载并转换为文件对象
+        console.log('\n🔄 开始下载附件文件...')
+        for (let i = 0; i < selectedAttachments.length; i++) {
+          const attachment = selectedAttachments[i]
+          const originalUrl = attachment.url // 保留原始URL（可能是相对路径）
+          const fileName = attachment.name || this.extractFileNameFromUrl(originalUrl) || `attachment_${i + 1}`
+          
+          console.log(`\n📥 [${i + 1}/${selectedAttachments.length}] 下载: ${fileName}`)
+          
+          try {
+            // 注意：这里传递原始URL给后端，让后端处理完整URL的拼接
+            console.log('   原始URL:', originalUrl)
+            console.log('   URL类型:', originalUrl.startsWith('http') ? '完整URL' : '相对路径')
+            
+            // 使用后端代理下载文件，避免CORS问题
+            console.log('   🔐 准备通过后端代理下载...')
+            const token = localStorage.getItem('access_token')
+            console.log('   Token:', token ? `存在 (前10字符: ${token.substring(0, 10)}...)` : '不存在')
+            
+            // Step 1: 先获取预签名URL（传递原始URL，不做任何转换）
+            console.log('   📤 请求后端获取预签名URL...')
+            console.log('      请求参数 fileUrl=', originalUrl)
+            console.log('      编码后=', encodeURIComponent(originalUrl))
+            
+            const presignedResponse = await axios.get(`/zhiyan/projects/tasks/submissions/files/presigned-url?fileUrl=${encodeURIComponent(originalUrl)}`, {
+              headers: {
+                'Authorization': token ? `Bearer ${token}` : undefined
+              },
+              timeout: 10000
+            })
+            
+            console.log('   ✅ 后端响应成功')
+            console.log('      响应状态:', presignedResponse.status)
+            console.log('      响应数据:', JSON.stringify(presignedResponse.data, null, 2))
+            
+            const presignedUrl = presignedResponse.data?.data?.url
+            
+            if (!presignedUrl) {
+              console.error('   ❌ 预签名URL为空！')
+              console.error('      响应结构:', presignedResponse.data)
+              throw new Error('无法获取文件下载链接')
+            }
+            
+            console.log('   📋 预签名URL (完整):', presignedUrl)
+            console.log('   📋 预签名URL (前100字符):', presignedUrl.substring(0, 100) + '...')
+            
+            // Step 2: 通过后端代理下载文件，避免CORS问题
+            // 不直接访问预签名URL，而是通过后端接口下载
+            console.log('   📥 通过后端代理下载文件...')
+            console.log('      代理接口: /zhiyan/projects/tasks/submissions/files/download')
+            console.log('      参数 fileUrl:', originalUrl)
+            
+            const response = await axios.get(`/zhiyan/projects/tasks/submissions/files/download`, {
+              params: {
+                fileUrl: originalUrl
+              },
+              headers: {
+                'Authorization': token ? `Bearer ${token}` : undefined
+              },
+              responseType: 'blob',
+              timeout: 60000 // 60秒超时
+            })
+            
+            console.log('   ✅ 代理下载成功！')
+            
+            console.log('   ✅ HTTP 响应状态:', response.status)
+            console.log('   响应头 Content-Type:', response.headers['content-type'])
+            console.log('   响应数据大小:', response.data.size, 'bytes')
+            
+            // 从响应头获取文件类型，如果没有则根据文件名推断
+            let fileType = response.headers['content-type'] || 'application/octet-stream'
+            if (fileType === 'application/octet-stream') {
+              const ext = fileName.split('.').pop()?.toLowerCase()
+              const mimeTypes = {
+                'pdf': 'application/pdf',
+                'doc': 'application/msword',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls': 'application/vnd.ms-excel',
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt': 'application/vnd.ms-powerpoint',
+                'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'txt': 'text/plain',
+                'md': 'text/markdown',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif'
+              }
+              fileType = mimeTypes[ext] || fileType
+              console.log('   推断文件类型:', fileType, '(基于扩展名:', ext + ')')
+            }
+            
+            // 创建 File 对象
+            const file = new File(
+              [response.data],
+              fileName,
+              {
+                type: fileType,
+                lastModified: Date.now()
+              }
+            )
+            
+            console.log('   ✅ File对象创建成功:')
+            console.log('      文件名:', file.name)
+            console.log('      大小:', file.size, 'bytes')
+            console.log('      类型:', file.type)
+            
+            attachments.push({
+              file: file,
+              fileName: fileName,
+              fileSize: file.size,
+              fileType: fileType,
+              url: originalUrl // 保留原始URL用于调试
+            })
+          } catch (downloadError) {
+            console.error(`   ❌ 下载失败: ${fileName}`)
+            console.error('   错误:', downloadError.message)
+            console.error('   错误详情:', downloadError)
+            // 继续处理其他附件，不中断整个流程
+          }
+        }
+        
+        console.log('\n📊 下载结果统计:')
+        console.log(`   成功: ${attachments.length}/${selectedAttachments.length}`)
+        console.log(`   失败: ${selectedAttachments.length - attachments.length}/${selectedAttachments.length}`)
+        
+        if (attachments.length > 0) {
+          console.log('\n✅ 已下载的附件列表:')
+          attachments.forEach((att, idx) => {
+            console.log(`   [${idx}] ${att.fileName} (${att.fileSize} bytes, ${att.fileType})`)
+          })
+        }
+        
+        console.log('\n╚═══════════════════════════════════════════════════════════════════════╝\n')
       } catch (error) {
-        console.warn('获取任务附件失败:', error)
+        console.error('\n❌ [fetchTaskAttachments] 发生异常:', error)
+        console.error('错误堆栈:', error.stack)
         // 不抛出错误，允许继续上传流程
       }
       
@@ -3100,10 +3534,129 @@ export default {
       this.selectedTaskSummaries = []
       this.uploadProgress = null
       this.isUploading = false
+      // 重置附件相关状态
+      this.taskAttachments = []
+      this.selectedAttachmentIds = []
+      this.isSelectingAttachments = false
+      this.selectAllAttachments = false
+      this.isIndeterminateAttachments = false
+      this.showUploadProgress = false
+    },
+    
+    isAttachmentSelected(attachmentId) {
+      return this.selectedAttachmentIds.includes(attachmentId)
+    },
+    
+    toggleAttachmentSelection(attachmentId) {
+      const index = this.selectedAttachmentIds.indexOf(attachmentId)
+      if (index === -1) {
+        this.selectedAttachmentIds.push(attachmentId)
+      } else {
+        this.selectedAttachmentIds.splice(index, 1)
+      }
+      this.updateAttachmentSelectionState()
+    },
+    
+    handleAttachmentSelectionChange(attachmentId, selected) {
+      if (selected && !this.selectedAttachmentIds.includes(attachmentId)) {
+        this.selectedAttachmentIds.push(attachmentId)
+      } else if (!selected) {
+        const index = this.selectedAttachmentIds.indexOf(attachmentId)
+        if (index !== -1) {
+          this.selectedAttachmentIds.splice(index, 1)
+        }
+      }
+      this.updateAttachmentSelectionState()
+    },
+    
+    handleSelectAllAttachments(selected) {
+      if (selected) {
+        this.selectedAttachmentIds = this.taskAttachments.map(a => a.id)
+      } else {
+        this.selectedAttachmentIds = []
+      }
+      this.updateAttachmentSelectionState()
+    },
+    
+    updateAttachmentSelectionState() {
+      const selectedCount = this.selectedAttachmentIds.length
+      const total = this.taskAttachments.length
+      
+      this.selectAllAttachments = selectedCount === total && total > 0
+      this.isIndeterminateAttachments = selectedCount > 0 && selectedCount < total
+    },
+    
+    getTaskAttachmentCount(taskId) {
+      return this.taskAttachments.filter(a => a.taskId === taskId).length
+    },
+    
+    getTaskName(taskId) {
+      const task = this.selectedTaskSummaries.find(t => t.id === taskId)
+      return task ? task.name : ''
+    },
+    
+    getFileIconClass(fileName) {
+      if (!fileName) return 'el-icon-document'
+      const ext = fileName.split('.').pop()?.toLowerCase()
+      const iconMap = {
+        'pdf': 'el-icon-document',
+        'doc': 'el-icon-document',
+        'docx': 'el-icon-document',
+        'xls': 'el-icon-s-grid',
+        'xlsx': 'el-icon-s-grid',
+        'ppt': 'el-icon-s-data',
+        'pptx': 'el-icon-s-data',
+        'txt': 'el-icon-tickets',
+        'md': 'el-icon-edit',
+        'jpg': 'el-icon-picture',
+        'jpeg': 'el-icon-picture',
+        'png': 'el-icon-picture',
+        'gif': 'el-icon-picture'
+      }
+      return iconMap[ext] || 'el-icon-document'
+    },
+    
+    formatFileSize(bytes) {
+      if (!bytes) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    },
+    
+    updateProgress(message, increment = 0) {
+      // increment 表示完成的步骤数（0表示只更新消息，1表示完成一个步骤）
+      if (!this.uploadProgress) {
+        this.uploadProgress = { total: 0, current: 0, message: '' }
+      }
+      
+      if (message) {
+        this.uploadProgress.message = message
+      }
+      
+      if (increment > 0) {
+        this.uploadProgress.current = (this.uploadProgress.current || 0) + increment
+      }
+    },
+    
+    resetTaskResultForm() {
+      this.taskResultTitle = ''
+      this.taskResultOutput = ''
+      this.selectedTaskIds = []
+      this.selectedTaskSummaries = []
+      this.taskAttachments = []
+      this.selectedAttachmentIds = []
+      this.isSelectingAttachments = false
+      this.uploadProgress = {
+        percentage: 0,
+        message: '',
+        status: ''
+      }
+      this.showUploadProgress = false
     }
   }
 }
 
 </script>
 
-//
+
