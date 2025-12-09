@@ -4208,7 +4208,7 @@ html.dark-mode .file-view-dialog .file-info {
   padding: 0;
   transition: all 0.15s ease;
 }
-
+  
 .task-remove-btn:hover {
   background: #fee2e2;
   color: #ef4444;
