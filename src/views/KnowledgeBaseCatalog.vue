@@ -3996,7 +3996,8 @@ export default {
 }
 
 .modal-content {
-  background: #1e293b;
+  /* 日间模式：整体使用白色背景 */
+  background: #ffffff;
   border-radius: 20px;
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
@@ -4016,22 +4017,24 @@ export default {
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px 24px 12px;
-  background: linear-gradient(135deg, #1e293b 0%, #1e293b 100%);
-  border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+  /* 日间模式：头部也使用白色背景，仅保留底部分割线 */
+  background: #ffffff;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .modal-title {
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 700;
-  color: #e2e8f0;
+  /* 深色文字，适配白色背景 */
+  color: #111827;
 }
 
 .modal-subtitle {
   margin: 0 0 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #9ca3af;
+  color: #4b5563;
 }
 
 .modal-close {
@@ -4059,7 +4062,8 @@ export default {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 24px 4px;
-  background: #1e293b;
+  /* 日间模式：内容区域白色背景 */
+  background: #ffffff;
 }
 
 .loading-container {
@@ -4195,11 +4199,10 @@ export default {
 .file-name {
   font-size: 16px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #111827;
   line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 默认允许换行，但不要对每个字符都强制换行 */
+  white-space: normal;
 }
 
 .file-card.selected .file-name {
@@ -4278,7 +4281,54 @@ export default {
   margin: 0;
   font-size: 15px;
   line-height: 1.6;
-  color: #4b5563;
+  color: #333;
+}
+
+/* ================= 深色模式下的删除弹窗样式 ================= */
+html.dark-mode .modal-content {
+  background: #1e293b;
+}
+
+html.dark-mode .modal-header {
+  background: linear-gradient(135deg, #1f2937 0%, #020617 100%);
+  border-bottom-color: rgba(15, 23, 42, 0.9);
+}
+
+html.dark-mode .modal-title {
+  color: #e5e7eb;
+}
+
+html.dark-mode .modal-body {
+  background: #020617;
+}
+
+html.dark-mode .modal-body p {
+  color: #e5e7eb;
+}
+
+html.dark-mode .modal-footer {
+  background: linear-gradient(135deg, #020617 0%, #020617 100%);
+  border-top-color: rgba(30, 64, 175, 0.6);
+}
+
+html.dark-mode .modal-footer .btn.btn-secondary,
+html.dark-mode .modal-footer .btn.secondary {
+  background: transparent;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+html.dark-mode .modal-footer .btn.btn-secondary:hover,
+html.dark-mode .modal-footer .btn.secondary:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #9ca3af;
+}
+
+html.dark-mode .modal-footer .btn.btn-primary,
+html.dark-mode .modal-footer .btn.primary {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
 }
 
 .modal-footer .btn {
@@ -4341,6 +4391,25 @@ export default {
 html.dark-mode .file-view-dialog .file-info {
   background: #020617 !important;
   color: #e5e7eb;
+}
+
+/* 成果档案表格：只控制“成果名”这一列的文字换行，不影响其他地方 */
+.doc-table .filename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-table .file-name {
+  /* 普通文本样式 */
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.5;
+  /* 正常情况下单行显示，超出列宽时按单词/长串自动换行 */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* 已关联任务标签样式（上传 & 查看 共用） */
