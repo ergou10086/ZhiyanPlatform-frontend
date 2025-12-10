@@ -70,26 +70,19 @@
             </div>
           </div>
 
-          <!-- 任务状态分布卡片 -->
+          <!-- 任务状态分布卡片（使用 Chart.js 饼图） -->
           <div class="chart-card-modern status-distribution">
             <div class="chart-header">
               <h3 class="chart-title">任务状态分布</h3>
               <div class="chart-subtitle">实时任务进度概览</div>
             </div>
             <div class="chart-body">
-              <div class="pie-chart-wrapper" v-if="pieSegments.length">
-                <svg class="pie-svg" viewBox="0 0 200 200">
-                  <g>
-                    <path
-                      v-for="segment in pieSegments"
-                      :key="segment.key"
-                      :d="getPiePath(segment.animatedStartAngle, segment.animatedEndAngle)"
-                      :fill="segment.color"
-                      @mousemove="showTooltip($event, segment.label, segment.value, `个（${segment.percent}%）`)"
-                      @mouseleave="hideTooltip"
-                    />
-                  </g>
-                </svg>
+              <div class="pie-chart-wrapper" v-if="statusChartData">
+                <status-pie-chart
+                  :key="statusChartKey"
+                  :chart-data="statusChartData"
+                  :options="statusChartOptions"
+                />
               </div>
               <div class="pie-empty" v-else>暂无任务数据</div>
               <div class="legend-modern">
@@ -838,9 +831,47 @@
 
 <script>
 import { getLatestSubmission, getTaskSubmissions } from '@/api/taskSubmission'
+import { Pie, mixins } from 'vue-chartjs'
+import Chart from 'chart.js'
+
+const { reactiveProp } = mixins
+
+const StatusPieChart = {
+  extends: Pie,
+  mixins: [reactiveProp],
+  props: ['chartData', 'options'],
+  mounted() {
+    if (this.chartData) {
+      this.renderChart(this.chartData, this.options || {})
+    }
+  },
+  watch: {
+    chartData: {
+      deep: true,
+      handler(newVal) {
+        if (newVal) {
+          this.renderChart(newVal, this.options || {})
+        }
+      }
+    },
+    options: {
+      deep: true,
+      handler(newOptions) {
+        if (this.chartData) {
+          this.renderChart(this.chartData, newOptions || {})
+        }
+      }
+    }
+  }
+}
+
+Chart.defaults.global.defaultFontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
 
 export default {
   name: 'ProjectDashboard',
+  components: {
+    StatusPieChart
+  },
   data() {
     return {
       // 加载状态
@@ -880,6 +911,8 @@ export default {
       statusCounts: { pendingReview: 0, doing: 0, blocked: 0, done: 0 },
       // 饼图动画进度 (0-1)
       pieAnimationProgress: 0,
+      // Chart.js 饼图组件 key，用于在每次进入路由时强制重新挂载以触发动画
+      statusChartKey: Date.now(),
       // 从后端获取的完整任务列表（真实任务数据）
       allTasks: [],
       // 从后端获取的已完成任务列表（真实完成任务数据）
@@ -961,62 +994,69 @@ export default {
     // 可按需通过项目ID拉取统计数据：this.$route.params.id
   },
   async mounted() {
-    // 启动粒子背景
-    this.initParticles()
-    window.addEventListener('resize', this.resizeCanvas)
-    
-    // 添加滚动监听，用于检测何时滚动到图表section
-    this.setupScrollObserver()
-    
-    // 点击外部关闭导出菜单
-    document.addEventListener('click', this.handleClickOutside)
-    
-    // 优化加载策略：先加载关键数据，尽快结束全屏加载遮罩
-    try {
-      this.isLoading = true
-      this.loadingProgress = 10
-      
-      // 第一步：并行加载关键数据（第一屏需要的数据）
-      // 使用快速模式：先加载前几页任务，剩余任务异步加载
-      const [allTasks, projectMembers] = await Promise.all([
-        this.fetchAllTasks(true), // 快速模式
-        this.loadProjectMembers()
-      ])
-      
-      this.allTasks = allTasks
-      this.loadingProgress = 40
-      
-      // 第二步：仅加载首屏必须的 KPI / 任务统计，确保尽快结束遮罩
-      await this.loadTaskStatistics(allTasks)
-      this.loadingProgress = 70
-      
-      // 立即显示页面（关键数据已加载完成）
+    // 每次首次挂载时重置饼图 key，确保进入页面时播放一次动画
+    this.statusChartKey = Date.now()
+
+    // 固定加载遮罩显示约 2 秒，之后无论接口是否完成都先展示页面
+    this.isLoading = true
+    this.loadingProgress = 10
+    setTimeout(() => {
       this.isLoading = false
       this.loadingProgress = 100
-      
-      // 数字滚动动画 + 饼图动画
-      Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
-      this.animatePieChart()
-      
-      // 第三步：其余统计和图表异步加载（不再阻塞界面显示）
-      setTimeout(() => {
-        Promise.all([
-          this.loadMemberWorktimes(allTasks),
-          this.loadCompletionTrend(),
-          this.loadAchievements(),
-          this.loadTaskSubmissions(),
-          this.loadWikiStatistics(),
-          this.loadMilestoneTasks()
-        ]).catch(error => {
-          console.error('[ProjectDashboard] 非关键数据加载失败:', error)
-        })
-      }, 50)
-      
-    } catch (error) {
-      console.error('[ProjectDashboard] 加载关键数据失败:', error)
-      // 即使关键数据加载失败，也显示页面
-      this.isLoading = false
-    }
+    }, 2000)
+
+    // 优化加载策略：保持原有数据加载流程，但不再由其控制遮罩，只负责填充数据
+    ;(async () => {
+      try {
+        // 第一步：并行加载关键数据（第一屏需要的数据）
+        // 使用快速模式：先加载前几页任务，剩余任务异步加载
+        const [allTasks, projectMembers] = await Promise.all([
+          this.fetchAllTasks(true), // 快速模式
+          this.loadProjectMembers()
+        ])
+
+        this.allTasks = allTasks
+        this.loadingProgress = 40
+
+        // 第二步：仅加载首屏必须的 KPI / 任务统计
+        await this.loadTaskStatistics(allTasks)
+        this.loadingProgress = 70
+
+        // 在关键数据渲染完成后，再延迟初始化与数据无关的效果和监听
+        setTimeout(() => {
+          // 启动粒子背景
+          this.initParticles()
+          window.addEventListener('resize', this.resizeCanvas)
+
+          // 添加滚动监听，用于检测何时滚动到图表section
+          this.setupScrollObserver()
+
+          // 点击外部关闭导出菜单
+          document.addEventListener('click', this.handleClickOutside)
+        }, 0)
+
+        // 数字滚动动画 + 饼图动画
+        Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
+        this.animatePieChart()
+
+        // 第三步：其余统计和图表异步加载（不再阻塞界面显示）
+        setTimeout(() => {
+          Promise.all([
+            this.loadMemberWorktimes(allTasks),
+            this.loadCompletionTrend(),
+            this.loadAchievements(),
+            this.loadTaskSubmissions(),
+            this.loadWikiStatistics(),
+            this.loadMilestoneTasks()
+          ]).catch(error => {
+            console.error('[ProjectDashboard] 非关键数据加载失败:', error)
+          })
+        }, 50)
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载关键数据失败:', error)
+        // 即使关键数据加载失败，也显示页面（遮罩已由定时器控制关闭）
+      }
+    })()
   },
   beforeDestroy() {
     cancelAnimationFrame(this.rafId)
@@ -1029,6 +1069,58 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   computed: {
+    statusChartData() {
+      const total = Object.values(this.statusCounts).reduce((sum, v) => sum + v, 0)
+      if (!total) {
+        return null
+      }
+
+      const labels = ['待审核', '进行中', '阻塞', '已完成']
+      const data = [
+        this.statusCounts.pendingReview || 0,
+        this.statusCounts.doing || 0,
+        this.statusCounts.blocked || 0,
+        this.statusCounts.done || 0
+      ]
+
+      return {
+        labels,
+        datasets: [
+          {
+            data,
+            backgroundColor: ['#60a5fa', '#3b82f6', '#f59e0b', '#10b981'],
+            borderWidth: 0
+          }
+        ]
+      }
+    },
+    statusChartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        legend: {
+          display: false
+        },
+        animation: {
+          animateScale: true,
+          animateRotate: true,
+          duration: 800,
+          easing: 'easeOutQuart'
+        },
+        tooltips: {
+          callbacks: {
+            label: (tooltipItem, data) => {
+              const dataset = data.datasets[tooltipItem.datasetIndex]
+              const value = dataset.data[tooltipItem.index] || 0
+              const total = dataset.data.reduce((sum, v) => sum + v, 0) || 1
+              const percent = Math.round((value / total) * 100)
+              const label = data.labels[tooltipItem.index] || ''
+              return `${label}: ${value}个（${percent}%）`
+            }
+          }
+        }
+      }
+    },
     // 计算总工时
     totalWorktime() {
       return this.memberWorktimes.reduce((sum, member) => sum + (member.worktime || 0), 0)
@@ -1372,6 +1464,13 @@ export default {
 
       this.scrollObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
+          // 监听顶部 KPI 区（包含任务状态分布饼图）
+          if (entry.target.classList.contains('kpi-section')) {
+            if (entry.isIntersecting) {
+              // 每次滚动回到这一屏时，重置饼图 key，强制重新挂载以触发 Chart.js 动画
+              this.statusChartKey = Date.now()
+            }
+          }
           if (entry.target.classList.contains('charts-section')) {
             if (entry.isIntersecting) {
               console.log('[ProjectDashboard] 图表section进入视口，触发动画')
@@ -1406,6 +1505,10 @@ export default {
 
       // 监听图表section
       this.$nextTick(() => {
+        const kpiSection = this.$el.querySelector('.kpi-section')
+        if (kpiSection) {
+          this.scrollObserver.observe(kpiSection)
+        }
         const chartsSection = this.$el.querySelector('.charts-section')
         if (chartsSection) {
           this.scrollObserver.observe(chartsSection)
