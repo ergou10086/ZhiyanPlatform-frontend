@@ -2547,11 +2547,11 @@
   position: relative;
 }
 
-/* 文件面板折叠状态 */
+/* 文件面板折叠状态（桌面端：收缩成窄条，仅保留操作按钮） */
 .ai-assistant-container .uploaded-files-panel.collapsed {
-  width: 100%;
-  max-width: 100%;
-  padding: 16px 12px;
+  width: 56px;
+  max-width: 56px;
+  padding: 16px 8px;
 }
 
 .ai-assistant-container .uploaded-files-panel.collapsed .files-panel-title {
