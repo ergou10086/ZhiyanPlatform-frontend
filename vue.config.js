@@ -172,7 +172,7 @@ module.exports = {
         // ⭐ 设置超时时间（0表示无限制）
         timeout: 0
       },
-      // ✅ 认证相关API - 转发到8091端口（认证服务）
+      // ✅ 认证相关API
       // URL示例：/zhiyan/auth/* → http://localhost:8091/zhiyan/auth/*
       '/zhiyan/auth': {
         target: 'http://localhost:9006',
