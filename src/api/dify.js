@@ -36,7 +36,7 @@ function parseJSONWithBigInt(data) {
 // 后端Dify服务配置（直连8096端口）
 const BACKEND_DIFY_CONFIG = {
   // 原配置 baseUrl: '/zhiyan/ai/dify', // 通过Vue代理转发到8096端口
-  baseUrl: config.api.baseURL,
+  baseUrl: config.api.baseURL + '/zhiyan/ai/dify',
   timeout: 120000, // axios 超时：2分钟
   streamTimeout: 300000 // fetch 流式响应超时：5分钟（AI文档分析需要更长时间）
 }
