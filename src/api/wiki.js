@@ -25,7 +25,7 @@ function parseJSONWithBigInt(data) {
  * - /api/wiki → http://localhost:8234
  */
 const api = axios.create({
-  baseURL: '', // 使用相对路径，通过Vue代理转发
+  baseURL: config.api.baseURL, // 使用相对路径，通过Vue代理转发
   timeout: config.api.timeout,
   withCredentials: true,
   // 自定义响应转换，将大整数转换为字符串
