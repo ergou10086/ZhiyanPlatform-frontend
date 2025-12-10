@@ -3,7 +3,7 @@ import config from '@/config'
 
 // 创建axios实例 - 用于上传文件
 const apiInstance = axios.create({
-  baseURL: '',
+  baseURL: config.api.baseURL,
   timeout: config.api.timeout,
   headers: {
     'Accept': 'application/json'

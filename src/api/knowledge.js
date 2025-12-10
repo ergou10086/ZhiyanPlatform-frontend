@@ -46,7 +46,7 @@ function parseJSONWithBigInt(data) {
 
 // 创建axios实例 - 使用Vue代理
 const api = axios.create({
-  baseURL: '', // 使用相对路径，通过Vue代理转发
+  baseURL: config.api.baseURL, // 使用相对路径，通过Vue代理转发
   timeout: config.api.timeout,
   headers: {
     'Content-Type': 'application/json',
