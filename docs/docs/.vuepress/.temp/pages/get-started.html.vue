@@ -70,10 +70,21 @@
 <h3 id="_2fa" tabindex="-1"><a class="header-anchor" href="#_2fa"><span>2FA</span></a></h3>
 <p>推荐使用Microsoft Authenticator，作为平台的最可靠的安全防线，请务必使用</p>
 <p><img src="@source/get-started/image-20251209103809219.png" alt="image-20251209103809219"></p>
+<h3 id="查看他人的个人主页" tabindex="-1"><a class="header-anchor" href="#查看他人的个人主页"><span>查看他人的个人主页</span></a></h3>
 <h2 id="项目部分" tabindex="-1"><a class="header-anchor" href="#项目部分"><span>项目部分</span></a></h2>
 <h2 id="任务部分" tabindex="-1"><a class="header-anchor" href="#任务部分"><span>任务部分</span></a></h2>
 <h2 id="知识库部分" tabindex="-1"><a class="header-anchor" href="#知识库部分"><span>知识库部分</span></a></h2>
 <h3 id="主页" tabindex="-1"><a class="header-anchor" href="#主页"><span>主页</span></a></h3>
+<p>知识库的主页用于展示项目内成果总数、知识文档、团队成员以及针对知识库部分的，全员的最近活动</p>
+<p><img src="@source/get-started/image-20251208164102855.png" alt=""></p>
+<h3 id="成果创建和上传文件" tabindex="-1"><a class="header-anchor" href="#成果创建和上传文件"><span>成果创建和上传文件</span></a></h3>
+<p>上传时候请注意，必须上传英文文件名的文件，这是COS的限制，因此，对于成果名请用尽可能描述的名字信息，如果是单文件成果，可以用原文件名作为成果名代替</p>
+<p>上传的文件类型如下，当然，你完全可以自定义类型，其中的字段你也可以自定义</p>
+<p><img src="@source/get-started/image-20251208164132239.png" alt=""></p>
+<p>上传项目可以根据成果的性质设置公开性</p>
+<p>而且当一个任务有关联成果的需求的时候，可以把成果和任务进行关联，在完成一个需要有产出的任务的时候，这个功能十分有用</p>
+<p>一个成果可以同时上传多个文件</p>
+<p><img src="@source/get-started/image-20251208164240275.png" alt=""></p>
 <h2 id="ai实验分析助手" tabindex="-1"><a class="header-anchor" href="#ai实验分析助手"><span>AI实验分析助手</span></a></h2>
 <h2 id="我的活动" tabindex="-1"><a class="header-anchor" href="#我的活动"><span>我的活动</span></a></h2>
 </div></template>

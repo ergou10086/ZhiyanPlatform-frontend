@@ -151,7 +151,7 @@
         <button 
           class="send-btn" 
           @click="sendMessage"
-          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && selectedKnowledgeFileIds.length === 0) || isSending"
+          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && uploadedFiles.length === 0) || isSending"
         >
           <svg v-if="!isSending" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -162,14 +162,16 @@
         </div>
       </div>
 
-      <!-- 文件选择弹窗 -->
+      <!-- 文件选择弹窗（两步选择：成果 -> 文件） -->
       <div v-if="showFileDialog" class="file-dialog-overlay" @click="closeFileDialog">
         <div class="file-dialog" @click.stop>
           <!-- 顶部标题栏 -->
           <div class="file-dialog-header">
             <div class="header-content">
-              <h3>选择成果目录文件</h3>
-              <p class="header-subtitle" v-if="selectedFiles.length > 0">已选择 {{ selectedFiles.length }} 项</p>
+              <h3 v-if="!selectedAchievement">第一步：选择成果</h3>
+              <h3 v-else>第二步：选择文件</h3>
+              <p class="header-subtitle" v-if="!selectedAchievement && selectedFiles.length > 0">已选择 {{ selectedFiles.length }} 个成果</p>
+              <p class="header-subtitle" v-else-if="selectedAchievement && selectedAchievementFiles.length > 0">已选择 {{ selectedAchievementFiles.length }} 个文件</p>
             </div>
             <button class="close-btn" @click="closeFileDialog">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -178,45 +180,102 @@
             </button>
           </div>
 
+          <!-- 第二步：显示成果信息栏和返回按钮 -->
+          <div v-if="selectedAchievement" class="achievement-info-bar">
+            <button class="back-btn" @click="backToAchievementSelection">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              返回
+            </button>
+            <div class="achievement-name">{{ selectedAchievement.name || selectedAchievement.title }}</div>
+          </div>
+
           <!-- 内容区域 -->
           <div class="file-dialog-body">
-            <div v-if="loadingFiles" class="loading-container">
-              <div class="loading-spinner-large"></div>
-              <p class="loading-text">正在加载文件列表...</p>
-            </div>
-            <div v-else-if="files.length === 0" class="empty-state">
-              <div class="empty-icon">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+            <!-- 第一步：显示成果列表 -->
+            <div v-if="!selectedAchievement">
+              <div v-if="loadingFiles" class="loading-container">
+                <div class="loading-spinner-large"></div>
+                <p class="loading-text">正在加载成果列表...</p>
               </div>
-              <p class="empty-text">成果目录中暂无文件</p>
-            </div>
-            <div v-else class="file-list-container">
-              <div class="file-list">
-                <div 
-                  v-for="file in files" 
-                  :key="file.id" 
-                  class="file-card"
-                  :class="{ 'selected': selectedFiles.includes(file.id) }"
-                  @click="toggleFileSelection(file.id)"
-                >
-                  <div class="file-card-content">
-                    <div class="file-card-main">
-                      <div class="file-name-wrapper">
-                        <div class="file-name">{{ file.name || file.title || '未命名文件' }}</div>
-                        <div class="file-badge-group">
-                          <span class="file-type-badge">{{ file.type || '未知类型' }}</span>
-                          <span v-if="file.fileCount" class="file-count-badge">{{ file.fileCount }}个文件</span>
+              <div v-else-if="achievements.length === 0" class="empty-state">
+                <div class="empty-icon">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <p class="empty-text">暂无成果</p>
+              </div>
+              <div v-else class="file-list-container">
+                <div class="file-list">
+                  <div 
+                    v-for="achievement in achievements" 
+                    :key="achievement.id" 
+                    class="file-card"
+                    @click="selectAchievement(achievement)"
+                  >
+                    <div class="file-card-content">
+                      <div class="file-card-main">
+                        <div class="file-name-wrapper">
+                          <div class="file-name">{{ achievement.name || achievement.title || '未命名成果' }}</div>
+                          <div class="file-badge-group">
+                            <span class="file-type-badge">{{ achievement.type || '成果' }}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div class="file-select-indicator" :class="{ 'active': selectedFiles.includes(file.id) }">
-                      <div class="checkmark-circle">
-                        <svg v-if="selectedFiles.includes(file.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                      <div class="file-select-indicator">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 第二步：显示文件列表 -->
+            <div v-else>
+              <div v-if="loadingAchievementFiles" class="loading-container">
+                <div class="loading-spinner-large"></div>
+                <p class="loading-text">正在加载文件列表...</p>
+              </div>
+              <div v-else-if="achievementFiles.length === 0" class="empty-state">
+                <div class="empty-icon">
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <p class="empty-text">该成果暂无文件</p>
+              </div>
+              <div v-else class="file-list-container">
+                <div class="file-list">
+                  <div 
+                    v-for="file in achievementFiles" 
+                    :key="file.id" 
+                    class="file-card"
+                    :class="{ 'selected': selectedAchievementFiles.includes(file.id) }"
+                    @click="toggleAchievementFileSelection(file.id)"
+                  >
+                    <div class="file-card-content">
+                      <div class="file-card-main">
+                        <div class="file-name-wrapper">
+                          <div class="file-name">{{ file.fileName || file.name || '未命名文件' }}</div>
+                          <div class="file-badge-group">
+                            <span class="file-type-badge">{{ file.fileType || file.type || '文件' }}</span>
+                            <span v-if="file.fileSize" class="file-size-badge">{{ formatFileSize(file.fileSize) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="file-select-indicator" :class="{ 'active': selectedAchievementFiles.includes(file.id) }">
+                        <div class="checkmark-circle">
+                          <svg v-if="selectedAchievementFiles.includes(file.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -229,13 +288,14 @@
           <div class="file-dialog-footer">
             <button class="btn-cancel" @click="closeFileDialog">取消</button>
             <button 
+              v-if="selectedAchievement"
               class="btn-confirm" 
-              @click="confirmFileSelection" 
-              :disabled="selectedFiles.length === 0"
-              :class="{ 'disabled': selectedFiles.length === 0 }"
+              @click="confirmAchievementFileSelection" 
+              :disabled="selectedAchievementFiles.length === 0"
+              :class="{ 'disabled': selectedAchievementFiles.length === 0 }"
             >
               <span>确认选择</span>
-              <span v-if="selectedFiles.length > 0" class="selected-count">{{ selectedFiles.length }}</span>
+              <span v-if="selectedAchievementFiles.length > 0" class="selected-count">{{ selectedAchievementFiles.length }}</span>
             </button>
           </div>
         </div>
@@ -286,6 +346,59 @@
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 已上传文件区域 -->
+        <div class="sidebar-files-section">
+          <h4 class="sidebar-files-title">已上传文件 ({{ uploadedFiles.length + uploadingFiles.length }})</h4>
+          
+          <!-- 无文件时的空状态 -->
+          <div v-if="uploadedFiles.length === 0 && uploadingFiles.length === 0" class="sidebar-files-empty">
+            <div class="empty-file-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <p class="empty-file-text">暂无文件</p>
+          </div>
+          
+          <!-- 文件列表 -->
+          <div v-else class="sidebar-files-list">
+            <!-- 上传中的文件 -->
+            <div v-for="file in uploadingFiles" :key="file.id" class="sidebar-file-item uploading">
+              <div class="sidebar-file-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="sidebar-file-info">
+                <div class="sidebar-file-name">{{ file.fileName }}</div>
+                <div class="sidebar-file-status">上传中...</div>
+              </div>
+              <div class="sidebar-loading-spinner"></div>
+            </div>
+            
+            <!-- 已上传的文件 -->
+            <div v-for="file in uploadedFiles" :key="file.id" class="sidebar-file-item">
+              <div class="sidebar-file-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="sidebar-file-info">
+                <div class="sidebar-file-name">{{ file.fileName }}</div>
+                <div class="sidebar-file-size">{{ formatFileSize(file.fileSize) }}</div>
+              </div>
+              <button class="sidebar-remove-btn" @click="removeUploadedFile(file.id)" title="移除">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
             </div>
@@ -448,8 +561,14 @@ export default {
       loadingFiles: false,
       selectedFiles: [],
       selectedLocalFiles: [], // 选中的本地文件（发送消息时一起传给后端）
-      selectedKnowledgeFileIds: [], // 选中的知识库文件ID
-      knowledgeFileInfoMap: {}, // 知识库文件信息映射 { fileId: { fileName, fileSize, fileType } }
+      uploadedFiles: [], // 已上传的文件列表 { id, fileName, fileSize, fileType, difyFileId, source: 'local'|'knowledge', knowledgeFileId }
+      uploadingFiles: [], // 正在上传的文件列表（用于显示进度）
+      // 两步选择：成果 -> 文件
+      achievements: [], // 成果列表（第一步）
+      selectedAchievement: null, // 选中的成果
+      achievementFiles: [], // 选中成果的文件列表（第二步）
+      selectedAchievementFiles: [], // 选中的文件ID列表
+      loadingAchievementFiles: false, // 加载成果文件状态
       conversationId: null, // 对话ID，用于维持会话
       currentStreamController: null, // 当前流式响应的控制器
       // ⭐ 参考Dify的打字机实现
@@ -515,21 +634,22 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   watch: {
-    // 监听文件变化，通知父组件更新左侧栏显示
-    selectedLocalFiles: {
+    // 监听已上传文件变化，通知父组件更新左侧栏显示
+    uploadedFiles: {
       handler(newFiles) {
         this.$emit('files-changed', {
-          localFiles: newFiles,
-          knowledgeFileIds: this.selectedKnowledgeFileIds
+          uploadedFiles: newFiles,
+          uploadingFiles: this.uploadingFiles
         })
       },
       deep: true
     },
-    selectedKnowledgeFileIds: {
-      handler(newIds) {
+    // 监听上传中文件变化，通知父组件更新左侧栏显示
+    uploadingFiles: {
+      handler(newFiles) {
         this.$emit('files-changed', {
-          localFiles: this.selectedLocalFiles,
-          knowledgeFileIds: newIds
+          uploadedFiles: this.uploadedFiles,
+          uploadingFiles: newFiles
         })
       },
       deep: true
@@ -691,7 +811,11 @@ export default {
 
       // 保存用户文字内容，用于复制功能
       const userTextContent = this.inputMessage.trim()
-      const query = this.inputMessage.trim()
+      // 如果用户没有输入文字但上传了文件，使用默认查询
+      let query = this.inputMessage.trim()
+      if (!query && (this.uploadedFiles.length > 0 || this.selectedLocalFiles.length > 0)) {
+        query = '请分析这些文件的内容'
+      }
       this.inputMessage = ''
 
       // 如果有文件，先发送文件消息（独立的消息气泡）
@@ -756,42 +880,28 @@ export default {
       })
       
       try {
-      // 准备本地文件和知识库文件ID
+      // 准备本地文件
       const localFiles = this.selectedLocalFiles.length > 0 ? this.selectedLocalFiles : null
       
-      // 处理知识库文件ID：转换为数字（后端期望 List<Long>）
-      let knowledgeFileIds = null
-      if (this.selectedKnowledgeFileIds.length > 0) {
-        knowledgeFileIds = this.selectedKnowledgeFileIds.map(id => {
-          // 处理虚拟文件ID（成果目录）
-          if (typeof id === 'string' && id.startsWith('achievement_')) {
-            // 提取成果ID并转换为数字
-            const achievementId = id.replace('achievement_', '')
-            const numId = Number(achievementId)
-            return isNaN(numId) ? null : numId
-          }
-          // 转换为数字类型
-          const numId = typeof id === 'number' ? id : Number(id)
-          return isNaN(numId) ? null : numId
-        }).filter(id => id !== null && id !== undefined && !isNaN(id))
-        
-        // 如果过滤后为空，设置为 null
-        if (knowledgeFileIds.length === 0) {
-          knowledgeFileIds = null
-        }
-      }
+      // 提取已上传文件的 difyFileId
+      const difyFileIds = this.uploadedFiles.map(file => file.difyFileId).filter(id => id)
+      
+      console.log('[KnowledgeBaseAI] 发送前的文件状态:', {
+        uploadedFiles: this.uploadedFiles.length,
+        difyFileIds: difyFileIds,
+        selectedLocalFiles: this.selectedLocalFiles.length
+      })
       
       // 发送后清空文件（下次需要重新选择）
       this.selectedLocalFiles = []
-      this.selectedKnowledgeFileIds = []
-      this.knowledgeFileInfoMap = {}
+      this.uploadedFiles = []
         
         // 调用基于 Dify 知识库工作流的流式对话接口（支持文件）
-        console.log('[调用API] 使用Dify知识库工作流接口，localFiles:', localFiles?.length, 'knowledgeFileIds:', knowledgeFileIds?.length, 'conversationId:', this.conversationId)
+        console.log('[调用API] 使用Dify知识库工作流接口，localFiles:', localFiles?.length, 'difyFileIds:', difyFileIds?.length, 'difyFileIds详情:', difyFileIds, 'conversationId:', this.conversationId)
         this.currentStreamController = await uploadAndChatStreamForKnowledge(
           query,
           this.conversationId,
-          knowledgeFileIds || [],
+          difyFileIds || [],
           localFiles || [],
           (delta) => {
             // 处理流式消息增量内容，直接走打字机效果
@@ -1022,6 +1132,10 @@ export default {
     closeFileDialog() {
       this.showFileDialog = false
       this.selectedFiles = []
+      this.selectedAchievement = null
+      this.achievementFiles = []
+      this.selectedAchievementFiles = []
+      this.loadingAchievementFiles = false
     },
     
      // 清除对话历史
@@ -1048,10 +1162,10 @@ export default {
       }
     },
     
-    // 加载成果目录文件列表
+    // 加载成果列表（第一步）
     async loadFiles() {
       if (!this.projectId) {
-        console.warn('项目ID不存在，无法加载文件列表')
+        console.warn('项目ID不存在，无法加载成果列表')
         return
       }
       
@@ -1062,22 +1176,155 @@ export default {
         
         if (response && response.code === 200 && response.data) {
           if (Array.isArray(response.data)) {
-            this.files = response.data
+            this.achievements = response.data
           } else if (response.data.content && Array.isArray(response.data.content)) {
-            this.files = response.data.content
+            this.achievements = response.data.content
           } else {
-            this.files = []
+            this.achievements = []
           }
-          console.log('加载成果文件列表成功，数量:', this.files.length)
+          console.log('加载成果列表成功，数量:', this.achievements.length)
         } else {
-          this.files = []
+          this.achievements = []
           console.warn('获取成果列表失败:', response)
         }
       } catch (error) {
-        console.error('加载成果文件列表失败:', error)
-        this.files = []
+        console.error('加载成果列表失败:', error)
+        this.achievements = []
       } finally {
         this.loadingFiles = false
+      }
+    },
+    
+    // 选择成果（进入第二步）
+    async selectAchievement(achievement) {
+      this.selectedAchievement = achievement
+      this.achievementFiles = []
+      this.selectedAchievementFiles = []
+      this.loadingAchievementFiles = true
+      
+      try {
+        console.log('加载成果文件:', achievement.id)
+        const response = await knowledgeAPI.getAchievementFiles(achievement.id)
+        console.log('获取成果文件响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          this.achievementFiles = Array.isArray(response.data) ? response.data : []
+          console.log('加载成果文件成功，数量:', this.achievementFiles.length)
+        } else {
+          this.achievementFiles = []
+          console.warn('获取成果文件失败:', response)
+        }
+      } catch (error) {
+        console.error('加载成果文件失败:', error)
+        this.achievementFiles = []
+      } finally {
+        this.loadingAchievementFiles = false
+      }
+    },
+    
+    // 返回成果选择（第一步）
+    backToAchievementSelection() {
+      this.selectedAchievement = null
+      this.achievementFiles = []
+      this.selectedAchievementFiles = []
+    },
+    
+    // 切换文件选择状态（第二步）
+    toggleAchievementFileSelection(fileId) {
+      const index = this.selectedAchievementFiles.indexOf(fileId)
+      if (index > -1) {
+        this.selectedAchievementFiles.splice(index, 1)
+      } else {
+        this.selectedAchievementFiles.push(fileId)
+      }
+    },
+    
+    // 确认选择文件（第二步）- 立即上传到 Dify
+    async confirmAchievementFileSelection() {
+      if (this.selectedAchievementFiles.length === 0) return
+      
+      // ⚠️ 重要：在 closeFileDialog() 之前保存文件ID，因为 closeFileDialog 会清空 selectedAchievementFiles
+      const fileIdsToUpload = this.selectedAchievementFiles.slice()
+      
+      const selectedFileObjects = this.achievementFiles.filter(file => 
+        fileIdsToUpload.includes(file.id)
+      )
+      
+      console.log('[文件上传] 开始上传知识库文件到Dify:', fileIdsToUpload)
+      console.log('[文件上传] 选中的文件对象:', selectedFileObjects)
+      
+      // 关闭对话框，显示上传进度
+      this.closeFileDialog()
+      
+      // 添加到上传中列表
+      selectedFileObjects.forEach(file => {
+        console.log('[文件上传] 添加到上传中列表的文件:', file)
+        this.uploadingFiles.push({
+          id: String(file.id),
+          fileName: file.fileName || file.name || '未命名文件',
+          fileSize: file.fileSize || file.size || 0,
+          fileType: file.fileType || file.type || '文件',
+          progress: 0,
+          source: 'knowledge'
+        })
+      })
+      console.log('[文件上传] 上传中列表（添加后）:', this.uploadingFiles)
+      
+      try {
+        // 调用上传接口
+        const { uploadKnowledgeFilesToDify } = await import('@/api/dify')
+        console.log('[文件上传] 准备上传的文件ID:', fileIdsToUpload)
+        const uploadResults = await uploadKnowledgeFilesToDify(fileIdsToUpload)
+        
+        console.log('[文件上传] 上传结果:', uploadResults)
+        
+        // 处理上传结果
+        uploadResults.forEach(result => {
+          const knowledgeFileIdStr = String(result.knowledgeFileId)
+          console.log('[文件上传] 处理结果:', result, '查找ID:', knowledgeFileIdStr)
+          
+          // 从上传中列表移除（使用字符串比较）
+          const uploadingIndex = this.uploadingFiles.findIndex(f => String(f.id) === knowledgeFileIdStr)
+          console.log('[文件上传] 上传中列表:', this.uploadingFiles.map(f => ({ id: f.id, fileName: f.fileName })))
+          console.log('[文件上传] 查找索引:', uploadingIndex)
+          
+          if (uploadingIndex > -1) {
+            this.uploadingFiles.splice(uploadingIndex, 1)
+            console.log('[文件上传] 已从上传中列表移除:', knowledgeFileIdStr)
+          } else {
+            console.warn('[文件上传] 未在上传中列表找到文件:', knowledgeFileIdStr)
+          }
+          
+          if (result.success && result.difyFileId) {
+            // 查找文件信息
+            const fileInfo = selectedFileObjects.find(f => String(f.id) === knowledgeFileIdStr)
+            console.log('[文件上传] 找到的文件信息:', fileInfo)
+            
+            // 添加到已上传列表
+            this.uploadedFiles.push({
+              id: `knowledge_${result.knowledgeFileId}_${Date.now()}`,
+              fileName: result.fileName || fileInfo?.fileName || fileInfo?.name || '未命名文件',
+              fileSize: fileInfo?.fileSize || fileInfo?.size || 0,
+              fileType: fileInfo?.fileType || fileInfo?.type || '文件',
+              difyFileId: result.difyFileId,
+              source: 'knowledge',
+              knowledgeFileId: knowledgeFileIdStr
+            })
+            console.log('[文件上传] 文件上传成功并添加到已上传列表:', result.fileName, 'fileSize:', fileInfo?.fileSize || fileInfo?.size, 'difyFileId:', result.difyFileId)
+          } else {
+            console.error('[文件上传] 文件上传失败:', result.fileName, result.error)
+            this.$message && this.$message.error(`文件 ${result.fileName} 上传失败: ${result.error || '未知错误'}`)
+          }
+        })
+        
+        if (uploadResults.some(r => r.success)) {
+          this.$message && this.$message.success(`成功上传 ${uploadResults.filter(r => r.success).length} 个文件`)
+        }
+      } catch (error) {
+        console.error('[文件上传] 上传知识库文件失败:', error)
+        this.$message && this.$message.error('上传文件失败: ' + (error.message || '未知错误'))
+        // 清空上传中列表
+        this.uploadingFiles = []
       }
     },
     
@@ -1091,154 +1338,22 @@ export default {
       }
     },
     
-    // 确认选择文件
-    async confirmFileSelection() {
-      if (this.selectedFiles.length === 0) return
-      
-      // 获取选中的成果对象
-      const selectedAchievements = this.files.filter(file => this.selectedFiles.includes(file.id))
-      
-      // 收集所有成果的文件ID
-      const allFileIds = []
-      const selectedFileNames = []
-      
-      try {
-        // 为每个选中的成果获取文件列表
-        for (const achievement of selectedAchievements) {
-          try {
-            // 获取成果详情（包含文件列表）
-            const detailResponse = await knowledgeAPI.getAchievementDetail(achievement.id)
-            console.log('成果详情响应:', detailResponse)
-
-            let files = []
-
-            // 尝试获取成果详情
-            if (detailResponse && detailResponse.code === 200 && detailResponse.data) {
-              // 尝试多种可能的文件列表路径
-              files = detailResponse.data.files || []
-
-              // 如果详情中没有文件，尝试单独获取文件列表
-              if (!files || files.length === 0) {
-                try {
-                  const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
-                  console.log('单独获取文件列表响应:', filesResponse)
-                  if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
-                    files = Array.isArray(filesResponse.data) ? filesResponse.data : (filesResponse.data.files || [])
-                  }
-                } catch (fileError) {
-                  console.warn('单独获取文件列表失败:', fileError)
-                  // 即使获取失败，也继续处理，可能是空成果目录
-                  files = []
-                }
-              }
-            } else {
-              // 如果获取详情失败，尝试单独获取文件列表
-              try {
-                const filesResponse = await knowledgeAPI.getAchievementFiles(achievement.id)
-                console.log('详情获取失败，单独获取文件列表响应:', filesResponse)
-                if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
-                  files = Array.isArray(filesResponse.data) ? filesResponse.data : (filesResponse.data.files || [])
-                }
-              } catch (fileError) {
-                console.warn('单独获取文件列表失败:', fileError)
-                // 即使获取失败，也继续处理，可能是空成果目录
-                files = []
-              }
-            }
-
-              console.log('最终获取到的文件列表:', files)
-
-              // 无论是否有文件，都创建文件条目（如果没有文件，创建虚拟条目代表成果目录）
-              if (!files || files.length === 0) {
-                console.log('成果目录没有文件，创建虚拟文件条目:', achievement.id)
-                // 使用成果ID作为文件ID（加上前缀避免冲突）
-                const virtualFileId = `achievement_${achievement.id}`
-                if (!allFileIds.includes(virtualFileId)) {
-                  allFileIds.push(virtualFileId)
-                  // 保存成果信息到映射中
-                  this.$set(this.knowledgeFileInfoMap, virtualFileId, {
-                    fileName: achievement.title || achievement.name || `成果${achievement.id}`,
-                    fileSize: 0,
-                    fileType: achievement.type || '成果',
-                    isAchievement: true, // 标记这是成果目录，不是实际文件
-                    achievementId: achievement.id
-                  })
-                  console.log('保存成果目录信息:', virtualFileId, this.knowledgeFileInfoMap[virtualFileId])
-                }
-              } else {
-                // 提取文件ID并添加到列表，并保存文件信息到映射中
-                files.forEach(file => {
-                  if (file && file.id) {
-                    // 保持ID为字符串类型，避免精度丢失
-                    const fileId = String(file.id)
-                    // 避免重复添加
-                    if (!allFileIds.includes(fileId)) {
-                      allFileIds.push(fileId)
-                    }
-                    // 保存文件信息到映射中（使用 Vue.set 确保响应式）
-                    this.$set(this.knowledgeFileInfoMap, fileId, {
-                      fileName: file.fileName || file.name || file.originalName || achievement.title || achievement.name || '未命名文件',
-                      fileSize: file.fileSize || file.size || 0,
-                      fileType: file.fileType || file.type || (file.fileName ? file.fileName.split('.').pop()?.toUpperCase() : (file.originalName ? file.originalName.split('.').pop()?.toUpperCase() : '未知')) || '未知'
-                    })
-                    console.log('保存文件信息:', fileId, this.knowledgeFileInfoMap[fileId])
-                  }
-                })
-              }
-              
-              // 记录文件名
-              if (files.length > 0) {
-                 const fileNames = files.map(f => f.fileName || f.name || '未命名文件').join(', ')
-                selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: ${fileNames}`)
-              } else {
-                selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 成果目录（无文件）`)
-              }
-          } catch (error) {
-            console.error(`获取成果 ${achievement.id} 的文件列表失败:`, error)
-            // 即使获取失败，也创建虚拟文件条目，确保用户可以选择
-            const virtualFileId = `achievement_${achievement.id}`
-            if (!allFileIds.includes(virtualFileId)) {
-              allFileIds.push(virtualFileId)
-              this.$set(this.knowledgeFileInfoMap, virtualFileId, {
-                fileName: achievement.title || achievement.name || `成果${achievement.id}`,
-                fileSize: 0,
-                fileType: achievement.type || '成果',
-                isAchievement: true,
-                achievementId: achievement.id
-              })
-              console.log('获取失败，但仍创建成果目录条目:', virtualFileId)
-            }
-            selectedFileNames.push(`${achievement.title || achievement.name || '成果'}: 成果目录（获取信息失败，但可尝试使用）`)
-          }
-        }
-        
-        // 保存选中的知识库文件ID（追加到现有列表，避免重复）
-        allFileIds.forEach(fileId => {
-          // 转换为相同类型进行比较
-          const fileIdStr = String(fileId)
-          const exists = this.selectedKnowledgeFileIds.some(id => String(id) === fileIdStr)
-          if (!exists) {
-            this.selectedKnowledgeFileIds.push(fileId)
-          }
-        })
-      
-        console.log('选中的知识库文件ID:', this.selectedKnowledgeFileIds)
-        console.log('文件信息映射:', this.knowledgeFileInfoMap)
-        console.log('选中的成果:', selectedAchievements)
-        console.log('获取到的文件数量:', allFileIds.length)
-
-        // 如果获取到了文件，确保视图更新
-        if (allFileIds.length > 0) {
-          this.$nextTick(() => {
-            this.$forceUpdate()
-          })
-        }
-      } catch (error) {
-        console.error('确认文件选择失败:', error)
-        this.$message && this.$message.error('获取文件信息失败，请重试')
+    // 移除已上传的文件
+    removeUploadedFile(fileId) {
+      const index = this.uploadedFiles.findIndex(f => f.id === fileId)
+      if (index > -1) {
+        this.uploadedFiles.splice(index, 1)
+        console.log('[文件管理] 移除文件:', fileId)
       }
-      
-      this.closeFileDialog()
+    },
+    
+    // 格式化文件大小
+    formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
     },
     
     // 处理点击外部关闭下拉菜单
@@ -1832,3 +1947,198 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* 成果信息栏样式 */
+.achievement-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.achievement-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* 文件大小徽章样式 */
+.file-size-badge {
+  padding: 2px 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 已上传文件显示区域 */
+.uploaded-files-section {
+  padding: 12px 16px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.uploaded-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.files-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.uploaded-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.uploaded-file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.uploaded-file-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);
+}
+
+.uploaded-file-item.uploading {
+  opacity: 0.7;
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.uploaded-file-item .file-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #dbeafe;
+  border-radius: 6px;
+  color: #3b82f6;
+}
+
+.uploaded-file-item.uploading .file-icon {
+  background: #bfdbfe;
+}
+
+.uploaded-file-item .file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.uploaded-file-item .file-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.uploaded-file-item .file-size,
+.uploaded-file-item .file-status {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.uploaded-file-item .file-status {
+  color: #3b82f6;
+}
+
+.remove-file-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-file-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.loading-spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 深色模式支持 */
+html.dark-mode .achievement-info-bar {
+  background: #1f2937;
+}
+
+html.dark-mode .back-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+html.dark-mode .back-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+html.dark-mode .achievement-name {
+  color: #f3f4f6;
+}
+
+html.dark-mode .file-size-badge {
+  background: #374151;
+  color: #9ca3af;
+}
+</style>
