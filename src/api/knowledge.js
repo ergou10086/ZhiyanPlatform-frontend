@@ -18,42 +18,29 @@ function parseJSONWithBigInt(data) {
   }
 
   try {
-    // 使用 JSON.parse 的 reviver 函数来处理大整数
-    // 这比正则替换更安全，因为它在JSON解析过程中处理
-    return JSON.parse(trimmed, (key, value) => {
-      // 如果值是数字且超过 JavaScript 安全整数范围，转为字符串
-      if (typeof value === 'number' && (value > Number.MAX_SAFE_INTEGER || value < Number.MIN_SAFE_INTEGER)) {
-        return value.toString()
-      }
-      return value
-    })
+    // ⚠️ 必须在 JSON.parse 之前用正则替换大整数！
+    // 因为一旦 JSON.parse 执行，大整数就已经被转换成 Number，精度已丢失
+    const processedData = trimmed
+      // 匹配对象属性值中的大整数: "key": 数字 (16位及以上)
+      .replace(/:(\s*)(\d{16,})(\s*[,}\]])/g, ':$1"$2"$3')
+      // 匹配数组开头的大整数: [数字
+      .replace(/\[(\s*)(\d{16,})(\s*[,\]])/g, '[$1"$2"$3')
+      // 匹配数组中间的大整数: ,数字
+      .replace(/,(\s*)(\d{16,})(\s*[,\]])/g, ',$1"$2"$3')
+    
+    return JSON.parse(processedData)
   } catch (e) {
-    // 如果直接解析失败，尝试用正则替换大整数后再解析
-    try {
-      console.warn('JSON直接解析失败，尝试正则替换大整数...')
-      return JSON.parse(
-        trimmed
-          // 匹配对象属性值中的大整数: "key": 数字 (16位及以上)
-          .replace(/:(\s*)(\d{16,})(\s*[,}\]])/g, ':$1"$2"$3')
-          // 匹配数组开头的大整数: [数字
-          .replace(/\[(\s*)(\d{16,})(\s*[,\]])/g, '[$1"$2"$3')
-          // 匹配数组中间的大整数: ,数字
-          .replace(/,(\s*)(\d{16,})(\s*[,\]])/g, ',$1"$2"$3')
-      )
-    } catch (e2) {
-      console.error('JSON解析错误（正则替换后仍失败）:', e2)
-      console.error('原始错误:', e)
-      console.error('原始数据前500字符:', trimmed.substring(0, 500))
-      // 尝试找到出错位置
-      if (e.message && e.message.includes('position')) {
-        const match = e.message.match(/position (\d+)/)
-        if (match) {
-          const pos = parseInt(match[1])
-          console.error(`出错位置附近的内容: ...${trimmed.substring(Math.max(0, pos - 50), Math.min(trimmed.length, pos + 50))}...`)
-        }
+    console.error('JSON解析错误:', e)
+    console.error('原始数据前500字符:', trimmed.substring(0, 500))
+    // 尝试找到出错位置
+    if (e.message && e.message.includes('position')) {
+      const match = e.message.match(/position (\d+)/)
+      if (match) {
+        const pos = parseInt(match[1])
+        console.error(`出错位置附近的内容: ...${trimmed.substring(Math.max(0, pos - 50), Math.min(trimmed.length, pos + 50))}...`)
       }
-      return data
     }
+    return data
   }
 }
 
