@@ -1240,6 +1240,14 @@ export default {
     async loadTaskDetailsAsync() {
       // 后台异步加载详细任务数据，不阻塞UI
       try {
+        // 确保已有项目列表，用于后续按项目状态过滤归档项目的任务
+        if (!Array.isArray(this.projects) || this.projects.length === 0) {
+          try {
+            await this.loadProjects()
+          } catch (e) {
+            console.warn('[MyActivity] 加载项目失败，将仅按任务自身字段尝试过滤归档任务:', e)
+          }
+        }
         const [assignedResult, createdResult] = await Promise.allSettled([
           taskAPI.getMyAssignedTasks(0, 100),
           taskAPI.getMyCreatedTasks(0, 100)
