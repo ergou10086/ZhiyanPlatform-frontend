@@ -11,7 +11,7 @@ const DEFAULT_HOST =
 
 const DEFAULTS = {
   api: {
-    baseURL: DEFAULT_HOST,
+    baseURL: DEFAULT_HOST + "/zhiyan/ai/dify",
     timeout: 60000,
     endpoints: {
       auth: DEFAULT_HOST,
