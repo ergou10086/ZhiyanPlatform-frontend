@@ -6,7 +6,7 @@
 const DEFAULT_HOST =
   (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
   (process.env.NODE_ENV === 'production'
-    ? ''   // 生产环境使用相对路径，由 Nginx 代理转发
+    ? 'https://api.zyplatform.xyz'   // 生产环境使用相对路径，由 Nginx 代理转发
     : 'http://localhost:9006')  // 开发环境使用本地后端
 
 const DEFAULTS = {
