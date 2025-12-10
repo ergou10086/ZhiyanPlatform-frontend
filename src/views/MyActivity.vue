@@ -1273,7 +1273,41 @@ export default {
           console.warn('[MyActivity] 获取我发布的任务失败:', createdResult.reason)
         }
 
-        console.log('[MyActivity] 统计使用的任务总数:', allTasks.length)
+        console.log('[MyActivity] 统计使用的任务总数(含所有项目):', allTasks.length)
+
+        // 在统计前先过滤掉已归档项目下的任务
+        // 优先根据 this.projects 中的项目状态，通过项目ID过滤
+        if (Array.isArray(this.projects) && this.projects.length > 0) {
+          const archivedProjectIds = new Set(
+            this.projects
+              .filter(p => {
+                const status = String(p.status || '').toUpperCase()
+                return status === 'ARCHIVED' || status === '已归档'
+              })
+              .map(p => String(p.id))
+          )
+
+          allTasks = allTasks.filter(task => {
+            const projectId = String(task.projectId || task.project_id || '')
+            if (projectId && archivedProjectIds.has(projectId)) {
+              return false
+            }
+
+            // 兜底：如果任务自身带有项目状态字段，再按字段判断一次
+            const projectStatus = String(task.projectStatus || task.project_status || '').toUpperCase()
+            const isArchivedByField = projectStatus === 'ARCHIVED' || projectStatus === '已归档'
+            return !isArchivedByField
+          })
+        } else {
+          // 没有项目列表时，仅按任务上的项目状态字段兜底过滤
+          allTasks = allTasks.filter(task => {
+            const projectStatus = String(task.projectStatus || task.project_status || '').toUpperCase()
+            const isArchivedProject = projectStatus === 'ARCHIVED' || projectStatus === '已归档'
+            return !isArchivedProject
+          })
+        }
+
+        console.log('[MyActivity] 统计使用的任务总数(排除已归档项目后):', allTasks.length)
 
         // 如果API返回的统计数据为空，从任务列表中计算
         const hasApiStats = ['pending', 'inProgress', 'completed', 'reviewing'].some(key => (this.taskStats[key] || 0) > 0)
