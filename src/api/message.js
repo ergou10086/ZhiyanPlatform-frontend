@@ -1,4 +1,93 @@
-import { proxyRequest as request } from '@/utils/request'
+import axios from 'axios'
+import config from '@/config'
+
+/**
+ * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ */
+function parseJSONWithBigInt(data) {
+  if (typeof data !== 'string') return data
+  // 处理空字符串或null
+  if (!data || data.trim() === '') {
+    console.warn('收到空响应数据')
+    return null
+  }
+  try {
+    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+  } catch (e) {
+    console.error('JSON解析错误:', e)
+    console.error('原始数据:', data)
+    return null
+  }
+}
+
+// 创建axios实例
+const api = axios.create({
+  baseURL: config.api.baseURL,
+  timeout: config.api.timeout,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  withCredentials: true,
+  // 自定义响应转换，将大整数转换为字符串
+  transformResponse: [function (data) {
+    return parseJSONWithBigInt(data)
+  }]
+})
+
+// 请求拦截器
+api.interceptors.request.use(
+  config => {
+    // 从localStorage获取token
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // 确保Content-Type正确设置
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json'
+    }
+    
+    return config
+  },
+  error => {
+    console.error('请求拦截器错误:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+api.interceptors.response.use(
+  response => {
+    return response.data
+  },
+  error => {
+    console.error('API错误详情:', error)
+    
+    if (error.response) {
+      // 服务器返回错误状态码
+      const { status, data } = error.response
+      console.error('服务器错误:', status, data)
+      if (status === 401) {
+        // token过期，清除本地存储并跳转到登录页
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_info')
+        window.location.href = '/login'
+      }
+      return Promise.reject(data || error)
+    } else if (error.request) {
+      // 网络错误
+      console.error('网络错误详情:', error.request)
+      return Promise.reject(new Error('网络连接失败，请检查后端服务'))
+    } else {
+      // 其他错误
+      console.error('其他错误:', error.message)
+      return Promise.reject(error)
+    }
+  }
+)
 
 /**
  * 消息模块API
@@ -13,21 +102,14 @@ import { proxyRequest as request } from '@/utils/request'
  * @param {boolean} params.isRead - 是否已读（可选）
  */
 export function getInboxMessages(params) {
-  return request({
-    url: '/zhiyan/message/list',
-    method: 'get',
-    params
-  })
+  return api.get('/zhiyan/message/list', { params })
 }
 
 /**
  * 获取未读消息数量
  */
 export function getUnreadCount() {
-  return request({
-    url: '/zhiyan/message/unread/count',
-    method: 'get'
-  })
+  return api.get('/zhiyan/message/unread/count')
 }
 
 /**
@@ -37,11 +119,7 @@ export function getUnreadCount() {
  * @param {number} params.size - 每页数量
  */
 export function getUnreadMessages(params) {
-  return request({
-    url: '/zhiyan/message/unread',
-    method: 'get',
-    params
-  })
+  return api.get('/zhiyan/message/unread', { params })
 }
 
 /**
@@ -49,10 +127,7 @@ export function getUnreadMessages(params) {
  * @param {number} messageId - 消息ID
  */
 export function markAsRead(messageId) {
-  return request({
-    url: `/zhiyan/message/read/${messageId}`,
-    method: 'put'
-  })
+  return api.put(`/zhiyan/message/read/${messageId}`)
 }
 
 /**
@@ -60,31 +135,21 @@ export function markAsRead(messageId) {
  * @param {Array<number>} messageIds - 消息ID列表
  */
 export function batchMarkAsRead(messageIds) {
-  return request({
-    url: '/zhiyan/message/read/batch',
-    method: 'put',
-    data: messageIds
-  })
+  return api.put('/zhiyan/message/read/batch', messageIds)
 }
 
 /**
  * 标记所有消息为已读
  */
 export function markAllAsRead() {
-  return request({
-    url: '/zhiyan/message/read/all',
-    method: 'put'
-  })
+  return api.put('/zhiyan/message/read/all')
 }
 
 /**
  * 清空所有已读消息（真删除）
  */
 export function clearReadMessages() {
-  return request({
-    url: '/zhiyan/message/clear',
-    method: 'delete'
-  })
+  return api.delete('/zhiyan/message/clear')
 }
 
 /**
@@ -92,10 +157,7 @@ export function clearReadMessages() {
  * @param {number} messageId - 消息ID
  */
 export function deleteMessage(messageId) {
-  return request({
-    url: `/zhiyan/message/${messageId}`,
-    method: 'delete'
-  })
+  return api.delete(`/zhiyan/message/${messageId}`)
 }
 
 /**
@@ -103,11 +165,7 @@ export function deleteMessage(messageId) {
  * @param {Array<number>} messageIds - 消息ID列表
  */
 export function batchDeleteMessages(messageIds) {
-  return request({
-    url: '/zhiyan/message/batch-delete',
-    method: 'delete',
-    data: messageIds
-  })
+  return api.delete('/zhiyan/message/batch-delete', { data: messageIds })
 }
 
 /**
@@ -115,20 +173,14 @@ export function batchDeleteMessages(messageIds) {
  * @param {number} messageId - 消息ID
  */
 export function getMessageDetail(messageId) {
-  return request({
-    url: `/zhiyan/message/${messageId}`,
-    method: 'get'
-  })
+  return api.get(`/zhiyan/message/${messageId}`)
 }
 
 /**
  * 按场景分组统计未读消息
  */
 export function getUnreadCountByScene() {
-  return request({
-    url: '/zhiyan/message/unread/count-by-scene',
-    method: 'get'
-  })
+  return api.get('/zhiyan/message/unread/count-by-scene')
 }
 
 /**
@@ -139,11 +191,7 @@ export function getUnreadCountByScene() {
  * @param {string} data.content - 消息内容
  */
 export function sendMessageToUser(data) {
-  return request({
-    url: '/zhiyan/message/send/to-user',
-    method: 'post',
-    data
-  })
+  return api.post('/zhiyan/message/send/to-user', data)
 }
 
 /**
@@ -154,11 +202,7 @@ export function sendMessageToUser(data) {
  * @param {string} data.content - 消息内容
  */
 export function sendMessageToProject(data) {
-  return request({
-    url: '/zhiyan/message/send/to-project',
-    method: 'post',
-    data
-  })
+  return api.post('/zhiyan/message/send/to-project', data)
 }
 
 /**
@@ -166,10 +210,7 @@ export function sendMessageToProject(data) {
  * @param {number} recipientId - 消息收件记录ID
  */
 export function acceptProjectInvitation(recipientId) {
-  return request({
-    url: `/zhiyan/message/project/invite/${recipientId}/accept`,
-    method: 'post'
-  })
+  return api.post(`/zhiyan/message/project/invite/${recipientId}/accept`)
 }
 
 /**
@@ -177,10 +218,7 @@ export function acceptProjectInvitation(recipientId) {
  * @param {number} recipientId - 消息收件记录ID
  */
 export function rejectProjectInvitation(recipientId) {
-  return request({
-    url: `/zhiyan/message/project/invite/${recipientId}/reject`,
-    method: 'post'
-  })
+  return api.post(`/zhiyan/message/project/invite/${recipientId}/reject`)
 }
 
 /**
@@ -188,10 +226,7 @@ export function rejectProjectInvitation(recipientId) {
  * @param {number} recipientId - 消息收件记录ID
  */
 export function approveProjectJoin(recipientId) {
-  return request({
-    url: `/zhiyan/message/project/apply/${recipientId}/approve`,
-    method: 'post'
-  })
+  return api.post(`/zhiyan/message/project/apply/${recipientId}/approve`)
 }
 
 /**
@@ -199,8 +234,5 @@ export function approveProjectJoin(recipientId) {
  * @param {number} recipientId - 消息收件记录ID
  */
 export function rejectProjectJoin(recipientId) {
-  return request({
-    url: `/zhiyan/message/project/apply/${recipientId}/reject`,
-    method: 'post'
-  })
+  return api.post(`/zhiyan/message/project/apply/${recipientId}/reject`)
 }

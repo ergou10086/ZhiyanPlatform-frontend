@@ -1,4 +1,93 @@
-import request from '@/utils/request'
+import axios from 'axios'
+import config from '@/config'
+
+/**
+ * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ */
+function parseJSONWithBigInt(data) {
+  if (typeof data !== 'string') return data
+  // 处理空字符串或null
+  if (!data || data.trim() === '') {
+    console.warn('收到空响应数据')
+    return null
+  }
+  try {
+    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+  } catch (e) {
+    console.error('JSON解析错误:', e)
+    console.error('原始数据:', data)
+    return null
+  }
+}
+
+// 创建axios实例
+const api = axios.create({
+  baseURL: config.api.baseURL,
+  timeout: config.api.timeout,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  withCredentials: true,
+  // 自定义响应转换，将大整数转换为字符串
+  transformResponse: [function (data) {
+    return parseJSONWithBigInt(data)
+  }]
+})
+
+// 请求拦截器
+api.interceptors.request.use(
+  config => {
+    // 从localStorage获取token
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    
+    // 确保Content-Type正确设置
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json'
+    }
+    
+    return config
+  },
+  error => {
+    console.error('请求拦截器错误:', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+api.interceptors.response.use(
+  response => {
+    return response.data
+  },
+  error => {
+    console.error('API错误详情:', error)
+    
+    if (error.response) {
+      // 服务器返回错误状态码
+      const { status, data } = error.response
+      console.error('服务器错误:', status, data)
+      if (status === 401) {
+        // token过期，清除本地存储并跳转到登录页
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('user_info')
+        window.location.href = '/login'
+      }
+      return Promise.reject(data || error)
+    } else if (error.request) {
+      // 网络错误
+      console.error('网络错误详情:', error.request)
+      return Promise.reject(new Error('网络连接失败，请检查后端服务'))
+    } else {
+      // 其他错误
+      console.error('其他错误:', error.message)
+      return Promise.reject(error)
+    }
+  }
+)
 
 /**
  * 获取我的活动操作日志（聚合所有类型）
@@ -8,9 +97,7 @@ import request from '@/utils/request'
  * @returns {Promise}
  */
 export function getMyActivityLogs(params) {
-  return request({
-    url: '/zhiyan/activelog/myself/all',
-    method: 'get',
+  return api.get('/zhiyan/activelog/myself/all', {
     params: {
       page: params.page || 0,
       size: params.size || 20
@@ -24,9 +111,7 @@ export function getMyActivityLogs(params) {
  * @returns {Promise}
  */
 export function getMyProjectLogs(params) {
-  return request({
-    url: '/zhiyan/activelog/myself/project-logs',
-    method: 'get',
+  return api.get('/zhiyan/activelog/myself/project-logs', {
     params: {
       startTime: params.startTime,
       endTime: params.endTime,
@@ -42,9 +127,7 @@ export function getMyProjectLogs(params) {
  * @returns {Promise}
  */
 export function getMyTaskLogs(params) {
-  return request({
-    url: '/zhiyan/activelog/myself/task-logs',
-    method: 'get',
+  return api.get('/zhiyan/activelog/myself/task-logs', {
     params: {
       startTime: params.startTime,
       endTime: params.endTime,
@@ -60,9 +143,7 @@ export function getMyTaskLogs(params) {
  * @returns {Promise}
  */
 export function getMyWikiLogs(params) {
-  return request({
-    url: '/zhiyan/activelog/myself/wiki-logs',
-    method: 'get',
+  return api.get('/zhiyan/activelog/myself/wiki-logs', {
     params: {
       startTime: params.startTime,
       endTime: params.endTime,
@@ -78,9 +159,7 @@ export function getMyWikiLogs(params) {
  * @returns {Promise}
  */
 export function getMyAchievementLogs(params) {
-  return request({
-    url: '/zhiyan/activelog/myself/achievement-logs',
-    method: 'get',
+  return api.get('/zhiyan/activelog/myself/achievement-logs', {
     params: {
       startTime: params.startTime,
       endTime: params.endTime,
@@ -96,9 +175,7 @@ export function getMyAchievementLogs(params) {
  * @returns {Promise}
  */
 export function getMyLoginLogs(params) {
-  return request({
-    url: '/zhiyan/activelog/myself/login-logs',
-    method: 'get',
+  return api.get('/zhiyan/activelog/myself/login-logs', {
     params: {
       startTime: params.startTime,
       endTime: params.endTime,
@@ -115,9 +192,7 @@ export function getMyLoginLogs(params) {
  * @returns {Promise}
  */
 export function getProjectOperationLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/project/${projectId}`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/project/${projectId}`, {
     params: {
       page: params.page || 0,
       size: params.size || 20,
@@ -133,9 +208,7 @@ export function getProjectOperationLogs(projectId, params) {
  * @returns {Promise}
  */
 export function getProjectAllLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/projects/${projectId}/all`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/projects/${projectId}/all`, {
     params: {
       page: params.page || 0,
       size: params.size || 20
@@ -150,9 +223,7 @@ export function getProjectAllLogs(projectId, params) {
  * @returns {Promise}
  */
 export function getProjectProjectLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/projects/${projectId}/project-logs`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/projects/${projectId}/project-logs`, {
     params: {
       operationType: params.operationType,
       username: params.username,
@@ -171,9 +242,7 @@ export function getProjectProjectLogs(projectId, params) {
  * @returns {Promise}
  */
 export function getProjectTaskLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/projects/${projectId}/task-logs`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/projects/${projectId}/task-logs`, {
     params: {
       taskId: params.taskId,
       operationType: params.operationType,
@@ -193,9 +262,7 @@ export function getProjectTaskLogs(projectId, params) {
  * @returns {Promise}
  */
 export function getProjectWikiLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/projects/${projectId}/wiki-logs`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/projects/${projectId}/wiki-logs`, {
     params: {
       wikiPageId: params.wikiPageId,
       operationType: params.operationType,
@@ -215,9 +282,7 @@ export function getProjectWikiLogs(projectId, params) {
  * @returns {Promise}
  */
 export function getProjectAchievementLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/projects/${projectId}/achievement-logs`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/projects/${projectId}/achievement-logs`, {
     params: {
       achievementId: params.achievementId,
       operationType: params.operationType,
@@ -237,9 +302,7 @@ export function getProjectAchievementLogs(projectId, params) {
  * @returns {Promise}
  */
 export function exportProjectLogs(projectId, params) {
-  return request({
-    url: `/zhiyan/activelog/export/projects/${projectId}/project-logs`,
-    method: 'get',
+  return api.get(`/zhiyan/activelog/export/projects/${projectId}/project-logs`, {
     params: {
       operationType: params.operationType,
       username: params.username,
@@ -260,9 +323,7 @@ export function exportProjectLogs(projectId, params) {
  * @returns {Promise}
  */
 export function exportMyLogs(params = {}) {
-  return request({
-    url: '/zhiyan/activelog/export/my-logs',
-    method: 'get',
+  return api.get('/zhiyan/activelog/export/my-logs', {
     params: {
       startTime: params.startTime,
       endTime: params.endTime,
