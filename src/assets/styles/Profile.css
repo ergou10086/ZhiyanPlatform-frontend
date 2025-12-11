@@ -1735,3 +1735,33 @@
 .dark-mode .profile-container .oauth2-bind-btn.orcid-bind-btn:hover {
   background: #8FB32A;
 }
+
+/* 解绑按钮样式 */
+.profile-container .oauth2-unbind-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-container .oauth2-unbind-btn:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+/* 暗黑模式下的解绑按钮样式 */
+.dark-mode .profile-container .oauth2-unbind-btn {
+  background: #dc2626;
+  color: white;
+}
+
+.dark-mode .profile-container .oauth2-unbind-btn:hover {
+  background: #b91c1c;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
