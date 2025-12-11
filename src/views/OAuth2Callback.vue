@@ -2,10 +2,18 @@
   <div class="oauth2-callback-container">
     <div class="callback-content">
       <!-- 加载状态 -->
-      <div class="loading-state">
+      <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <h2>正在处理授权...</h2>
         <p>请稍候，我们正在验证您的身份</p>
+      </div>
+
+      <!-- 错误状态 -->
+      <div v-else-if="error" class="error-state">
+        <div class="error-icon">❌</div>
+        <h2>授权失败</h2>
+        <p>{{ errorMessage }}</p>
+        <button @click="goToLogin" class="retry-btn">返回登录</button>
       </div>
     </div>
   </div>
@@ -19,10 +27,17 @@ export default {
   name: 'OAuth2Callback',
   data() {
     return {
-      loading: true
+      loading: true,
+      error: false,
+      errorMessage: ''
     }
   },
   mounted() {
+    console.log('🔄 OAuth2Callback 页面加载')
+    console.log('📍 当前URL:', window.location.href)
+    console.log('📍 Route params:', this.$route.params)
+    console.log('📍 Route query:', this.$route.query)
+
     this.handleCallback()
   },
   methods: {
@@ -33,83 +48,60 @@ export default {
         const code = urlParams.get('code')
         const state = urlParams.get('state')
         const status = urlParams.get('status')
-        const token = urlParams.get('token')
-        const refreshToken = urlParams.get('refreshToken')
         const message = urlParams.get('message')
-        const provider = this.$route.params.provider || sessionStorage.getItem('oauth2_provider') || 'github'
 
-        console.log('📥 OAuth2回调参数:', { code, state, status, provider })
-        console.log('📥 当前URL:', window.location.href)
+        // 从路由或sessionStorage获取provider
+        const provider = this.$route.params.provider ||
+            sessionStorage.getItem('oauth2_provider') ||
+            'unknown'
 
-        // 检查是否是后端重定向过来的（带有status参数）
-        if (status) {
-          console.log('✅ 检测到后端重定向，status:', status)
-          
-          // 处理错误状态
-          if (status === 'ERROR') {
-            throw new Error(decodeURIComponent(message || '授权失败'))
-          }
+        console.log('📥 OAuth2回调参数:', {
+          provider,
+          code: code ? `${code.substring(0, 10)}...` : null,
+          state: state ? `${state.substring(0, 10)}...` : null,
+          status,
+          message: message ? decodeURIComponent(message) : null
+        })
 
-          // 处理登录成功
-          if (status === 'SUCCESS' && token) {
-            console.log('✅ 登录成功，但需要获取用户信息')
-            // 虽然有token，但是需要调用后端API获取完整的登录响应（包括用户信息）
-            const response = await authAPI.handleOAuth2Callback(provider, code, state)
-            if (response.code === 200 && response.data) {
-              this.handleCallbackResponse(response.data)
-            } else {
-              throw new Error(response.msg || '获取用户信息失败')
-            }
-            return
-          }
-
-          // 处理需要绑定账号
-          if (status === 'NEED_BIND') {
-            console.log('⚠️ 需要绑定或创建账号，调用后端API获取详细信息')
-            // 需要调用后端API获取OAuth2用户信息
-            const response = await authAPI.handleOAuth2Callback(provider, code, state)
-            if (response.code === 200 && response.data) {
-              this.handleCallbackResponse(response.data)
-            } else {
-              throw new Error(response.msg || '获取用户信息失败')
-            }
-            return
-          }
-
-          // 处理需要补充信息
-          if (status === 'NEED_SUPPLEMENT') {
-            console.log('⚠️ 需要补充信息，调用后端API获取详细信息')
-            const response = await authAPI.handleOAuth2Callback(provider, code, state)
-            if (response.code === 200 && response.data) {
-              this.handleCallbackResponse(response.data)
-            } else {
-              throw new Error(response.msg || '获取用户信息失败')
-            }
-            return
-          }
+        // 处理后端重定向的错误状态
+        if (status === 'ERROR') {
+          const decodedMessage = message ? decodeURIComponent(message) : '授权失败'
+          console.error('❌ 后端返回错误:', decodedMessage)
+          throw new Error(decodedMessage)
         }
 
-        // 如果没有status参数，说明是旧的流程，直接调用后端API
-        console.log('📞 调用后端回调API')
-
-        // 验证参数
-        if (!code || !state) {
-          throw new Error('缺少必要的授权参数（code 或 state）')
+        // 验证必要参数
+        if (!code) {
+          console.error('❌ 缺少授权码')
+          throw new Error('缺少授权码，请重新登录')
         }
 
-        // 验证state
+        if (!state) {
+          console.error('❌ 缺少state参数')
+          throw new Error('缺少state参数，请重新登录')
+        }
+
+        // 验证state（防止CSRF攻击）
         const savedState = sessionStorage.getItem('oauth2_state')
-        if (state !== savedState) {
-          console.warn('⚠️ state 不匹配:', { saved: savedState, received: state })
-          throw new Error('状态验证失败，可能存在安全风险')
+        console.log('🔍 State验证:', {
+          received: state.substring(0, 10) + '...',
+          saved: savedState ? savedState.substring(0, 10) + '...' : 'null'
+        })
+
+        if (!savedState) {
+          console.warn('⚠️ 未找到保存的state，可能是页面刷新导致')
+          // 不阻止流程继续，因为后端也会验证state
+        } else if (state !== savedState) {
+          console.error('❌ State不匹配')
+          throw new Error('State验证失败，可能存在安全风险')
         }
 
-        console.log('✅ state 验证通过，调用后端回调接口')
+        console.log('✅ State验证通过，调用后端回调接口')
 
         // 调用后端回调接口
         const response = await authAPI.handleOAuth2Callback(provider, code, state)
 
-        console.log('📥 OAuth2回调响应:', response)
+        console.log('📥 后端回调响应:', response)
 
         if (response.code === 200 && response.data) {
           this.handleCallbackResponse(response.data)
@@ -118,11 +110,14 @@ export default {
         }
       } catch (error) {
         console.error('❌ OAuth2回调处理失败:', error)
-        
-        // 重定向到错误页面
-        const errorMessage = encodeURIComponent(error.message || '授权处理失败，请重试')
-        const provider = this.$route.params.provider || sessionStorage.getItem('oauth2_provider') || 'unknown'
-        this.$router.replace(`/oauth2/error?message=${errorMessage}&provider=${provider}`)
+        this.loading = false
+        this.error = true
+        this.errorMessage = error.message || '授权处理失败，请重试'
+
+        // 3秒后自动跳转到登录页
+        setTimeout(() => {
+          this.goToLogin()
+        }, 3000)
       }
     },
 
@@ -139,25 +134,33 @@ export default {
           break
 
         case 'NEED_BIND':
-          // 需要绑定或创建账号 - 重定向到独立页面
-          console.log('⚠️ 需要绑定或创建账号，重定向到绑定页面')
+          // 需要绑定或创建账号
+          console.log('⚠️ 需要绑定或创建账号')
           sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
+          this.loading = false
           this.$router.replace('/oauth2/bind')
           break
 
         case 'NEED_SUPPLEMENT':
-          // 需要补充信息 - 重定向到独立页面
-          console.log('⚠️ 需要补充信息，重定向到补充信息页面')
+          // 需要补充信息
+          console.log('⚠️ 需要补充信息')
           sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
+          this.loading = false
           this.$router.replace('/oauth2/supplement')
           break
 
         default:
-          throw new Error(message || '未知的响应状态')
+          throw new Error(message || '未知的响应状态: ' + status)
       }
     },
 
     handleLoginSuccess(loginResponse) {
+      if (!loginResponse) {
+        throw new Error('登录响应数据为空')
+      }
+
+      console.log('💾 保存登录数据')
+
       // 保存登录信息
       const loginData = {
         accessToken: loginResponse.accessToken,
@@ -166,12 +169,10 @@ export default {
         userInfo: loginResponse.user
       }
 
-      console.log('💾 保存登录数据:', loginData)
       saveLoginData(loginData)
 
       // 检查是否是绑定模式
       const isBindMode = sessionStorage.getItem('oauth2_bind_mode') === 'true'
-      const provider = sessionStorage.getItem('oauth2_provider')
 
       // 清除OAuth2相关的sessionStorage
       sessionStorage.removeItem('oauth2_state')
@@ -182,14 +183,28 @@ export default {
       // 触发用户信息更新事件
       this.$root.$emit('userInfoUpdated')
 
-      // 如果是绑定模式，跳转到个人信息页面；否则跳转到首页
+      console.log('✅ 登录数据保存成功，准备跳转')
+
+      // 跳转到目标页面
+      this.loading = false
+
       if (isBindMode) {
-        console.log('✅ OAuth2绑定成功，跳转到个人信息页面')
+        console.log('🔗 绑定模式，跳转到个人信息页面')
         this.$router.replace('/profile')
       } else {
-        // 跳转到首页
+        console.log('🏠 登录模式，跳转到首页')
         this.$router.replace('/home')
       }
+    },
+
+    goToLogin() {
+      // 清除OAuth2相关数据
+      sessionStorage.removeItem('oauth2_state')
+      sessionStorage.removeItem('oauth2_provider')
+      sessionStorage.removeItem('oauth2_user_info')
+      sessionStorage.removeItem('oauth2_bind_mode')
+
+      this.$router.replace('/login')
     }
   }
 }
@@ -213,6 +228,10 @@ export default {
   text-align: center;
   max-width: 500px;
   width: 100%;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 加载状态 */
@@ -245,16 +264,60 @@ export default {
   }
 }
 
+/* 错误状态 */
+.error-state {
+  width: 100%;
+}
+
+.error-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.error-state h2 {
+  color: #e53e3e;
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.error-state p {
+  color: #718096;
+  font-size: 16px;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.retry-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.retry-btn:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
 /* 暗黑模式 */
 .dark-mode .callback-content {
   background: #1a202c;
 }
 
-.dark-mode .loading-state h2 {
+.dark-mode .loading-state h2,
+.dark-mode .error-state h2 {
   color: #f7fafc;
 }
 
-.dark-mode .loading-state p {
+.dark-mode .loading-state p,
+.dark-mode .error-state p {
   color: #a0aec0;
 }
 
@@ -269,12 +332,18 @@ export default {
     padding: 32px 24px;
   }
 
-  .loading-state h2 {
+  .loading-state h2,
+  .error-state h2 {
     font-size: 20px;
   }
 
-  .loading-state p {
+  .loading-state p,
+  .error-state p {
     font-size: 14px;
+  }
+
+  .error-icon {
+    font-size: 48px;
   }
 }
 </style>
