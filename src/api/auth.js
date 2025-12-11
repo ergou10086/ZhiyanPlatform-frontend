@@ -339,6 +339,18 @@ export const authAPI = {
   disableTwoFactorAuth(code) {
     console.log('[authAPI.disableTwoFactorAuth] 禁用2FA')
     return api.post('/zhiyan/auth/2fa/disable', { code })
+  },
+
+  // ==================== OAuth2 解绑 ====================
+
+  /**
+   * 解绑OAuth2账号
+   * @param {String} provider - 第三方提供商（github, orcid等）
+   * @returns {Promise} 返回操作结果
+   */
+  unbindOAuth2Account(provider) {
+    console.log('[authAPI.unbindOAuth2Account] 解绑OAuth2账号, provider:', provider)
+    return api.post(`/zhiyan/auth/oauth2/unbind/${provider}`)
   }
 }
 

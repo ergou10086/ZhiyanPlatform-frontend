@@ -258,7 +258,7 @@
                     <span class="oauth2-binding-label">GitHub</span>
                     <span v-if="userInfo.githubId" class="oauth2-binding-status">
                       <span class="status-badge bound">已绑定</span>
-                      <span class="binding-username">@{{ userInfo.githubUsername || userInfo.githubId }}</span>
+                      <span class="binding-username">@{{ maskAccount(userInfo.githubUsername || userInfo.githubId, 'github') }}</span>
                     </span>
                     <span v-else class="oauth2-binding-status">
                       <span class="status-badge unbound">未绑定</span>
@@ -272,6 +272,14 @@
                 >
                   绑定
                 </button>
+                <button 
+                  v-else
+                  @click="handleGithubBind" 
+                  class="oauth2-bind-btn oauth2-unbind-btn"
+                  title="解绑GitHub账号"
+                >
+                  解绑
+                </button>
               </div>
 
               <!-- ORCID绑定 -->
@@ -284,7 +292,7 @@
                     <span class="oauth2-binding-label">ORCID</span>
                     <span v-if="userInfo.orcidId" class="oauth2-binding-status">
                       <span class="status-badge bound">已绑定</span>
-                      <span class="binding-username">{{ userInfo.orcidId }}</span>
+                      <span class="binding-username">{{ maskAccount(userInfo.orcidId, 'orcid') }}</span>
                     </span>
                     <span v-else class="oauth2-binding-status">
                       <span class="status-badge unbound">未绑定</span>
@@ -297,6 +305,14 @@
                   class="oauth2-bind-btn orcid-bind-btn"
                 >
                   绑定
+                </button>
+                <button 
+                  v-else
+                  @click="handleOrcidBind" 
+                  class="oauth2-bind-btn oauth2-unbind-btn"
+                  title="解绑ORCID账号"
+                >
+                  解绑
                 </button>
               </div>
             </div>
@@ -2483,63 +2499,152 @@ export default {
     },
     
     // ===== OAuth2账号绑定相关方法 =====
-    async handleGithubBind() {
-      try {
-        console.log('🔐 开始GitHub OAuth2绑定流程')
-        
-        // 调用后端接口获取授权URL
-        const response = await authAPI.getOAuth2AuthUrl('github')
-        
-        if (response.code === 200 && response.data) {
-          const { authorizationUrl, state } = response.data
-          
-          // 保存state到sessionStorage用于回调验证
-          sessionStorage.setItem('oauth2_state', state)
-          sessionStorage.setItem('oauth2_provider', 'github')
-          sessionStorage.setItem('oauth2_bind_mode', 'true') // 标记为绑定模式
-          
-          console.log('✅ 获取授权URL成功，跳转到GitHub授权页面')
-          console.log('授权URL:', authorizationUrl)
-          
-          // 跳转到GitHub授权页面
-          window.location.href = authorizationUrl
-        } else {
-          console.error('❌ 获取授权URL失败:', response.msg)
-          alert(response.msg || '获取授权URL失败，请稍后重试')
+    
+    /**
+     * 脱敏显示账号信息
+     * @param {String} account - 账号（ID或用户名）
+     * @param {String} type - 类型（github/orcid）
+     * @returns {String} 脱敏后的账号
+     */
+    maskAccount(account, type) {
+      if (!account) return ''
+      
+      if (type === 'github') {
+        // GitHub用户名：显示前3位，中间用*替代，保留后2位
+        if (account.length <= 5) {
+          return account.charAt(0) + '*'.repeat(account.length - 1)
         }
-      } catch (error) {
-        console.error('❌ GitHub绑定失败:', error)
-        alert('GitHub绑定失败：' + (error.message || '网络错误'))
+        const start = account.substring(0, 3)
+        const end = account.substring(account.length - 2)
+        return start + '*'.repeat(Math.max(account.length - 5, 2)) + end
+      } else if (type === 'orcid') {
+        // ORCID ID格式：0000-0002-1825-0097，显示前4位和后4位，中间用*替代
+        const parts = account.split('-')
+        if (parts.length === 4) {
+          return `${parts[0]}-****-****-${parts[3]}`
+        }
+        // 如果不是标准格式，显示前4位和后4位
+        if (account.length <= 8) {
+          return account.charAt(0) + '*'.repeat(account.length - 1)
+        }
+        const start = account.substring(0, 4)
+        const end = account.substring(account.length - 4)
+        return start + '*'.repeat(account.length - 8) + end
+      }
+      
+      // 默认脱敏：显示前3位和后2位
+      if (account.length <= 4) {
+        return '*'.repeat(account.length)
+      }
+      const start = account.substring(0, 3)
+      const end = account.substring(account.length - 2)
+      return start + '*'.repeat(account.length - 4) + end
+    },
+
+    /**
+     * 显示绑定提示弹窗
+     * @param {String} provider - 提供商名称
+     */
+    showBindModal(provider) {
+      const providerName = provider === 'github' ? 'GitHub' : 'ORCID'
+      const message = `绑定${providerName}账号需要您退出当前登录，然后使用${providerName}账号登录。\n\n绑定成功后，您可以使用${providerName}账号直接登录本平台。\n\n是否继续？`
+      
+      if (confirm(message)) {
+        // 退出登录
+        this.logout()
       }
     },
 
+    async handleGithubBind() {
+      // 如果已绑定，显示解绑确认
+      if (this.userInfo.githubId) {
+        this.showUnbindModal('github')
+        return
+      }
+      
+      // 未绑定，显示绑定提示
+      this.showBindModal('github')
+    },
+
     async handleOrcidBind() {
+      // 如果已绑定，显示解绑确认
+      if (this.userInfo.orcidId) {
+        this.showUnbindModal('orcid')
+        return
+      }
+      
+      // 未绑定，显示绑定提示
+      this.showBindModal('orcid')
+    },
+
+    /**
+     * 显示解绑确认弹窗
+     * @param {String} provider - 提供商名称
+     */
+    showUnbindModal(provider) {
+      const providerName = provider === 'github' ? 'GitHub' : 'ORCID'
+      const account = provider === 'github' 
+        ? (this.userInfo.githubUsername || this.userInfo.githubId)
+        : this.userInfo.orcidId
+      const maskedAccount = this.maskAccount(account, provider)
+      
+      const message = `确定要解绑${providerName}账号吗？\n\n已绑定账号：${maskedAccount}\n\n解绑后，您将无法使用${providerName}账号登录本平台。`
+      
+      if (confirm(message)) {
+        this.unbindOAuth2Account(provider)
+      }
+    },
+
+    /**
+     * 解绑OAuth2账号
+     * @param {String} provider - 提供商名称
+     */
+    async unbindOAuth2Account(provider) {
       try {
-        console.log('🔐 开始ORCID OAuth2绑定流程')
+        console.log('🔓 开始解绑OAuth2账号, provider:', provider)
         
-        // 调用后端接口获取授权URL
-        const response = await authAPI.getOAuth2AuthUrl('orcid')
+        const response = await authAPI.unbindOAuth2Account(provider)
         
-        if (response.code === 200 && response.data) {
-          const { authorizationUrl, state } = response.data
+        if (response.code === 200) {
+          console.log('✅ 解绑成功')
           
-          // 保存state到sessionStorage用于回调验证
-          sessionStorage.setItem('oauth2_state', state)
-          sessionStorage.setItem('oauth2_provider', 'orcid')
-          sessionStorage.setItem('oauth2_bind_mode', 'true') // 标记为绑定模式
+          // 更新本地用户信息
+          if (provider === 'github') {
+            this.userInfo.githubId = null
+            this.userInfo.githubUsername = null
+          } else if (provider === 'orcid') {
+            this.userInfo.orcidId = null
+            this.userInfo.orcidBound = false
+          }
           
-          console.log('✅ 获取授权URL成功，跳转到ORCID授权页面')
-          console.log('授权URL:', authorizationUrl)
+          // 更新localStorage
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              if (provider === 'github') {
+                userData.githubId = null
+                userData.githubUsername = null
+              } else if (provider === 'orcid') {
+                userData.orcidId = null
+                userData.orcidBound = false
+              }
+              localStorage.setItem('user_info', JSON.stringify(userData))
+            } catch (error) {
+              console.error('更新localStorage失败:', error)
+            }
+          }
           
-          // 跳转到ORCID授权页面
-          window.location.href = authorizationUrl
+          // 触发全局更新事件
+          this.$root.$emit('userInfoUpdated')
+          
+          this.showSuccessToast(`${provider === 'github' ? 'GitHub' : 'ORCID'}账号解绑成功`)
         } else {
-          console.error('❌ 获取授权URL失败:', response.msg)
-          alert(response.msg || '获取授权URL失败，请稍后重试')
+          throw new Error(response.msg || '解绑失败')
         }
       } catch (error) {
-        console.error('❌ ORCID绑定失败:', error)
-        alert('ORCID绑定失败：' + (error.message || '网络错误'))
+        console.error('❌ 解绑失败:', error)
+        alert('解绑失败：' + (error.message || error.msg || '网络错误'))
       }
     },
 
