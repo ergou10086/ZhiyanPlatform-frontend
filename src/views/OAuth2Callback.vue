@@ -169,16 +169,27 @@ export default {
       console.log('💾 保存登录数据:', loginData)
       saveLoginData(loginData)
 
+      // 检查是否是绑定模式
+      const isBindMode = sessionStorage.getItem('oauth2_bind_mode') === 'true'
+      const provider = sessionStorage.getItem('oauth2_provider')
+
       // 清除OAuth2相关的sessionStorage
       sessionStorage.removeItem('oauth2_state')
       sessionStorage.removeItem('oauth2_provider')
       sessionStorage.removeItem('oauth2_user_info')
+      sessionStorage.removeItem('oauth2_bind_mode')
 
       // 触发用户信息更新事件
       this.$root.$emit('userInfoUpdated')
 
-      // 跳转到首页
-      this.$router.replace('/home')
+      // 如果是绑定模式，跳转到个人信息页面；否则跳转到首页
+      if (isBindMode) {
+        console.log('✅ OAuth2绑定成功，跳转到个人信息页面')
+        this.$router.replace('/profile')
+      } else {
+        // 跳转到首页
+        this.$router.replace('/home')
+      }
     }
   }
 }

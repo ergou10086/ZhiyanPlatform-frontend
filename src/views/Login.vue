@@ -90,6 +90,14 @@
             使用 GitHub 登录
           </button>
           
+          <!-- ORCID授权登录按钮 -->
+          <button type="button" class="orcid-login-btn" @click="handleOrcidLogin">
+            <svg class="orcid-icon" viewBox="0 0 24 24" width="20" height="20">
+              <path fill="currentColor" d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm-2.5 17.5c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5zm5 0c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5z"/>
+            </svg>
+            使用 ORCID 登录
+          </button>
+          
           <div class="register-link">
             <span>还没有账号？</span>
             <a href="#" @click.prevent="goToRegister">立即注册</a>
@@ -334,6 +342,34 @@ export default {
       } catch (error) {
         console.error('❌ GitHub登录失败:', error)
         alert('GitHub登录失败：' + (error.message || '网络错误'))
+      }
+    },
+    async handleOrcidLogin() {
+      try {
+        console.log('🔐 开始ORCID OAuth2登录流程')
+        
+        // 调用后端接口获取授权URL
+        const response = await authAPI.getOAuth2AuthUrl('orcid')
+        
+        if (response.code === 200 && response.data) {
+          const { authorizationUrl, state } = response.data
+          
+          // 保存state到sessionStorage用于回调验证
+          sessionStorage.setItem('oauth2_state', state)
+          sessionStorage.setItem('oauth2_provider', 'orcid')
+          
+          console.log('✅ 获取授权URL成功，跳转到ORCID授权页面')
+          console.log('授权URL:', authorizationUrl)
+          
+          // 跳转到ORCID授权页面
+          window.location.href = authorizationUrl
+        } else {
+          console.error('❌ 获取授权URL失败:', response.msg)
+          alert(response.msg || '获取授权URL失败，请稍后重试')
+        }
+      } catch (error) {
+        console.error('❌ ORCID登录失败:', error)
+        alert('ORCID登录失败：' + (error.message || '网络错误'))
       }
     }
   }

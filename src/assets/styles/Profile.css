@@ -1571,3 +1571,167 @@
     padding: 12px;
   }
 }
+
+/* OAuth2账号绑定样式 */
+.profile-container .oauth2-bindings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-container .oauth2-binding-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.profile-container .oauth2-binding-item:hover {
+  background: #f1f3f5;
+  border-color: #dee2e6;
+}
+
+.profile-container .oauth2-binding-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.profile-container .oauth2-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.profile-container .oauth2-icon.github-icon {
+  color: #24292e;
+}
+
+.profile-container .oauth2-icon.orcid-icon {
+  color: #A6CE39;
+}
+
+.profile-container .oauth2-binding-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.profile-container .oauth2-binding-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+}
+
+.profile-container .oauth2-binding-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-container .status-badge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.profile-container .status-badge.bound {
+  background: #d4edda;
+  color: #155724;
+}
+
+.profile-container .status-badge.unbound {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.profile-container .binding-username {
+  font-size: 12px;
+  color: #666;
+}
+
+.profile-container .oauth2-bind-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-container .oauth2-bind-btn.github-bind-btn {
+  background: #24292e;
+  color: #ffffff;
+}
+
+.profile-container .oauth2-bind-btn.github-bind-btn:hover {
+  background: #1b1f23;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(36, 41, 46, 0.2);
+}
+
+.profile-container .oauth2-bind-btn.orcid-bind-btn {
+  background: #A6CE39;
+  color: #ffffff;
+}
+
+.profile-container .oauth2-bind-btn.orcid-bind-btn:hover {
+  background: #8FB32A;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(166, 206, 57, 0.3);
+}
+
+/* 暗黑模式下的OAuth2绑定样式 */
+.dark-mode .profile-container .oauth2-binding-item {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark-mode .profile-container .oauth2-binding-item:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dark-mode .profile-container .oauth2-binding-label {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .status-badge.bound {
+  background: #14532d;
+  color: #86efac;
+}
+
+.dark-mode .profile-container .status-badge.unbound {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .binding-username {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .oauth2-bind-btn.github-bind-btn {
+  background: #ffffff;
+  color: #24292e;
+}
+
+.dark-mode .profile-container .oauth2-bind-btn.github-bind-btn:hover {
+  background: #f7fafc;
+}
+
+.dark-mode .profile-container .oauth2-bind-btn.orcid-bind-btn {
+  background: #A6CE39;
+  color: #ffffff;
+}
+
+.dark-mode .profile-container .oauth2-bind-btn.orcid-bind-btn:hover {
+  background: #8FB32A;
+}
