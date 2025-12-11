@@ -1559,8 +1559,8 @@ export default {
   position: fixed;
   top: 12px;
   right: 210px;
-  /* 高于页眉/用户信息（10003），但低于后续抬升的发送消息弹窗 */
-  z-index: 10050;
+  /* 提高层级，确保在所有业务弹窗和确认框之上，但低于错误对话框 */
+  z-index: 15000;
   display: block;
   visibility: visible;
 }
@@ -1622,8 +1622,8 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  /* 保持面板在铃铛下方，但低于全局弹窗 */
-  z-index: 10040;
+  /* 提高层级，确保在所有业务弹窗和确认框之上 */
+  z-index: 15001;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2092,8 +2092,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* 细化层级：详情弹窗高于消息面板/铃铛，但低于发送消息 el-dialog */
-  z-index: 10980;
+  /* 提高层级，确保在所有业务弹窗和确认框之上 */
+  z-index: 15002;
   padding: 16px;
 }
 
@@ -2410,11 +2410,11 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
-/* 抬高发送消息对话框与遮罩的层级，确保盖住消息面板 */
+/* 抬高发送消息对话框与遮罩的层级，确保盖住消息面板和其他业务弹窗 */
 .send-message-dialog ::v-deep .el-dialog__wrapper,
 .send-message-dialog ::v-deep .el-overlay,
 .send-message-dialog ::v-deep .v-modal {
-  z-index: 13000 !important;
+  z-index: 15003 !important;
 }
 
 .send-message-dialog ::v-deep .el-dialog__header {
@@ -2756,6 +2756,27 @@ export default {
 
 <!-- 深色模式弹窗和工具栏的全局样式（不加 scoped，覆盖 el-dialog 等 append-to-body 的元素） -->
 <style>
+/* 确保消息提醒组件始终在最顶层，高于ElementUI的确认框和对话框 */
+.message-notification,
+.message-panel,
+.message-detail-overlay,
+.floating-message-reminder,
+.reminder-panel {
+  /* 消息提醒相关组件的z-index已在各自组件中设置，这里确保不会被ElementUI覆盖 */
+}
+
+/* 确保ElementUI的确认框和对话框不会遮盖消息提醒 */
+.el-message-box__wrapper {
+  z-index: 14000 !important;
+}
+
+.el-dialog__wrapper:not(.send-message-dialog .el-dialog__wrapper) {
+  z-index: 14000 !important;
+}
+
+.v-modal:not(.send-message-dialog .v-modal) {
+  z-index: 13999 !important;
+}
 /* 消息面板顶部工具栏在黑夜模式下变暗色 */
 .dark-mode .message-panel .panel-toolbar {
   background: #020617;
