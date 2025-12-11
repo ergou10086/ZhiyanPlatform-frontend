@@ -24,7 +24,7 @@ function parseJSONWithBigInt(data) {
  * 使用相对路径（baseURL为空），让代理服务器处理路由
  */
 const api = axios.create({
-  baseURL: '', // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
+  baseURL: config.api.baseURL, // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
   timeout: config.api.timeout,
   withCredentials: true,
   headers: {
