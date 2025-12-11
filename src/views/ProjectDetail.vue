@@ -1614,10 +1614,12 @@ export default {
       return this.isArchived === true || completedStatus
     },
     canManageProject() {
-      return !this.isProjectLocked && this.isProjectManager
+      // 只检查是否已归档，不检查是否已完成，允许已完成的项目仍然可以编辑
+      return !this.isArchived && this.isProjectManager
     },
     canOperateAsOwner() {
-      return !this.isProjectLocked && this.isProjectOwner
+      // 只检查是否已归档，不检查是否已完成，允许已完成的项目仍然可以删除
+      return !this.isArchived && this.isProjectOwner
     },
     // 当前用户是否已经是项目成员（用于控制“申请加入”按钮显隐）
     isCurrentUserProjectMember() {

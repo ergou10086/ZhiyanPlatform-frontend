@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="modal-overlay" @click="handleClose">
+  <div v-if="visible" class="modal-overlay">
     <div class="modal-content task-submission-modal" @click.stop>
       <div class="modal-header">
         <h3 class="modal-title">{{ latestSubmission ? '更改提交' : '提交任务' }}</h3>
