@@ -52,6 +52,20 @@ export function normalizeUserInfo(userInfo) {
     normalized.twoFactorEnabled = Boolean(userInfo.twoFactorEnabled)
   }
   
+  // 保存OAuth2绑定信息（重要：确保OAuth2绑定状态被正确保存）
+  if (userInfo.githubId !== undefined) {
+    normalized.githubId = userInfo.githubId
+  }
+  if (userInfo.githubUsername !== undefined) {
+    normalized.githubUsername = userInfo.githubUsername
+  }
+  if (userInfo.orcidId !== undefined) {
+    normalized.orcidId = userInfo.orcidId
+  }
+  if (userInfo.orcidBound !== undefined) {
+    normalized.orcidBound = Boolean(userInfo.orcidBound)
+  }
+  
   // 添加调试日志
   console.log('🔄 规范化用户信息:', {
     原始avatar: userInfo.avatar || userInfo.avatarUrl,
@@ -59,7 +73,11 @@ export function normalizeUserInfo(userInfo) {
     nickname: normalized.nickname,
     hasAvatar: !!avatarUrl,
     description: description,
-    twoFactorEnabled: normalized.twoFactorEnabled
+    twoFactorEnabled: normalized.twoFactorEnabled,
+    githubId: normalized.githubId,
+    githubUsername: normalized.githubUsername,
+    orcidId: normalized.orcidId,
+    orcidBound: normalized.orcidBound
   })
   
   return normalized

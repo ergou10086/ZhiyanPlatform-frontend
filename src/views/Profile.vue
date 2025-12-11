@@ -1147,6 +1147,7 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', () => {
+      console.log('🔄 收到用户信息更新事件，重新加载用户信息')
       this.loadUserInfo()
       // 同时重新加载2FA状态
       this.load2FAStatus()
@@ -1313,6 +1314,24 @@ export default {
           this.$set(this.userInfo, 'description', description) // 同时设置description字段（保持原始值）
           this.$set(this.userInfo, 'role', data.role || this.userInfo.role)
           this.$set(this.userInfo, 'status', data.status || this.userInfo.status)
+          
+          // 更新OAuth2绑定信息（确保OAuth2绑定状态被正确更新）
+          if (data.githubId !== undefined) {
+            this.$set(this.userInfo, 'githubId', data.githubId)
+            console.log('✅ 更新GitHub ID:', data.githubId)
+          }
+          if (data.githubUsername !== undefined) {
+            this.$set(this.userInfo, 'githubUsername', data.githubUsername)
+            console.log('✅ 更新GitHub用户名:', data.githubUsername)
+          }
+          if (data.orcidId !== undefined) {
+            this.$set(this.userInfo, 'orcidId', data.orcidId)
+            console.log('✅ 更新ORCID ID:', data.orcidId)
+          }
+          if (data.orcidBound !== undefined) {
+            this.$set(this.userInfo, 'orcidBound', Boolean(data.orcidBound))
+            console.log('✅ 更新ORCID绑定状态:', data.orcidBound)
+          }
           if (Array.isArray(data.profileLinks)) {
             this.profileLinks = data.profileLinks
           } else {
@@ -1353,12 +1372,33 @@ export default {
                 userData.twoFactorEnabled = Boolean(data.twoFactorEnabled)
                 console.log('✅ 已更新localStorage中的2FA状态:', userData.twoFactorEnabled)
               }
+              // 更新OAuth2绑定信息（确保OAuth2绑定状态被保存）
+              if (data.githubId !== undefined) {
+                userData.githubId = data.githubId
+                console.log('✅ 已更新localStorage中的GitHub ID:', userData.githubId)
+              }
+              if (data.githubUsername !== undefined) {
+                userData.githubUsername = data.githubUsername
+                console.log('✅ 已更新localStorage中的GitHub用户名:', userData.githubUsername)
+              }
+              if (data.orcidId !== undefined) {
+                userData.orcidId = data.orcidId
+                console.log('✅ 已更新localStorage中的ORCID ID:', userData.orcidId)
+              }
+              if (data.orcidBound !== undefined) {
+                userData.orcidBound = Boolean(data.orcidBound)
+                console.log('✅ 已更新localStorage中的ORCID绑定状态:', userData.orcidBound)
+              }
               userData.profileLinks = Array.isArray(data.profileLinks) ? data.profileLinks : []
               localStorage.setItem('user_info', JSON.stringify(userData))
               console.log('✅ 已更新 localStorage 中的用户信息')
               console.log('✅ localStorage中的description:', userData.description)
               console.log('✅ localStorage中的introduction:', userData.introduction)
               console.log('✅ localStorage中的twoFactorEnabled:', userData.twoFactorEnabled)
+              console.log('✅ localStorage中的githubId:', userData.githubId)
+              console.log('✅ localStorage中的githubUsername:', userData.githubUsername)
+              console.log('✅ localStorage中的orcidId:', userData.orcidId)
+              console.log('✅ localStorage中的orcidBound:', userData.orcidBound)
             } catch (error) {
               console.error('更新 localStorage 失败:', error)
             }
@@ -1368,11 +1408,19 @@ export default {
               ...data,
               description: description,
               introduction: description,
-              twoFactorEnabled: data.twoFactorEnabled !== undefined ? Boolean(data.twoFactorEnabled) : false
+              twoFactorEnabled: data.twoFactorEnabled !== undefined ? Boolean(data.twoFactorEnabled) : false,
+              githubId: data.githubId || null,
+              githubUsername: data.githubUsername || null,
+              orcidId: data.orcidId || null,
+              orcidBound: data.orcidBound !== undefined ? Boolean(data.orcidBound) : false
             }
             localStorage.setItem('user_info', JSON.stringify(userDataToSave))
             console.log('✅ 首次保存用户信息到 localStorage')
             console.log('✅ 保存的2FA状态:', userDataToSave.twoFactorEnabled)
+            console.log('✅ 保存的GitHub ID:', userDataToSave.githubId)
+            console.log('✅ 保存的GitHub用户名:', userDataToSave.githubUsername)
+            console.log('✅ 保存的ORCID ID:', userDataToSave.orcidId)
+            console.log('✅ 保存的ORCID绑定状态:', userDataToSave.orcidBound)
           }
           
           this.isProfileLoading = false
@@ -1445,7 +1493,11 @@ export default {
               organization: userData.organization || userData.institution || '未设置机构',
               introduction: userData.introduction || userData.description || '这个人很懒，什么都没有留下...',
               role: userData.role || 'MEMBER',
-              status: userData.status || 'ACTIVE'
+              status: userData.status || 'ACTIVE',
+              githubId: userData.githubId || null,
+              githubUsername: userData.githubUsername || null,
+              orcidId: userData.orcidId || null,
+              orcidBound: userData.orcidBound !== undefined ? Boolean(userData.orcidBound) : false
             }
             console.log('加载用户信息（从localStorage）:', this.userInfo)
             this.profileLinks = Array.isArray(userData.profileLinks) ? userData.profileLinks : []

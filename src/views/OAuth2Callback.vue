@@ -154,12 +154,13 @@ export default {
       }
     },
 
-    handleLoginSuccess(loginResponse) {
+    async handleLoginSuccess(loginResponse) {
       if (!loginResponse) {
         throw new Error('登录响应数据为空')
       }
 
       console.log('💾 保存登录数据')
+      console.log('📦 登录响应中的用户信息:', loginResponse.user)
 
       // 保存登录信息
       const loginData = {
@@ -179,6 +180,26 @@ export default {
       sessionStorage.removeItem('oauth2_provider')
       sessionStorage.removeItem('oauth2_user_info')
       sessionStorage.removeItem('oauth2_bind_mode')
+
+      // 重新从服务器获取最新的用户信息，确保包含OAuth2绑定状态
+      try {
+        const { authAPI } = await import('@/api/auth')
+        const { normalizeUserInfo } = await import('@/utils/auth')
+        
+        const userInfoResponse = await authAPI.getCurrentUserInfo()
+        if (userInfoResponse && userInfoResponse.code === 200 && userInfoResponse.data) {
+          console.log('📥 从服务器获取最新用户信息（包含OAuth2绑定）:', userInfoResponse.data)
+          const normalizedUserInfo = normalizeUserInfo(userInfoResponse.data)
+          localStorage.setItem('user_info', JSON.stringify(normalizedUserInfo))
+          console.log('✅ 已更新用户信息（包含OAuth2绑定状态）')
+          console.log('✅ GitHub ID:', normalizedUserInfo.githubId)
+          console.log('✅ GitHub用户名:', normalizedUserInfo.githubUsername)
+          console.log('✅ ORCID ID:', normalizedUserInfo.orcidId)
+          console.log('✅ ORCID绑定状态:', normalizedUserInfo.orcidBound)
+        }
+      } catch (error) {
+        console.warn('⚠️ 获取最新用户信息失败，使用登录响应中的信息:', error)
+      }
 
       // 触发用户信息更新事件
       this.$root.$emit('userInfoUpdated')
