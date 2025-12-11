@@ -2561,7 +2561,7 @@ export default {
           ? '确定要将此成果设置为公开吗？所有人都可以查看。'
           : '确定要将此成果设置为项目私有吗？只有项目成员可以查看。'
 
-        if (!confirm(confirmMsg)) {
+        if (!confirm()) {
           return
         }
 
