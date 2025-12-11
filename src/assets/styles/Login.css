@@ -412,6 +412,52 @@
   border-color: #cbd5e0;
 }
 
+/* ORCID登录按钮样式 */
+.login-container .orcid-login-btn {
+  width: 100%;
+  padding: 12px 24px;
+  background: #A6CE39;
+  color: #ffffff;
+  border: 1px solid #A6CE39;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.login-container .orcid-login-btn:hover {
+  background: #8FB32A;
+  border-color: #8FB32A;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(166, 206, 57, 0.3);
+}
+
+.login-container .orcid-login-btn:active {
+  transform: translateY(0);
+}
+
+.login-container .orcid-icon {
+  flex-shrink: 0;
+}
+
+/* 暗黑模式下的ORCID按钮 */
+.dark-mode .login-container .orcid-login-btn {
+  background: #A6CE39;
+  color: #ffffff;
+  border-color: #A6CE39;
+}
+
+.dark-mode .login-container .orcid-login-btn:hover {
+  background: #8FB32A;
+  border-color: #8FB32A;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .login-container {

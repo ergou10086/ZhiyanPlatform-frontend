@@ -241,6 +241,68 @@
           </div>
         </div>
 
+        <!-- OAuth2账号绑定卡片 -->
+        <div class="info-card" v-if="isLoggedIn && isViewingSelf">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label">第三方账号绑定</h3>
+            </div>
+            <div class="oauth2-bindings">
+              <!-- GitHub绑定 -->
+              <div class="oauth2-binding-item">
+                <div class="oauth2-binding-info">
+                  <svg class="oauth2-icon github-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                  <div class="oauth2-binding-text">
+                    <span class="oauth2-binding-label">GitHub</span>
+                    <span v-if="userInfo.githubId" class="oauth2-binding-status">
+                      <span class="status-badge bound">已绑定</span>
+                      <span class="binding-username">@{{ userInfo.githubUsername || userInfo.githubId }}</span>
+                    </span>
+                    <span v-else class="oauth2-binding-status">
+                      <span class="status-badge unbound">未绑定</span>
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  v-if="!userInfo.githubId" 
+                  @click="handleGithubBind" 
+                  class="oauth2-bind-btn github-bind-btn"
+                >
+                  绑定
+                </button>
+              </div>
+
+              <!-- ORCID绑定 -->
+              <div class="oauth2-binding-item">
+                <div class="oauth2-binding-info">
+                  <svg class="oauth2-icon orcid-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm-2.5 17.5c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5zm5 0c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5z"/>
+                  </svg>
+                  <div class="oauth2-binding-text">
+                    <span class="oauth2-binding-label">ORCID</span>
+                    <span v-if="userInfo.orcidId" class="oauth2-binding-status">
+                      <span class="status-badge bound">已绑定</span>
+                      <span class="binding-username">{{ userInfo.orcidId }}</span>
+                    </span>
+                    <span v-else class="oauth2-binding-status">
+                      <span class="status-badge unbound">未绑定</span>
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  v-if="!userInfo.orcidId" 
+                  @click="handleOrcidBind" 
+                  class="oauth2-bind-btn orcid-bind-btn"
+                >
+                  绑定
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 个人简介卡片 -->
         <div class="info-card">
           <div class="info-item">
@@ -2420,6 +2482,67 @@ export default {
       }
     },
     
+    // ===== OAuth2账号绑定相关方法 =====
+    async handleGithubBind() {
+      try {
+        console.log('🔐 开始GitHub OAuth2绑定流程')
+        
+        // 调用后端接口获取授权URL
+        const response = await authAPI.getOAuth2AuthUrl('github')
+        
+        if (response.code === 200 && response.data) {
+          const { authorizationUrl, state } = response.data
+          
+          // 保存state到sessionStorage用于回调验证
+          sessionStorage.setItem('oauth2_state', state)
+          sessionStorage.setItem('oauth2_provider', 'github')
+          sessionStorage.setItem('oauth2_bind_mode', 'true') // 标记为绑定模式
+          
+          console.log('✅ 获取授权URL成功，跳转到GitHub授权页面')
+          console.log('授权URL:', authorizationUrl)
+          
+          // 跳转到GitHub授权页面
+          window.location.href = authorizationUrl
+        } else {
+          console.error('❌ 获取授权URL失败:', response.msg)
+          alert(response.msg || '获取授权URL失败，请稍后重试')
+        }
+      } catch (error) {
+        console.error('❌ GitHub绑定失败:', error)
+        alert('GitHub绑定失败：' + (error.message || '网络错误'))
+      }
+    },
+
+    async handleOrcidBind() {
+      try {
+        console.log('🔐 开始ORCID OAuth2绑定流程')
+        
+        // 调用后端接口获取授权URL
+        const response = await authAPI.getOAuth2AuthUrl('orcid')
+        
+        if (response.code === 200 && response.data) {
+          const { authorizationUrl, state } = response.data
+          
+          // 保存state到sessionStorage用于回调验证
+          sessionStorage.setItem('oauth2_state', state)
+          sessionStorage.setItem('oauth2_provider', 'orcid')
+          sessionStorage.setItem('oauth2_bind_mode', 'true') // 标记为绑定模式
+          
+          console.log('✅ 获取授权URL成功，跳转到ORCID授权页面')
+          console.log('授权URL:', authorizationUrl)
+          
+          // 跳转到ORCID授权页面
+          window.location.href = authorizationUrl
+        } else {
+          console.error('❌ 获取授权URL失败:', response.msg)
+          alert(response.msg || '获取授权URL失败，请稍后重试')
+        }
+      } catch (error) {
+        console.error('❌ ORCID绑定失败:', error)
+        alert('ORCID绑定失败：' + (error.message || '网络错误'))
+      }
+    },
+
     // ===== 关联链接相关方法 =====
     async loadMyProfileLinks() {
       if (!this.isLoggedIn) return
