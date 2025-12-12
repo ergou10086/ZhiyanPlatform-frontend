@@ -517,6 +517,42 @@
           </div>
         </div>
 
+        <!-- 账户注销卡片 -->
+        <div class="info-card account-delete-card" v-if="isLoggedIn && isViewingSelf">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label account-delete-label">账户管理</h3>
+            </div>
+            
+            <div class="account-delete-content">
+              <div class="account-delete-warning">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="warning-icon">
+                  <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="account-delete-text">
+                  <p class="account-delete-description">
+                    注销账号后，您的所有数据将被永久删除且无法恢复。此操作不可撤销。
+                  </p>
+                </div>
+              </div>
+
+              <div class="account-delete-actions">
+                <button 
+                  @click="handleDeleteAccount" 
+                  class="account-delete-btn"
+                  :disabled="isDeletingAccount"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ isDeletingAccount ? '注销中...' : '注销账号' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 游客登录提示卡片 -->
         <div v-if="!isLoggedIn" class="info-card login-prompt-card">
           <div class="info-item">
@@ -949,6 +985,74 @@
         </div>
       </div>
     </div>
+
+    <!-- 注销账号确认模态框 -->
+    <div v-if="showDeleteAccountModal" class="modal-overlay" @click="closeDeleteAccountModal">
+      <div class="modal-content delete-account-modal-content" @click.stop>
+        <div class="modal-header delete-account-header">
+          <h3>注销账号</h3>
+          <button @click="closeDeleteAccountModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="delete-account-content">
+            <div class="delete-account-warning-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="delete-warning-icon">
+                <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="delete-account-warning-text">
+                <p class="delete-account-warning-title">警告：此操作不可撤销</p>
+                <p class="delete-account-warning-description">
+                  注销账号后，您的所有数据将被永久删除，包括：
+                </p>
+                <ul class="delete-account-warning-list">
+                  <li>个人资料和设置</li>
+                  <li>所有项目和项目数据</li>
+                  <li>学术成果和知识库</li>
+                  <li>消息和通知记录</li>
+                  <li>其他所有关联数据</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="delete-account-verify-section">
+              <label class="delete-account-input-label">
+                {{ deleteAccountVerificationType === '2fa' 
+                  ? '输入2FA验证码以确认注销' 
+                  : `输入用户名 "${userInfo.nickname || userInfo.name || userInfo.email?.split('@')[0] || '您的用户名'}" 以确认注销` }}
+              </label>
+              <input 
+                v-model="deleteAccountVerification" 
+                :type="deleteAccountVerificationType === '2fa' ? 'text' : 'text'"
+                class="delete-account-verification-input"
+                :placeholder="deleteAccountVerificationType === '2fa' ? '请输入6位验证码' : '请输入您的用户名'"
+                :maxlength="deleteAccountVerificationType === '2fa' ? 6 : 50"
+                @keyup.enter="confirmDeleteAccount"
+                ref="deleteAccountVerificationInput"
+              />
+              <p class="delete-account-input-hint">
+                {{ deleteAccountVerificationType === '2fa' 
+                  ? '请输入 Microsoft Authenticator 中显示的6位验证码' 
+                  : '请输入您的用户名以确认注销操作' }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeDeleteAccountModal" class="modal-btn modal-btn-cancel">取消</button>
+          <button 
+            @click="confirmDeleteAccount" 
+            class="modal-btn modal-btn-danger"
+            :disabled="!deleteAccountVerification || deleteAccountVerification.trim() === '' || isDeletingAccount"
+          >
+            {{ isDeletingAccount ? '注销中...' : '确认注销' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1047,7 +1151,12 @@ export default {
       twoFactorQRCode: null,
       twoFactorCode: '',
       twoFactorDisableCode: '',
-      twoFactorConfirming: false
+      twoFactorConfirming: false,
+      // 账户注销相关
+      showDeleteAccountModal: false,
+      deleteAccountVerification: '',
+      deleteAccountVerificationType: 'username', // 'username' 或 '2fa'
+      isDeletingAccount: false
     }
   },
   computed: {
@@ -3305,6 +3414,112 @@ export default {
 
     handleQRCodeImageLoad(event) {
       console.log('✅ 二维码图片加载成功')
+    },
+
+    // ===== 账户注销相关方法 =====
+    handleDeleteAccount() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      this.showDeleteAccountModal = true
+      this.deleteAccountVerification = ''
+      this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
+      this.$nextTick(() => {
+        if (this.$refs.deleteAccountVerificationInput) {
+          this.$refs.deleteAccountVerificationInput.focus()
+        }
+      })
+    },
+
+    async confirmDeleteAccount() {
+      if (!this.deleteAccountVerification || this.deleteAccountVerification.trim() === '') {
+        alert('请输入验证信息')
+        return
+      }
+
+      // 验证用户名格式
+      if (this.deleteAccountVerificationType === 'username') {
+        const expectedUsername = this.userInfo.nickname || this.userInfo.name || this.userInfo.email?.split('@')[0]
+        if (this.deleteAccountVerification.trim() !== expectedUsername) {
+          alert('输入的用户名不正确，请重新输入')
+          this.deleteAccountVerification = ''
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+          return
+        }
+      }
+
+      // 验证2FA验证码格式
+      if (this.deleteAccountVerificationType === '2fa') {
+        if (this.deleteAccountVerification.length !== 6 || !/^\d{6}$/.test(this.deleteAccountVerification)) {
+          alert('请输入6位数字验证码')
+          this.deleteAccountVerification = ''
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+          return
+        }
+      }
+
+      // 二次确认
+      const confirmMessage = this.deleteAccountVerificationType === '2fa' 
+        ? '确认注销账号？此操作不可撤销，所有数据将被永久删除。'
+        : `确认注销账号 "${this.deleteAccountVerification}"？此操作不可撤销，所有数据将被永久删除。`
+      
+      if (!confirm(confirmMessage)) {
+        return
+      }
+
+      this.isDeletingAccount = true
+      try {
+        const userId = this.userInfo.id || this.currentUserId
+        if (!userId) {
+          throw new Error('无法获取用户ID')
+        }
+
+        // 调用后端API注销账号
+        const response = await authAPI.deleteUser(userId)
+        
+        if (response && response.code === 200) {
+          // 清除本地存储
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user_info')
+          localStorage.removeItem('remember_me_token')
+          
+          // 显示成功消息
+          alert('账号已成功注销')
+          
+          // 跳转到首页
+          this.$router.push('/')
+          
+          // 刷新页面以确保完全清除状态
+          window.location.reload()
+        } else {
+          throw new Error(response?.msg || '注销账号失败')
+        }
+      } catch (error) {
+        console.error('注销账号失败:', error)
+        
+        // 如果是2FA验证码错误，提示重新输入
+        if (this.deleteAccountVerificationType === '2fa' && error.msg && error.msg.includes('验证码')) {
+          alert('验证码错误或已过期，请重新输入')
+          this.deleteAccountVerification = ''
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+        } else {
+          alert('注销账号失败: ' + (error.msg || error.message || '请稍后重试'))
+        }
+      } finally {
+        this.isDeletingAccount = false
+      }
+    },
+
+    closeDeleteAccountModal() {
+      this.showDeleteAccountModal = false
+      this.deleteAccountVerification = ''
+      this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
     }
   }
 }

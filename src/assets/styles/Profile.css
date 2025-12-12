@@ -1765,3 +1765,278 @@
   background: #b91c1c;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
 }
+
+/* ==================== 账户注销相关样式 ==================== */
+
+/* 账户注销卡片 */
+.profile-container .account-delete-card {
+  background: white;
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid #fee2e2;
+}
+
+.profile-container .account-delete-label {
+  color: #dc2626;
+}
+
+.profile-container .account-delete-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-container .account-delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border-left: 4px solid #dc2626;
+}
+
+.profile-container .account-delete-warning .warning-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.profile-container .account-delete-text {
+  flex: 1;
+}
+
+.profile-container .account-delete-description {
+  margin: 0;
+  color: #7f1d1d;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.profile-container .account-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.profile-container .account-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.profile-container .account-delete-btn:hover:not(:disabled) {
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.profile-container .account-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 注销账号模态框 */
+.profile-container .delete-account-modal-content {
+  max-width: 600px;
+  width: 90%;
+}
+
+.profile-container .delete-account-header h3 {
+  color: #dc2626;
+}
+
+.profile-container .delete-account-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-container .delete-account-warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+.profile-container .delete-warning-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.profile-container .delete-account-warning-text {
+  flex: 1;
+}
+
+.profile-container .delete-account-warning-title {
+  margin: 0 0 8px 0;
+  color: #991b1b;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.profile-container .delete-account-warning-description {
+  margin: 0 0 12px 0;
+  color: #7f1d1d;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.profile-container .delete-account-warning-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #7f1d1d;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.profile-container .delete-account-warning-list li {
+  margin-bottom: 4px;
+}
+
+.profile-container .delete-account-verify-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-container .delete-account-input-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.profile-container .delete-account-verification-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.profile-container .delete-account-verification-input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.profile-container .delete-account-input-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.profile-container .modal-btn-danger {
+  background: #dc2626;
+  color: white;
+}
+
+.profile-container .modal-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+}
+
+.profile-container .modal-btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 暗黑模式下的账户注销样式 */
+.dark-mode .profile-container .account-delete-card {
+  background: #1e293b;
+  border-color: #7f1d1d;
+}
+
+.dark-mode .profile-container .account-delete-label {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .account-delete-warning {
+  background: #7f1d1d;
+  border-left-color: #dc2626;
+}
+
+.dark-mode .profile-container .account-delete-warning .warning-icon {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .account-delete-description {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .account-delete-btn {
+  background: #dc2626;
+}
+
+.dark-mode .profile-container .account-delete-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.dark-mode .profile-container .delete-account-header h3 {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .delete-account-warning-box {
+  background: #7f1d1d;
+  border-color: #991b1b;
+}
+
+.dark-mode .profile-container .delete-warning-icon {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .delete-account-warning-title {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .delete-account-warning-description {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .delete-account-warning-list {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .delete-account-input-label {
+  color: #e2e8f0;
+}
+
+.dark-mode .profile-container .delete-account-verification-input {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .delete-account-verification-input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.2);
+}
+
+.dark-mode .profile-container .delete-account-input-hint {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .modal-btn-danger {
+  background: #dc2626;
+}
+
+.dark-mode .profile-container .modal-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}

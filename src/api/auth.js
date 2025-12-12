@@ -89,7 +89,7 @@ api.interceptors.response.use(
       }
       return Promise.reject(data || error)
     } else if (error.request) {
-      // 网络错误，yxy干的
+      // 网络错误，yxy干的牛逼
       console.error('网络错误详情:', error.request)
       console.error('请求配置:', error.config)
       return Promise.reject(new Error('网络连接失败，请检查后端服务是否启动（端口8091）'))
@@ -351,6 +351,18 @@ export const authAPI = {
   unbindOAuth2Account(provider) {
     console.log('[authAPI.unbindOAuth2Account] 解绑OAuth2账号, provider:', provider)
     return api.post(`/zhiyan/auth/oauth2/unbind/${provider}`)
+  },
+
+  // ==================== 账户管理 ====================
+
+  /**
+   * 删除用户账号（注销账号）
+   * @param {Number} userId - 用户ID
+   * @returns {Promise} 返回操作结果
+   */
+  deleteUser(userId) {
+    console.log('[authAPI.deleteUser] 注销账号, userId:', userId)
+    return api.delete(`/zhiyan/auth/users/${userId}`)
   }
 }
 
