@@ -353,6 +353,15 @@ export const authAPI = {
     return api.post(`/zhiyan/auth/oauth2/unbind/${provider}`)
   },
 
+  /**
+   * 获取ORCID详细信息
+   * @returns {Promise} 返回ORCID详细信息（关键词、教育经历、就业经历）
+   */
+  getOrcidDetail() {
+    console.log('[authAPI.getOrcidDetail] 获取ORCID详细信息')
+    return api.get('/zhiyan/auth/oauth2/orcid/detail')
+  },
+
   // ==================== 账户管理 ====================
 
   /**

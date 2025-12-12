@@ -1736,6 +1736,32 @@
   background: #8FB32A;
 }
 
+/* ORCID同步按钮样式 */
+.profile-container .oauth2-bind-btn.orcid-sync-btn {
+  background: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+}
+
+.profile-container .oauth2-bind-btn.orcid-sync-btn:hover {
+  background: #357ABD;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.profile-container .oauth2-binding-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* 解绑按钮样式 */
 .profile-container .oauth2-unbind-btn {
   background: #ef4444;
@@ -2039,4 +2065,304 @@
 
 .dark-mode .profile-container .modal-btn-danger:hover:not(:disabled) {
   background: #b91c1c;
+}
+
+/* ==================== ORCID信息同步弹窗样式 ==================== */
+
+.profile-container .orcid-sync-modal-content {
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-container .orcid-sync-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.profile-container .orcid-sync-section {
+  margin-bottom: 24px;
+}
+
+.profile-container .orcid-sync-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-container .orcid-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 16px;
+}
+
+.profile-container .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f4f6;
+  border-top-color: #4A90E2;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.profile-container .orcid-loading p {
+  color: #666;
+  font-size: 14px;
+}
+
+.profile-container .orcid-error {
+  padding: 20px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+.profile-container .error-message {
+  color: #dc2626;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.profile-container .btn-retry {
+  padding: 8px 16px;
+  background: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.profile-container .btn-retry:hover {
+  background: #357ABD;
+}
+
+.profile-container .orcid-info-display {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-container .info-hint {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.profile-container .privacy-hint {
+  color: #856404;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px;
+  background: #fff3cd;
+  border-radius: 6px;
+  border: 1px solid #ffeaa7;
+}
+
+.profile-container .orcid-category {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f8f9fa;
+}
+
+.profile-container .category-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-container .category-title svg {
+  color: #4A90E2;
+}
+
+.profile-container .empty-category {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+.profile-container .orcid-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-container .orcid-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  gap: 12px;
+}
+
+.profile-container .orcid-item-content {
+  flex: 1;
+}
+
+.profile-container .item-text {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+}
+
+.profile-container .orcid-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.profile-container .bind-select {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.profile-container .bind-select:focus {
+  outline: none;
+  border-color: #4A90E2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.profile-container .btn-bind {
+  padding: 6px 16px;
+  background: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.profile-container .btn-bind:hover:not(:disabled) {
+  background: #357ABD;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(74, 144, 226, 0.3);
+}
+
+.profile-container .btn-bind:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.profile-container .bind-success-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-container .bind-success-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #d1fae5;
+  border-radius: 6px;
+  border: 1px solid #86efac;
+  color: #065f46;
+  font-size: 13px;
+}
+
+.profile-container .bind-success-item svg {
+  color: #10b981;
+  flex-shrink: 0;
+}
+
+/* 暗黑模式下的ORCID同步弹窗样式 */
+.dark-mode .profile-container .orcid-sync-section-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .orcid-loading p {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .orcid-error {
+  background: #7f1d1d;
+  border-color: #991b1b;
+}
+
+.dark-mode .profile-container .error-message {
+  color: #fca5a5;
+}
+
+.dark-mode .profile-container .info-hint {
+  background: #1e293b;
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .privacy-hint {
+  background: #78350f;
+  color: #fbbf24;
+  border-color: #92400e;
+}
+
+.dark-mode .profile-container .orcid-category {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark-mode .profile-container .category-title {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .empty-category {
+  color: #64748b;
+}
+
+.dark-mode .profile-container .orcid-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.dark-mode .profile-container .item-text {
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .bind-select {
+  background: #1e293b;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.dark-mode .profile-container .bind-success-item {
+  background: #064e3b;
+  border-color: #059669;
+  color: #6ee7b7;
 }
