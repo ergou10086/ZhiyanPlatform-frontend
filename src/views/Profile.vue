@@ -3822,19 +3822,29 @@ export default {
      * 绑定关键词到研究方向
      */
     async bindKeywordToResearchTags(keyword) {
+      // 将现有标签统一转换为字符串数组（后端期望的是字符串列表）
+      const existingTags = this.researchTags.map(t => {
+        if (typeof t === 'string') {
+          return t
+        } else if (t && typeof t === 'object') {
+          return t.name || String(t)
+        } else {
+          return String(t)
+        }
+      }).filter(t => t && t.trim() !== '')
+
       // 检查是否已存在
-      const existingTags = this.researchTags.map(t => typeof t === 'string' ? t : t.name || t)
       if (existingTags.includes(keyword)) {
         throw new Error('该关键词已存在于研究方向中')
       }
 
       // 检查是否超过5个
-      if (this.researchTags.length >= 5) {
+      if (existingTags.length >= 5) {
         throw new Error('研究方向标签最多5个，请先移除其他标签')
       }
 
-      // 添加到研究方向
-      const newTags = [...this.researchTags, keyword]
+      // 添加到研究方向（确保所有标签都是字符串）
+      const newTags = [...existingTags, String(keyword).trim()].filter(t => t)
       const response = await profileAPI.updateResearchTags(newTags)
 
       if (response && response.code === 200) {
@@ -3855,8 +3865,9 @@ export default {
       }
 
       // 更新用户所属机构
+      // 注意：updateUserInfo 方法期望 organization 字段，会自动映射到后端的 institution
       const updateData = {
-        institution: institution
+        organization: institution
       }
 
       const response = await authAPI.updateUserInfo(updateData)
