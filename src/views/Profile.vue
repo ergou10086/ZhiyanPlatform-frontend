@@ -299,21 +299,31 @@
                     </span>
                   </div>
                 </div>
-                <button 
-                  v-if="!userInfo.orcidId" 
-                  @click="handleOrcidBind" 
-                  class="oauth2-bind-btn orcid-bind-btn"
-                >
-                  绑定
-                </button>
-                <button 
-                  v-else
-                  @click="handleOrcidBind" 
-                  class="oauth2-bind-btn oauth2-unbind-btn"
-                  title="解绑ORCID账号"
-                >
-                  解绑
-                </button>
+                <div class="oauth2-binding-actions">
+                  <button 
+                    v-if="!userInfo.orcidId" 
+                    @click="handleOrcidBind" 
+                    class="oauth2-bind-btn orcid-bind-btn"
+                  >
+                    绑定
+                  </button>
+                  <template v-else>
+                    <button 
+                      @click="openOrcidSyncModal" 
+                      class="oauth2-bind-btn orcid-sync-btn"
+                      title="同步ORCID信息"
+                    >
+                      同步信息
+                    </button>
+                    <button 
+                      @click="handleOrcidBind" 
+                      class="oauth2-bind-btn oauth2-unbind-btn"
+                      title="解绑ORCID账号"
+                    >
+                      解绑
+                    </button>
+                  </template>
+                </div>
               </div>
             </div>
           </div>
@@ -986,6 +996,154 @@
       </div>
     </div>
 
+    <!-- ORCID信息同步弹窗 -->
+    <div v-if="showOrcidSyncModal" class="modal-overlay" @click="closeOrcidSyncModal">
+      <div class="modal-content orcid-sync-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>ORCID 信息同步</h3>
+          <button @click="closeOrcidSyncModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body orcid-sync-modal-body">
+          <!-- 信息获取区 -->
+          <div class="orcid-sync-section">
+            <h4 class="orcid-sync-section-title">信息获取</h4>
+            <div v-if="orcidSyncLoading" class="orcid-loading">
+              <div class="loading-spinner"></div>
+              <p>正在从 ORCID 获取您的公开信息...</p>
+            </div>
+            <div v-else-if="orcidSyncError" class="orcid-error">
+              <p class="error-message">{{ orcidSyncError }}</p>
+              <button @click="fetchOrcidDetail" class="btn-retry">重新获取 ORCID 信息</button>
+            </div>
+            <div v-else-if="orcidDetail" class="orcid-info-display">
+              <p class="info-hint">以下信息来自您的 ORCID 公开资料，请选择需要同步到平台的字段：</p>
+              <p class="privacy-hint">💡 提示：只能获取公开的信息，如果未看到某些信息，请在 ORCID 中将其设置为公开</p>
+              
+              <!-- 关键词分类 -->
+              <div class="orcid-category">
+                <h5 class="category-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  关键词
+                </h5>
+                <div v-if="!orcidDetail.keywords || orcidDetail.keywords.length === 0" class="empty-category">
+                  <p>该分类下暂无公开信息</p>
+                </div>
+                <div v-else class="orcid-items-list">
+                  <div v-for="(keyword, index) in orcidDetail.keywords" :key="`keyword-${index}`" class="orcid-item">
+                    <div class="orcid-item-content">
+                      <span class="item-text">{{ keyword }}</span>
+                    </div>
+                    <div class="orcid-item-actions">
+                      <select v-model="orcidBindings[`keyword-${index}`]" class="bind-select">
+                        <option value="">选择绑定位置</option>
+                        <option value="research-tags">研究方向</option>
+                      </select>
+                      <button 
+                        @click="bindOrcidItem('keyword', keyword, index)"
+                        :disabled="!orcidBindings[`keyword-${index}`]"
+                        class="btn-bind"
+                      >
+                        确认绑定
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 教育经历分类 -->
+              <div class="orcid-category">
+                <h5 class="category-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 14v6M5 12v6l7 3 7-3v-6" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  教育经历
+                </h5>
+                <div v-if="!orcidDetail.educations || orcidDetail.educations.length === 0" class="empty-category">
+                  <p>该分类下暂无公开信息</p>
+                </div>
+                <div v-else class="orcid-items-list">
+                  <div v-for="(edu, index) in orcidDetail.educations" :key="`edu-${index}`" class="orcid-item">
+                    <div class="orcid-item-content">
+                      <span class="item-text">{{ formatEducationInfo(edu) }}</span>
+                    </div>
+                    <div class="orcid-item-actions">
+                      <select v-model="orcidBindings[`edu-${index}`]" class="bind-select">
+                        <option value="">选择绑定位置</option>
+                        <option value="institution">所属机构</option>
+                      </select>
+                      <button 
+                        @click="bindOrcidItem('education', edu, index)"
+                        :disabled="!orcidBindings[`edu-${index}`]"
+                        class="btn-bind"
+                      >
+                        确认绑定
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 就业经历分类 -->
+              <div class="orcid-category">
+                <h5 class="category-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  就业经历
+                </h5>
+                <div v-if="!orcidDetail.employments || orcidDetail.employments.length === 0" class="empty-category">
+                  <p>该分类下暂无公开信息</p>
+                </div>
+                <div v-else class="orcid-items-list">
+                  <div v-for="(emp, index) in orcidDetail.employments" :key="`emp-${index}`" class="orcid-item">
+                    <div class="orcid-item-content">
+                      <span class="item-text">{{ formatEmploymentInfo(emp) }}</span>
+                    </div>
+                    <div class="orcid-item-actions">
+                      <select v-model="orcidBindings[`emp-${index}`]" class="bind-select">
+                        <option value="">选择绑定位置</option>
+                        <option value="institution">所属机构</option>
+                      </select>
+                      <button 
+                        @click="bindOrcidItem('employment', emp, index)"
+                        :disabled="!orcidBindings[`emp-${index}`]"
+                        class="btn-bind"
+                      >
+                        确认绑定
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作反馈区 -->
+          <div v-if="orcidBindSuccessMessages.length > 0" class="orcid-sync-section">
+            <h4 class="orcid-sync-section-title">绑定记录</h4>
+            <div class="bind-success-list">
+              <div v-for="(msg, index) in orcidBindSuccessMessages" :key="index" class="bind-success-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>{{ msg }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeOrcidSyncModal" class="modal-btn modal-btn-confirm">全部绑定完成</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 注销账号确认模态框 -->
     <div v-if="showDeleteAccountModal" class="modal-overlay" @click="closeDeleteAccountModal">
       <div class="modal-content delete-account-modal-content" @click.stop>
@@ -1156,7 +1314,14 @@ export default {
       showDeleteAccountModal: false,
       deleteAccountVerification: '',
       deleteAccountVerificationType: 'username', // 'username' 或 '2fa'
-      isDeletingAccount: false
+      isDeletingAccount: false,
+      // ORCID信息同步相关
+      showOrcidSyncModal: false,
+      orcidSyncLoading: false,
+      orcidSyncError: null,
+      orcidDetail: null,
+      orcidBindings: {}, // 存储每个项目的绑定选择
+      orcidBindSuccessMessages: [] // 绑定成功的消息列表
     }
   },
   computed: {
@@ -3520,6 +3685,188 @@ export default {
       this.showDeleteAccountModal = false
       this.deleteAccountVerification = ''
       this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
+    },
+
+    // ===== ORCID信息同步相关方法 =====
+    
+    /**
+     * 打开ORCID信息同步弹窗
+     */
+    async openOrcidSyncModal() {
+      this.showOrcidSyncModal = true
+      this.orcidSyncError = null
+      this.orcidDetail = null
+      this.orcidBindings = {}
+      this.orcidBindSuccessMessages = []
+      await this.fetchOrcidDetail()
+    },
+
+    /**
+     * 关闭ORCID信息同步弹窗
+     */
+    closeOrcidSyncModal() {
+      this.showOrcidSyncModal = false
+      this.orcidSyncError = null
+      this.orcidDetail = null
+      this.orcidBindings = {}
+      this.orcidBindSuccessMessages = []
+      // 刷新用户信息
+      if (this.isViewingSelf) {
+        this.loadMyProfileFromServer()
+      }
+    },
+
+    /**
+     * 获取ORCID详细信息
+     */
+    async fetchOrcidDetail() {
+      if (!this.userInfo.orcidId) {
+        this.orcidSyncError = '未绑定ORCID账号，请先绑定'
+        return
+      }
+
+      this.orcidSyncLoading = true
+      this.orcidSyncError = null
+
+      try {
+        const response = await authAPI.getOrcidDetail()
+        
+        if (response && response.code === 200 && response.data) {
+          this.orcidDetail = response.data
+          console.log('✅ 获取ORCID详细信息成功:', this.orcidDetail)
+        } else {
+          throw new Error(response?.msg || '获取ORCID信息失败')
+        }
+      } catch (error) {
+        console.error('❌ 获取ORCID详细信息失败:', error)
+        this.orcidSyncError = error.message || error.msg || '获取ORCID信息失败，请检查ORCID授权状态'
+      } finally {
+        this.orcidSyncLoading = false
+      }
+    },
+
+    /**
+     * 格式化教育经历信息
+     */
+    formatEducationInfo(edu) {
+      const parts = []
+      if (edu.organization) parts.push(edu.organization)
+      if (edu.department) parts.push(edu.department)
+      const dateRange = this.formatDateRange(edu.startDate, edu.endDate)
+      if (dateRange) parts.push(dateRange)
+      return parts.join(' · ') || '教育经历'
+    },
+
+    /**
+     * 格式化就业经历信息
+     */
+    formatEmploymentInfo(emp) {
+      const parts = []
+      if (emp.organization) parts.push(emp.organization)
+      if (emp.roleTitle) parts.push(emp.roleTitle)
+      const dateRange = this.formatDateRange(emp.startDate, emp.endDate)
+      if (dateRange) parts.push(dateRange)
+      return parts.join(' · ') || '就业经历'
+    },
+
+    /**
+     * 格式化日期范围
+     */
+    formatDateRange(startDate, endDate) {
+      if (!startDate) return null
+      if (endDate) {
+        return `${startDate} - ${endDate}`
+      } else {
+        return `${startDate} - 至今`
+      }
+    },
+
+    /**
+     * 绑定ORCID项目到平台字段
+     */
+    async bindOrcidItem(type, item, index) {
+      const bindingKey = type === 'keyword' ? `keyword-${index}` : 
+                        type === 'education' ? `edu-${index}` : `emp-${index}`
+      const targetField = this.orcidBindings[bindingKey]
+
+      if (!targetField) {
+        alert('请先选择绑定位置')
+        return
+      }
+
+      try {
+        if (targetField === 'research-tags') {
+          // 绑定关键词到研究方向
+          await this.bindKeywordToResearchTags(item)
+        } else if (targetField === 'institution') {
+          // 绑定教育/就业经历到所属机构
+          await this.bindExperienceToInstitution(type, item)
+        }
+
+        // 添加成功消息
+        const itemText = type === 'keyword' ? item : 
+                        type === 'education' ? this.formatEducationInfo(item) : 
+                        this.formatEmploymentInfo(item)
+        const fieldName = targetField === 'research-tags' ? '研究方向' : '所属机构'
+        this.orcidBindSuccessMessages.push(`已将「${itemText}」绑定到「${fieldName}」`)
+
+        // 清除该项目的绑定选择
+        this.$delete(this.orcidBindings, bindingKey)
+      } catch (error) {
+        console.error('绑定失败:', error)
+        alert('绑定失败: ' + (error.message || error.msg || '请稍后重试'))
+      }
+    },
+
+    /**
+     * 绑定关键词到研究方向
+     */
+    async bindKeywordToResearchTags(keyword) {
+      // 检查是否已存在
+      const existingTags = this.researchTags.map(t => typeof t === 'string' ? t : t.name || t)
+      if (existingTags.includes(keyword)) {
+        throw new Error('该关键词已存在于研究方向中')
+      }
+
+      // 检查是否超过5个
+      if (this.researchTags.length >= 5) {
+        throw new Error('研究方向标签最多5个，请先移除其他标签')
+      }
+
+      // 添加到研究方向
+      const newTags = [...this.researchTags, keyword]
+      const response = await profileAPI.updateResearchTags(newTags)
+
+      if (response && response.code === 200) {
+        this.researchTags = response.data || newTags
+        this.showSuccessToast('关键词已添加到研究方向')
+      } else {
+        throw new Error(response?.msg || '更新失败')
+      }
+    },
+
+    /**
+     * 绑定教育/就业经历到所属机构
+     */
+    async bindExperienceToInstitution(type, experience) {
+      const institution = experience.organization
+      if (!institution) {
+        throw new Error('该经历缺少机构信息')
+      }
+
+      // 更新用户所属机构
+      const updateData = {
+        institution: institution
+      }
+
+      const response = await authAPI.updateUserInfo(updateData)
+
+      if (response && response.code === 200) {
+        this.userInfo.organization = institution
+        this.showSuccessToast('所属机构已更新')
+      } else {
+        throw new Error(response?.msg || '更新失败')
+      }
     }
   }
 }
