@@ -141,6 +141,20 @@ const routes = [
     path: '/task-review',
     redirect: '/my-activity'
   },
+  {
+    path: '/docs',
+    beforeEnter(to, from, next) {
+      // 开发环境：重定向到代理路径
+      // 生产环境：直接访问静态文件（由 Nginx 或服务器处理）
+      if (process.env.NODE_ENV === 'development') {
+        // 开发环境，文档由代理处理，直接允许访问
+        next()
+      } else {
+        // 生产环境，文档是静态文件，直接允许访问
+        next()
+      }
+    }
+  },
   // 404页面 - 必须放在最后，作为catch-all路由
   {
     path: '*',
