@@ -470,6 +470,151 @@
   gap: 8px;
 }
 
+/* 个人简介（内联在主信息容器内） */
+.profile-container .intro-section-inline {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+  width: 100%;
+}
+
+.profile-container .intro-display-inline {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-container .intro-content-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.profile-container .intro-content-inline {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #495057;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  padding: 0;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.profile-container .intro-content-inline.intro-collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 4.8em; /* 约3行的高度 */
+}
+
+.profile-container .intro-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #007bff;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.profile-container .intro-toggle-btn:hover {
+  background-color: #f0f7ff;
+  color: #0056b3;
+}
+
+.profile-container .intro-toggle-btn svg {
+  transition: transform 0.3s ease;
+}
+
+.profile-container .intro-toggle-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
+.profile-container .edit-intro-btn-inline {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.profile-container .edit-intro-btn-inline svg {
+  width: 14px;
+  height: 14px;
+}
+
+.profile-container .intro-display-inline:hover .edit-intro-btn-inline {
+  opacity: 1;
+}
+
+.profile-container .edit-intro-btn-inline:hover {
+  background-color: #f8f9fa;
+  color: #007bff;
+}
+
+.profile-container .intro-edit-inline {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.profile-container .intro-textarea-inline {
+  width: 100%;
+  max-width: 500px;
+  min-height: 100px;
+  padding: 12px;
+  border: 2px solid #007bff;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+  color: #2c3e50;
+  background-color: #fff;
+}
+
+.profile-container .intro-textarea-inline:focus {
+  border-color: #0056b3;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.profile-container .intro-textarea-inline::placeholder {
+  color: #adb5bd;
+}
+
+.profile-container .intro-actions-inline {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
 .profile-container .save-btn-small, .profile-container .cancel-btn-small {
   width: 32px;
   height: 32px;
@@ -1021,6 +1166,47 @@
   color: #94a3b8;
 }
 
+.dark-mode .profile-container .intro-section-inline {
+  border-top-color: #475569;
+}
+
+.dark-mode .profile-container .intro-content-inline {
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .intro-toggle-btn {
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .intro-toggle-btn:hover {
+  background-color: #1e293b;
+  color: #93c5fd;
+}
+
+.dark-mode .profile-container .edit-intro-btn-inline {
+  color: #94a3b8;
+}
+
+.dark-mode .profile-container .edit-intro-btn-inline:hover {
+  background-color: #334155;
+  color: #60a5fa;
+}
+
+.dark-mode .profile-container .intro-textarea-inline {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+.dark-mode .profile-container .intro-textarea-inline:focus {
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+.dark-mode .profile-container .intro-textarea-inline::placeholder {
+  color: #64748b;
+}
+
 .dark-mode .profile-container .edit-btn {
   background: #334155;
   border-color: #475569;
@@ -1552,6 +1738,19 @@
 @media (max-width: 768px) {
   .profile-container .profile-content {
     padding: 0 16px;
+  }
+
+  .profile-container .intro-section-inline {
+    margin-top: 16px;
+    padding-top: 16px;
+  }
+
+  .profile-container .intro-textarea-inline {
+    max-width: 100%;
+  }
+
+  .profile-container .edit-intro-btn-inline {
+    opacity: 1; /* 移动端始终显示编辑按钮 */
   }
 
   .profile-container .two-factor-modal-content {

@@ -2113,12 +2113,91 @@ export default {
       return '未知成果'
     },
     
+    // 检查上传表单是否有未保存的内容
+    hasUploadFormContent() {
+      const form = this.achievementForm
+      // 检查成果名称
+      if (form.name && form.name.trim()) {
+        return true
+      }
+      // 检查文件
+      if (form.files && form.files.length > 0) {
+        return true
+      }
+      // 检查关联任务
+      if (form.linkedTaskIds && form.linkedTaskIds.length > 0) {
+        return true
+      }
+      // 检查不同类型的具体字段
+      if (this.currentFileType === '论文') {
+        if (form.paperAuthors?.trim() || form.paperTitle?.trim() || form.journalName?.trim() || 
+            form.publishYear?.trim() || form.volume?.trim() || form.issue?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '专利') {
+        if (form.patentNumber?.trim() || form.patentType?.trim() || form.patentName?.trim() || 
+            form.inventors?.trim() || form.applicants?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '数据集') {
+        if (form.datasetVersion?.trim() || form.datasetName?.trim() || form.datasetFormat?.trim() || 
+            form.datasetSize?.trim() || form.datasetSource?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '模型文件') {
+        if (form.modelFramework?.trim() || form.modelName?.trim() || form.modelVersion?.trim() || 
+            form.modelType?.trim() || form.hyperparameters?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '实验报告') {
+        if (form.reportType?.trim() || form.reportName?.trim() || form.reportDate?.trim()) {
+          return true
+        }
+      }
+      return false
+    },
+    
+    // 检查自定义表单是否有未保存的内容
+    hasCustomFormContent() {
+      const form = this.customUploadForm
+      // 检查类型名称
+      if (form.typeName && form.typeName.trim()) {
+        return true
+      }
+      // 检查成果名称
+      if (form.name && form.name.trim()) {
+        return true
+      }
+      // 检查文件
+      if (form.files && form.files.length > 0) {
+        return true
+      }
+      // 检查描述字段
+      if (form.descriptions && form.descriptions.length > 0) {
+        const hasContent = form.descriptions.some(desc => 
+          (desc.leftField && desc.leftField.trim()) || (desc.rightField && desc.rightField.trim())
+        )
+        if (hasContent) {
+          return true
+        }
+      }
+      return false
+    },
+    
     closeUploadDialog() {
+      // 检查是否有未保存的内容
+      if (this.hasUploadFormContent()) {
+        if (!confirm('您有未保存的内容，关闭对话框将丢失这些信息。确定要关闭吗？')) {
+          return
+        }
+      }
       this.showUploadDialog = false
       this.resetAchievementForm()
       this.isAddingToExisting = false
       this.targetAchievementId = null
-      this.$refs.fileInput.value = ''
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
       // 解锁背景滚动
       this.unlockBodyScroll()
     },
@@ -2226,9 +2305,17 @@ export default {
     },
     
     closeCustomDialog() {
+      // 检查是否有未保存的内容
+      if (this.hasCustomFormContent()) {
+        if (!confirm('您有未保存的内容，关闭对话框将丢失这些信息。确定要关闭吗？')) {
+          return
+        }
+      }
       this.showCustomDialog = false
       this.resetCustomForm()
-      this.$refs.fileInput.value = ''
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
     },
     
     async viewFile(file) {

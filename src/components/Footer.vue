@@ -33,9 +33,9 @@
           <div class="footer-section">
             <h3 class="section-title">文档资源</h3>
             <ul class="link-list">
-              <li><a href="http://localhost:8002" target="_blank" class="footer-link">帮助文档</a></li>
-              <li><a href="http://localhost:8002/get-started.html" target="_blank" class="footer-link">快速开始</a></li>
-              <li><a href="http://localhost:8002/API.html" target="_blank" class="footer-link">API文档</a></li>
+              <li><a href="https://zyplatform.xyz" target="_blank" class="footer-link">帮助文档</a></li>
+              <li><a href="https://zyplatform.xyz/get-started.html" target="_blank" class="footer-link">快速开始</a></li>
+              <li><a href="https://zyplatform.xyz/API.html" target="_blank" class="footer-link">API文档</a></li>
               <li><a href="#" class="footer-link">使用指南</a></li>
             </ul>
           </div>

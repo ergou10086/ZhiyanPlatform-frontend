@@ -85,6 +85,67 @@
                 </button>
               </div>
             </div>
+            
+            <!-- 个人简介（在主信息容器内） -->
+            <div class="intro-section-inline">
+              <div v-if="editingIntro" class="intro-edit-inline">
+                <textarea 
+                  v-model="tempIntro" 
+                  class="intro-textarea-inline"
+                  placeholder="请输入个人简介..."
+                  ref="introTextarea"
+                ></textarea>
+                <div class="intro-actions-inline">
+                  <button @click="saveIntro" class="save-btn-small" title="保存">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button @click="cancelEditIntro" class="cancel-btn-small" title="取消">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div v-else class="intro-display-inline">
+                <div class="intro-content-wrapper">
+                  <p 
+                    class="intro-content-inline" 
+                    :class="{ 'intro-collapsed': !introExpanded && shouldShowCollapse }"
+                  >
+                    {{ displayIntroduction }}
+                  </p>
+                  <button 
+                    v-if="shouldShowCollapse && !editingIntro" 
+                    @click="introExpanded = !introExpanded" 
+                    class="intro-toggle-btn"
+                  >
+                    {{ introExpanded ? '收起' : '展开' }}
+                    <svg 
+                      width="12" 
+                      height="12" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      :class="{ 'rotated': introExpanded }"
+                    >
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <button 
+                  v-if="isLoggedIn && isViewingSelf && !editingIntro" 
+                  @click="editIntro" 
+                  class="edit-intro-btn-inline"
+                  title="编辑简介"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -329,35 +390,6 @@
           </div>
         </div>
 
-        <!-- 个人简介卡片 -->
-        <div class="info-card">
-          <div class="info-item">
-            <div class="intro-header">
-              <h3 class="info-label">个人简介</h3>
-              <button v-if="!editingIntro && isLoggedIn && isViewingSelf" @click="editIntro" class="edit-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-                编辑
-              </button>
-          </div>
-            <div v-if="editingIntro" class="intro-edit">
-              <textarea 
-                v-model="tempIntro" 
-                @blur="saveIntro" 
-                class="intro-textarea"
-                placeholder="请输入个人简介..."
-                ref="introTextarea"
-              ></textarea>
-              <div class="intro-actions">
-                <button @click="saveIntro" class="save-btn">保存</button>
-                <button @click="cancelEditIntro" class="cancel-btn">取消</button>
-              </div>
-            </div>
-            <p v-else class="info-value intro-content">{{ displayIntroduction }}</p>
-          </div>
-        </div>
           </div>
           <!-- 左侧栏结束 -->
           
@@ -1241,6 +1273,8 @@ export default {
       tempNickname: '',
       tempIntro: '',
       tempOrganization: '',
+      introExpanded: false,
+      introMaxHeight: 60, // 折叠时最大高度（像素）
       isLoggedIn: false,
       showModal: false,
       modalMessage: '',
@@ -1386,6 +1420,17 @@ export default {
         return '这个人很懒，什么都没有留下...'
       }
       return intro
+    },
+    
+    shouldShowCollapse() {
+      // 判断简介是否需要折叠展开功能
+      const intro = this.displayIntroduction
+      if (!intro || intro === '这个人很懒，什么都没有留下...') {
+        return false
+      }
+      // 简单估算：大约每行20个字符，3行约60个字符
+      // 或者可以通过实际渲染高度来判断，这里先使用字符数估算
+      return intro.length > 80
     }
   },
   watch: {
@@ -2382,11 +2427,14 @@ export default {
     // 个人简介编辑方法
     editIntro() {
       this.editingIntro = true
+      this.introExpanded = true // 编辑时自动展开
       // 使用计算属性确保获取正确的值
       const intro = this.userInfo.introduction || this.userInfo.description || ''
       this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.$nextTick(() => {
-        this.$refs.introTextarea.focus()
+        if (this.$refs.introTextarea) {
+          this.$refs.introTextarea.focus()
+        }
       })
     },
     async saveIntro() {
@@ -2475,6 +2523,9 @@ export default {
           
           // 显示成功提示
           this.showSuccessToast('个人简介更新成功！')
+          
+          // 保存后重置展开状态，让系统自动判断是否需要折叠
+          this.introExpanded = false
         } else {
           throw new Error(response.msg || '更新失败')
         }
@@ -2490,6 +2541,7 @@ export default {
       const intro = this.userInfo.introduction || this.userInfo.description || ''
       this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.editingIntro = false
+      this.introExpanded = false
     },
     // 机构编辑方法
     editOrganization() {
