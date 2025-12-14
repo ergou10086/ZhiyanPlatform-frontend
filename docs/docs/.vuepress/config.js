@@ -16,7 +16,7 @@ export default defineUserConfig({
   host: '0.0.0.0',
 
   theme: defaultTheme({
-    logo: '/docs/logo.svg',
+    logo: 'logo.svg',
     navbar: [
       { text: '首页', link: '/' },
       { text: '快速开始', link: '/get-started.html' }
