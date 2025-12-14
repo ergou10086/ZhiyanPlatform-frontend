@@ -11,12 +11,15 @@ export default defineUserConfig({
   // 设置 base 路径，使文档可以通过 /docs/ 访问
   base: '/docs/',
 
+  // 设置构建输出目录到主项目的 public/docs
+  dest: path.resolve(__dirname, '../../../public/docs'),
+
   // 添加端口配置
   port: 8012,
   host: '0.0.0.0',
 
   theme: defaultTheme({
-    logo: 'logo.svg',
+    logo: '/docs/logo.svg',
     navbar: [
       { text: '首页', link: '/' },
       { text: '快速开始', link: '/get-started.html' }
