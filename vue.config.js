@@ -36,10 +36,6 @@ module.exports = {
         secure: false,
         ws: true,
         logLevel: 'debug',
-        // 保持路径不变，直接转发
-        pathRewrite: {
-          '^/docs': '/docs'
-        }
       },
       '/zhiyan/message': {
         target: 'http://localhost:9006',
