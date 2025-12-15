@@ -6,8 +6,6 @@
           <router-view/>
         </keep-alive>
       </div>
-      <!-- 全局页脚 -->
-      <Footer v-if="!isAuthPage" />
     </div>
     <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
     <GlobalMessageNotification v-if="!isAuthPage" />
@@ -31,7 +29,6 @@ import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
 import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
 import GlobalMessageNotification from '@/components/GlobalMessageNotification.vue'
 import FloatingMessageReminder from '@/components/FloatingMessageReminder.vue'
-import Footer from '@/components/Footer.vue'
 
 export default {
   name: 'App',
@@ -39,8 +36,7 @@ export default {
     GlobalUserProfile,
     GlobalErrorDialog,
     GlobalMessageNotification,
-    FloatingMessageReminder,
-    Footer
+    FloatingMessageReminder
   },
   data() {
     return {

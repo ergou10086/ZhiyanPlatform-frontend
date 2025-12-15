@@ -115,6 +115,8 @@
 </template>
 
 <script>
+import { DOCS_BASE_URL } from '@/config'
+
 export default {
   name: 'Footer',
   computed: {
