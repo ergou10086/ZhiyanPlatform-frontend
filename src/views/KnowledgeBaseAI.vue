@@ -755,185 +755,98 @@ export default {
       this.currentTypingMessageIndex = -1
       this.typewriterQueue = ''
     },
-    
+
     async sendMessage() {
-      if (this.isArchived) {
-        if (this.$message) {
-          this.$message.warning('项目已归档，仅支持查看知识库，不能使用AI赋能对话')
-        } else {
-          alert('项目已归档，仅支持查看知识库，不能使用AI赋能对话')
-        }
-        return
-      }
-      // 如果没有输入消息且没有文件，则不允许发送
-      if ((!this.inputMessage.trim() && this.selectedLocalFiles.length === 0 && this.selectedKnowledgeFileIds.length === 0) || this.isSending) return
-      
-      // 如果没有当前会话，创建一个新会话
-      if (!this.currentChatSessionId) {
-        this.createNewChatSession()
-      }
-      
-      // 收集文件信息
-      const messageFiles = []
+      if (this.isSending) return
 
-      // 添加本地文件信息
-      this.selectedLocalFiles.forEach(file => {
-        messageFiles.push({
-          name: file.name,
-          type: this.getFileType(file.name),
-          size: file.size,
-          isLocal: true,
-          file: file
+      // 检查是否有内容或文件
+      const userQuery = this.inputMessage.trim()
+      // 过滤出有效的 Dify 文件 (必须有 difyFileId)
+      const validFiles = this.uploadedFiles.filter(f => f.difyFileId)
+
+      // 如果没字也没文件，不发送
+      if (!userQuery && validFiles.length === 0) return
+
+      // --- 1. UI 显示逻辑 ---
+
+      // 构建显示用的文件列表
+      const displayFiles = validFiles.map(f => ({
+        name: f.fileName,
+        type: f.fileType,
+        size: f.fileSize,
+        fileId: f.difyFileId
+      }))
+
+      // 如果有文件，先推一个文件消息气泡
+      if (displayFiles.length > 0) {
+        this.messages.push({
+          id: this.generateUniqueMessageId(),
+          type: 'right',
+          isFileOnly: true,
+          files: displayFiles
         })
-      })
-
-      // 添加知识库文件信息
-      this.selectedKnowledgeFileIds.forEach(fileId => {
-        const fileIdStr = String(fileId)
-        // 统一使用字符串作为键查找文件信息，避免精度丢失
-        let fileInfo = this.knowledgeFileInfoMap[fileIdStr]
-
-        if (fileInfo) {
-          messageFiles.push({
-            fileName: fileInfo.fileName,
-            name: fileInfo.fileName,
-            fileType: fileInfo.fileType,
-            type: fileInfo.fileType,
-            fileSize: fileInfo.fileSize,
-            size: fileInfo.fileSize,
-            fileId: fileInfo.isAchievement ? fileInfo.achievementId : fileId, // 如果是成果目录，使用成果ID
-            isLocal: false,
-            isAchievement: fileInfo.isAchievement || false, // 标记是否是成果目录
-            achievementId: fileInfo.achievementId || null // 如果是成果目录，保存成果ID
-          })
-        }
-      })
-
-      // 保存用户文字内容，用于复制功能
-      const userTextContent = this.inputMessage.trim()
-      // 如果用户没有输入文字但上传了文件，使用默认查询
-      let query = this.inputMessage.trim()
-      if (!query && (this.uploadedFiles.length > 0 || this.selectedLocalFiles.length > 0)) {
-        query = '请分析这些文件的内容'
       }
+
+      // 如果有文字，推文字消息气泡
+      if (userQuery) {
+        this.messages.push({
+          id: this.generateUniqueMessageId(),
+          type: 'right',
+          content: userQuery
+        })
+      }
+
+      // --- 2. 准备发送数据 ---
+
+      // 提取所有的 difyFileId (String List)
+      const difyFileIdsToSend = validFiles.map(f => f.difyFileId)
+      const queryToSend = userQuery || '请分析这些文件'
+
+      // 清空文件列表 (实现一次对话中文件只会携带一次)
       this.inputMessage = ''
+      this.uploadedFiles = [] // 清空侧边栏
+      this.selectedLocalFiles = [] // 清空旧逻辑遗留
+      this.selectedAchievementFiles = []
 
-      // 如果有文件，先发送文件消息（独立的消息气泡）
-      if (messageFiles.length > 0) {
-        const fileMessage = {
-          id: this.generateUniqueMessageId(),
-          type: 'right',
-          content: '', // 文件消息不显示文字内容
-          files: messageFiles,
-          isFileOnly: true // 标记这是仅文件的消息
-        }
-        this.messages.push(fileMessage)
-      }
+      // --- 3. AI 交互逻辑 ---
 
-      // 如果有文字内容，再发送文字消息（独立的消息气泡）
-      if (userTextContent) {
-        const textMessage = {
-          id: this.generateUniqueMessageId(),
-          type: 'right',
-          content: userTextContent,
-          files: undefined,
-          isFileOnly: false
-        }
-        this.messages.push(textMessage)
-
-        // 如果用户在对话中提到“思维导图”，也触发右侧加载动画
-        if (userTextContent.includes('思维导图')) {
-          this.mindmapData = null
-          this.isGeneratingMindmap = true
-        }
-      }
-      
-      this.isSending = true
-      
-      // 创建AI回复消息占位符
-      const aiMessageId = this.generateUniqueMessageId()
-      const aiMessage = {
-        id: aiMessageId,
-        type: 'left',
-        content: ''
-      }
+      const aiMsgId = this.generateUniqueMessageId()
+      const aiMessage = { id: aiMsgId, type: 'left', content: '' }
       this.messages.push(aiMessage)
-      
-      // ⭐ 参考Dify：初始化打字机状态
-      console.log('[打字机初始化] 清理旧状态并准备新消息')
+
+      this.isSending = true
+      this.$nextTick(() => this.scrollToBottom())
+
+      // 初始化打字机
       this.stopTypewriter()
-      this.isTyping = false
       this.currentTypingMessageIndex = this.messages.length - 1
-      this.typewriterQueue = ''
-      
-      console.log('[打字机初始化完成]', {
-        messageId: aiMessageId,
-        messageIndex: this.currentTypingMessageIndex
-      })
-      
-      // 保存当前会话
-      this.saveCurrentChatSession()
-      
-      // 滚动到底部
-      this.$nextTick(() => {
-        this.scrollToBottom()
-      })
-      
+
       try {
-      // 准备本地文件：从 uploadedFiles 中提取 source='local' 的文件
-      const localFilesFromUploaded = this.uploadedFiles
-        .filter(file => file.source === 'local' && file.file)
-        .map(file => file.file)
-      
-      // 也包含 selectedLocalFiles（兼容旧逻辑）
-      const allLocalFiles = [...this.selectedLocalFiles, ...localFilesFromUploaded]
-      const localFiles = allLocalFiles.length > 0 ? allLocalFiles : null
-      
-      // 提取已上传文件的 difyFileId（只提取已上传到Dify的文件）
-      const difyFileIds = this.uploadedFiles
-        .filter(file => file.difyFileId) // 只提取已有difyFileId的文件
-        .map(file => file.difyFileId)
-        .filter(id => id)
-      
-      console.log('[KnowledgeBaseAI] 发送前的文件状态:', {
-        uploadedFiles: this.uploadedFiles.length,
-        difyFileIds: difyFileIds,
-        selectedLocalFiles: this.selectedLocalFiles.length,
-        localFilesFromUploaded: localFilesFromUploaded.length,
-        allLocalFiles: allLocalFiles.length
-      })
-      
-      // 发送后清空文件（下次需要重新选择）
-      this.selectedLocalFiles = []
-      this.uploadedFiles = []
-        
-        // 调用基于 Dify 知识库工作流的流式对话接口（支持文件）
-        console.log('[调用API] 使用Dify知识库工作流接口，localFiles:', localFiles?.length, 'difyFileIds:', difyFileIds?.length, 'difyFileIds详情:', difyFileIds, 'conversationId:', this.conversationId)
-        this.currentStreamController = await uploadAndChatStreamForKnowledge(
-          query,
-          this.conversationId,
-          difyFileIds || [],
-          localFiles || [],
-          (delta) => {
-            // 处理流式消息增量内容，直接走打字机效果
-            if (delta) {
-              this.startTypewriter(this.currentTypingMessageIndex, String(delta))
+        console.log('[发送] 调用预上传模式接口', { query: queryToSend, fileIds: difyFileIdsToSend })
+
+        // 调用新写的只传 ID 的接口
+        this.currentStreamController = await difyAPI.chatStreamWithPreloadedFiles(
+            queryToSend,
+            this.conversationId,
+            difyFileIdsToSend,
+            (delta) => {
+              // onMessage
+              this.startTypewriter(this.currentTypingMessageIndex, delta)
+            },
+            (endData) => {
+              // onEnd: 保存 conversationId
+              if (endData && endData.conversation_id) {
+                this.conversationId = endData.conversation_id
+              }
+              this.handleStreamComplete(aiMessage)
+            },
+            (err) => {
+              // onError
+              this.handleStreamError(err, aiMessage)
             }
-          },
-          () => {
-            // 流式响应完成
-            this.handleStreamComplete(aiMessage)
-          },
-          (error) => {
-            // 处理错误
-            this.handleStreamError(error, aiMessage)
-          }
         )
-      } catch (error) {
-        console.error('发送消息失败:', error)
-        aiMessage.content = '抱歉，发送消息时发生错误：' + (error.message || '未知错误')
-        this.isSending = false
-        this.saveMessagesToStorage()
+      } catch (e) {
+        this.handleStreamError(e, aiMessage)
       }
     },
     
@@ -1122,36 +1035,53 @@ export default {
     },
     
     // 处理文件选择（暂存，发送消息时一起传给后端）
-    handleFileUpload(event) {
-      const files = Array.from(event.target.files)
-      if (files.length > 0) {
-        console.log('选择了本地文件:', files)
-        // 保存选中的本地文件（追加到现有列表）
-        this.selectedLocalFiles.push(...files)
-        
-        // 同时添加到已上传文件列表，用于显示（但不会立即上传，发送消息时才上传）
-        files.forEach(file => {
-          const uniqueId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    async handleFileUpload(event) {
+      if (files.length === 0) return
+
+      // 1. 先将文件加入列表，状态设为 uploading
+      const newFiles = files.map(file => ({
+        id: `local_temp_${Date.now()}_${Math.random().toString(36).substr(2)}`,
+        fileName: file.name,
+        fileSize: file.size,
+        source: 'local',
+        status: 'uploading', // 新增状态字段
+        fileObj: file
+      }))
+
+      // 添加到上传中列表
+      this.uploadingFiles.push(...newFiles)
+      this.$refs.fileInput.value = '' // 清空 input
+
+      // 2. 逐个调用同步上传接口
+      for (const item of newFiles) {
+        try {
+          console.log(`[上传] 开始上传文件: ${item.fileName}`)
+
+          // 调用 dify.js 中的新接口
+          const result = await difyAPI.uploadLocalFile(item.fileObj)
+
+          // 3. 上传成功，从 uploading 移入 uploadedFiles
+          // 并且必须保存 difyFileId
           this.uploadedFiles.push({
-            id: uniqueId,
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: this.getFileType(file.name),
-            source: 'local',
-            file: file, // 保存原始文件对象，发送消息时使用
-            difyFileId: null // 本地文件还没有上传到Dify，所以没有difyFileId
+            id: `local_${result.fileId}`, // 使用返回的ID
+            fileName: result.fileName,
+            fileSize: item.fileSize,
+            fileType: this.getFileType(result.fileName),
+            difyFileId: result.fileId, // 关键：保存 Dify ID
+            source: 'local'
           })
-        })
-        
-        // 检查 $message 是否存在
-        if (this.$message) {
-          this.$message.success(`已选择 ${files.length} 个文件`)
-        } else {
-          console.log(`✅ 已选择 ${files.length} 个文件`)
+
+          // 从上传中移除
+          this.uploadingFiles = this.uploadingFiles.filter(f => f.id !== item.id)
+          console.log(`[上传] 成功: ${item.fileName}, ID: ${result.fileId}`)
+
+        } catch (error) {
+          console.error(`[上传] 失败: ${item.fileName}`, error)
+          this.$message && this.$message.error(`${item.fileName} 上传失败`)
+          // 失败也移除，或者你可以加个失败状态
+          this.uploadingFiles = this.uploadingFiles.filter(f => f.id !== item.id)
         }
       }
-      // 清空文件输入
-      this.$refs.fileInput.value = ''
     },
     
     // 关闭文件选择弹窗
@@ -1268,89 +1198,61 @@ export default {
     // 确认选择文件（第二步）- 立即上传到 Dify
     async confirmAchievementFileSelection() {
       if (this.selectedAchievementFiles.length === 0) return
-      
-      // ⚠️ 重要：在 closeFileDialog() 之前保存文件ID，因为 closeFileDialog 会清空 selectedAchievementFiles
-      const fileIdsToUpload = this.selectedAchievementFiles.slice()
-      
-      const selectedFileObjects = this.achievementFiles.filter(file => 
-        fileIdsToUpload.includes(file.id)
-      )
-      
-      console.log('[文件上传] 开始上传知识库文件到Dify:', fileIdsToUpload)
-      console.log('[文件上传] 选中的文件对象:', selectedFileObjects)
-      
-      // 关闭对话框，显示上传进度
+
+      const fileIdsToUpload = [...this.selectedAchievementFiles]
+      const selectedFileObjects = this.achievementFiles.filter(f => fileIdsToUpload.includes(f.id))
+
       this.closeFileDialog()
-      
-      // 添加到上传中列表
-      selectedFileObjects.forEach(file => {
-        console.log('[文件上传] 添加到上传中列表的文件:', file)
+
+      // 1. UI 显示上传中
+      const tempIds = []
+      selectedFileObjects.forEach(f => {
+        const tempId = `know_temp_${f.id}`
+        tempIds.push(tempId)
         this.uploadingFiles.push({
-          id: String(file.id),
-          fileName: file.fileName || file.name || '未命名文件',
-          fileSize: file.fileSize || file.size || 0,
-          fileType: file.fileType || file.type || '文件',
-          progress: 0,
+          id: tempId,
+          fileName: f.fileName || f.name,
+          status: 'uploading',
           source: 'knowledge'
         })
       })
-      console.log('[文件上传] 上传中列表（添加后）:', this.uploadingFiles)
-      
+
       try {
-        // 调用上传接口
-        const { uploadKnowledgeFilesToDify } = await import('@/api/dify')
-        console.log('[文件上传] 准备上传的文件ID:', fileIdsToUpload)
-        const uploadResults = await uploadKnowledgeFilesToDify(fileIdsToUpload)
-        
-        console.log('[文件上传] 上传结果:', uploadResults)
-        
-        // 处理上传结果
-        uploadResults.forEach(result => {
-          const knowledgeFileIdStr = String(result.knowledgeFileId)
-          console.log('[文件上传] 处理结果:', result, '查找ID:', knowledgeFileIdStr)
-          
-          // 从上传中列表移除（使用字符串比较）
-          const uploadingIndex = this.uploadingFiles.findIndex(f => String(f.id) === knowledgeFileIdStr)
-          console.log('[文件上传] 上传中列表:', this.uploadingFiles.map(f => ({ id: f.id, fileName: f.fileName })))
-          console.log('[文件上传] 查找索引:', uploadingIndex)
-          
-          if (uploadingIndex > -1) {
-            this.uploadingFiles.splice(uploadingIndex, 1)
-            console.log('[文件上传] 已从上传中列表移除:', knowledgeFileIdStr)
-          } else {
-            console.warn('[文件上传] 未在上传中列表找到文件:', knowledgeFileIdStr)
-          }
-          
-          if (result.success && result.difyFileId) {
-            // 查找文件信息
-            const fileInfo = selectedFileObjects.find(f => String(f.id) === knowledgeFileIdStr)
-            console.log('[文件上传] 找到的文件信息:', fileInfo)
-            
-            // 添加到已上传列表
+        // 2. 调用批量接口 (同步返回结果)
+        // 这里的 uploadKnowledgeFilesToDify 已经被我们改写过，返回 results 数组
+        const results = await difyAPI.uploadKnowledgeFilesToDify(fileIdsToUpload)
+
+        // 3. 处理结果
+        results.forEach(res => {
+          if (res.success && res.difyFileId) {
+            // 找到原始信息用于显示大小等
+            const originalIdStr = String(res.knowledgeFileId)
+            const originalFile = selectedFileObjects.find(f => String(f.id) === originalIdStr)
+
             this.uploadedFiles.push({
-              id: `knowledge_${result.knowledgeFileId}_${Date.now()}`,
-              fileName: result.fileName || fileInfo?.fileName || fileInfo?.name || '未命名文件',
-              fileSize: fileInfo?.fileSize || fileInfo?.size || 0,
-              fileType: fileInfo?.fileType || fileInfo?.type || '文件',
-              difyFileId: result.difyFileId,
+              id: `know_${res.difyFileId}`,
+              fileName: res.fileName,
+              fileSize: originalFile ? (originalFile.fileSize || originalFile.size) : 0,
+              fileType: this.getFileType(res.fileName),
+              difyFileId: res.difyFileId, // 关键
               source: 'knowledge',
-              knowledgeFileId: knowledgeFileIdStr
+              knowledgeFileId: res.knowledgeFileId
             })
-            console.log('[文件上传] 文件上传成功并添加到已上传列表:', result.fileName, 'fileSize:', fileInfo?.fileSize || fileInfo?.size, 'difyFileId:', result.difyFileId)
           } else {
-            console.error('[文件上传] 文件上传失败:', result.fileName, result.error)
-            this.$message && this.$message.error(`文件 ${result.fileName} 上传失败: ${result.error || '未知错误'}`)
+            this.$message.error(`${res.fileName || '文件'} 处理失败`)
           }
         })
-        
-        if (uploadResults.some(r => r.success)) {
-          this.$message && this.$message.success(`成功上传 ${uploadResults.filter(r => r.success).length} 个文件`)
-        }
+
+        const successCount = results.filter(r => r.success).length
+        if(successCount > 0) this.$message.success(`成功加载 ${successCount} 个文件`)
+
       } catch (error) {
-        console.error('[文件上传] 上传知识库文件失败:', error)
-        this.$message && this.$message.error('上传文件失败: ' + (error.message || '未知错误'))
-        // 清空上传中列表
-        this.uploadingFiles = []
+        console.error('知识库加载失败', error)
+        this.$message.error('知识库文件加载失败')
+      } finally {
+        // 清理上传中状态
+        this.uploadingFiles = this.uploadingFiles.filter(f => !tempIds.includes(f.id))
+        this.selectedAchievementFiles = []
       }
     },
     
