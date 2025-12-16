@@ -107,8 +107,9 @@ export default {
       // 当前用户参与的项目列表（用于判断是否已经是成员）
       myProjects: [],
       myProjectsLoaded: false,
-      // 定时轮询定时器，用于自动刷新邀请消息
-      pollingTimer: null
+      // 加载节流，避免频繁请求
+      lastLoadTs: 0,
+      loadCooldown: 8000
     }
   },
   computed: {
@@ -137,11 +138,6 @@ export default {
         this.loadProjectMessages(true)
       })
     }
-    // 启动轮询，定期刷新邀请消息
-    this.startPolling()
-  },
-  beforeDestroy() {
-    this.stopPolling()
   },
   methods: {
     // 鼠标移入悬浮入口，展开并尝试刷新一次最新消息
@@ -161,29 +157,6 @@ export default {
     // 鼠标移出悬浮入口
     handleMouseLeave() {
       this.isHovered = false
-    },
-
-    // 启动定时轮询，每 3 秒刷新一次项目邀请消息
-    startPolling() {
-      if (this.pollingTimer) return
-      this.pollingTimer = setInterval(() => {
-        const token = localStorage.getItem('access_token')
-        const userInfo = localStorage.getItem('user_info')
-        const isAuthenticated = !!(token && userInfo)
-        if (!isAuthenticated || !this.isHomePage) return
-        // 后台静默刷新，不影响当前 loading 状态提示
-        if (!this.isLoadingMessages && !this.messageActionLoading) {
-          this.loadProjectMessages(true)
-        }
-      }, 3000)
-    },
-
-    // 停止轮询
-    stopPolling() {
-      if (this.pollingTimer) {
-        clearInterval(this.pollingTimer)
-        this.pollingTimer = null
-      }
     },
     // 生成本地存储 key，按用户隔离
     getHandledStorageKey() {
@@ -270,6 +243,15 @@ export default {
       if (!isAuthenticated) {
         this.projectMessages = []
         return
+      }
+
+      // 非静默模式下做节流，避免频繁 hover 导致的重复请求
+      if (!silent) {
+        const now = Date.now()
+        if (now - this.lastLoadTs < this.loadCooldown) {
+          return
+        }
+        this.lastLoadTs = now
       }
       
       // 非静默模式下才展示加载态

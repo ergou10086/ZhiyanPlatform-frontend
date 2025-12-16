@@ -6,8 +6,6 @@
           <router-view/>
         </keep-alive>
       </div>
-      <!-- 全局页脚 -->
-      <Footer v-if="!isAuthPage" />
     </div>
     <!-- 右上角全局页眉区域：消息通知 + 主题切换 + 用户信息，统一容器内横向排列 -->
     <div v-if="!isAuthPage" class="global-header-right">
@@ -33,7 +31,6 @@ import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
 import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
 import GlobalMessageNotification from '@/components/GlobalMessageNotification.vue'
 import FloatingMessageReminder from '@/components/FloatingMessageReminder.vue'
-import Footer from '@/components/Footer.vue'
 
 export default {
   name: 'App',
@@ -41,8 +38,7 @@ export default {
     GlobalUserProfile,
     GlobalErrorDialog,
     GlobalMessageNotification,
-    FloatingMessageReminder,
-    Footer
+    FloatingMessageReminder
   },
   data() {
     return {
