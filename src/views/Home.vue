@@ -344,12 +344,16 @@
         </div>
       </div>
     </div>
+    
+    <!-- 页脚（仅在首页显示） -->
+    <Footer />
   </div>
 </template>
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
+import Footer from '@/components/Footer.vue'
 import { authAPI } from '@/api/auth'
 import { projectAPI } from '@/api/project'
 import { taskAPI } from '@/api/task'
@@ -361,7 +365,8 @@ export default {
   name: 'Home',
   components: {
     Sidebar,
-    RightSidebar
+    RightSidebar,
+    Footer
   },
   data() {
     return {
