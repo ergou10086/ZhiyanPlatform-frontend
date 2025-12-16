@@ -880,16 +880,27 @@ export default {
       })
       
       try {
-      // 准备本地文件
-      const localFiles = this.selectedLocalFiles.length > 0 ? this.selectedLocalFiles : null
+      // 准备本地文件：从 uploadedFiles 中提取 source='local' 的文件
+      const localFilesFromUploaded = this.uploadedFiles
+        .filter(file => file.source === 'local' && file.file)
+        .map(file => file.file)
       
-      // 提取已上传文件的 difyFileId
-      const difyFileIds = this.uploadedFiles.map(file => file.difyFileId).filter(id => id)
+      // 也包含 selectedLocalFiles（兼容旧逻辑）
+      const allLocalFiles = [...this.selectedLocalFiles, ...localFilesFromUploaded]
+      const localFiles = allLocalFiles.length > 0 ? allLocalFiles : null
+      
+      // 提取已上传文件的 difyFileId（只提取已上传到Dify的文件）
+      const difyFileIds = this.uploadedFiles
+        .filter(file => file.difyFileId) // 只提取已有difyFileId的文件
+        .map(file => file.difyFileId)
+        .filter(id => id)
       
       console.log('[KnowledgeBaseAI] 发送前的文件状态:', {
         uploadedFiles: this.uploadedFiles.length,
         difyFileIds: difyFileIds,
-        selectedLocalFiles: this.selectedLocalFiles.length
+        selectedLocalFiles: this.selectedLocalFiles.length,
+        localFilesFromUploaded: localFilesFromUploaded.length,
+        allLocalFiles: allLocalFiles.length
       })
       
       // 发送后清空文件（下次需要重新选择）
@@ -1117,6 +1128,21 @@ export default {
         console.log('选择了本地文件:', files)
         // 保存选中的本地文件（追加到现有列表）
         this.selectedLocalFiles.push(...files)
+        
+        // 同时添加到已上传文件列表，用于显示（但不会立即上传，发送消息时才上传）
+        files.forEach(file => {
+          const uniqueId = `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          this.uploadedFiles.push({
+            id: uniqueId,
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: this.getFileType(file.name),
+            source: 'local',
+            file: file, // 保存原始文件对象，发送消息时使用
+            difyFileId: null // 本地文件还没有上传到Dify，所以没有difyFileId
+          })
+        })
+        
         // 检查 $message 是否存在
         if (this.$message) {
           this.$message.success(`已选择 ${files.length} 个文件`)
@@ -1342,6 +1368,31 @@ export default {
     removeUploadedFile(fileId) {
       const index = this.uploadedFiles.findIndex(f => f.id === fileId)
       if (index > -1) {
+        const file = this.uploadedFiles[index]
+        
+        // 如果是本地文件，同时从 selectedLocalFiles 中移除
+        if (file.source === 'local' && file.file) {
+          const localFileIndex = this.selectedLocalFiles.findIndex(
+            f => f.name === file.fileName && f.size === file.fileSize
+          )
+          if (localFileIndex > -1) {
+            this.selectedLocalFiles.splice(localFileIndex, 1)
+            console.log('[文件管理] 已从 selectedLocalFiles 移除本地文件')
+          }
+        }
+        
+        // 如果是知识库文件，同时从 selectedKnowledgeFileIds 中移除
+        if (file.source === 'knowledge' && file.knowledgeFileId) {
+          const knowledgeFileIndex = this.selectedKnowledgeFileIds.findIndex(
+            id => String(id) === String(file.knowledgeFileId)
+          )
+          if (knowledgeFileIndex > -1) {
+            this.selectedKnowledgeFileIds.splice(knowledgeFileIndex, 1)
+            console.log('[文件管理] 已从 selectedKnowledgeFileIds 移除知识库文件')
+          }
+        }
+        
+        // 从已上传文件列表中移除
         this.uploadedFiles.splice(index, 1)
         console.log('[文件管理] 移除文件:', fileId)
       }

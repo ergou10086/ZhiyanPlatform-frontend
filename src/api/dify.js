@@ -41,7 +41,7 @@ const BACKEND_DIFY_CONFIG = {
   streamTimeout: 300000 // fetch 流式响应超时：5分钟（AI文档分析需要更长时间）
 }
 
-// 知识库工作流专用基础路径
+// 知识库工作流专用基础路径（使用完整API URL，确保生产环境正确路由）
 const KNOWLEDGE_BASE_URL = config.api.baseURL + '/zhiyan/ai/dify/knowledge'
 
 // 创建Dify API客户端
@@ -619,15 +619,31 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
       })
     }
 
+    // ⭐ 构建完整的请求URL
+    let requestUrl = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files`
+    
+    // ⭐ 验证URL：确保生产环境使用API域名而不是前端域名
+    if (process.env.NODE_ENV === 'production') {
+      // 如果URL是相对路径或以前端域名开头，强制使用API域名
+      if (requestUrl.startsWith('/') || (requestUrl.includes('zyplatform.xyz') && !requestUrl.includes('api.zyplatform.xyz'))) {
+        console.warn('[Dify API - Knowledge] ⚠️ URL构建错误，强制使用API域名')
+        requestUrl = `https://api.zyplatform.xyz/zhiyan/ai/dify/knowledge/chat/stream-with-files`
+      }
+    }
+    
     console.log('[Dify API - Knowledge] 上传文件并对话:', {
       query,
       conversationId,
       difyFileIds: difyFileIds?.length || 0,
       localFiles: localFiles?.length || 0,
-      timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`
+      timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`,
+      requestUrl: requestUrl,
+      baseURL: config.api.baseURL,
+      KNOWLEDGE_BASE_URL: KNOWLEDGE_BASE_URL,
+      isProduction: process.env.NODE_ENV === 'production'
     })
 
-    const response = await fetch(`${KNOWLEDGE_BASE_URL}/chat/stream-with-files`, {
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -776,8 +792,25 @@ export async function uploadKnowledgeFilesToDify(knowledgeFileIds) {
 
     console.log('[Dify API] 上传知识库文件到Dify:', plainFileIds)
 
+    // ⭐ 构建完整的请求URL
+    let requestUrl = `${KNOWLEDGE_BASE_URL}/upload-knowledge-files`
+    
+    // ⭐ 验证URL：确保生产环境使用API域名而不是前端域名
+    if (process.env.NODE_ENV === 'production') {
+      // 如果URL是相对路径或以前端域名开头，强制使用API域名
+      if (requestUrl.startsWith('/') || (requestUrl.includes('zyplatform.xyz') && !requestUrl.includes('api.zyplatform.xyz'))) {
+        console.warn('[Dify API] ⚠️ URL构建错误，强制使用API域名')
+        requestUrl = `https://api.zyplatform.xyz/zhiyan/ai/dify/knowledge/upload-knowledge-files`
+      }
+    }
+    
+    console.log('[Dify API] 上传知识库文件到Dify - 请求URL:', requestUrl)
+    console.log('[Dify API] baseURL:', config.api.baseURL)
+    console.log('[Dify API] KNOWLEDGE_BASE_URL:', KNOWLEDGE_BASE_URL)
+    console.log('[Dify API] isProduction:', process.env.NODE_ENV === 'production')
+    
     // 调用后端接口，批量上传知识库文件
-    const response = await fetch(`${KNOWLEDGE_BASE_URL}/upload-knowledge-files`, {
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
