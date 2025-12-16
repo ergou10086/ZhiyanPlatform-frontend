@@ -1556,11 +1556,9 @@ export default {
 
 <style scoped>
 .message-notification {
-  position: fixed;
-  top: 12px;
-  right: 210px;
-  /* 提高层级，确保在所有业务弹窗和确认框之上，但低于错误对话框 */
-  z-index: 15000;
+  /* 放在 App.vue 的 global-header-right 容器中，由外层控制 fixed 位置 */
+  position: relative;
+  z-index: 15000; /* 保持较高层级，确保在页眉内容之上 */
   display: block;
   visibility: visible;
 }
