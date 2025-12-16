@@ -6,17 +6,21 @@
           <router-view/>
         </keep-alive>
       </div>
+      <!-- 全局页脚 -->
+      <Footer v-if="!isAuthPage" />
     </div>
-    <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
-    <GlobalMessageNotification v-if="!isAuthPage" />
-    <!-- 全局用户信息组件，悬浮在右上角，但在登录相关页面不显示 -->
-    <GlobalUserProfile 
-      v-if="!isAuthPage" 
-      :floating="true"
-      :show-theme-toggle="!isAuthPage"
-      :is-dark-mode="isDarkMode"
-      @theme-toggle="handleThemeToggle"
-    />
+    <!-- 右上角全局页眉区域：消息通知 + 主题切换 + 用户信息，统一容器内横向排列 -->
+    <div v-if="!isAuthPage" class="global-header-right">
+      <!-- 全局消息通知组件 -->
+      <GlobalMessageNotification />
+      <!-- 全局用户信息组件（内含主题切换按钮） -->
+      <GlobalUserProfile 
+        :floating="true"
+        :show-theme-toggle="!isAuthPage"
+        :is-dark-mode="isDarkMode"
+        @theme-toggle="handleThemeToggle"
+      />
+    </div>
     <!-- 悬浮消息提醒组件，在页面右侧 -->
     <FloatingMessageReminder v-if="!isAuthPage" />
     <!-- 全局错误弹窗 -->
@@ -29,6 +33,7 @@ import GlobalUserProfile from '@/components/GlobalUserProfile.vue'
 import GlobalErrorDialog from '@/components/GlobalErrorDialog.vue'
 import GlobalMessageNotification from '@/components/GlobalMessageNotification.vue'
 import FloatingMessageReminder from '@/components/FloatingMessageReminder.vue'
+import Footer from '@/components/Footer.vue'
 
 export default {
   name: 'App',
@@ -36,7 +41,8 @@ export default {
     GlobalUserProfile,
     GlobalErrorDialog,
     GlobalMessageNotification,
-    FloatingMessageReminder
+    FloatingMessageReminder,
+    Footer
   },
   data() {
     return {
@@ -163,6 +169,17 @@ export default {
 
 .app-content {
   flex: 1;
+}
+
+/* 右上角全局页眉容器：消息铃铛 + 主题切换按钮 + 用户信息 */
+.global-header-right {
+  position: fixed;
+  top: 8px;
+  right: 20px;
+  z-index: 10003;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 /* 主题切换动画 - 圆形扩散效果（全局样式） */
