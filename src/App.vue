@@ -7,16 +7,18 @@
         </keep-alive>
       </div>
     </div>
-    <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
-    <GlobalMessageNotification v-if="!isAuthPage" />
-    <!-- 全局用户信息组件，悬浮在右上角，但在登录相关页面不显示 -->
-    <GlobalUserProfile 
-      v-if="!isAuthPage" 
-      :floating="true"
-      :show-theme-toggle="!isAuthPage"
-      :is-dark-mode="isDarkMode"
-      @theme-toggle="handleThemeToggle"
-    />
+    <!-- 统一的顶部工具栏容器：消息按钮、主题切换、个人卡片 -->
+    <div v-if="!isAuthPage" class="top-toolbar-container">
+      <!-- 全局消息通知组件 -->
+      <GlobalMessageNotification />
+      <!-- 全局用户信息组件（包含主题切换按钮） -->
+      <GlobalUserProfile 
+        :floating="false"
+        :show-theme-toggle="!isAuthPage"
+        :is-dark-mode="isDarkMode"
+        @theme-toggle="handleThemeToggle"
+      />
+    </div>
     <!-- 悬浮消息提醒组件，在页面右侧 -->
     <FloatingMessageReminder v-if="!isAuthPage" />
     <!-- 全局错误弹窗 -->
@@ -163,6 +165,44 @@ export default {
 
 .app-content {
   flex: 1;
+}
+
+/* 统一的顶部工具栏容器 */
+.top-toolbar-container {
+  position: fixed;
+  top: 8px;
+  right: 20px;
+  z-index: 10003;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* 确保容器不会被其他元素遮挡 */
+  pointer-events: none;
+  /* 允许容器内容换行，避免在小屏幕上溢出 */
+  flex-wrap: wrap;
+  max-width: calc(100vw - 40px);
+}
+
+/* 容器内的子元素需要恢复 pointer-events */
+.top-toolbar-container > * {
+  pointer-events: auto;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .top-toolbar-container {
+    right: 12px;
+    top: 12px;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-toolbar-container {
+    right: 8px;
+    top: 8px;
+    gap: 6px;
+  }
 }
 
 /* 主题切换动画 - 圆形扩散效果（全局样式） */

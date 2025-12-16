@@ -1556,13 +1556,12 @@ export default {
 
 <style scoped>
 .message-notification {
-  position: fixed;
-  top: 12px;
-  right: 210px;
-  /* 提高层级，确保在所有业务弹窗和确认框之上，但低于错误对话框 */
+  position: relative;
+  /* 移除固定定位，由父容器控制位置 */
   z-index: 15000;
   display: block;
   visibility: visible;
+  flex-shrink: 0;
 }
 
 .message-badge {
@@ -2657,8 +2656,8 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 300px;
-    top: 12px;
+    /* 响应式布局由父容器控制 */
+    position: relative;
     z-index: 11000;
   }
 
@@ -2695,8 +2694,8 @@ export default {
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 280px;
-    top: 12px;
+    /* 响应式布局由父容器控制 */
+    position: relative;
     z-index: 11000;
   }
 
