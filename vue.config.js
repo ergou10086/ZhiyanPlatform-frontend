@@ -12,14 +12,31 @@
  * - /zhiyan/* → http://localhost:8091 (其他API默认使用认证服务，端口8091)
  */
 module.exports = {
+  publicPath: process.env.NODE_ENV === 'production' ? '/' : '/',
+
   devServer: {
     port: 8001,
     host: '0.0.0.0',
+
+    // 添加跨域允许
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    },
     
     // ⭐ 全局禁用压缩（压缩可能导致缓冲）
     compress: false,
     
     proxy: {
+      // VuePress 文档代理（开发环境）
+      '/docs': {
+        target: 'http://localhost:8012',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug',
+      },
       '/zhiyan/message': {
         target: 'http://localhost:9006',
         changeOrigin: true,
@@ -165,7 +182,7 @@ module.exports = {
         // ⭐ 设置超时时间（0表示无限制）
         timeout: 0
       },
-      // ✅ 认证相关API - 转发到8091端口（认证服务）
+      // ✅ 认证相关API
       // URL示例：/zhiyan/auth/* → http://localhost:8091/zhiyan/auth/*
       '/zhiyan/auth': {
         target: 'http://localhost:9006',

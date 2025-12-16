@@ -85,6 +85,67 @@
                 </button>
               </div>
             </div>
+            
+            <!-- 个人简介（在主信息容器内） -->
+            <div class="intro-section-inline">
+              <div v-if="editingIntro" class="intro-edit-inline">
+                <textarea 
+                  v-model="tempIntro" 
+                  class="intro-textarea-inline"
+                  placeholder="请输入个人简介..."
+                  ref="introTextarea"
+                ></textarea>
+                <div class="intro-actions-inline">
+                  <button @click="saveIntro" class="save-btn-small" title="保存">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button @click="cancelEditIntro" class="cancel-btn-small" title="取消">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div v-else class="intro-display-inline">
+                <div class="intro-content-wrapper">
+                  <p 
+                    class="intro-content-inline" 
+                    :class="{ 'intro-collapsed': !introExpanded && shouldShowCollapse }"
+                  >
+                    {{ displayIntroduction }}
+                  </p>
+                  <button 
+                    v-if="shouldShowCollapse && !editingIntro" 
+                    @click="introExpanded = !introExpanded" 
+                    class="intro-toggle-btn"
+                  >
+                    {{ introExpanded ? '收起' : '展开' }}
+                    <svg 
+                      width="12" 
+                      height="12" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      :class="{ 'rotated': introExpanded }"
+                    >
+                      <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <button 
+                  v-if="isLoggedIn && isViewingSelf && !editingIntro" 
+                  @click="editIntro" 
+                  class="edit-intro-btn-inline"
+                  title="编辑简介"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -134,6 +195,72 @@
           </div>
         </div>
 
+        <!-- 关联链接卡片 -->
+        <div class="info-card">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label">关联链接</h3>
+              <button
+                v-if="isLoggedIn && isViewingSelf"
+                @click="saveProfileLinks()"
+                class="edit-btn"
+                :disabled="isSavingLinks"
+              >
+                {{ isSavingLinks ? '保存中...' : '保存' }}
+              </button>
+              <button
+                v-if="isLoggedIn && isViewingSelf && canAddMoreLinks && !showAddLinkRow"
+                @click="showAddLinkRow = true"
+                class="edit-btn"
+              >
+                添加
+              </button>
+            </div>
+            <div class="links-container">
+              <div v-if="profileLinks.length === 0" class="link-empty">
+                <p>还没有添加任何关联链接</p>
+              </div>
+              <div v-else class="link-list">
+                <div v-for="(link, index) in profileLinks" :key="index" class="link-item">
+                  <a :href="link.url" target="_blank" rel="noopener noreferrer" class="link-text">
+                    {{ link.label || link.url }}
+                  </a>
+                  <span class="link-url">{{ link.url }}</span>
+                  <button
+                    v-if="isLoggedIn && isViewingSelf"
+                    class="link-remove-btn"
+                    @click="removeProfileLink(index)"
+                    :disabled="isSavingLinks"
+                    title="移除链接"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div
+              v-if="isLoggedIn && isViewingSelf && canAddMoreLinks && showAddLinkRow"
+              class="link-add-row"
+            >
+              <input
+                v-model="newProfileLink.label"
+                class="link-input"
+                placeholder="链接名称（可选）"
+                maxlength="50"
+              />
+              <input
+                v-model="newProfileLink.url"
+                class="link-input"
+                placeholder="https://example.com"
+                maxlength="500"
+              />
+              <button @click="addProfileLink" class="add-link-btn" :disabled="isSavingLinks">
+                添加
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- 机构信息卡片 -->
         <div class="info-card">
           <div class="info-item">
@@ -175,35 +302,94 @@
           </div>
         </div>
 
-        <!-- 个人简介卡片 -->
-        <div class="info-card">
+        <!-- OAuth2账号绑定卡片 -->
+        <div class="info-card" v-if="isLoggedIn && isViewingSelf">
           <div class="info-item">
             <div class="intro-header">
-              <h3 class="info-label">个人简介</h3>
-              <button v-if="!editingIntro && isLoggedIn && isViewingSelf" @click="editIntro" class="edit-btn">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-                编辑
-              </button>
-          </div>
-            <div v-if="editingIntro" class="intro-edit">
-              <textarea 
-                v-model="tempIntro" 
-                @blur="saveIntro" 
-                class="intro-textarea"
-                placeholder="请输入个人简介..."
-                ref="introTextarea"
-              ></textarea>
-              <div class="intro-actions">
-                <button @click="saveIntro" class="save-btn">保存</button>
-                <button @click="cancelEditIntro" class="cancel-btn">取消</button>
+              <h3 class="info-label">第三方账号绑定</h3>
+            </div>
+            <div class="oauth2-bindings">
+              <!-- GitHub绑定 -->
+              <div class="oauth2-binding-item">
+                <div class="oauth2-binding-info">
+                  <svg class="oauth2-icon github-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                  </svg>
+                  <div class="oauth2-binding-text">
+                    <span class="oauth2-binding-label">GitHub</span>
+                    <span v-if="userInfo.githubId" class="oauth2-binding-status">
+                      <span class="status-badge bound">已绑定</span>
+                      <span class="binding-username">@{{ maskAccount(userInfo.githubUsername || userInfo.githubId, 'github') }}</span>
+                    </span>
+                    <span v-else class="oauth2-binding-status">
+                      <span class="status-badge unbound">未绑定</span>
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  v-if="!userInfo.githubId" 
+                  @click="handleGithubBind" 
+                  class="oauth2-bind-btn github-bind-btn"
+                >
+                  绑定
+                </button>
+                <button 
+                  v-else
+                  @click="handleGithubBind" 
+                  class="oauth2-bind-btn oauth2-unbind-btn"
+                  title="解绑GitHub账号"
+                >
+                  解绑
+                </button>
+              </div>
+
+              <!-- ORCID绑定 -->
+              <div class="oauth2-binding-item">
+                <div class="oauth2-binding-info">
+                  <svg class="oauth2-icon orcid-icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path fill="currentColor" d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm-2.5 17.5c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5zm5 0c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5z"/>
+                  </svg>
+                  <div class="oauth2-binding-text">
+                    <span class="oauth2-binding-label">ORCID</span>
+                    <span v-if="userInfo.orcidId" class="oauth2-binding-status">
+                      <span class="status-badge bound">已绑定</span>
+                      <span class="binding-username">{{ maskAccount(userInfo.orcidId, 'orcid') }}</span>
+                    </span>
+                    <span v-else class="oauth2-binding-status">
+                      <span class="status-badge unbound">未绑定</span>
+                    </span>
+                  </div>
+                </div>
+                <div class="oauth2-binding-actions">
+                  <button 
+                    v-if="!userInfo.orcidId" 
+                    @click="handleOrcidBind" 
+                    class="oauth2-bind-btn orcid-bind-btn"
+                  >
+                    绑定
+                  </button>
+                  <template v-else>
+                    <button 
+                      @click="openOrcidSyncModal" 
+                      class="oauth2-bind-btn orcid-sync-btn"
+                      title="同步ORCID信息"
+                    >
+                      同步信息
+                    </button>
+                    <button 
+                      @click="handleOrcidBind" 
+                      class="oauth2-bind-btn oauth2-unbind-btn"
+                      title="解绑ORCID账号"
+                    >
+                      解绑
+                    </button>
+                  </template>
+                </div>
               </div>
             </div>
-            <p v-else class="info-value intro-content">{{ displayIntroduction }}</p>
           </div>
         </div>
+
           </div>
           <!-- 左侧栏结束 -->
           
@@ -367,6 +553,42 @@
                     <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   禁用2FA
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 账户注销卡片 -->
+        <div class="info-card account-delete-card" v-if="isLoggedIn && isViewingSelf">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label account-delete-label">账户管理</h3>
+            </div>
+            
+            <div class="account-delete-content">
+              <div class="account-delete-warning">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="warning-icon">
+                  <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div class="account-delete-text">
+                  <p class="account-delete-description">
+                    注销账号后，您的所有数据将被永久删除且无法恢复。此操作不可撤销。
+                  </p>
+                </div>
+              </div>
+
+              <div class="account-delete-actions">
+                <button 
+                  @click="handleDeleteAccount" 
+                  class="account-delete-btn"
+                  :disabled="isDeletingAccount"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  {{ isDeletingAccount ? '注销中...' : '注销账号' }}
                 </button>
               </div>
             </div>
@@ -805,6 +1027,222 @@
         </div>
       </div>
     </div>
+
+    <!-- ORCID信息同步弹窗 -->
+    <div v-if="showOrcidSyncModal" class="modal-overlay" @click="closeOrcidSyncModal">
+      <div class="modal-content orcid-sync-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>ORCID 信息同步</h3>
+          <button @click="closeOrcidSyncModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body orcid-sync-modal-body">
+          <!-- 信息获取区 -->
+          <div class="orcid-sync-section">
+            <h4 class="orcid-sync-section-title">信息获取</h4>
+            <div v-if="orcidSyncLoading" class="orcid-loading">
+              <div class="loading-spinner"></div>
+              <p>正在从 ORCID 获取您的公开信息...</p>
+            </div>
+            <div v-else-if="orcidSyncError" class="orcid-error">
+              <p class="error-message">{{ orcidSyncError }}</p>
+              <button @click="fetchOrcidDetail" class="btn-retry">重新获取 ORCID 信息</button>
+            </div>
+            <div v-else-if="orcidDetail" class="orcid-info-display">
+              <p class="info-hint">以下信息来自您的 ORCID 公开资料，请选择需要同步到平台的字段：</p>
+              <p class="privacy-hint">💡 提示：只能获取公开的信息，如果未看到某些信息，请在 ORCID 中将其设置为公开</p>
+              
+              <!-- 关键词分类 -->
+              <div class="orcid-category">
+                <h5 class="category-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  关键词
+                </h5>
+                <div v-if="!orcidDetail.keywords || orcidDetail.keywords.length === 0" class="empty-category">
+                  <p>该分类下暂无公开信息</p>
+                </div>
+                <div v-else class="orcid-items-list">
+                  <div v-for="(keyword, index) in orcidDetail.keywords" :key="`keyword-${index}`" class="orcid-item">
+                    <div class="orcid-item-content">
+                      <span class="item-text">{{ keyword }}</span>
+                    </div>
+                    <div class="orcid-item-actions">
+                      <select v-model="orcidBindings[`keyword-${index}`]" class="bind-select">
+                        <option value="">选择绑定位置</option>
+                        <option value="research-tags">研究方向</option>
+                      </select>
+                      <button 
+                        @click="bindOrcidItem('keyword', keyword, index)"
+                        :disabled="!orcidBindings[`keyword-${index}`]"
+                        class="btn-bind"
+                      >
+                        确认绑定
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 教育经历分类 -->
+              <div class="orcid-category">
+                <h5 class="category-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 14v6M5 12v6l7 3 7-3v-6" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  教育经历
+                </h5>
+                <div v-if="!orcidDetail.educations || orcidDetail.educations.length === 0" class="empty-category">
+                  <p>该分类下暂无公开信息</p>
+                </div>
+                <div v-else class="orcid-items-list">
+                  <div v-for="(edu, index) in orcidDetail.educations" :key="`edu-${index}`" class="orcid-item">
+                    <div class="orcid-item-content">
+                      <span class="item-text">{{ formatEducationInfo(edu) }}</span>
+                    </div>
+                    <div class="orcid-item-actions">
+                      <select v-model="orcidBindings[`edu-${index}`]" class="bind-select">
+                        <option value="">选择绑定位置</option>
+                        <option value="institution">所属机构</option>
+                      </select>
+                      <button 
+                        @click="bindOrcidItem('education', edu, index)"
+                        :disabled="!orcidBindings[`edu-${index}`]"
+                        class="btn-bind"
+                      >
+                        确认绑定
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 就业经历分类 -->
+              <div class="orcid-category">
+                <h5 class="category-title">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 13V6a2 2 0 00-2-2H5a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  就业经历
+                </h5>
+                <div v-if="!orcidDetail.employments || orcidDetail.employments.length === 0" class="empty-category">
+                  <p>该分类下暂无公开信息</p>
+                </div>
+                <div v-else class="orcid-items-list">
+                  <div v-for="(emp, index) in orcidDetail.employments" :key="`emp-${index}`" class="orcid-item">
+                    <div class="orcid-item-content">
+                      <span class="item-text">{{ formatEmploymentInfo(emp) }}</span>
+                    </div>
+                    <div class="orcid-item-actions">
+                      <select v-model="orcidBindings[`emp-${index}`]" class="bind-select">
+                        <option value="">选择绑定位置</option>
+                        <option value="institution">所属机构</option>
+                      </select>
+                      <button 
+                        @click="bindOrcidItem('employment', emp, index)"
+                        :disabled="!orcidBindings[`emp-${index}`]"
+                        class="btn-bind"
+                      >
+                        确认绑定
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作反馈区 -->
+          <div v-if="orcidBindSuccessMessages.length > 0" class="orcid-sync-section">
+            <h4 class="orcid-sync-section-title">绑定记录</h4>
+            <div class="bind-success-list">
+              <div v-for="(msg, index) in orcidBindSuccessMessages" :key="index" class="bind-success-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>{{ msg }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeOrcidSyncModal" class="modal-btn modal-btn-confirm">全部绑定完成</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 注销账号确认模态框 -->
+    <div v-if="showDeleteAccountModal" class="modal-overlay" @click="closeDeleteAccountModal">
+      <div class="modal-content delete-account-modal-content" @click.stop>
+        <div class="modal-header delete-account-header">
+          <h3>注销账号</h3>
+          <button @click="closeDeleteAccountModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="delete-account-content">
+            <div class="delete-account-warning-box">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="delete-warning-icon">
+                <path d="M12 9V13M12 17H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <div class="delete-account-warning-text">
+                <p class="delete-account-warning-title">警告：此操作不可撤销</p>
+                <p class="delete-account-warning-description">
+                  注销账号后，您的所有数据将被永久删除，包括：
+                </p>
+                <ul class="delete-account-warning-list">
+                  <li>个人资料和设置</li>
+                  <li>所有项目和项目数据</li>
+                  <li>学术成果和知识库</li>
+                  <li>消息和通知记录</li>
+                  <li>其他所有关联数据</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="delete-account-verify-section">
+              <label class="delete-account-input-label">
+                {{ deleteAccountVerificationType === '2fa' 
+                  ? '输入2FA验证码以确认注销' 
+                  : `输入用户名 "${userInfo.nickname || userInfo.name || userInfo.email?.split('@')[0] || '您的用户名'}" 以确认注销` }}
+              </label>
+              <input 
+                v-model="deleteAccountVerification" 
+                :type="deleteAccountVerificationType === '2fa' ? 'text' : 'text'"
+                class="delete-account-verification-input"
+                :placeholder="deleteAccountVerificationType === '2fa' ? '请输入6位验证码' : '请输入您的用户名'"
+                :maxlength="deleteAccountVerificationType === '2fa' ? 6 : 50"
+                @keyup.enter="confirmDeleteAccount"
+                ref="deleteAccountVerificationInput"
+              />
+              <p class="delete-account-input-hint">
+                {{ deleteAccountVerificationType === '2fa' 
+                  ? '请输入 Microsoft Authenticator 中显示的6位验证码' 
+                  : '请输入您的用户名以确认注销操作' }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeDeleteAccountModal" class="modal-btn modal-btn-cancel">取消</button>
+          <button 
+            @click="confirmDeleteAccount" 
+            class="modal-btn modal-btn-danger"
+            :disabled="!deleteAccountVerification || deleteAccountVerification.trim() === '' || isDeletingAccount"
+          >
+            {{ isDeletingAccount ? '注销中...' : '确认注销' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -835,6 +1273,8 @@ export default {
       tempNickname: '',
       tempIntro: '',
       tempOrganization: '',
+      introExpanded: false,
+      introMaxHeight: 60, // 折叠时最大高度（像素）
       isLoggedIn: false,
       showModal: false,
       modalMessage: '',
@@ -881,6 +1321,14 @@ export default {
       selectedAchievementIds: [],
       showProjectDropdown: false,
       showLinkedAchievementsModal: false,
+      // 关联链接
+      profileLinks: [],
+      newProfileLink: {
+        label: '',
+        url: ''
+      },
+      showAddLinkRow: false,
+      isSavingLinks: false,
       // 隐私设置
       privacySettings: {
         profileVisibility: 'public',
@@ -895,7 +1343,19 @@ export default {
       twoFactorQRCode: null,
       twoFactorCode: '',
       twoFactorDisableCode: '',
-      twoFactorConfirming: false
+      twoFactorConfirming: false,
+      // 账户注销相关
+      showDeleteAccountModal: false,
+      deleteAccountVerification: '',
+      deleteAccountVerificationType: 'username', // 'username' 或 '2fa'
+      isDeletingAccount: false,
+      // ORCID信息同步相关
+      showOrcidSyncModal: false,
+      orcidSyncLoading: false,
+      orcidSyncError: null,
+      orcidDetail: null,
+      orcidBindings: {}, // 存储每个项目的绑定选择
+      orcidBindSuccessMessages: [] // 绑定成功的消息列表
     }
   },
   computed: {
@@ -914,6 +1374,10 @@ export default {
     visibleLinkedAchievements() {
       // 主页上最多展示 6 条成果
       return this.linkedAchievements.slice(0, 6)
+    },
+
+    canAddMoreLinks() {
+      return this.profileLinks.length < 6
     },
 
     isViewingSelf() {
@@ -956,6 +1420,17 @@ export default {
         return '这个人很懒，什么都没有留下...'
       }
       return intro
+    },
+    
+    shouldShowCollapse() {
+      // 判断简介是否需要折叠展开功能
+      const intro = this.displayIntroduction
+      if (!intro || intro === '这个人很懒，什么都没有留下...') {
+        return false
+      }
+      // 简单估算：大约每行20个字符，3行约60个字符
+      // 或者可以通过实际渲染高度来判断，这里先使用字符数估算
+      return intro.length > 80
     }
   },
   watch: {
@@ -991,6 +1466,7 @@ export default {
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', () => {
+      console.log('🔄 收到用户信息更新事件，重新加载用户信息')
       this.loadUserInfo()
       // 同时重新加载2FA状态
       this.load2FAStatus()
@@ -1087,6 +1563,22 @@ export default {
         parallelTasks.push(
           (async () => {
             try {
+              const linkResp = await profileAPI.getUserProfileLinks(userId)
+              if (linkResp && linkResp.code === 200 && Array.isArray(linkResp.data)) {
+                this.profileLinks = linkResp.data
+              } else {
+                this.profileLinks = []
+              }
+            } catch (error) {
+              console.error('加载他人关联链接失败:', error)
+              this.profileLinks = []
+            }
+          })()
+        )
+
+        parallelTasks.push(
+          (async () => {
+            try {
               const achvResp = await profileAPI.getUserAchievements(userId)
               if (achvResp && achvResp.code === 200 && achvResp.data) {
                 this.linkedAchievements = await this.mapAchievementsList(achvResp.data)
@@ -1136,11 +1628,34 @@ export default {
           // 如果description为空字符串，显示默认文本；否则显示实际内容
           const displayIntro = description && description.trim() !== '' 
             ? description 
-            : '这个人很懒，什么都没有留下...'
+            : '这个人很懒，什么都没有留下..'
           this.$set(this.userInfo, 'introduction', displayIntro)
           this.$set(this.userInfo, 'description', description) // 同时设置description字段（保持原始值）
           this.$set(this.userInfo, 'role', data.role || this.userInfo.role)
           this.$set(this.userInfo, 'status', data.status || this.userInfo.status)
+          
+          // 更新OAuth2绑定信息（确保OAuth2绑定状态被正确更新）
+          if (data.githubId !== undefined) {
+            this.$set(this.userInfo, 'githubId', data.githubId)
+            console.log('✅ 更新GitHub ID:', data.githubId)
+          }
+          if (data.githubUsername !== undefined) {
+            this.$set(this.userInfo, 'githubUsername', data.githubUsername)
+            console.log('✅ 更新GitHub用户名:', data.githubUsername)
+          }
+          if (data.orcidId !== undefined) {
+            this.$set(this.userInfo, 'orcidId', data.orcidId)
+            console.log('✅ 更新ORCID ID:', data.orcidId)
+          }
+          if (data.orcidBound !== undefined) {
+            this.$set(this.userInfo, 'orcidBound', Boolean(data.orcidBound))
+            console.log('✅ 更新ORCID绑定状态:', data.orcidBound)
+          }
+          if (Array.isArray(data.profileLinks)) {
+            this.profileLinks = data.profileLinks
+          } else {
+            await this.loadMyProfileLinks()
+          }
           
           // 更新2FA状态（重要：确保2FA状态同步）
           if (data.twoFactorEnabled !== undefined) {
@@ -1176,11 +1691,33 @@ export default {
                 userData.twoFactorEnabled = Boolean(data.twoFactorEnabled)
                 console.log('✅ 已更新localStorage中的2FA状态:', userData.twoFactorEnabled)
               }
+              // 更新OAuth2绑定信息（确保OAuth2绑定状态被保存）
+              if (data.githubId !== undefined) {
+                userData.githubId = data.githubId
+                console.log('✅ 已更新localStorage中的GitHub ID:', userData.githubId)
+              }
+              if (data.githubUsername !== undefined) {
+                userData.githubUsername = data.githubUsername
+                console.log('✅ 已更新localStorage中的GitHub用户名:', userData.githubUsername)
+              }
+              if (data.orcidId !== undefined) {
+                userData.orcidId = data.orcidId
+                console.log('✅ 已更新localStorage中的ORCID ID:', userData.orcidId)
+              }
+              if (data.orcidBound !== undefined) {
+                userData.orcidBound = Boolean(data.orcidBound)
+                console.log('✅ 已更新localStorage中的ORCID绑定状态:', userData.orcidBound)
+              }
+              userData.profileLinks = Array.isArray(data.profileLinks) ? data.profileLinks : []
               localStorage.setItem('user_info', JSON.stringify(userData))
               console.log('✅ 已更新 localStorage 中的用户信息')
               console.log('✅ localStorage中的description:', userData.description)
               console.log('✅ localStorage中的introduction:', userData.introduction)
               console.log('✅ localStorage中的twoFactorEnabled:', userData.twoFactorEnabled)
+              console.log('✅ localStorage中的githubId:', userData.githubId)
+              console.log('✅ localStorage中的githubUsername:', userData.githubUsername)
+              console.log('✅ localStorage中的orcidId:', userData.orcidId)
+              console.log('✅ localStorage中的orcidBound:', userData.orcidBound)
             } catch (error) {
               console.error('更新 localStorage 失败:', error)
             }
@@ -1190,11 +1727,19 @@ export default {
               ...data,
               description: description,
               introduction: description,
-              twoFactorEnabled: data.twoFactorEnabled !== undefined ? Boolean(data.twoFactorEnabled) : false
+              twoFactorEnabled: data.twoFactorEnabled !== undefined ? Boolean(data.twoFactorEnabled) : false,
+              githubId: data.githubId || null,
+              githubUsername: data.githubUsername || null,
+              orcidId: data.orcidId || null,
+              orcidBound: data.orcidBound !== undefined ? Boolean(data.orcidBound) : false
             }
             localStorage.setItem('user_info', JSON.stringify(userDataToSave))
             console.log('✅ 首次保存用户信息到 localStorage')
             console.log('✅ 保存的2FA状态:', userDataToSave.twoFactorEnabled)
+            console.log('✅ 保存的GitHub ID:', userDataToSave.githubId)
+            console.log('✅ 保存的GitHub用户名:', userDataToSave.githubUsername)
+            console.log('✅ 保存的ORCID ID:', userDataToSave.orcidId)
+            console.log('✅ 保存的ORCID绑定状态:', userDataToSave.orcidBound)
           }
           
           this.isProfileLoading = false
@@ -1267,9 +1812,14 @@ export default {
               organization: userData.organization || userData.institution || '未设置机构',
               introduction: userData.introduction || userData.description || '这个人很懒，什么都没有留下...',
               role: userData.role || 'MEMBER',
-              status: userData.status || 'ACTIVE'
+              status: userData.status || 'ACTIVE',
+              githubId: userData.githubId || null,
+              githubUsername: userData.githubUsername || null,
+              orcidId: userData.orcidId || null,
+              orcidBound: userData.orcidBound !== undefined ? Boolean(userData.orcidBound) : false
             }
             console.log('加载用户信息（从localStorage）:', this.userInfo)
+            this.profileLinks = Array.isArray(userData.profileLinks) ? userData.profileLinks : []
 
             // 从后端获取最新的用户信息，确保包含 description 字段
             this.loadMyProfileFromServer()
@@ -1277,6 +1827,7 @@ export default {
             // 查看自己的资料时，加载当前用户的研究方向和学术成果
             this.loadResearchTags()
             this.loadLinkedAchievements()
+            this.showAddLinkRow = false
             
             // 加载2FA状态（确保状态同步）
             this.load2FAStatus()
@@ -1302,6 +1853,8 @@ export default {
           role: 'GUEST',
           status: 'GUEST'
         }
+        this.profileLinks = []
+            this.showAddLinkRow = false
       }
     },
     loadUserAvatar() {
@@ -1874,11 +2427,14 @@ export default {
     // 个人简介编辑方法
     editIntro() {
       this.editingIntro = true
+      this.introExpanded = true // 编辑时自动展开
       // 使用计算属性确保获取正确的值
       const intro = this.userInfo.introduction || this.userInfo.description || ''
       this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.$nextTick(() => {
-        this.$refs.introTextarea.focus()
+        if (this.$refs.introTextarea) {
+          this.$refs.introTextarea.focus()
+        }
       })
     },
     async saveIntro() {
@@ -1967,6 +2523,9 @@ export default {
           
           // 显示成功提示
           this.showSuccessToast('个人简介更新成功！')
+          
+          // 保存后重置展开状态，让系统自动判断是否需要折叠
+          this.introExpanded = false
         } else {
           throw new Error(response.msg || '更新失败')
         }
@@ -1982,6 +2541,7 @@ export default {
       const intro = this.userInfo.introduction || this.userInfo.description || ''
       this.tempIntro = intro === '这个人很懒，什么都没有留下...' ? '' : intro
       this.editingIntro = false
+      this.introExpanded = false
     },
     // 机构编辑方法
     editOrganization() {
@@ -2314,6 +2874,245 @@ export default {
         console.error('保存研究方向标签失败:', error)
         alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
       }
+    },
+    
+    // ===== OAuth2账号绑定相关方法 =====
+    
+    /**
+     * 脱敏显示账号信息
+     * @param {String} account - 账号（ID或用户名）
+     * @param {String} type - 类型（github/orcid）
+     * @returns {String} 脱敏后的账号
+     */
+    maskAccount(account, type) {
+      if (!account) return ''
+      
+      if (type === 'github') {
+        // GitHub用户名：显示前3位，中间用*替代，保留后2位
+        if (account.length <= 5) {
+          return account.charAt(0) + '*'.repeat(account.length - 1)
+        }
+        const start = account.substring(0, 3)
+        const end = account.substring(account.length - 2)
+        return start + '*'.repeat(Math.max(account.length - 5, 2)) + end
+      } else if (type === 'orcid') {
+        // ORCID ID格式：0000-0002-1825-0097，显示前4位和后4位，中间用*替代
+        const parts = account.split('-')
+        if (parts.length === 4) {
+          return `${parts[0]}-****-****-${parts[3]}`
+        }
+        // 如果不是标准格式，显示前4位和后4位
+        if (account.length <= 8) {
+          return account.charAt(0) + '*'.repeat(account.length - 1)
+        }
+        const start = account.substring(0, 4)
+        const end = account.substring(account.length - 4)
+        return start + '*'.repeat(account.length - 8) + end
+      }
+      
+      // 默认脱敏：显示前3位和后2位
+      if (account.length <= 4) {
+        return '*'.repeat(account.length)
+      }
+      const start = account.substring(0, 3)
+      const end = account.substring(account.length - 2)
+      return start + '*'.repeat(account.length - 4) + end
+    },
+
+    /**
+     * 显示绑定提示弹窗
+     * @param {String} provider - 提供商名称
+     */
+    showBindModal(provider) {
+      const providerName = provider === 'github' ? 'GitHub' : 'ORCID'
+      const message = `绑定${providerName}账号需要您退出当前登录，然后使用${providerName}账号登录。\n\n绑定成功后，您可以使用${providerName}账号直接登录本平台。\n\n是否继续？`
+      
+      if (confirm(message)) {
+        // 退出登录
+        this.logout()
+      }
+    },
+
+    async handleGithubBind() {
+      // 如果已绑定，显示解绑确认
+      if (this.userInfo.githubId) {
+        this.showUnbindModal('github')
+        return
+      }
+      
+      // 未绑定，显示绑定提示
+      this.showBindModal('github')
+    },
+
+    async handleOrcidBind() {
+      // 如果已绑定，显示解绑确认
+      if (this.userInfo.orcidId) {
+        this.showUnbindModal('orcid')
+        return
+      }
+      
+      // 未绑定，显示绑定提示
+      this.showBindModal('orcid')
+    },
+
+    /**
+     * 显示解绑确认弹窗
+     * @param {String} provider - 提供商名称
+     */
+    showUnbindModal(provider) {
+      const providerName = provider === 'github' ? 'GitHub' : 'ORCID'
+      const account = provider === 'github' 
+        ? (this.userInfo.githubUsername || this.userInfo.githubId)
+        : this.userInfo.orcidId
+      const maskedAccount = this.maskAccount(account, provider)
+      
+      const message = `确定要解绑${providerName}账号吗？\n\n已绑定账号：${maskedAccount}\n\n解绑后，您将无法使用${providerName}账号登录本平台。`
+      
+      if (confirm(message)) {
+        this.unbindOAuth2Account(provider)
+      }
+    },
+
+    /**
+     * 解绑OAuth2账号
+     * @param {String} provider - 提供商名称
+     */
+    async unbindOAuth2Account(provider) {
+      try {
+        console.log('🔓 开始解绑OAuth2账号, provider:', provider)
+        
+        const response = await authAPI.unbindOAuth2Account(provider)
+        
+        if (response.code === 200) {
+          console.log('✅ 解绑成功')
+          
+          // 更新本地用户信息
+          if (provider === 'github') {
+            this.userInfo.githubId = null
+            this.userInfo.githubUsername = null
+          } else if (provider === 'orcid') {
+            this.userInfo.orcidId = null
+            this.userInfo.orcidBound = false
+          }
+          
+          // 更新localStorage
+          const savedUserInfo = localStorage.getItem('user_info')
+          if (savedUserInfo) {
+            try {
+              const userData = JSON.parse(savedUserInfo)
+              if (provider === 'github') {
+                userData.githubId = null
+                userData.githubUsername = null
+              } else if (provider === 'orcid') {
+                userData.orcidId = null
+                userData.orcidBound = false
+              }
+              localStorage.setItem('user_info', JSON.stringify(userData))
+            } catch (error) {
+              console.error('更新localStorage失败:', error)
+            }
+          }
+          
+          // 触发全局更新事件
+          this.$root.$emit('userInfoUpdated')
+          
+          this.showSuccessToast(`${provider === 'github' ? 'GitHub' : 'ORCID'}账号解绑成功`)
+        } else {
+          throw new Error(response.msg || '解绑失败')
+        }
+      } catch (error) {
+        console.error('❌ 解绑失败:', error)
+        alert('解绑失败：' + (error.message || error.msg || '网络错误'))
+      }
+    },
+
+    // ===== 关联链接相关方法 =====
+    async loadMyProfileLinks() {
+      if (!this.isLoggedIn) return
+      try {
+        const response = await profileAPI.getMyProfileLinks()
+        if (response && response.code === 200 && Array.isArray(response.data)) {
+          this.profileLinks = response.data
+        } else {
+          this.profileLinks = []
+        }
+        this.showAddLinkRow = false
+      } catch (error) {
+        console.error('加载关联链接失败:', error)
+        this.profileLinks = []
+        this.showAddLinkRow = false
+      }
+    },
+
+    async loadUserProfileLinks(userId) {
+      try {
+        const response = await profileAPI.getUserProfileLinks(userId)
+        if (response && response.code === 200 && Array.isArray(response.data)) {
+          this.profileLinks = response.data
+        } else {
+          this.profileLinks = []
+        }
+        this.showAddLinkRow = false
+      } catch (error) {
+        console.error('加载用户关联链接失败:', error)
+        this.profileLinks = []
+        this.showAddLinkRow = false
+      }
+    },
+
+    async saveProfileLinks(nextLinks = this.profileLinks) {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      this.isSavingLinks = true
+      try {
+        const response = await profileAPI.updateProfileLinks(nextLinks)
+        if (response && response.code === 200) {
+          this.profileLinks = Array.isArray(response.data) ? response.data : nextLinks
+          this.showSuccessToast('关联链接已更新')
+          this.showAddLinkRow = false
+        } else {
+          throw new Error(response?.msg || '更新失败')
+        }
+      } catch (error) {
+        console.error('保存关联链接失败:', error)
+        alert('保存失败: ' + (error.msg || error.message || '请稍后重试'))
+      } finally {
+        this.isSavingLinks = false
+      }
+    },
+
+    async addProfileLink() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      if (!this.canAddMoreLinks) {
+        alert('关联链接最多6个')
+        return
+      }
+
+      const url = (this.newProfileLink.url || '').trim()
+      let label = (this.newProfileLink.label || '').trim()
+
+      if (!url) {
+        alert('请填写链接地址')
+        return
+      }
+      if (!/^https?:\/\//i.test(url)) {
+        alert('链接需以 http 或 https 开头')
+        return
+      }
+
+      if (!label) {
+        label = url
+      }
+
+      const nextLinks = [...this.profileLinks, { label, url }]
+      await this.saveProfileLinks(nextLinks)
+      this.newProfileLink = { label: '', url: '' }
+      this.showAddLinkRow = false
+    },
+
+    async removeProfileLink(index) {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      const nextLinks = this.profileLinks.filter((_, i) => i !== index)
+      await this.saveProfileLinks(nextLinks)
     },
     
     // ===== 学术成果关联相关方法 =====
@@ -2832,6 +3631,305 @@ export default {
 
     handleQRCodeImageLoad(event) {
       console.log('✅ 二维码图片加载成功')
+    },
+
+    // ===== 账户注销相关方法 =====
+    handleDeleteAccount() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      this.showDeleteAccountModal = true
+      this.deleteAccountVerification = ''
+      this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
+      this.$nextTick(() => {
+        if (this.$refs.deleteAccountVerificationInput) {
+          this.$refs.deleteAccountVerificationInput.focus()
+        }
+      })
+    },
+
+    async confirmDeleteAccount() {
+      if (!this.deleteAccountVerification || this.deleteAccountVerification.trim() === '') {
+        alert('请输入验证信息')
+        return
+      }
+
+      // 验证用户名格式
+      if (this.deleteAccountVerificationType === 'username') {
+        const expectedUsername = this.userInfo.nickname || this.userInfo.name || this.userInfo.email?.split('@')[0]
+        if (this.deleteAccountVerification.trim() !== expectedUsername) {
+          alert('输入的用户名不正确，请重新输入')
+          this.deleteAccountVerification = ''
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+          return
+        }
+      }
+
+      // 验证2FA验证码格式
+      if (this.deleteAccountVerificationType === '2fa') {
+        if (this.deleteAccountVerification.length !== 6 || !/^\d{6}$/.test(this.deleteAccountVerification)) {
+          alert('请输入6位数字验证码')
+          this.deleteAccountVerification = ''
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+          return
+        }
+      }
+
+      // 二次确认
+      const confirmMessage = this.deleteAccountVerificationType === '2fa' 
+        ? '确认注销账号？此操作不可撤销，所有数据将被永久删除。'
+        : `确认注销账号 "${this.deleteAccountVerification}"？此操作不可撤销，所有数据将被永久删除。`
+      
+      if (!confirm(confirmMessage)) {
+        return
+      }
+
+      this.isDeletingAccount = true
+      try {
+        const userId = this.userInfo.id || this.currentUserId
+        if (!userId) {
+          throw new Error('无法获取用户ID')
+        }
+
+        // 调用后端API注销账号
+        const response = await authAPI.deleteUser(userId)
+        
+        if (response && response.code === 200) {
+          // 清除本地存储
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('user_info')
+          localStorage.removeItem('remember_me_token')
+          
+          // 显示成功消息
+          alert('账号已成功注销')
+          
+          // 跳转到首页
+          this.$router.push('/')
+          
+          // 刷新页面以确保完全清除状态
+          window.location.reload()
+        } else {
+          throw new Error(response?.msg || '注销账号失败')
+        }
+      } catch (error) {
+        console.error('注销账号失败:', error)
+        
+        // 如果是2FA验证码错误，提示重新输入
+        if (this.deleteAccountVerificationType === '2fa' && error.msg && error.msg.includes('验证码')) {
+          alert('验证码错误或已过期，请重新输入')
+          this.deleteAccountVerification = ''
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+        } else {
+          alert('注销账号失败: ' + (error.msg || error.message || '请稍后重试'))
+        }
+      } finally {
+        this.isDeletingAccount = false
+      }
+    },
+
+    closeDeleteAccountModal() {
+      this.showDeleteAccountModal = false
+      this.deleteAccountVerification = ''
+      this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
+    },
+
+    // ===== ORCID信息同步相关方法 =====
+    
+    /**
+     * 打开ORCID信息同步弹窗
+     */
+    async openOrcidSyncModal() {
+      this.showOrcidSyncModal = true
+      this.orcidSyncError = null
+      this.orcidDetail = null
+      this.orcidBindings = {}
+      this.orcidBindSuccessMessages = []
+      await this.fetchOrcidDetail()
+    },
+
+    /**
+     * 关闭ORCID信息同步弹窗
+     */
+    closeOrcidSyncModal() {
+      this.showOrcidSyncModal = false
+      this.orcidSyncError = null
+      this.orcidDetail = null
+      this.orcidBindings = {}
+      this.orcidBindSuccessMessages = []
+      // 刷新用户信息
+      if (this.isViewingSelf) {
+        this.loadMyProfileFromServer()
+      }
+    },
+
+    /**
+     * 获取ORCID详细信息
+     */
+    async fetchOrcidDetail() {
+      if (!this.userInfo.orcidId) {
+        this.orcidSyncError = '未绑定ORCID账号，请先绑定'
+        return
+      }
+
+      this.orcidSyncLoading = true
+      this.orcidSyncError = null
+
+      try {
+        const response = await authAPI.getOrcidDetail()
+        
+        if (response && response.code === 200 && response.data) {
+          this.orcidDetail = response.data
+          console.log('✅ 获取ORCID详细信息成功:', this.orcidDetail)
+        } else {
+          throw new Error(response?.msg || '获取ORCID信息失败')
+        }
+      } catch (error) {
+        console.error('❌ 获取ORCID详细信息失败:', error)
+        this.orcidSyncError = error.message || error.msg || '获取ORCID信息失败，请检查ORCID授权状态'
+      } finally {
+        this.orcidSyncLoading = false
+      }
+    },
+
+    /**
+     * 格式化教育经历信息
+     */
+    formatEducationInfo(edu) {
+      const parts = []
+      if (edu.organization) parts.push(edu.organization)
+      if (edu.department) parts.push(edu.department)
+      const dateRange = this.formatDateRange(edu.startDate, edu.endDate)
+      if (dateRange) parts.push(dateRange)
+      return parts.join(' · ') || '教育经历'
+    },
+
+    /**
+     * 格式化就业经历信息
+     */
+    formatEmploymentInfo(emp) {
+      const parts = []
+      if (emp.organization) parts.push(emp.organization)
+      if (emp.roleTitle) parts.push(emp.roleTitle)
+      const dateRange = this.formatDateRange(emp.startDate, emp.endDate)
+      if (dateRange) parts.push(dateRange)
+      return parts.join(' · ') || '就业经历'
+    },
+
+    /**
+     * 格式化日期范围
+     */
+    formatDateRange(startDate, endDate) {
+      if (!startDate) return null
+      if (endDate) {
+        return `${startDate} - ${endDate}`
+      } else {
+        return `${startDate} - 至今`
+      }
+    },
+
+    /**
+     * 绑定ORCID项目到平台字段
+     */
+    async bindOrcidItem(type, item, index) {
+      const bindingKey = type === 'keyword' ? `keyword-${index}` : 
+                        type === 'education' ? `edu-${index}` : `emp-${index}`
+      const targetField = this.orcidBindings[bindingKey]
+
+      if (!targetField) {
+        alert('请先选择绑定位置')
+        return
+      }
+
+      try {
+        if (targetField === 'research-tags') {
+          // 绑定关键词到研究方向
+          await this.bindKeywordToResearchTags(item)
+        } else if (targetField === 'institution') {
+          // 绑定教育/就业经历到所属机构
+          await this.bindExperienceToInstitution(type, item)
+        }
+
+        // 添加成功消息
+        const itemText = type === 'keyword' ? item : 
+                        type === 'education' ? this.formatEducationInfo(item) : 
+                        this.formatEmploymentInfo(item)
+        const fieldName = targetField === 'research-tags' ? '研究方向' : '所属机构'
+        this.orcidBindSuccessMessages.push(`已将「${itemText}」绑定到「${fieldName}」`)
+
+        // 清除该项目的绑定选择
+        this.$delete(this.orcidBindings, bindingKey)
+      } catch (error) {
+        console.error('绑定失败:', error)
+        alert('绑定失败: ' + (error.message || error.msg || '请稍后重试'))
+      }
+    },
+
+    /**
+     * 绑定关键词到研究方向
+     */
+    async bindKeywordToResearchTags(keyword) {
+      // 将现有标签统一转换为字符串数组（后端期望的是字符串列表）
+      const existingTags = this.researchTags.map(t => {
+        if (typeof t === 'string') {
+          return t
+        } else if (t && typeof t === 'object') {
+          return t.name || String(t)
+        } else {
+          return String(t)
+        }
+      }).filter(t => t && t.trim() !== '')
+
+      // 检查是否已存在
+      if (existingTags.includes(keyword)) {
+        throw new Error('该关键词已存在于研究方向中')
+      }
+
+      // 检查是否超过5个
+      if (existingTags.length >= 5) {
+        throw new Error('研究方向标签最多5个，请先移除其他标签')
+      }
+
+      // 添加到研究方向（确保所有标签都是字符串）
+      const newTags = [...existingTags, String(keyword).trim()].filter(t => t)
+      const response = await profileAPI.updateResearchTags(newTags)
+
+      if (response && response.code === 200) {
+        this.researchTags = response.data || newTags
+        this.showSuccessToast('关键词已添加到研究方向')
+      } else {
+        throw new Error(response?.msg || '更新失败')
+      }
+    },
+
+    /**
+     * 绑定教育/就业经历到所属机构
+     */
+    async bindExperienceToInstitution(type, experience) {
+      const institution = experience.organization
+      if (!institution) {
+        throw new Error('该经历缺少机构信息')
+      }
+
+      // 更新用户所属机构
+      // 注意：updateUserInfo 方法期望 organization 字段，会自动映射到后端的 institution
+      const updateData = {
+        organization: institution
+      }
+
+      const response = await authAPI.updateUserInfo(updateData)
+
+      if (response && response.code === 200) {
+        this.userInfo.organization = institution
+        this.showSuccessToast('所属机构已更新')
+      } else {
+        throw new Error(response?.msg || '更新失败')
+      }
     }
   }
 }

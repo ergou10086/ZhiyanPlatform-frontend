@@ -3,11 +3,30 @@ import config from '@/config'
 
 /**
  * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ * ⚠️ 必须在 JSON.parse 之前用正则替换大整数！
  */
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
+  
+  const trimmed = data.trim()
+  if (!trimmed) return data
+  
+  // 仅当响应内容以 "{" 或 "[" 开头时，才视为 JSON 尝试解析
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    return data
+  }
+  
   try {
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    // 在 JSON.parse 之前替换大整数为字符串
+    const processedData = trimmed
+      // 匹配对象属性值中的大整数: "key": 数字 (16位及以上)
+      .replace(/:(\s*)(\d{16,})(\s*[,}\]])/g, ':$1"$2"$3')
+      // 匹配数组开头的大整数: [数字
+      .replace(/\[(\s*)(\d{16,})(\s*[,\]])/g, '[$1"$2"$3')
+      // 匹配数组中间的大整数: ,数字
+      .replace(/,(\s*)(\d{16,})(\s*[,\]])/g, ',$1"$2"$3')
+    
+    return JSON.parse(processedData)
   } catch (e) {
     console.error('JSON解析错误:', e)
     return data
@@ -16,13 +35,14 @@ function parseJSONWithBigInt(data) {
 
 // 后端Dify服务配置（直连8096端口）
 const BACKEND_DIFY_CONFIG = {
-  baseUrl: '/zhiyan/ai/dify', // 通过Vue代理转发到8096端口
+  // 原配置 baseUrl: '/zhiyan/ai/dify', // 通过Vue代理转发到8096端口
+  baseUrl: config.api.baseURL + '/zhiyan/ai/dify',
   timeout: 120000, // axios 超时：2分钟
   streamTimeout: 300000 // fetch 流式响应超时：5分钟（AI文档分析需要更长时间）
 }
 
 // 知识库工作流专用基础路径
-const KNOWLEDGE_BASE_URL = '/zhiyan/ai/dify/knowledge'
+const KNOWLEDGE_BASE_URL = config.api.baseURL + '/zhiyan/ai/dify/knowledge'
 
 // 创建Dify API客户端
 const api = axios.create({
@@ -393,10 +413,10 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
       formData.append('conversationId', conversationId)
     }
     
-    // 添加知识库文件ID列表
+    // 添加知识库文件ID列表（确保转为字符串，避免精度丢失）
     if (knowledgeFileIds && knowledgeFileIds.length > 0) {
       knowledgeFileIds.forEach(id => {
-        formData.append('knowledgeFileIds', id)
+        formData.append('knowledgeFileIds', String(id))
       })
     }
     
@@ -562,9 +582,12 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
 /**
  * 针对知识库工作流的流式上传+对话接口
  * 使用新的后端路径 /zhiyan/ai/dify/knowledge/chat/stream-with-files
- * 其余逻辑与 uploadAndChatStream 基本一致
+ * @param {string} query - 用户查询
+ * @param {string} conversationId - 会话ID
+ * @param {Array<string>} difyFileIds - 已上传的 Dify 文件ID列表（提前上传的文件）
+ * @param {Array<File>} localFiles - 本地文件列表
  */
-export async function uploadAndChatStreamForKnowledge(query, conversationId = null, knowledgeFileIds = [], localFiles = [], onMessage, onEnd, onError) {
+export async function uploadAndChatStreamForKnowledge(query, conversationId = null, difyFileIds = [], localFiles = [], onMessage, onEnd, onError) {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => {
     controller.abort()
@@ -583,11 +606,13 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
     if (conversationId) {
       formData.append('conversationId', conversationId)
     }
-    if (knowledgeFileIds && knowledgeFileIds.length > 0) {
-      knowledgeFileIds.forEach(id => {
-        formData.append('knowledgeFileIds', id)
+    // 添加已上传的 Dify 文件ID（提前上传的文件）
+    if (difyFileIds && difyFileIds.length > 0) {
+      difyFileIds.forEach(id => {
+        formData.append('difyFileIds', String(id))
       })
     }
+    // 添加本地文件
     if (localFiles && localFiles.length > 0) {
       localFiles.forEach(file => {
         formData.append('localFiles', file)
@@ -597,7 +622,7 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
     console.log('[Dify API - Knowledge] 上传文件并对话:', {
       query,
       conversationId,
-      knowledgeFileIds: knowledgeFileIds?.length || 0,
+      difyFileIds: difyFileIds?.length || 0,
       localFiles: localFiles?.length || 0,
       timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`
     })
@@ -731,10 +756,57 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
   }
 }
 
+/**
+ * 上传知识库文件到 Dify（提前上传，获取 difyFileId）
+ * @param {Array<string>} knowledgeFileIds - 知识库文件ID列表
+ * @returns {Promise<Array>} 返回上传结果列表 [{ knowledgeFileId, difyFileId, fileName, success, error }]
+ */
+export async function uploadKnowledgeFilesToDify(knowledgeFileIds) {
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      console.error('[Dify API] 未找到access_token，请先登录')
+      throw new Error('未登录，请先登录')
+    }
+
+    // 确保是普通数组（去除 Vue 响应式包装）
+    const plainFileIds = Array.isArray(knowledgeFileIds) 
+      ? knowledgeFileIds.map(id => String(id))
+      : []
+
+    console.log('[Dify API] 上传知识库文件到Dify:', plainFileIds)
+
+    // 调用后端接口，批量上传知识库文件
+    const response = await fetch(`${KNOWLEDGE_BASE_URL}/upload-knowledge-files`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ knowledgeFileIds: plainFileIds })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[Dify API] 上传知识库文件失败:', errorText)
+      throw new Error(`上传失败: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('[Dify API] 上传知识库文件成功:', result)
+    
+    return result.data || []
+  } catch (error) {
+    console.error('[Dify API] 上传知识库文件异常:', error)
+    throw error
+  }
+}
+
 export default {
   sendChatMessage,
   sendChatMessageStream,
   uploadAndChatStream,
   uploadAndChatStreamForKnowledge,
+  uploadKnowledgeFilesToDify,
   stopMessageGeneration
 }

@@ -1,6 +1,12 @@
 <template>
   <div id="app">
-    <router-view/>
+    <div class="app-wrapper">
+      <div class="app-content">
+        <keep-alive include="ProjectSquare">
+          <router-view/>
+        </keep-alive>
+      </div>
+    </div>
     <!-- 全局消息通知组件，悬浮在右上角用户信息左侧 -->
     <GlobalMessageNotification v-if="!isAuthPage" />
     <!-- 全局用户信息组件，悬浮在右上角，但在登录相关页面不显示 -->
@@ -147,6 +153,16 @@ export default {
   min-height: 100vh;
   background-color: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.app-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-content {
+  flex: 1;
 }
 
 /* 主题切换动画 - 圆形扩散效果（全局样式） */

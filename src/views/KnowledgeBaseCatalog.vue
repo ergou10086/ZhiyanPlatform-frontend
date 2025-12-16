@@ -631,317 +631,9 @@
           </button>
         </div>
         <div class="file-view-content" @wheel="handleContentWheel" @touchstart="handleContentTouchStart" @touchmove="handleContentTouchMove">
-          <!-- 多文件列表 -->
-          <div v-if="viewingFile?.files && viewingFile.files.length > 1" class="multi-file-content">
-            <div class="file-list">
-              <div 
-                v-for="(file, index) in viewingFile.files" 
-                :key="file.id || index"
-                class="file-item"
-                :class="{ active: selectedFileIndex === index }"
-                @click="selectFile(index)"
-              >
-                <div class="file-item-info">
-                  <div class="file-icon-wrapper">
-                    <span class="file-icon">{{ getFileIcon(file.name) }}</span>
-                  </div>
-                  <div class="file-details">
-                    <div class="file-name" :title="file.name">{{ file.name || file.originalFileName || '未知文件' }}</div>
-                    <div class="file-meta">
-                      <span class="file-size">{{ formatFileSize(file.size) }}</span>
-                      <span class="file-separator">•</span>
-                      <span class="file-type">{{ getFileTypeDisplay(file.type) }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="file-actions">
-                  <button class="action-btn preview-btn" @click.stop="previewFile(file)" title="预览">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                  </button>
-                  <button class="action-btn download-btn" @click.stop="downloadSingleFile(file)" title="下载">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2"/>
-                      <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2"/>
-                      <path d="M12 3V15" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                  </button>
-                  <button class="action-btn delete-btn" @click.stop="deleteSingleFile(file, index)" title="删除">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 成果详细描述 -->
-            <div v-if="viewingFile" class="achievement-description">
-                <div class="description-header">
-                <div class="detail-label">成果详细描述：</div>
-                  <button class="edit-btn" @click="toggleEditMode" v-if="!isEditingDescription">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    编辑
-                  </button>
-                  <div v-else class="edit-actions">
-                    <button class="save-btn" @click="saveDescriptionChanges">保存</button>
-                    <button class="cancel-btn" @click="cancelEditMode">取消</button>
-                  </div>
-                  </div>
-                
-                <!-- 只读模式 -->
-                <div v-if="!isEditingDescription" class="description-content">
-                  <!-- 论文类型 -->
-                  <div v-if="viewingFile.type === '论文'" class="description-fields">
-                    <div class="description-item">
-                      <span class="desc-label">作者：</span>
-                      <span class="desc-value">{{ viewingFile.paperAuthors || '未填写' }}</span>
-                  </div>
-                    <div class="description-item">
-                      <span class="desc-label">论文标题：</span>
-                      <span class="desc-value">{{ viewingFile.paperTitle || '未填写' }}</span>
-                  </div>
-                    <div class="description-item">
-                      <span class="desc-label">期刊名称：</span>
-                      <span class="desc-value">{{ viewingFile.journalName || '未填写' }}</span>
-                  </div>
-                    <div class="description-item">
-                      <span class="desc-label">发表年份：</span>
-                      <span class="desc-value">{{ viewingFile.publishYear || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">卷号：</span>
-                      <span class="desc-value">{{ viewingFile.volume || '未填写' }}</span>
-                  </div>
-                    <div class="description-item">
-                      <span class="desc-label">期号：</span>
-                      <span class="desc-value">{{ viewingFile.issue || '未填写' }}</span>
-                </div>
-              </div>
-                  
-                  <!-- 专利类型 -->
-                  <div v-else-if="viewingFile.type === '专利'" class="description-fields">
-                    <div class="description-item">
-                      <span class="desc-label">专利号：</span>
-                      <span class="desc-value">{{ viewingFile.patentNumber || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">专利类型：</span>
-                      <span class="desc-value">{{ viewingFile.patentType || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">专利名：</span>
-                      <span class="desc-value">{{ viewingFile.patentName || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">发明人：</span>
-                      <span class="desc-value">{{ viewingFile.inventors || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">申请人：</span>
-                      <span class="desc-value">{{ viewingFile.applicants || '未填写' }}</span>
-                    </div>
-                  </div>
-                  
-                  <!-- 数据集类型 -->
-                  <div v-else-if="viewingFile.type === '数据集'" class="description-fields">
-                    <div class="description-item">
-                      <span class="desc-label">数据集版本：</span>
-                      <span class="desc-value">{{ viewingFile.datasetVersion || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">数据集名：</span>
-                      <span class="desc-value">{{ viewingFile.datasetName || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">数据格式：</span>
-                      <span class="desc-value">{{ viewingFile.datasetFormat || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">数据规模：</span>
-                      <span class="desc-value">{{ viewingFile.datasetSize || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">数据来源：</span>
-                      <span class="desc-value">{{ viewingFile.datasetSource || '未填写' }}</span>
-                    </div>
-                  </div>
-                  
-                  <!-- 模型文件类型 -->
-                  <div v-else-if="viewingFile.type === '模型文件'" class="description-fields">
-                    <div class="description-item">
-                      <span class="desc-label">模型框架：</span>
-                      <span class="desc-value">{{ viewingFile.modelFramework || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">模型名称：</span>
-                      <span class="desc-value">{{ viewingFile.modelName || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">模型版本：</span>
-                      <span class="desc-value">{{ viewingFile.modelVersion || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">模型类型：</span>
-                      <span class="desc-value">{{ viewingFile.modelType || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">超参数：</span>
-                      <span class="desc-value">{{ viewingFile.hyperparameters || '未填写' }}</span>
-                    </div>
-                  </div>
-                  
-                  <!-- 实验报告类型 -->
-                  <div v-else-if="viewingFile.type === '实验报告'" class="description-fields">
-                    <div class="description-item">
-                      <span class="desc-label">报告类型：</span>
-                      <span class="desc-value">{{ viewingFile.reportType || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">报告名称：</span>
-                      <span class="desc-value">{{ viewingFile.reportName || '未填写' }}</span>
-                    </div>
-                    <div class="description-item">
-                      <span class="desc-label">报告日期：</span>
-                      <span class="desc-value">{{ viewingFile.reportDate || '未填写' }}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- 编辑模式 -->
-                <div v-else class="description-edit-form">
-                  <div class="edit-fields">
-                    <!-- 论文编辑字段 -->
-                    <template v-if="viewingFile.type === '论文'">
-                      <div class="edit-field">
-                        <label>作者：</label>
-                        <input v-model="editForm.paperAuthors" type="text" placeholder="请输入作者" />
-                      </div>
-                      <div class="edit-field">
-                        <label>论文标题：</label>
-                        <input v-model="editForm.paperTitle" type="text" placeholder="请输入论文标题" />
-                      </div>
-                      <div class="edit-field">
-                        <label>期刊名称：</label>
-                        <input v-model="editForm.journalName" type="text" placeholder="请输入期刊名称" />
-                      </div>
-                      <div class="edit-field">
-                        <label>发表年份：</label>
-                        <input v-model="editForm.publishYear" type="text" placeholder="请输入发表年份" />
-                      </div>
-                      <div class="edit-field">
-                        <label>卷号：</label>
-                        <input v-model="editForm.volume" type="text" placeholder="请输入卷号" />
-                      </div>
-                      <div class="edit-field">
-                        <label>期号：</label>
-                        <input v-model="editForm.issue" type="text" placeholder="请输入期号" />
-                      </div>
-                    </template>
-                    
-                    <!-- 专利编辑字段 -->
-                    <template v-else-if="viewingFile.type === '专利'">
-                      <div class="edit-field">
-                        <label>专利号：</label>
-                        <input v-model="editForm.patentNumber" type="text" placeholder="请输入专利号" />
-                      </div>
-                      <div class="edit-field">
-                        <label>专利类型：</label>
-                        <input v-model="editForm.patentType" type="text" placeholder="请输入专利类型" />
-                      </div>
-                      <div class="edit-field">
-                        <label>专利名：</label>
-                        <input v-model="editForm.patentName" type="text" placeholder="请输入专利名" />
-                      </div>
-                      <div class="edit-field">
-                        <label>发明人：</label>
-                        <input v-model="editForm.inventors" type="text" placeholder="请输入发明人" />
-                      </div>
-                      <div class="edit-field">
-                        <label>申请人：</label>
-                        <input v-model="editForm.applicants" type="text" placeholder="请输入申请人" />
-                      </div>
-                    </template>
-                    
-                    <!-- 数据集编辑字段 -->
-                    <template v-else-if="viewingFile.type === '数据集'">
-                      <div class="edit-field">
-                        <label>数据集版本：</label>
-                        <input v-model="editForm.datasetVersion" type="text" placeholder="请输入数据集版本" />
-                      </div>
-                      <div class="edit-field">
-                        <label>数据集名：</label>
-                        <input v-model="editForm.datasetName" type="text" placeholder="请输入数据集名" />
-                      </div>
-                      <div class="edit-field">
-                        <label>数据格式：</label>
-                        <input v-model="editForm.datasetFormat" type="text" placeholder="请输入数据格式" />
-                      </div>
-                      <div class="edit-field">
-                        <label>数据规模：</label>
-                        <input v-model="editForm.datasetSize" type="text" placeholder="请输入数据规模" />
-                      </div>
-                      <div class="edit-field">
-                        <label>数据来源：</label>
-                        <input v-model="editForm.datasetSource" type="text" placeholder="请输入数据来源" />
-                      </div>
-                    </template>
-                    
-                    <!-- 模型文件编辑字段 -->
-                    <template v-else-if="viewingFile.type === '模型文件'">
-                      <div class="edit-field">
-                        <label>模型框架：</label>
-                        <input v-model="editForm.modelFramework" type="text" placeholder="请输入模型框架" />
-                      </div>
-                      <div class="edit-field">
-                        <label>模型名称：</label>
-                        <input v-model="editForm.modelName" type="text" placeholder="请输入模型名称" />
-                      </div>
-                      <div class="edit-field">
-                        <label>模型版本：</label>
-                        <input v-model="editForm.modelVersion" type="text" placeholder="请输入模型版本" />
-                      </div>
-                      <div class="edit-field">
-                        <label>模型类型：</label>
-                        <input v-model="editForm.modelType" type="text" placeholder="请输入模型类型" />
-                      </div>
-                      <div class="edit-field">
-                        <label>超参数：</label>
-                        <input v-model="editForm.hyperparameters" type="text" placeholder="请输入超参数" />
-                      </div>
-                    </template>
-                    
-                    <!-- 实验报告编辑字段 -->
-                    <template v-else-if="viewingFile.type === '实验报告'">
-                      <div class="edit-field">
-                        <label>报告类型：</label>
-                        <input v-model="editForm.reportType" type="text" placeholder="请输入报告类型" />
-                      </div>
-                      <div class="edit-field">
-                        <label>报告名称：</label>
-                        <input v-model="editForm.reportName" type="text" placeholder="请输入报告名称" />
-                      </div>
-                      <div class="edit-field">
-                        <label>报告日期：</label>
-                        <input v-model="editForm.reportDate" type="date" />
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- 预览区域已移除 -->
-            </div>
-          
-          <!-- 单文件内容（显示文件卡片样式） -->
-          <div v-else>
-            <!-- 成果信息 -->
-            <div v-if="viewingFile" class="achievement-info-section">
+          <!-- 统一布局：成果信息 + 成果详细描述 + 文件卡片（支持多文件） -->
+          <!-- 成果信息 -->
+          <div v-if="viewingFile" class="achievement-info-section">
               <div class="file-details">
                 <div class="detail-item">
                   <span class="detail-label">成果名：</span>
@@ -1000,123 +692,128 @@
                 </div>
               </div>
             </div>
-            
-            <!-- 成果详细描述（单文件分支统一为可编辑版本） -->
-                <div v-if="viewingFile" class="achievement-description">
-                  <div class="description-header">
-                  <div class="detail-label">成果详细描述：</div>
-                    <button v-if="canEditAchievement(viewingFile) && !isEditingDescription" class="edit-btn" @click="toggleEditMode">编辑</button>
-                    <div v-if="isEditingDescription" class="edit-actions">
-                      <button class="save-btn" @click="saveDescriptionChanges">保存</button>
-                      <button class="cancel-btn" @click="cancelEditMode">取消</button>
-                    </div>
-                    </div>
 
-                  <!-- 只读模式：空值显示"未填写" -->
-                  <div v-if="!isEditingDescription" class="description-content">
-                    <div v-if="viewingFile.type === '论文'" class="description-fields">
-                      <div class="description-item"><span class="desc-label">作者：</span><span class="desc-value">{{ viewingFile.paperAuthors || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">论文标题：</span><span class="desc-value">{{ viewingFile.paperTitle || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">期刊名称：</span><span class="desc-value">{{ viewingFile.journalName || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">发表年份：</span><span class="desc-value">{{ viewingFile.publishYear || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">卷号：</span><span class="desc-value">{{ viewingFile.volume || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">期号：</span><span class="desc-value">{{ viewingFile.issue || '未填写' }}</span></div>
-                    </div>
-
-                    <div v-else-if="viewingFile.type === '专利'" class="description-fields">
-                      <div class="description-item"><span class="desc-label">专利号：</span><span class="desc-value">{{ viewingFile.patentNumber || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">专利类型：</span><span class="desc-value">{{ viewingFile.patentType || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">专利名：</span><span class="desc-value">{{ viewingFile.patentName || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">发明人：</span><span class="desc-value">{{ viewingFile.inventors || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">申请人：</span><span class="desc-value">{{ viewingFile.applicants || '未填写' }}</span></div>
-                    </div>
-
-                    <div v-else-if="viewingFile.type === '数据集'" class="description-fields">
-                      <div class="description-item"><span class="desc-label">数据集版本：</span><span class="desc-value">{{ viewingFile.datasetVersion || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">数据集名：</span><span class="desc-value">{{ viewingFile.datasetName || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">数据格式：</span><span class="desc-value">{{ viewingFile.datasetFormat || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">数据规模：</span><span class="desc-value">{{ viewingFile.datasetSize || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">数据来源：</span><span class="desc-value">{{ viewingFile.datasetSource || '未填写' }}</span></div>
-                    </div>
-
-                    <div v-else-if="viewingFile.type === '模型文件'" class="description-fields">
-                      <div class="description-item"><span class="desc-label">模型框架：</span><span class="desc-value">{{ viewingFile.modelFramework || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">模型名称：</span><span class="desc-value">{{ viewingFile.modelName || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">模型版本：</span><span class="desc-value">{{ viewingFile.modelVersion || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">模型类型：</span><span class="desc-value">{{ viewingFile.modelType || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">超参数：</span><span class="desc-value">{{ viewingFile.hyperparameters || '未填写' }}</span></div>
-                      </div>
-
-                    <div v-else-if="viewingFile.type === '实验报告'" class="description-fields">
-                      <div class="description-item"><span class="desc-label">报告类型：</span><span class="desc-value">{{ viewingFile.reportType || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">报告名称：</span><span class="desc-value">{{ viewingFile.reportName || '未填写' }}</span></div>
-                      <div class="description-item"><span class="desc-label">报告日期：</span><span class="desc-value">{{ viewingFile.reportDate || '未填写' }}</span></div>
-                    </div>
-                  </div>
-
-                  <!-- 编辑模式 -->
-                  <div v-else class="description-edit-form">
-                    <div class="edit-fields">
-                      <template v-if="viewingFile.type === '论文'">
-                        <div class="edit-field"><label>作者：</label><input v-model="editForm.paperAuthors" type="text" placeholder="请输入作者" /></div>
-                        <div class="edit-field"><label>论文标题：</label><input v-model="editForm.paperTitle" type="text" placeholder="请输入论文标题" /></div>
-                        <div class="edit-field"><label>期刊名称：</label><input v-model="editForm.journalName" type="text" placeholder="请输入期刊名称" /></div>
-                        <div class="edit-field"><label>发表年份：</label><input v-model="editForm.publishYear" type="text" placeholder="请输入发表年份" /></div>
-                        <div class="edit-field"><label>卷号：</label><input v-model="editForm.volume" type="text" placeholder="请输入卷号" /></div>
-                        <div class="edit-field"><label>期号：</label><input v-model="editForm.issue" type="text" placeholder="请输入期号" /></div>
-                      </template>
-
-                      <template v-else-if="viewingFile.type === '专利'">
-                        <div class="edit-field"><label>专利号：</label><input v-model="editForm.patentNumber" type="text" placeholder="请输入专利号" /></div>
-                        <div class="edit-field"><label>专利类型：</label><input v-model="editForm.patentType" type="text" placeholder="请输入专利类型" /></div>
-                        <div class="edit-field"><label>专利名：</label><input v-model="editForm.patentName" type="text" placeholder="请输入专利名" /></div>
-                        <div class="edit-field"><label>发明人：</label><input v-model="editForm.inventors" type="text" placeholder="请输入发明人" /></div>
-                        <div class="edit-field"><label>申请人：</label><input v-model="editForm.applicants" type="text" placeholder="请输入申请人" /></div>
-                      </template>
-
-                      <template v-else-if="viewingFile.type === '数据集'">
-                        <div class="edit-field"><label>数据集版本：</label><input v-model="editForm.datasetVersion" type="text" placeholder="请输入数据集版本" /></div>
-                        <div class="edit-field"><label>数据集名：</label><input v-model="editForm.datasetName" type="text" placeholder="请输入数据集名" /></div>
-                        <div class="edit-field"><label>数据格式：</label><input v-model="editForm.datasetFormat" type="text" placeholder="请输入数据格式" /></div>
-                        <div class="edit-field"><label>数据规模：</label><input v-model="editForm.datasetSize" type="text" placeholder="请输入数据规模" /></div>
-                        <div class="edit-field"><label>数据来源：</label><input v-model="editForm.datasetSource" type="text" placeholder="请输入数据来源" /></div>
-                      </template>
-
-                      <template v-else-if="viewingFile.type === '模型文件'">
-                        <div class="edit-field"><label>模型框架：</label><input v-model="editForm.modelFramework" type="text" placeholder="请输入模型框架" /></div>
-                        <div class="edit-field"><label>模型名称：</label><input v-model="editForm.modelName" type="text" placeholder="请输入模型名称" /></div>
-                        <div class="edit-field"><label>模型版本：</label><input v-model="editForm.modelVersion" type="text" placeholder="请输入模型版本" /></div>
-                        <div class="edit-field"><label>模型类型：</label><input v-model="editForm.modelType" type="text" placeholder="请输入模型类型" /></div>
-                        <div class="edit-field"><label>超参数：</label><input v-model="editForm.hyperparameters" type="text" placeholder="请输入超参数" /></div>
-                      </template>
-
-                      <template v-else-if="viewingFile.type === '实验报告'">
-                        <div class="edit-field"><label>报告类型：</label><input v-model="editForm.reportType" type="text" placeholder="请输入报告类型" /></div>
-                        <div class="edit-field"><label>报告名称：</label><input v-model="editForm.reportName" type="text" placeholder="请输入报告名称" /></div>
-                        <div class="edit-field"><label>报告日期：</label><input v-model="editForm.reportDate" type="date" /></div>
-                      </template>
-                    </div>
-                  </div>
-                </div>
-                
-            <!-- 文件卡片样式（类似AI赋能） -->
-            <div v-if="viewingFile && viewingFile.files && viewingFile.files.length > 0" class="single-file-card-container">
-              <div class="file-preview-card" @click="previewFile(viewingFile.files[0])" style="cursor: pointer;">
-                <div class="file-preview-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M13 2V9H20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </div>
-                <div class="file-preview-info">
-                  <div class="file-preview-name">{{ viewingFile.files[0].name || viewingFile.files[0].originalFileName || viewingFile.name || '未知文件' }}</div>
-                  <div class="file-preview-meta">
-                    <span class="file-preview-type">{{ getFileTypeDisplay(viewingFile.files[0].type) || '未知类型' }}</span>
-                    <span v-if="viewingFile.files[0].size" class="file-preview-size">{{ formatFileSize(viewingFile.files[0].size) }}</span>
-                  </div>
-                </div>
-                <div class="file-preview-hint">点击查看</div>
+          <!-- 成果详细描述（统一可编辑版本） -->
+          <div v-if="viewingFile" class="achievement-description">
+            <div class="description-header">
+              <div class="detail-label">成果详细描述：</div>
+              <button v-if="canEditAchievement(viewingFile) && !isEditingDescription" class="edit-btn" @click="toggleEditMode">编辑</button>
+              <div v-if="isEditingDescription" class="edit-actions">
+                <button class="save-btn" @click="saveDescriptionChanges">保存</button>
+                <button class="cancel-btn" @click="cancelEditMode">取消</button>
               </div>
+            </div>
+
+            <!-- 只读模式：空值显示"未填写" -->
+            <div v-if="!isEditingDescription" class="description-content">
+              <div v-if="viewingFile.type === '论文'" class="description-fields">
+                <div class="description-item"><span class="desc-label">作者：</span><span class="desc-value">{{ viewingFile.paperAuthors || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">论文标题：</span><span class="desc-value">{{ viewingFile.paperTitle || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">期刊名称：</span><span class="desc-value">{{ viewingFile.journalName || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">发表年份：</span><span class="desc-value">{{ viewingFile.publishYear || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">卷号：</span><span class="desc-value">{{ viewingFile.volume || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">期号：</span><span class="desc-value">{{ viewingFile.issue || '未填写' }}</span></div>
+              </div>
+
+              <div v-else-if="viewingFile.type === '专利'" class="description-fields">
+                <div class="description-item"><span class="desc-label">专利号：</span><span class="desc-value">{{ viewingFile.patentNumber || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">专利类型：</span><span class="desc-value">{{ viewingFile.patentType || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">专利名：</span><span class="desc-value">{{ viewingFile.patentName || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">发明人：</span><span class="desc-value">{{ viewingFile.inventors || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">申请人：</span><span class="desc-value">{{ viewingFile.applicants || '未填写' }}</span></div>
+              </div>
+
+              <div v-else-if="viewingFile.type === '数据集'" class="description-fields">
+                <div class="description-item"><span class="desc-label">数据集版本：</span><span class="desc-value">{{ viewingFile.datasetVersion || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">数据集名：</span><span class="desc-value">{{ viewingFile.datasetName || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">数据格式：</span><span class="desc-value">{{ viewingFile.datasetFormat || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">数据规模：</span><span class="desc-value">{{ viewingFile.datasetSize || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">数据来源：</span><span class="desc-value">{{ viewingFile.datasetSource || '未填写' }}</span></div>
+              </div>
+
+              <div v-else-if="viewingFile.type === '模型文件'" class="description-fields">
+                <div class="description-item"><span class="desc-label">模型框架：</span><span class="desc-value">{{ viewingFile.modelFramework || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">模型名称：</span><span class="desc-value">{{ viewingFile.modelName || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">模型版本：</span><span class="desc-value">{{ viewingFile.modelVersion || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">模型类型：</span><span class="desc-value">{{ viewingFile.modelType || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">超参数：</span><span class="desc-value">{{ viewingFile.hyperparameters || '未填写' }}</span></div>
+              </div>
+
+              <div v-else-if="viewingFile.type === '实验报告'" class="description-fields">
+                <div class="description-item"><span class="desc-label">报告类型：</span><span class="desc-value">{{ viewingFile.reportType || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">报告名称：</span><span class="desc-value">{{ viewingFile.reportName || '未填写' }}</span></div>
+                <div class="description-item"><span class="desc-label">报告日期：</span><span class="desc-value">{{ viewingFile.reportDate || '未填写' }}</span></div>
+              </div>
+            </div>
+
+            <!-- 编辑模式 -->
+            <div v-else class="description-edit-form">
+              <div class="edit-fields">
+                <template v-if="viewingFile.type === '论文'">
+                  <div class="edit-field"><label>作者：</label><input v-model="editForm.paperAuthors" type="text" placeholder="请输入作者" /></div>
+                  <div class="edit-field"><label>论文标题：</label><input v-model="editForm.paperTitle" type="text" placeholder="请输入论文标题" /></div>
+                  <div class="edit-field"><label>期刊名称：</label><input v-model="editForm.journalName" type="text" placeholder="请输入期刊名称" /></div>
+                  <div class="edit-field"><label>发表年份：</label><input v-model="editForm.publishYear" type="text" placeholder="请输入发表年份" /></div>
+                  <div class="edit-field"><label>卷号：</label><input v-model="editForm.volume" type="text" placeholder="请输入卷号" /></div>
+                  <div class="edit-field"><label>期号：</label><input v-model="editForm.issue" type="text" placeholder="请输入期号" /></div>
+                </template>
+
+                <template v-else-if="viewingFile.type === '专利'">
+                  <div class="edit-field"><label>专利号：</label><input v-model="editForm.patentNumber" type="text" placeholder="请输入专利号" /></div>
+                  <div class="edit-field"><label>专利类型：</label><input v-model="editForm.patentType" type="text" placeholder="请输入专利类型" /></div>
+                  <div class="edit-field"><label>专利名：</label><input v-model="editForm.patentName" type="text" placeholder="请输入专利名" /></div>
+                  <div class="edit-field"><label>发明人：</label><input v-model="editForm.inventors" type="text" placeholder="请输入发明人" /></div>
+                  <div class="edit-field"><label>申请人：</label><input v-model="editForm.applicants" type="text" placeholder="请输入申请人" /></div>
+                </template>
+
+                <template v-else-if="viewingFile.type === '数据集'">
+                  <div class="edit-field"><label>数据集版本：</label><input v-model="editForm.datasetVersion" type="text" placeholder="请输入数据集版本" /></div>
+                  <div class="edit-field"><label>数据集名：</label><input v-model="editForm.datasetName" type="text" placeholder="请输入数据集名" /></div>
+                  <div class="edit-field"><label>数据格式：</label><input v-model="editForm.datasetFormat" type="text" placeholder="请输入数据格式" /></div>
+                  <div class="edit-field"><label>数据规模：</label><input v-model="editForm.datasetSize" type="text" placeholder="请输入数据规模" /></div>
+                  <div class="edit-field"><label>数据来源：</label><input v-model="editForm.datasetSource" type="text" placeholder="请输入数据来源" /></div>
+                </template>
+
+                <template v-else-if="viewingFile.type === '模型文件'">
+                  <div class="edit-field"><label>模型框架：</label><input v-model="editForm.modelFramework" type="text" placeholder="请输入模型框架" /></div>
+                  <div class="edit-field"><label>模型名称：</label><input v-model="editForm.modelName" type="text" placeholder="请输入模型名称" /></div>
+                  <div class="edit-field"><label>模型版本：</label><input v-model="editForm.modelVersion" type="text" placeholder="请输入模型版本" /></div>
+                  <div class="edit-field"><label>模型类型：</label><input v-model="editForm.modelType" type="text" placeholder="请输入模型类型" /></div>
+                  <div class="edit-field"><label>超参数：</label><input v-model="editForm.hyperparameters" type="text" placeholder="请输入超参数" /></div>
+                </template>
+
+                <template v-else-if="viewingFile.type === '实验报告'">
+                  <div class="edit-field"><label>报告类型：</label><input v-model="editForm.reportType" type="text" placeholder="请输入报告类型" /></div>
+                  <div class="edit-field"><label>报告名称：</label><input v-model="editForm.reportName" type="text" placeholder="请输入报告名称" /></div>
+                  <div class="edit-field"><label>报告日期：</label><input v-model="editForm.reportDate" type="date" /></div>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <!-- 文件卡片样式（类似AI赋能，支持多文件） -->
+          <div v-if="viewingFile && viewingFile.files && viewingFile.files.length > 0" class="single-file-card-container">
+            <div
+              class="file-preview-card"
+              v-for="(file, index) in viewingFile.files"
+              :key="file.id || index"
+              @click="previewFile(file)"
+              style="cursor: pointer;"
+            >
+              <div class="file-preview-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <div class="file-preview-info">
+                <div class="file-preview-name">{{ file.name || file.originalFileName || viewingFile.name || '未知文件' }}</div>
+                <div class="file-preview-meta">
+                  <span class="file-preview-type">{{ getFileTypeDisplay(file.type) || '未知类型' }}</span>
+                  <span v-if="file.size" class="file-preview-size">{{ formatFileSize(file.size) }}</span>
+                </div>
+              </div>
+              <div class="file-preview-hint">点击查看</div>
             </div>
           </div>
         </div>
@@ -2416,12 +2113,91 @@ export default {
       return '未知成果'
     },
     
+    // 检查上传表单是否有未保存的内容
+    hasUploadFormContent() {
+      const form = this.achievementForm
+      // 检查成果名称
+      if (form.name && form.name.trim()) {
+        return true
+      }
+      // 检查文件
+      if (form.files && form.files.length > 0) {
+        return true
+      }
+      // 检查关联任务
+      if (form.linkedTaskIds && form.linkedTaskIds.length > 0) {
+        return true
+      }
+      // 检查不同类型的具体字段
+      if (this.currentFileType === '论文') {
+        if (form.paperAuthors?.trim() || form.paperTitle?.trim() || form.journalName?.trim() || 
+            form.publishYear?.trim() || form.volume?.trim() || form.issue?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '专利') {
+        if (form.patentNumber?.trim() || form.patentType?.trim() || form.patentName?.trim() || 
+            form.inventors?.trim() || form.applicants?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '数据集') {
+        if (form.datasetVersion?.trim() || form.datasetName?.trim() || form.datasetFormat?.trim() || 
+            form.datasetSize?.trim() || form.datasetSource?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '模型文件') {
+        if (form.modelFramework?.trim() || form.modelName?.trim() || form.modelVersion?.trim() || 
+            form.modelType?.trim() || form.hyperparameters?.trim()) {
+          return true
+        }
+      } else if (this.currentFileType === '实验报告') {
+        if (form.reportType?.trim() || form.reportName?.trim() || form.reportDate?.trim()) {
+          return true
+        }
+      }
+      return false
+    },
+    
+    // 检查自定义表单是否有未保存的内容
+    hasCustomFormContent() {
+      const form = this.customUploadForm
+      // 检查类型名称
+      if (form.typeName && form.typeName.trim()) {
+        return true
+      }
+      // 检查成果名称
+      if (form.name && form.name.trim()) {
+        return true
+      }
+      // 检查文件
+      if (form.files && form.files.length > 0) {
+        return true
+      }
+      // 检查描述字段
+      if (form.descriptions && form.descriptions.length > 0) {
+        const hasContent = form.descriptions.some(desc => 
+          (desc.leftField && desc.leftField.trim()) || (desc.rightField && desc.rightField.trim())
+        )
+        if (hasContent) {
+          return true
+        }
+      }
+      return false
+    },
+    
     closeUploadDialog() {
+      // 检查是否有未保存的内容
+      if (this.hasUploadFormContent()) {
+        if (!confirm('您有未保存的内容，关闭对话框将丢失这些信息。确定要关闭吗？')) {
+          return
+        }
+      }
       this.showUploadDialog = false
       this.resetAchievementForm()
       this.isAddingToExisting = false
       this.targetAchievementId = null
-      this.$refs.fileInput.value = ''
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
       // 解锁背景滚动
       this.unlockBodyScroll()
     },
@@ -2529,9 +2305,17 @@ export default {
     },
     
     closeCustomDialog() {
+      // 检查是否有未保存的内容
+      if (this.hasCustomFormContent()) {
+        if (!confirm('您有未保存的内容，关闭对话框将丢失这些信息。确定要关闭吗？')) {
+          return
+        }
+      }
       this.showCustomDialog = false
       this.resetCustomForm()
-      this.$refs.fileInput.value = ''
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
     },
     
     async viewFile(file) {
@@ -3991,18 +3775,20 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  /* 与附件预览保持一致的最高层级，盖住成果详情和档案面板 */
+  z-index: 12000;
 }
 
 .modal-content {
+  /* 日间模式：整体使用白色背景 */
   background: #ffffff;
   border-radius: 20px;
   box-shadow:
     0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(0, 0, 0, 0.05);
-  max-width: 620px;
-  width: 90%;
-  max-height: 88vh;
+  max-width: 520px;
+  width: 88%;
+  max-height: 70vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -4014,23 +3800,25 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: 24px 28px 18px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  padding: 20px 24px 12px;
+  /* 日间模式：头部也使用白色背景，仅保留底部分割线 */
+  background: #ffffff;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .modal-title {
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 700;
-  color: #0f172a;
+  /* 深色文字，适配白色背景 */
+  color: #111827;
 }
 
 .modal-subtitle {
   margin: 0 0 16px;
   font-size: 14px;
   font-weight: 500;
-  color: #0044CC;
+  color: #4b5563;
 }
 
 .modal-close {
@@ -4057,7 +3845,8 @@ export default {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0;
+  padding: 16px 24px 4px;
+  /* 日间模式：内容区域白色背景 */
   background: #ffffff;
 }
 
@@ -4122,7 +3911,7 @@ export default {
 }
 
 .file-card {
-  background: #ffffff;
+  background: #1e293b;
   border: 1.5px solid #e2e8f0;
   border-radius: 14px;
   cursor: pointer;
@@ -4194,11 +3983,10 @@ export default {
 .file-name {
   font-size: 16px;
   font-weight: 600;
-  color: #0f172a;
+  color: #111827;
   line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 默认允许换行，但不要对每个字符都强制换行 */
+  white-space: normal;
 }
 
 .file-card.selected .file-name {
@@ -4268,9 +4056,97 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 24px 20px;
+  padding: 12px 24px 18px;
   background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
   border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.modal-body p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #333;
+}
+
+/* ================= 深色模式下的删除弹窗样式 ================= */
+html.dark-mode .modal-content {
+  background: #1e293b;
+}
+
+html.dark-mode .modal-header {
+  background: linear-gradient(135deg, #1f2937 0%, #020617 100%);
+  border-bottom-color: rgba(15, 23, 42, 0.9);
+}
+
+html.dark-mode .modal-title {
+  color: #e5e7eb;
+}
+
+html.dark-mode .modal-body {
+  background: #020617;
+}
+
+html.dark-mode .modal-body p {
+  color: #e5e7eb;
+}
+
+html.dark-mode .modal-footer {
+  background: linear-gradient(135deg, #020617 0%, #020617 100%);
+  border-top-color: rgba(30, 64, 175, 0.6);
+}
+
+html.dark-mode .modal-footer .btn.btn-secondary,
+html.dark-mode .modal-footer .btn.secondary {
+  background: transparent;
+  color: #e5e7eb;
+  border-color: #4b5563;
+}
+
+html.dark-mode .modal-footer .btn.btn-secondary:hover,
+html.dark-mode .modal-footer .btn.secondary:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: #9ca3af;
+}
+
+html.dark-mode .modal-footer .btn.btn-primary,
+html.dark-mode .modal-footer .btn.primary {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.modal-footer .btn {
+  min-width: 96px;
+  height: 38px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.modal-footer .btn.btn-secondary,
+.modal-footer .btn.secondary {
+  background: #ffffff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.modal-footer .btn.btn-secondary:hover,
+.modal-footer .btn.secondary:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.modal-footer .btn.btn-primary,
+.modal-footer .btn.primary {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #ffffff;
+}
+
+.modal-footer .btn.btn-primary:hover,
+.modal-footer .btn.primary:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 /* 文件信息样式覆盖 */
@@ -4293,6 +4169,31 @@ export default {
   font-weight: 600;
   color: #111827;
   word-break: break-all;
+}
+
+/* 黑夜模式下，文件查看弹窗顶部信息条强制使用深色背景 */
+html.dark-mode .file-view-dialog .file-info {
+  background: #020617 !important;
+  color: #e5e7eb;
+}
+
+/* 成果档案表格：只控制“成果名”这一列的文字换行，不影响其他地方 */
+.doc-table .filename {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-table .file-name {
+  /* 普通文本样式 */
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.5;
+  /* 正常情况下单行显示，超出列宽时按单词/长串自动换行 */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* 已关联任务标签样式（上传 & 查看 共用） */
@@ -4394,7 +4295,7 @@ export default {
   padding: 0;
   transition: all 0.15s ease;
 }
-
+  
 .task-remove-btn:hover {
   background: #fee2e2;
   color: #ef4444;
@@ -4428,8 +4329,8 @@ export default {
   padding: 0 12px;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
-  background: #fff;
-  color: #374151;
+  background: #ffffff;
+  color: #111827;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -4442,8 +4343,38 @@ export default {
 }
 
 .status-select:focus {
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  outline: none;
+  border-color: #5EB6E4;
+  box-shadow: 0 0 0 2px rgba(94, 182, 228, 0.2);
+  background-color: #1e293b;
+}
+
+/* ===== 暗黑模式下的成果状态选择器样式 ===== */
+.dark-mode .status-selector label {
+  color: #e5e7eb;
+}
+
+.dark-mode .status-select {
+  background: #020617;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+.dark-mode .status-select option {
+  background: #020617;
+  color: #f9fafb;
+}
+
+/* ===== 白日模式下（非 dark-mode）强制使用浅色样式 ===== */
+html:not(.dark-mode) .status-select {
+  background: #ffffff !important;
+  border-color: #e5e7eb !important;
+  color: #111827 !important;
+}
+
+html:not(.dark-mode) .status-select option {
+  background: #ffffff !important;
+  color: #111827 !important;
 }
 
 /* 状态徽章样式（用于列表显示） */
@@ -4489,7 +4420,8 @@ export default {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.75);
-  z-index: 10000;
+  /* 层级最高：高于成果详情弹窗的 11000 */
+  z-index: 12000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4502,7 +4434,7 @@ export default {
   max-width: 1400px;
   height: 90vh;
   max-height: 900px;
-  background: #ffffff;
+  background: #1e293b;
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   display: flex;
@@ -4516,9 +4448,10 @@ export default {
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 1px solid #334155;
+  background: #1e293b;
   flex-shrink: 0;
+  color: #ffffff;
 }
 
 .file-preview-title {
@@ -4539,7 +4472,7 @@ export default {
 .file-preview-name-text {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: #ffffff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -4547,7 +4480,7 @@ export default {
 
 .file-preview-size-text {
   font-size: 14px;
-  color: #6b7280;
+  color: #e2e8f0;
   font-weight: normal;
 }
 
@@ -4563,7 +4496,7 @@ export default {
   height: 36px;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: #e2e8f0;
   cursor: pointer;
   border-radius: 8px;
   display: flex;
@@ -4574,15 +4507,16 @@ export default {
 
 .file-preview-download-btn:hover,
 .file-preview-close-btn:hover {
-  background: #e5e7eb;
-  color: #111827;
+  background: #334155;
+  color: #ffffff;
 }
 
 .file-preview-content {
   flex: 1;
   overflow: auto;
   position: relative;
-  background: #ffffff;
+  background: #1e293b;
+  color: #ffffff;
 }
 
 /* 加载状态 */
@@ -4593,7 +4527,7 @@ export default {
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #6b7280;
+  color: #ffffff;
 }
 
 .loading-spinner {
@@ -4650,7 +4584,7 @@ export default {
 .file-preview-pdf-container {
   width: 100%;
   height: 100%;
-  background: #f9fafb;
+  background: #1e293b;
 }
 
 .file-preview-pdf {
@@ -4665,7 +4599,8 @@ export default {
   height: 100%;
   padding: 24px;
   overflow: auto;
-  background: #ffffff;
+  background: #1e293b;
+  color: #ffffff;
 }
 
 .file-preview-text {
@@ -4674,9 +4609,9 @@ export default {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
-  color: #111827;
   white-space: pre-wrap;
   word-wrap: break-word;
+  color: #ffffff;
 }
 
 .file-preview-text code {

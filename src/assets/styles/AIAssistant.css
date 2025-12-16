@@ -763,6 +763,42 @@
   overflow: visible;
 }
 
+/* 移动端顶部模式切换区域（默认隐藏，仅在小屏展示） */
+.ai-assistant-container .mobile-mode-toggle {
+  display: none;
+}
+
+.ai-assistant-container .mobile-mode-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-assistant-container .mobile-mode-btn svg {
+  color: inherit;
+}
+
+.ai-assistant-container .mobile-mode-btn.active {
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 10px rgba(0, 68, 204, 0.35);
+}
+
+.ai-assistant-container .mobile-mode-btn.active svg {
+  color: #ffffff;
+}
+
 /* ========== AI对话区域 ========== */
 .ai-assistant-container .ai-chat-section {
   background: linear-gradient(135deg, #ffffff 0%, #f0f7ff 50%, #ffffff 100%);
@@ -873,6 +909,21 @@
   margin-top: 50px;
   max-height: calc(600px - 150px);
   min-height: 0;
+}
+
+@media (max-width: 768px) {
+  .ai-assistant-container .chat-header {
+    position: static;
+    padding: 0 4px 8px 4px;
+  }
+
+  .ai-assistant-container .chat-container {
+    max-height: none;
+    min-height: 55vh; /* 移动端让对话区域至少占一半以上的高度 */
+    padding-bottom: 16px;
+    padding-top: 8px;  /* 标题改成流式后，顶部内边距可以减小 */
+    margin-top: 0;     /* 避免整体内容被向下挤造成遮挡感 */
+  }
 }
 
 /* ========== 自定义滚动条样式 ========== */
@@ -2496,10 +2547,11 @@
   position: relative;
 }
 
-/* 文件面板折叠状态 */
+/* 文件面板折叠状态（桌面端：收缩成窄条，仅保留操作按钮） */
 .ai-assistant-container .uploaded-files-panel.collapsed {
-  width: 60px;
-  padding: 16px 12px;
+  width: 56px;
+  max-width: 56px;
+  padding: 16px 8px;
 }
 
 .ai-assistant-container .uploaded-files-panel.collapsed .files-panel-title {
@@ -2594,6 +2646,34 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px;
+}
+
+/* 小屏：文件面板宽度与聊天框一致，不再缩成折叠宽度 */
+@media (max-width: 768px) {
+  /* 隐藏折叠按钮，仅保留清空按钮 */
+  .ai-assistant-container .toggle-panel-btn {
+    display: none;
+  }
+
+  /* 无论是否 collapsed，统一使用全宽卡片样式 */
+  .ai-assistant-container .uploaded-files-panel,
+  .ai-assistant-container .uploaded-files-panel.collapsed {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .ai-assistant-container .uploaded-files-panel.collapsed .files-panel-title {
+    display: flex;
+  }
+
+  .ai-assistant-container .uploaded-files-panel.collapsed .header-actions {
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .ai-assistant-container .uploaded-files-panel.collapsed .files-panel-body {
+    display: block;
+  }
 }
 
 .ai-assistant-container .empty-files {
@@ -2729,8 +2809,8 @@
 
 /* 鏆楄壊妯″紡涓嬬殑鏂囦欢闈㈡澘鏍峰紡 */
 .dark-mode .ai-assistant-container .uploaded-files-panel {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  border-color: #475569;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+  border-color: #475569 !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
@@ -2748,8 +2828,8 @@
 }
 
 .dark-mode .ai-assistant-container .file-item {
-  background: #1e293b;
-  border-color: #334155;
+  background: #1e293b !important;
+  border-color: #334155 !important;
 }
 
 .dark-mode .ai-assistant-container .file-item:hover {
@@ -2766,8 +2846,8 @@
 }
 
 .dark-mode .ai-assistant-container .file-icon {
-  background: linear-gradient(135deg, #334155 0%, #475569 100%);
-  color: #60a5fa;
+  background: linear-gradient(135deg, #334155 0%, #475569 100%) !important;
+  color: #60a5fa !important;
 }
 
 .dark-mode .ai-assistant-container .empty-files {
@@ -2790,6 +2870,12 @@
   background: #64748b;
 }
 
+
+/* 通用：黑夜模式下，任何上传文件面板统一使用深色背景 */
+.dark-mode .uploaded-files-panel {
+  background: linear-gradient(135deg, #1e293b 0%, #020617 100%) !important;
+  border-color: #1f2937 !important;
+}
 
 /* 宸蹭笂浼犳枃浠堕潰鏉?*/
 .ai-assistant-container .uploaded-files-panel {
@@ -3067,3 +3153,37 @@
   background: #64748b;
 }
 
+
+/* 涓婁紶杩涘害瀵硅瘽妗嗘牱寮?*/
+.upload-progress-content {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.progress-message {
+  margin-bottom: 15px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.progress-count {
+  margin-top: 10px;
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 纭繚瀵硅瘽妗嗗眳涓樉绀?*/
+.el-dialog__wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 鏆楄壊妯″紡涓嬬殑涓婁紶杩涘害鏍峰紡 */
+.dark-mode .progress-message {
+  color: #cbd5e1;
+}
+
+.dark-mode .progress-count {
+  color: #94a3b8;
+}

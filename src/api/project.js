@@ -24,7 +24,7 @@ function parseJSONWithBigInt(data) {
  * 使用相对路径（baseURL为空），让代理服务器处理路由
  */
 const api = axios.create({
-  baseURL: '', // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
+  baseURL: config.api.baseURL, // 使用相对路径，通过Vue代理转发到8095端口（项目服务）
   timeout: config.api.timeout,
   withCredentials: true,
   // 自定义响应转换，将大整数转换为字符串
@@ -392,6 +392,31 @@ export const projectAPI = {
     return api.get(`/zhiyan/projects/tasks/projects/${projectId}/status/${status}`, {
       params: { page, size }
     })
+  },
+
+  /**
+   * 保存项目草稿
+   * @param {Object} draftData - 草稿数据
+   */
+  saveDraft(draftData) {
+    console.log('[projectAPI.saveDraft] 保存项目草稿, 数据:', draftData)
+    return api.post('/zhiyan/projects/draft', draftData)
+  },
+
+  /**
+   * 获取我的项目草稿
+   */
+  getDraft() {
+    console.log('[projectAPI.getDraft] 获取项目草稿')
+    return api.get('/zhiyan/projects/draft')
+  },
+
+  /**
+   * 删除我的项目草稿
+   */
+  deleteDraft() {
+    console.log('[projectAPI.deleteDraft] 删除项目草稿')
+    return api.delete('/zhiyan/projects/draft')
   }
 }
 

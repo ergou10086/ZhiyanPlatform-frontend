@@ -241,8 +241,8 @@
 
     <!-- 底部操作按钮 -->
     <div class="footer-actions">
-      <button type="button" @click="saveDraft" class="btn btn-secondary">
-        保存草稿
+      <button type="button" @click="saveDraft" class="btn btn-secondary" :disabled="isSavingDraft">
+        {{ isSavingDraft ? '保存中...' : '保存草稿' }}
       </button>
       <button type="button" @click="publishProject" class="btn btn-primary" :disabled="isSubmitting">
         {{ isSubmitting ? '发布中...' : '发布项目' }}
@@ -266,6 +266,41 @@
         </div>
         <div class="modal-footer">
           <button class="modal-btn modal-btn-confirm" @click="closeModal">确定</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 草稿确认Modal -->
+    <div v-if="showDraftConfirmModal" class="modal-overlay" @click="cancelLoadDraft">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>发现未完成的草稿</h3>
+          <button class="modal-close" @click="cancelLoadDraft">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>检测到您有一个未完成的项目草稿，是否加载继续编辑？</p>
+          <p style="color: #999; font-size: 14px; margin-top: 10px;">如果选择"不加载"，草稿将被删除。</p>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" @click="cancelLoadDraft">不加载</button>
+          <button class="modal-btn modal-btn-confirm" @click="confirmLoadDraft">加载草稿</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 覆盖草稿确认Modal -->
+    <div v-if="showOverwriteConfirmModal" class="modal-overlay" @click="cancelOverwriteDraft">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>覆盖草稿</h3>
+          <button class="modal-close" @click="cancelOverwriteDraft">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p>您已经有一个未完成的草稿，保存新草稿将覆盖之前的草稿，是否继续？</p>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn modal-btn-cancel" @click="cancelOverwriteDraft">取消</button>
+          <button class="modal-btn modal-btn-confirm" @click="confirmOverwriteDraft">确认覆盖</button>
         </div>
       </div>
     </div>
@@ -337,7 +372,12 @@ export default {
         y: 0,
         width: 0,
         height: 0
-      }
+      },
+      hasDraft: false, // 是否有草稿
+      draftId: null, // 草稿ID
+      showDraftConfirmModal: false, // 显示草稿确认对话框
+      showOverwriteConfirmModal: false, // 显示覆盖确认对话框
+      isSavingDraft: false // 是否正在保存草稿
     }
   },
   computed: {
@@ -350,6 +390,7 @@ export default {
   mounted() {
     this.loadUserAvatar()
     this.detectFromPage()
+    this.checkDraft()
   },
   methods: {
     toggleSidebar() {
@@ -792,15 +833,154 @@ export default {
       }
       return true
     },
-    // 验证任务截止日期
-    async saveDraft() {
+    // 检查是否有草稿
+    async checkDraft() {
       try {
-        // 模拟保存草稿
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        alert('草稿保存成功！')
+        const { projectAPI } = await import('@/api/project')
+        const response = await projectAPI.getDraft()
+        
+        if (response && response.code === 200 && response.data) {
+          this.hasDraft = true
+          this.draftId = response.data.id
+          
+          // 如果是从新建项目页面进入，提示用户是否加载草稿
+          if (this.$route.path === '/project-create') {
+            this.showDraftConfirmModal = true
+          } else {
+            // 如果是其他情况，自动加载草稿数据
+            this.loadDraftData(response.data)
+          }
+        } else {
+          this.hasDraft = false
+          this.draftId = null
+        }
+      } catch (error) {
+        console.error('检查草稿失败:', error)
+        this.hasDraft = false
+        this.draftId = null
+      }
+    },
+    
+    // 加载草稿数据到表单
+    loadDraftData(draft) {
+      if (draft) {
+        this.formData.projectName = draft.name || ''
+        this.formData.projectDescription = draft.description || ''
+        this.formData.visibility = draft.visibility || 'PRIVATE'
+        this.formData.startDate = draft.startDate || ''
+        this.formData.endDate = draft.endDate || ''
+        if (draft.imageUrl) {
+          this.projectImage = draft.imageUrl
+        }
+        // 注意：tags 需要从其他地方获取，因为 Project 实体中没有 tags 字段
+        // 如果需要保存 tags，可以考虑使用 JSON 格式存储在 description 中，或者使用单独的草稿表
+      }
+    },
+    
+    // 确认加载草稿
+    async confirmLoadDraft() {
+      this.showDraftConfirmModal = false
+      try {
+        const { projectAPI } = await import('@/api/project')
+        const response = await projectAPI.getDraft()
+        
+        if (response && response.code === 200 && response.data) {
+          this.loadDraftData(response.data)
+          this.showSuccessToast('草稿已加载')
+        }
+      } catch (error) {
+        console.error('加载草稿失败:', error)
+        this.showErrorModal('加载草稿失败，请重试')
+      }
+    },
+    
+    // 取消加载草稿
+    cancelLoadDraft() {
+      this.showDraftConfirmModal = false
+      // 删除草稿
+      this.deleteDraft()
+    },
+    
+    // 删除草稿
+    async deleteDraft() {
+      try {
+        const { projectAPI } = await import('@/api/project')
+        await projectAPI.deleteDraft()
+        this.hasDraft = false
+        this.draftId = null
+      } catch (error) {
+        console.error('删除草稿失败:', error)
+      }
+    },
+    
+    // 保存草稿
+    async saveDraft() {
+      if (this.isSavingDraft) return
+      
+      this.isSavingDraft = true
+      
+      try {
+        // 如果已有草稿，提示是否覆盖
+        if (this.hasDraft && this.draftId) {
+          this.showOverwriteConfirmModal = true
+          this.isSavingDraft = false
+          return
+        }
+        
+        // 执行保存草稿
+        await this.doSaveDraft()
       } catch (error) {
         console.error('保存草稿失败:', error)
-        alert('保存草稿失败，请重试')
+        this.showErrorModal('保存草稿失败，请重试')
+        this.isSavingDraft = false
+      }
+    },
+    
+    // 确认覆盖草稿
+    async confirmOverwriteDraft() {
+      this.showOverwriteConfirmModal = false
+      await this.doSaveDraft()
+    },
+    
+    // 取消覆盖草稿
+    cancelOverwriteDraft() {
+      this.showOverwriteConfirmModal = false
+      this.isSavingDraft = false
+    },
+    
+    // 执行保存草稿
+    async doSaveDraft() {
+      try {
+        const { projectAPI } = await import('@/api/project')
+        
+        // 准备草稿数据
+        const draftData = {
+          name: this.formData.projectName || '未命名项目',
+          description: this.formData.projectDescription || '',
+          visibility: this.formData.visibility || 'PRIVATE',
+          startDate: this.formData.startDate || null,
+          endDate: this.formData.endDate || null,
+          imageUrl: this.projectImage && this.projectImage.startsWith('http') ? this.projectImage : null,
+          tags: this.formData.tags || []
+        }
+        
+        const response = await projectAPI.saveDraft(draftData)
+        
+        if (response && response.code === 200) {
+          this.hasDraft = true
+          if (response.data && response.data.id) {
+            this.draftId = response.data.id
+          }
+          this.showSuccessToast('草稿保存成功！')
+        } else {
+          throw new Error(response?.msg || '保存草稿失败')
+        }
+      } catch (error) {
+        console.error('保存草稿失败:', error)
+        this.showErrorModal(error.message || '保存草稿失败，请重试')
+        throw error
+      } finally {
+        this.isSavingDraft = false
       }
     },
     async createProjectAPI(projectData) {
@@ -1032,6 +1212,10 @@ export default {
           console.error('保存到localStorage失败:', storageError)
           throw new Error('数据保存失败，请检查浏览器存储空间')
         }
+        
+        // 清除草稿状态（后端在创建项目时已自动删除草稿）
+        this.hasDraft = false
+        this.draftId = null
         
         // 显示成功消息
         this.showSuccessToast('项目发布成功！')

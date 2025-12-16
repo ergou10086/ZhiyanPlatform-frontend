@@ -31,10 +31,36 @@
     <!-- 主要内容区域 -->
     <div class="main-content">
       <h1 class="page-main-title">AI 实验分析助手</h1>
+
+      <!-- 移动端模式切换（顶部按钮） -->
+      <div class="mobile-mode-toggle">
+        <button
+          class="mobile-mode-btn"
+          :class="{ active: currentMode === 'chat' }"
+          @click="switchMode('chat')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15C21 15.5304 20.7893 16.0391 20.4142 16.4142C20.0391 16.7893 19.5304 17 19 17H7L3 21V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H19C19.5304 3 20.0391 3.21071 20.4142 3.58579C20.7893 3.96086 21 4.46957 21 5V15Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>对话问答</span>
+        </button>
+        <button
+          class="mobile-mode-btn"
+          :class="{ active: currentMode === 'taskResult' }"
+          @click="switchMode('taskResult')"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M9 5H7C5.89543 5 5 5.89543 5 7V19C5 20.1046 5.89543 21 7 21H17C18.1046 21 19 20.1046 19 19V7C19 5.89543 18.1046 5 17 5H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 5C9 3.89543 9.89543 3 11 3H13C14.1046 3 15 3.89543 15 5V5C15 6.10457 14.1046 7 13 7H11C9.89543 7 9 6.10457 9 5V5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M9 12H15M9 16H13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>任务成果草稿</span>
+        </button>
+      </div>
       
       <!-- 主内容布局：左侧导航，右侧内容区域 -->
       <div class="main-layout">
-        <!-- 左侧导航栏 -->
+        <!-- 左侧导航栏（桌面端使用，移动端隐藏） -->
         <div class="mode-sidebar">
           <button 
             :class="['mode-nav-item', { active: currentMode === 'chat' }]"
@@ -274,11 +300,30 @@
               </div>
             </div>
 
+            <!-- 成果标题 
+            <div class="control-item">
+              <label class="control-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 7H20M4 12H20M4 17H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                成果标题（可选）
+              </label>
+              <input
+                v-model="taskResultTitle"
+                type="text"
+                class="control-input"
+                placeholder="例如：实验数据分析报告"
+                :disabled="isUploading"
+              />
+            </div> -->
+
             <!-- 选择任务按钮 -->
             <div class="control-item">
               <label class="control-label">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 11H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 选择任务
               </label>
@@ -311,47 +356,32 @@
                   <span>包含相关附件参与生成</span>
                 </label>
                 <div v-if="includeAttachments" class="attachment-filters">
-                  <div class="filters-label">附件类型</div>
-                  <div class="filters-list">
-                    <label
-                      v-for="opt in attachmentFilterOptions"
-                      :key="opt.value"
-                      class="filter-item"
-                    >
-                      <input
-                        type="checkbox"
-                        :value="opt.value"
-                        v-model="attachmentFilters"
+                  <div class="filters-label">选择参与生成的附件</div>
+                  <div v-if="attachmentsLoading" class="filters-list">
+                    <span>正在加载附件...</span>
+                  </div>
+                  <div v-else class="filters-list">
+                    <template v-if="availableAttachments && availableAttachments.length">
+                      <label
+                        v-for="file in availableAttachments"
+                        :key="file.taskId + '-' + file.url"
+                        class="filter-item"
                       >
-                      <span>{{ opt.label }}</span>
-                    </label>
+                        <input
+                          type="checkbox"
+                          :value="file.url"
+                          v-model="selectedAttachmentUrls"
+                        >
+                        <span>{{ file.name }}</span>
+                      </label>
+                    </template>
+                    <p v-else class="no-attachments-text">当前选中任务暂无可用附件</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- 生成按钮 -->
-            <div class="control-item control-action">
-              <button
-                class="control-generate-btn"
-                :disabled="selectedTaskIds.length === 0 || isGeneratingTaskResult"
-                @click="generateTaskResultDraft"
-              >
-                <svg v-if="!isGeneratingTaskResult" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <div v-else class="loading-spinner-small"></div>
-                <span v-if="!isGeneratingTaskResult">生成成果草稿</span>
-                <span v-else>正在生成...</span>
-              </button>
-              <button
-                v-if="isGeneratingTaskResult && taskResultJobId"
-                class="control-cancel-btn"
-                @click="cancelTaskResultGenerate"
-              >
-                取消生成
-              </button>
-            </div>
+            <!-- 生成按钮移动到右侧“生成结果”模块 -->
           </div>
 
           <!-- 右侧滚动内容区 -->
@@ -361,8 +391,10 @@
               <div class="section-header">
                 <h3 class="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     <path d="M9 7H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   已选择的任务 <span v-if="selectedTaskSummaries.length > 0" class="task-count">({{ selectedTaskSummaries.length }})</span>
                 </h3>
@@ -400,7 +432,9 @@
                 </div>
                 <div v-else class="empty-state-inline">
                   <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11H15M9 15H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 11H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p>请从左侧选择任务</p>
                 </div>
@@ -433,11 +467,36 @@
               <div class="section-header">
                 <h3 class="section-title">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5 3.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   生成结果
                 </h3>
-                <div class="section-actions" v-if="taskResultOutput">
+                <div class="section-actions">
+                  <!-- 左侧：生成/取消生成 -->
+                  <button
+                    class="result-action-btn primary"
+                    :disabled="selectedTaskIds.length === 0 || isGeneratingTaskResult"
+                    @click="generateTaskResultDraft"
+                  >
+                    <svg v-if="!isGeneratingTaskResult" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div v-else class="loading-spinner-small"></div>
+                    <span v-if="!isGeneratingTaskResult">生成成果草稿</span>
+                    <span v-else>正在生成...</span>
+                  </button>
+                  <button
+                    v-if="isGeneratingTaskResult && taskResultJobId"
+                    class="result-action-btn"
+                    @click="cancelTaskResultGenerate"
+                  >
+                    取消生成
+                  </button>
+
+                  <!-- 右侧：仅在已有结果时显示的编辑/导出/保存 -->
+                  <template v-if="taskResultOutput">
                   <template v-if="!isEditing">
                     <button class="result-action-btn" @click="startEditing">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -479,6 +538,7 @@
                       <span>保存</span>
                     </button>
                   </template>
+                  </template>
                 </div>
               </div>
               <div class="section-body result-body">
@@ -494,7 +554,9 @@
                 </div>
                 <div v-else class="empty-state-inline">
                   <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 12H15M9 16H15M17 21H7C5.89543 21 5 20.1046 5 19V5C5.89543 5.89543 3 7 3H17C18.1046 3 19 3.89543 19 5V19C19 20.1046 18.1046 21 17 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 3H17C18.1046 3 19 3.8954 19 5V19C19 20.1046 18.1046 21 17 21H7C5.8954 21 5 20.1046 5 19V5C5 3.8954 5.8954 3 7 3Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 12H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M9 16H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <p>生成的成果草稿会显示在这里</p>
                 </div>
@@ -505,6 +567,7 @@
         </div>
         </div>
       </div>
+      
 
       <!-- 选择任务的弹窗 -->
         <div v-if="showTaskSelectDialog" class="file-dialog-overlay ai-view" @click="closeTaskSelectDialog">
@@ -682,13 +745,15 @@
       </div>
     </div>
 
-    <!-- 文件选择弹窗 -->
+    <!-- 文件选择弹窗 - 两步选择：第一步选成果，第二步选文件 -->
     <div v-if="showFileDialog" class="file-dialog-overlay ai-view" @click="closeFileDialog">
       <div class="file-dialog" @click.stop>
         <div class="file-dialog-header">
           <div class="header-content">
-            <h3>选择成果目录文件</h3>
-            <p class="header-subtitle" v-if="selectedFiles.length > 0">已选择 {{ selectedFiles.length }} 项</p>
+            <h3 v-if="!selectedAchievement">第一步：选择成果</h3>
+            <h3 v-else>第二步：选择文件</h3>
+            <p class="header-subtitle" v-if="!selectedAchievement && achievements.length > 0">从成果目录中选择一个成果</p>
+            <p class="header-subtitle" v-else-if="selectedAchievement && selectedAchievementFiles.length > 0">已选择 {{ selectedAchievementFiles.length }} 个文件</p>
           </div>
           <button class="close-btn" @click="closeFileDialog">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -697,43 +762,98 @@
           </button>
         </div>
         <div class="file-dialog-body">
-          <div v-if="loadingFiles" class="loading-container">
-            <div class="loading-spinner-large"></div>
-            <p class="loading-text">正在加载文件列表...</p>
-          </div>
-          <div v-else-if="files.length === 0" class="empty-state">
-            <div class="empty-icon">
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+          <!-- 第一步：选择成果 -->
+          <div v-if="!selectedAchievement">
+            <div v-if="loadingFiles" class="loading-container">
+              <div class="loading-spinner-large"></div>
+              <p class="loading-text">正在加载成果列表...</p>
             </div>
-            <p class="empty-text">成果目录中暂无文件</p>
-          </div>
-          <div v-else class="file-list-container">
-            <div class="file-list">
-              <div
-                v-for="file in files"
-                :key="file.id"
-                class="file-card"
-                :class="{ 'selected': selectedFiles.includes(file.id) }"
-                @click="toggleFileSelection(file.id)"
-              >
-                <div class="file-card-content">
-                  <div class="file-card-main">
-                    <div class="file-name-wrapper">
-                      <div class="file-name">{{ file.name || file.title || '未命名文件' }}</div>
-                      <div class="file-badge-group">
-                        <span class="file-type-badge">{{ file.type || '未知类型' }}</span>
-                        <span v-if="file.fileCount" class="file-count-badge">{{ file.fileCount }}个文件</span>
+            <div v-else-if="achievements.length === 0" class="empty-state">
+              <div class="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <p class="empty-text">成果目录中暂无成果</p>
+            </div>
+            <div v-else class="file-list-container">
+              <div class="file-list">
+                <div
+                  v-for="achievement in achievements"
+                  :key="achievement.id"
+                  class="file-card"
+                  @click="selectAchievement(achievement)"
+                >
+                  <div class="file-card-content">
+                    <div class="file-card-main">
+                      <div class="file-name-wrapper">
+                        <div class="file-name">{{ achievement.name || achievement.title || '未命名成果' }}</div>
+                        <div class="file-badge-group">
+                          <span class="file-type-badge">{{ achievement.type || '未知类型' }}</span>
+                          <span v-if="achievement.fileCount" class="file-count-badge">{{ achievement.fileCount }}个文件</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div class="file-select-indicator" :class="{ 'active': selectedFiles.includes(file.id) }">
-                    <div class="checkmark-circle">
-                      <svg v-if="selectedFiles.includes(file.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <div class="file-select-indicator">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- 第二步：选择文件 -->
+          <div v-else>
+            <div class="achievement-info-bar">
+              <button class="back-btn" @click="backToAchievementSelection">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M19 12H5M12 19L5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                返回
+              </button>
+              <div class="achievement-name">{{ selectedAchievement.name || selectedAchievement.title }}</div>
+            </div>
+            <div v-if="loadingAchievementFiles" class="loading-container">
+              <div class="loading-spinner-large"></div>
+              <p class="loading-text">正在加载文件列表...</p>
+            </div>
+            <div v-else-if="achievementFiles.length === 0" class="empty-state">
+              <div class="empty-icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <p class="empty-text">该成果中暂无文件</p>
+            </div>
+            <div v-else class="file-list-container">
+              <div class="file-list">
+                <div
+                  v-for="file in achievementFiles"
+                  :key="file.id"
+                  class="file-card"
+                  :class="{ 'selected': selectedAchievementFiles.includes(file.id) }"
+                  @click="toggleAchievementFileSelection(file.id)"
+                >
+                  <div class="file-card-content">
+                    <div class="file-card-main">
+                      <div class="file-name-wrapper">
+                        <div class="file-name">{{ file.name || file.fileName || file.originalFileName || '未命名文件' }}</div>
+                        <div class="file-badge-group">
+                          <span class="file-type-badge">{{ file.fileType || file.type || '未知类型' }}</span>
+                          <span v-if="file.size" class="file-size-badge">{{ formatFileSize(file.size) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="file-select-indicator" :class="{ 'active': selectedAchievementFiles.includes(file.id) }">
+                      <div class="checkmark-circle">
+                        <svg v-if="selectedAchievementFiles.includes(file.id)" width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -744,17 +864,48 @@
         <div class="file-dialog-footer">
           <button class="btn-cancel" @click="closeFileDialog">取消</button>
           <button
+            v-if="selectedAchievement"
             class="btn-confirm"
-            @click="confirmFileSelection"
-            :disabled="selectedFiles.length === 0"
-            :class="{ 'disabled': selectedFiles.length === 0 }"
+            @click="confirmAchievementFileSelection"
+            :disabled="selectedAchievementFiles.length === 0"
+            :class="{ 'disabled': selectedAchievementFiles.length === 0 }"
           >
             <span>确认选择</span>
-            <span v-if="selectedFiles.length > 0" class="selected-count">{{ selectedFiles.length }}</span>
+            <span v-if="selectedAchievementFiles.length > 0" class="selected-count">{{ selectedAchievementFiles.length }}</span>
           </button>
         </div>
       </div>
     </div>
+    
+
+    <!-- 上传进度对话框 - 使用teleport挂载到body -->
+    <teleport to="body">
+      <el-dialog
+        v-if="uploadProgress"
+        :model-value="true"
+        title="上传成果"
+        :close-on-click-modal="false"
+        :show-close="!isUploading"
+        :close-on-press-escape="false"
+        @close="uploadProgress = null"
+        width="30%"
+      >
+        <div class="upload-progress-content">
+          <p class="progress-message">{{ uploadProgress.message || '处理中...' }}</p>
+          <el-progress 
+            :percentage="uploadProgress.total > 0 ? Math.round((uploadProgress.current / uploadProgress.total) * 100) : 0"
+            :status="uploadProgress.current >= uploadProgress.total && uploadProgress.total > 0 ? 'success' : ''"
+            :stroke-width="8"
+          />
+          <p class="progress-count">
+            已完成: {{ uploadProgress.current || 0 }}/{{ uploadProgress.total || 0 }} 步
+          </p>
+        </div>
+        <template #footer v-if="!isUploading && uploadProgress.current >= uploadProgress.total">
+          <el-button type="primary" @click="uploadProgress = null">确定</el-button>
+        </template>
+      </el-dialog>
+    </teleport>
     </div>
 </template>
 
@@ -763,13 +914,16 @@ import Sidebar from '@/components/Sidebar.vue'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI } from '@/api/knowledge'
 import { taskAPI } from '@/api/task'
-import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate } from '@/api/taskResult'
+import { generateTaskResultDraft as generateTaskResultDraftApi, getGenerateStatus, cancelGenerate, linkTasksToAchievement, getTasksAttachments } from '@/api/taskResult'
 import difyAPI from '@/api/dify'
 import vSelect from 'vue-select'
+import axios from 'axios'
 import 'vue-select/dist/vue-select.css'
 import '@/assets/styles/AIAssistant.css'
 import '@/assets/styles/KnowledgeBaseAI.css'
 import '@/assets/styles/AIAssistantTaskResult-v2.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 // ⭐ Markdown渲染和代码高亮
 import { marked } from 'marked'
@@ -824,6 +978,12 @@ export default {
       selectedFiles: [],
       uploadedFiles: [], // 已上传文件列表
       loadingFiles: false,
+      // 两步选择：成果 -> 文件
+      achievements: [], // 成果列表（第一步）
+      selectedAchievement: null, // 选中的成果
+      achievementFiles: [], // 选中成果的文件列表（第二步）
+      selectedAchievementFiles: [], // 选中的文件ID列表
+      loadingAchievementFiles: false, // 加载成果文件状态
       filesPanelCollapsed: false, // 文件面板折叠状态
       showChatHistoryModal: false,
       chatSessions: [], // 聊天会话列表
@@ -847,12 +1007,11 @@ export default {
       isEditing: false, // 是否正在编辑成果内容
       editedContent: '', // 编辑中的内容
       includeAttachments: true,
-      attachmentFilters: ['pdf', 'docx'],
-      attachmentFilterOptions: [
-        { value: 'pdf', label: 'PDF (.pdf)' },
-        { value: 'docx', label: 'Word (.docx)' },
-        { value: 'pptx', label: 'PPT (.pptx)' }
-      ],
+      // 可用附件列表（根据当前选择的任务实时加载）
+      availableAttachments: [], // [{ taskId, url, name }]
+      // 已选择参与生成的附件 URL 列表
+      selectedAttachmentUrls: [],
+      // 附件加载状态
       taskResultJobId: null,
       taskResultStatus: '',
       taskResultProgress: 0,
@@ -866,7 +1025,20 @@ export default {
       currentStreamController: null, // 当前流式请求的控制器
       currentAbortController: null, // 用于中断请求的AbortController
       // ⭐ 复制功能状态
-      copiedMessageIndex: null // 当前已复制的消息索引
+      copiedMessageIndex: null, // 当前已复制的消息索引
+      // 任务附件相关
+      taskAttachments: [], // 所有任务附件列表
+      selectedAttachmentIds: [], // 用户选中的附件ID列表
+      isSelectingAttachments: false, // 是否正在选择附件
+      attachmentsLoading: false, // 附件加载状态
+      selectAllAttachments: false, // 是否全选附件
+      isIndeterminateAttachments: false, // 附件选择状态
+      // 上传相关状态
+      uploadProgress: null, // { total: 0, current: 0, message: '' }
+      isUploading: false,
+      taskResultTitle: '', // 成果标题
+      showUploadProgress: false, // 是否显示上传进度对话框
+      scifiBgCleanup: null
     }
   },
   computed: {
@@ -897,6 +1069,44 @@ export default {
 
       console.log('最终过滤后的任务列表:', filtered)
       return filtered
+    },
+    
+    // 任务成果相关计算属性
+    selectedTaskAttachmentsCount() {
+      return this.selectedAttachmentIds.length
+    },
+    
+    hasSelectedAttachments() {
+      return this.selectedAttachmentIds.length > 0
+    },
+    
+    canUpload() {
+      return this.taskResultOutput.trim().length > 0 && this.taskResultProjectId
+    },
+    
+    isProcessing() {
+      return this.isUploading || this.attachmentsLoading
+    }
+  },
+  watch: {
+    // 选中任务变化时，如果开启了附件参与，则重新加载附件列表
+    selectedTaskIds(newVal) {
+      if (this.includeAttachments && newVal && newVal.length > 0) {
+        this.loadTaskAttachments()
+      } else {
+        this.availableAttachments = []
+        this.selectedAttachmentUrls = []
+      }
+    },
+    // 开关“包含附件”时联动加载/清空
+    includeAttachments(val) {
+      if (val) {
+        if (this.selectedTaskIds && this.selectedTaskIds.length > 0) {
+          this.loadTaskAttachments()
+        }
+      } else {
+        this.selectedAttachmentUrls = []
+      }
     }
   },
   mounted() {
@@ -997,14 +1207,12 @@ export default {
     //   this.syncTaskStatusChanges()
     // }, 60000)
 
-    // // 监听任务状态变化事件
-    // this.$root.$on('taskStatusChanged', (data) => {
-    //   console.log('收到任务状态变化通知:', data)
-    //   if (data.projectId === this.currentProject.id) {
-    //     console.log('当前项目任务状态发生变化，立即同步')
-    //     this.syncTaskStatusChanges()
-    //   }
-    // })
+    // 科技感背景（仅本页面，低侵入）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
   },
   beforeDestroy() {
     // 页面销毁前保存当前会话
@@ -1033,6 +1241,12 @@ export default {
     if (this.taskResultStatusTimer) {
       clearInterval(this.taskResultStatusTimer)
       this.taskResultStatusTimer = null
+    }
+
+    // 销毁科技感背景
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
     }
   },
   methods: {
@@ -1152,6 +1366,62 @@ export default {
       }
     },
 
+    async loadTaskAttachments() {
+      if (!this.selectedTaskIds || this.selectedTaskIds.length === 0) {
+        this.availableAttachments = []
+        this.selectedAttachmentUrls = []
+        return
+      }
+
+      this.attachmentsLoading = true
+      try {
+        const resp = await getTasksAttachments(this.selectedTaskIds)
+
+        let data = resp
+        if (data && typeof data.code !== 'undefined' && data.data) {
+          data = data.data
+        } else if (data && data.data) {
+          data = data.data
+        }
+
+        const list = []
+        if (data && typeof data === 'object') {
+          Object.keys(data).forEach(taskIdStr => {
+            const urls = data[taskIdStr] || []
+            urls.forEach(url => {
+              if (!url) return
+              const name = this.extractFileNameFromUrl(url)
+              list.push({
+                taskId: taskIdStr,
+                url,
+                name
+              })
+            })
+          })
+        }
+
+        this.availableAttachments = list
+
+        // 默认全部选中
+        this.selectedAttachmentUrls = list.map(item => item.url)
+      } catch (e) {
+        console.error('[任务成果] 加载任务附件失败:', e)
+        this.availableAttachments = []
+        this.selectedAttachmentUrls = []
+      } finally {
+        this.attachmentsLoading = false
+      }
+    },
+
+    extractFileNameFromUrl(url) {
+      if (!url || typeof url !== 'string') return '附件'
+      const idx = url.lastIndexOf('/')
+      if (idx >= 0 && idx < url.length - 1) {
+        return url.substring(idx + 1)
+      }
+      return url
+    },
+
     closeTaskSelectDialog() {
       this.showTaskSelectDialog = false
     },
@@ -1218,12 +1488,15 @@ export default {
         achievementTitle: '',
         targetAudience: '',
         additionalRequirements: this.taskResultPrompt && this.taskResultPrompt.trim() ? this.taskResultPrompt.trim() : undefined,
-        includeAttachments: this.includeAttachments,
-        attachmentFilters: this.includeAttachments ? this.attachmentFilters : []
+        includeAttachments: this.includeAttachments && this.selectedAttachmentUrls.length > 0,
+        // 这里将选中的附件URL列表传给后端，由后端决定如何处理
+        attachmentFilters: this.includeAttachments ? this.selectedAttachmentUrls : []
       }
 
       try {
         console.log('[任务成果] 提交AI生成请求:', payload)
+        console.log('[任务成果] 选中的附件数量:', this.selectedAttachmentUrls.length)
+        console.log('[任务成果] 选中的附件URLs:', this.selectedAttachmentUrls)
         const resp = await generateTaskResultDraftApi(payload)
 
         let data = resp
@@ -1286,6 +1559,15 @@ export default {
 
           if (data.draftContent && data.draftContent.markdown) {
             this.taskResultOutput = data.draftContent.markdown
+          }
+
+          // 恢复用户选中的附件URL（从后端响应中）
+          // ⚠️ 只有当后端明确返回了附件列表时才覆盖，否则保留前端已选择的附件
+          if (data.selectedAttachmentUrls && Array.isArray(data.selectedAttachmentUrls) && data.selectedAttachmentUrls.length > 0) {
+            this.selectedAttachmentUrls = data.selectedAttachmentUrls
+            console.log('[任务成果] 从后端恢复选中的附件URL:', this.selectedAttachmentUrls.length, '个')
+          } else {
+            console.log('[任务成果] 后端未返回附件URL，保留前端选择:', this.selectedAttachmentUrls.length, '个')
           }
 
           if (this.taskResultStatus === 'COMPLETED' || this.taskResultStatus === 'FAILED' || this.taskResultStatus === 'CANCELLED') {
@@ -1778,8 +2060,10 @@ export default {
             }
           } else {
             // 知识库文件（成果档案文件）
-            if (file.id || file.fileId) {
-              knowledgeFileIds.push(file.id || file.fileId)
+            const fileId = file.id || file.fileId
+            if (fileId) {
+              console.log('[AI助手] 添加知识库文件ID:', fileId, '类型:', typeof fileId, '来源文件:', file)
+              knowledgeFileIds.push(fileId)
             }
           }
         })
@@ -2187,19 +2471,31 @@ export default {
       }
     },
     
-    // 关闭文件选择弹窗（完全按照KnowledgeBaseAI.vue的方式）
+    // 关闭文件选择弹窗
     closeFileDialog() {
       this.showFileDialog = false
       this.selectedFiles = []
+      this.selectedAchievement = null
+      this.achievementFiles = []
+      this.selectedAchievementFiles = []
     },
     
-    // 加载成果目录文件列表（完全照搬KnowledgeBaseAI.vue的方法）
+    // 格式化文件大小
+    formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+    },
+    
+    // 加载成果列表（第一步）
     async loadFiles(projectId) {
       if (!projectId) {
-        console.warn('项目ID不存在，无法加载文件列表')
+        console.warn('项目ID不存在，无法加载成果列表')
         return
       }
-      
+
       this.loadingFiles = true
       try {
         const response = await knowledgeAPI.getProjectAchievements(projectId, 0, 1000)
@@ -2207,28 +2503,109 @@ export default {
         
         if (response && response.code === 200 && response.data) {
           if (Array.isArray(response.data)) {
-            this.files = response.data
+            this.achievements = response.data
           } else if (response.data.content && Array.isArray(response.data.content)) {
-            this.files = response.data.content
+            this.achievements = response.data.content
           } else {
-            this.files = []
+            this.achievements = []
           }
-          console.log('加载成果文件列表成功，数量:', this.files.length)
-          // 调试：打印第一个文件的详细信息
-          if (this.files.length > 0) {
-            console.log('第一个成果文件:', this.files[0])
-            console.log('文件字段:', Object.keys(this.files[0]))
-          }
+          console.log('加载成果列表成功，数量:', this.achievements.length)
         } else {
-          this.files = []
+          this.achievements = []
           console.warn('获取成果列表失败:', response)
         }
       } catch (error) {
-        console.error('加载成果文件列表失败:', error)
-        this.files = []
+        console.error('加载成果列表失败:', error)
+        this.achievements = []
       } finally {
         this.loadingFiles = false
       }
+    },
+    
+    // 选择成果（进入第二步）
+    async selectAchievement(achievement) {
+      this.selectedAchievement = achievement
+      this.achievementFiles = []
+      this.selectedAchievementFiles = []
+      this.loadingAchievementFiles = true
+      
+      try {
+        console.log('加载成果文件:', achievement.id)
+        const response = await knowledgeAPI.getAchievementFiles(achievement.id)
+        console.log('获取成果文件响应:', response)
+        
+        if (response && response.code === 200 && response.data) {
+          this.achievementFiles = Array.isArray(response.data) ? response.data : []
+          console.log('加载成果文件成功，数量:', this.achievementFiles.length)
+          // 调试：打印第一个文件的详细信息
+          if (this.achievementFiles.length > 0) {
+            console.log('第一个文件详情:', this.achievementFiles[0])
+            console.log('第一个文件ID:', this.achievementFiles[0].id, '类型:', typeof this.achievementFiles[0].id)
+          }
+        } else {
+          this.achievementFiles = []
+          console.warn('获取成果文件失败:', response)
+        }
+      } catch (error) {
+        console.error('加载成果文件失败:', error)
+        this.achievementFiles = []
+      } finally {
+        this.loadingAchievementFiles = false
+      }
+    },
+    
+    // 返回成果选择（第一步）
+    backToAchievementSelection() {
+      this.selectedAchievement = null
+      this.achievementFiles = []
+      this.selectedAchievementFiles = []
+    },
+    
+    // 切换文件选择状态
+    toggleAchievementFileSelection(fileId) {
+      const index = this.selectedAchievementFiles.indexOf(fileId)
+      if (index > -1) {
+        this.selectedAchievementFiles.splice(index, 1)
+      } else {
+        this.selectedAchievementFiles.push(fileId)
+      }
+    },
+    
+    // 确认选择文件
+    confirmAchievementFileSelection() {
+      if (this.selectedAchievementFiles.length === 0) return
+      
+      const selectedFileObjects = this.achievementFiles.filter(file => 
+        this.selectedAchievementFiles.includes(file.id)
+      )
+
+      const selectedFileNames = selectedFileObjects
+        .map(file => file.name || file.fileName || file.originalFileName || '未命名文件')
+        .join('、')
+      
+      // 将选中的文件添加到已上传文件列表
+      selectedFileObjects.forEach(file => {
+        // 确保ID是字符串，避免精度丢失
+        const fileIdStr = String(file.id)
+        const exists = this.uploadedFiles.some(f => f.id === fileIdStr && !f.isLocal)
+        if (!exists) {
+          this.uploadedFiles.push({
+            id: fileIdStr,  // 存储为字符串
+            name: file.name || file.fileName || file.originalFileName || '未命名文件',
+            type: file.fileType || file.type || '文件',
+            isLocal: false,
+            fileId: fileIdStr,  // 存储为字符串
+            achievementId: String(this.selectedAchievement.id),
+            achievementName: this.selectedAchievement.name || this.selectedAchievement.title
+          })
+        }
+      })
+
+      // 文件通过 knowledgeFileIds 传递给 AI，不需要在消息中添加文件信息
+      console.log('选中的文件ID:', this.selectedAchievementFiles)
+      console.log('选中的文件:', selectedFileObjects)
+      
+      this.closeFileDialog()
     },
     
     // 切换文件选择状态
@@ -2241,45 +2618,6 @@ export default {
       }
     },
     
-    // 确认选择文件（完全照搬KnowledgeBaseAI.vue的方法）
-    confirmFileSelection() {
-      if (this.selectedFiles.length === 0) return
-      
-      const selectedFileObjects = this.files.filter(file => this.selectedFiles.includes(file.id))
-
-      const selectedFileNames = selectedFileObjects
-        .map(file => file.name || file.title || '未命名文件')
-        .join('、')
-      
-      // 将选中的文件添加到已上传文件列表
-      selectedFileObjects.forEach(file => {
-        // 检查是否已存在
-        const exists = this.uploadedFiles.some(f => f.id === file.id && !f.isLocal)
-        if (!exists) {
-          this.uploadedFiles.push({
-            id: file.id,
-            name: file.name || file.title || '未命名文件',
-            title: file.title,
-            type: file.type || file.typeName || '文件',
-            typeName: file.typeName,
-            isLocal: false,
-            fileId: file.id
-          })
-        }
-      })
-
-      // 将选中的文件信息添加到输入框
-      const fileInfo = `请参考以下成果目录文件：${selectedFileNames}`
-      this.userMessage = this.userMessage.trim() 
-        ? `${this.userMessage}\n\n${fileInfo}`
-        : fileInfo
-      
-      // 可以在这里添加逻辑，将选中的文件ID保存或发送给后端
-      console.log('选中的文件ID:', this.selectedFiles)
-      console.log('选中的文件:', selectedFileObjects)
-      
-      this.closeFileDialog()
-    },
     
     // 移除单个文件
     removeFile(file) {
@@ -2549,40 +2887,954 @@ export default {
       URL.revokeObjectURL(url)
     },
 
+    // 更新上传进度
+    updateProgress(message, increment = 0) {
+      if (!this.uploadProgress) {
+        this.uploadProgress = { total: 0, current: 0, message: '' }
+      }
+      
+      if (message) {
+        this.uploadProgress.message = message
+      }
+      
+      if (increment > 0) {
+        this.uploadProgress.current += increment
+      }
+      
+      console.log(`📊 进度更新: ${this.uploadProgress.current}/${this.uploadProgress.total} - ${this.uploadProgress.message}`)
+    },
+
     // 上传为成果
     async uploadTaskResult() {
-      if (!this.taskResultOutput) {
-        alert('没有可上传的内容')
+      console.log('🚀🚀🚀 [uploadTaskResult] v3.0 方法被调用 - 完整重写附件检测逻辑！🚀🚀🚀')
+      
+      // 验证输入
+      if (!this.taskResultOutput || !this.taskResultOutput.trim()) {
+        this.$message.warning('没有可上传的内容')
         return
       }
 
       if (!this.taskResultProjectId) {
-        alert('请先选择项目')
+        this.$message.warning('请先选择项目')
+        return
+      }
+
+      // 防止重复提交
+      if (this.isUploading) {
+        this.$message.warning('正在上传中，请稍候...')
         return
       }
 
       try {
-        // TODO: 调用后端 API 上传成果
-        // 这里需要根据实际的后端 API 接口来实现
-        // const response = await knowledgeAPI.uploadAchievement({
-        //   projectId: this.taskResultProjectId,
-        //   title: 'AI生成的成果',
-        //   content: this.taskResultOutput,
-        //   markdown: this.taskResultOutput
-        // })
+        this.isUploading = true
         
-        // 临时提示
-        alert('成果上传功能待实现，请等待后端接口接入')
-        console.log('准备上传成果:', {
-          projectId: this.taskResultProjectId,
-          content: this.taskResultOutput.substring(0, 100) + '...'
-        })
+        // ==================== 第1步：完整的状态诊断 ====================
+        console.log('╔═══════════════════════════════════════════════════════════════════════╗')
+        console.log('║              [uploadTaskResult] 开始上传 - 完整状态诊断              ║')
+        console.log('╚═══════════════════════════════════════════════════════════════════════╝')
+        
+        console.log('\n📌 1️⃣ 附件功能开关:')
+        console.log('   includeAttachments =', this.includeAttachments, `(类型: ${typeof this.includeAttachments})`)
+        
+        console.log('\n📌 2️⃣ 选中的任务:')
+        console.log('   selectedTaskIds =', JSON.stringify(this.selectedTaskIds))
+        console.log('   selectedTaskIds.length =', this.selectedTaskIds ? this.selectedTaskIds.length : 'undefined')
+        console.log('   是数组? =', Array.isArray(this.selectedTaskIds))
+        
+        console.log('\n📌 3️⃣ 可用附件列表 (availableAttachments):')
+        console.log('   存在? =', !!this.availableAttachments)
+        console.log('   类型 =', typeof this.availableAttachments)
+        console.log('   是数组? =', Array.isArray(this.availableAttachments))
+        console.log('   长度 =', this.availableAttachments ? this.availableAttachments.length : 'undefined')
+        if (this.availableAttachments && Array.isArray(this.availableAttachments) && this.availableAttachments.length > 0) {
+          console.log('   📎 可用附件详情:')
+          this.availableAttachments.forEach((att, idx) => {
+            console.log(`      [${idx}] taskId=${att.taskId}, name="${att.name}", url="${att.url}"`)
+          })
+        } else {
+          console.log('   ⚠️ 没有可用附件')
+        }
+        
+        console.log('\n📌 4️⃣ 已选中的附件URL (selectedAttachmentUrls) - 【关键检查】:')
+        console.log('   存在? =', !!this.selectedAttachmentUrls)
+        console.log('   类型 =', typeof this.selectedAttachmentUrls)
+        console.log('   是数组? =', Array.isArray(this.selectedAttachmentUrls))
+        console.log('   长度 =', this.selectedAttachmentUrls ? this.selectedAttachmentUrls.length : 'undefined')
+        console.log('   原始值 =', JSON.stringify(this.selectedAttachmentUrls))
+        
+        if (Array.isArray(this.selectedAttachmentUrls) && this.selectedAttachmentUrls.length > 0) {
+          console.log('   ✅ 用户已选中的附件URL:')
+          this.selectedAttachmentUrls.forEach((url, idx) => {
+            console.log(`      [${idx}] ${url}`)
+          })
+        } else {
+          console.log('   ⚠️ selectedAttachmentUrls 为空或不是有效数组')
+        }
+        
+        console.log('\n═══════════════════════════════════════════════════════════════════════')
+        
+        // ==================== 第2步：数据规范化 ====================
+        console.log('\n🔧 数据规范化处理...')
+        
+        // 确保 selectedAttachmentUrls 是有效的数组
+        if (!Array.isArray(this.selectedAttachmentUrls)) {
+          console.warn('⚠️ selectedAttachmentUrls 不是数组，重置为空数组')
+          this.selectedAttachmentUrls = []
+        }
+        
+        // 确保 availableAttachments 是有效的数组
+        if (!Array.isArray(this.availableAttachments)) {
+          console.warn('⚠️ availableAttachments 不是数组，重置为空数组')
+          this.availableAttachments = []
+        }
+        
+        // 确保 selectedTaskIds 是有效的数组
+        if (!Array.isArray(this.selectedTaskIds)) {
+          console.warn('⚠️ selectedTaskIds 不是数组，重置为空数组')
+          this.selectedTaskIds = []
+        }
+        
+        console.log('✅ 数据规范化完成')
+        
+        // ==================== 第3步：判断是否需要上传附件 ====================
+        console.log('\n🎯 附件上传决策分析:')
+        
+        const condition1 = this.includeAttachments === true
+        const condition2 = this.availableAttachments.length > 0
+        const condition3 = this.selectedAttachmentUrls.length > 0
+        
+        console.log('   条件1: includeAttachments === true?', condition1)
+        console.log('   条件2: availableAttachments.length > 0?', condition2, `(当前: ${this.availableAttachments.length})`)
+        console.log('   条件3: selectedAttachmentUrls.length > 0?', condition3, `(当前: ${this.selectedAttachmentUrls.length})`)
+        
+        const shouldUploadAttachments = condition1 && condition2 && condition3
+        
+        console.log('   ➡️ 最终决策: shouldUploadAttachments =', shouldUploadAttachments)
+        
+        if (!shouldUploadAttachments) {
+          console.log('\n❌ 跳过附件上传，原因:')
+          if (!condition1) console.log('      - 用户未勾选"包含相关附件参与生成"复选框')
+          if (!condition2) console.log('      - 没有可用的附件 (availableAttachments 为空)')
+          if (!condition3) console.log('      - 用户未选择任何附件URL (selectedAttachmentUrls 为空)')
+        } else {
+          console.log('\n✅ 将上传附件！')
+        }
+        
+        // ==================== 第4步：计算总步骤数 ====================
+        let estimatedAttachmentCount = 0
+        if (shouldUploadAttachments) {
+          estimatedAttachmentCount = this.selectedAttachmentUrls.length
+        }
+        
+        const totalSteps = 1 + 1 + estimatedAttachmentCount + (this.selectedTaskIds.length > 0 ? 1 : 0)
+        
+        console.log('\n📊 总步骤数计算:')
+        console.log('   创建成果: 1 步')
+        console.log('   上传Markdown: 1 步')
+        console.log('   上传附件:', estimatedAttachmentCount, '步')
+        console.log('   关联任务:', this.selectedTaskIds.length > 0 ? 1 : 0, '步')
+        console.log('   ➡️ 总计:', totalSteps, '步')
+        
+        console.log('\n═══════════════════════════════════════════════════════════════════════\n')
+        
+        // 初始化进度
+        this.uploadProgress = {
+          total: totalSteps,
+          current: 0,
+          message: '准备上传...'
+        }
+        
+        // ==================== 第5步：获取任务附件 ====================
+        let attachments = []
+        
+        if (shouldUploadAttachments) {
+          console.log('🔄 开始下载选中的附件...')
+          this.updateProgress('正在下载选中的附件...', 0)
+          
+          try {
+            attachments = await this.fetchTaskAttachments(this.selectedTaskIds)
+            console.log(`✅ 附件下载完成: ${attachments.length}/${this.selectedAttachmentUrls.length}`)
+            
+            if (attachments.length > 0) {
+              console.log('📎 已下载的附件:')
+              attachments.forEach((att, idx) => {
+                console.log(`   [${idx}] ${att.fileName} (${att.fileSize} bytes, ${att.fileType})`)
+              })
+            } else {
+              console.warn('⚠️ 未能下载任何附件，请检查 fetchTaskAttachments 方法')
+            }
+            
+            // 如果实际下载的附件数量与预估不同，更新总步骤数
+            if (attachments.length !== estimatedAttachmentCount) {
+              const actualTotalSteps = 1 + 1 + attachments.length + (this.selectedTaskIds.length > 0 ? 1 : 0)
+              this.uploadProgress.total = actualTotalSteps
+              console.log(`ℹ️ 更新总步骤数: ${totalSteps} → ${actualTotalSteps}`)
+            }
+          } catch (error) {
+            console.error('❌ 下载附件失败:', error)
+            console.error('错误堆栈:', error.stack)
+            console.log('⚠️ 将继续上传流程，但不包含附件')
+          }
+        } else {
+          console.log('ℹ️ 跳过附件下载步骤')
+        }
+        
+        console.log('\n═══════════════════════════════════════════════════════════════════════')
+        
+        // ==================== 第6步：创建成果 ====================
+        console.log('\n📝 步骤 1/4: 创建成果记录...')
+        this.updateProgress('正在创建成果记录...', 0)
+        const achievement = await this.createAchievement()
+        
+        if (!achievement || !achievement.id) {
+          throw new Error('创建成果失败：未返回成果ID')
+        }
+        console.log('✅ 成果创建成功, ID:', achievement.id)
+        
+        // ==================== 第7步：上传Markdown文件 ====================
+        console.log('\n📄 步骤 2/4: 上传Markdown文件...')
+        await this.uploadMarkdownFile(achievement.id)
+        console.log('✅ Markdown文件上传成功')
+        
+        // ==================== 第8步：上传附件 ====================
+        console.log('\n📎 步骤 3/4: 上传附件...')
+        if (attachments.length > 0) {
+          console.log(`🔄 开始上传 ${attachments.length} 个附件到成果 ${achievement.id}`)
+          await this.uploadAttachments(achievement.id, attachments)
+          console.log('✅ 附件上传完成')
+        } else {
+          console.log('ℹ️ 没有附件需要上传 (attachments 数组长度为 0)')
+        }
+        
+        // ==================== 第9步：关联任务 ====================
+        console.log('\n🔗 步骤 4/4: 关联任务...')
+        if (this.selectedTaskIds.length > 0) {
+          await this.linkTasks(achievement.id)
+          console.log('✅ 任务关联成功')
+        } else {
+          console.log('ℹ️ 无需关联任务')
+        }
+
+        // ==================== 第10步：完成 ====================
+        this.updateProgress('✅ 上传完成！')
+        this.$message.success('成果上传成功')
+        
+        console.log('\n╔═══════════════════════════════════════════════════════════════════════╗')
+        console.log('║                 ✅ [uploadTaskResult] 所有步骤完成                    ║')
+        console.log('╚═══════════════════════════════════════════════════════════════════════╝\n')
+
       } catch (error) {
-        console.error('上传成果失败:', error)
-        alert('上传成果失败: ' + (error.message || '未知错误'))
+        console.error('\n╔═══════════════════════════════════════════════════════════════════════╗')
+        console.error('║                 ❌ [uploadTaskResult] 上传失败                        ║')
+        console.error('╚═══════════════════════════════════════════════════════════════════════╝')
+        console.error('错误对象:', error)
+        console.error('错误消息:', error.message)
+        console.error('错误堆栈:', error.stack)
+        
+        const errorMessage = error.message || error.msg || '未知错误'
+        this.$message.error(`上传失败: ${errorMessage}`)
+        
+        // 更新进度显示错误
+        if (this.uploadProgress) {
+          this.uploadProgress.message = `❌ 上传失败: ${errorMessage}`
+        }
+      } finally {
+        this.isUploading = false
+        console.log('\n🏁 uploadTaskResult 方法执行结束\n')
       }
+    },
+
+    // 创建成果
+    async createAchievement() {
+      try {
+        // 生成成果标题
+        const achievementTitle = this.taskResultTitle?.trim() || 
+          `AI生成的任务成果_${new Date().toLocaleDateString('zh-CN')}`
+        
+        const response = await knowledgeAPI.createAchievement({
+          projectId: this.taskResultProjectId,
+          title: achievementTitle,
+          content: this.taskResultOutput,
+          type: 'report', // 使用 report 类型，对应后端的 report 枚举
+          description: `由 ${this.selectedTaskIds.length} 个任务生成的成果`
+        })
+        
+        // 处理响应数据
+        let achievementData = null
+        if (response && typeof response === 'object') {
+          if (response.code === 200) {
+            achievementData = response.data
+          } else if (response.data && !response.code) {
+            // 兼容直接返回数据的情况
+            achievementData = response.data
+          } else {
+            throw new Error(response.msg || response.message || '创建成果失败')
+          }
+        } else {
+          achievementData = response
+        }
+        
+        if (!achievementData || !achievementData.id) {
+          throw new Error('创建成果失败：响应数据无效')
+        }
+        
+        this.updateProgress('成果创建成功', 1)
+        return achievementData
+      } catch (error) {
+        console.error('创建成果失败:', error)
+        throw error
+      }
+    },
+
+    // 生成标准化的文件名（避免中文编码问题）
+    generateStandardFileName(originalName, extension = 'md') {
+      const timestamp = Date.now()
+      const randomStr = Math.random().toString(36).substring(2, 8) // 6位随机字符串
+      
+      // 如果有原始文件名，尝试提取扩展名
+      let ext = extension
+      if (originalName) {
+        const lastDot = originalName.lastIndexOf('.')
+        if (lastDot > 0) {
+          ext = originalName.substring(lastDot + 1).toLowerCase()
+        }
+      }
+      
+      // 生成格式: achievement-{timestamp}-{random}.{ext}
+      return `achievement-${timestamp}-${randomStr}.${ext}`
+    },
+
+    // 上传Markdown文件
+    async uploadMarkdownFile(achievementId) {
+      try {
+        this.updateProgress('正在上传Markdown文件...')
+        
+        // 验证 achievementId
+        if (!achievementId) {
+          throw new Error('成果ID不能为空')
+        }
+        
+        // 验证内容
+        if (!this.taskResultOutput || !this.taskResultOutput.trim()) {
+          throw new Error('成果内容不能为空')
+        }
+        
+        // 生成标准化的文件名: achievement-{timestamp}-{random}.md
+        const fileName = this.generateStandardFileName(this.taskResultTitle || 'achievement', 'md')
+        
+        // 创建文件对象
+        const content = this.taskResultOutput
+        const file = new File(
+          [content],
+          fileName,
+          { 
+            type: 'text/markdown;charset=utf-8',
+            lastModified: Date.now()
+          }
+        )
+        
+        // 验证文件对象
+        console.log('[uploadMarkdownFile] 文件对象信息:')
+        console.log('  文件名:', file.name)
+        console.log('  文件大小:', file.size, 'bytes')
+        console.log('  文件类型:', file.type)
+        console.log('  成果ID:', achievementId, '类型:', typeof achievementId)
+        
+        if (file.size === 0) {
+          throw new Error('文件内容为空，无法上传')
+        }
+        
+        const response = await knowledgeAPI.uploadFile(file, achievementId)
+        
+        // 检查响应
+        if (response && response.code !== undefined && response.code !== 200) {
+          throw new Error(response.msg || response.message || 'Markdown文件上传失败')
+        }
+        
+        this.updateProgress('Markdown文件上传成功', 1)
+      } catch (error) {
+        console.error('上传Markdown文件失败:', error)
+        const errorMessage = error.message || error.msg || '未知错误'
+        throw new Error(`上传Markdown文件失败: ${errorMessage}`)
+      }
+    },
+
+    // 上传附件
+    async uploadAttachments(achievementId, attachments) {
+      if (!attachments || attachments.length === 0) {
+        console.log('[uploadAttachments] 没有附件需要上传')
+        return
+      }
+      
+      const totalAttachments = attachments.length
+      let successCount = 0
+      let failCount = 0
+      
+      console.log(`[uploadAttachments] 开始上传 ${totalAttachments} 个附件到成果 ${achievementId}`)
+      
+      for (let i = 0; i < totalAttachments; i++) {
+        const attachment = attachments[i]
+        const originalFileName = attachment.fileName || attachment.name || `attachment_${i + 1}`
+        
+        console.log(`[uploadAttachments] 正在处理附件 ${i + 1}/${totalAttachments}: ${originalFileName}`)
+        this.updateProgress(`正在上传附件 (${i + 1}/${totalAttachments}): ${originalFileName}`)
+        
+        try {
+          // 如果附件是文件对象，需要重命名为标准化格式
+          if (attachment.file && attachment.file instanceof File) {
+            // 生成标准化的文件名
+            const standardFileName = this.generateStandardFileName(originalFileName)
+            
+            // 创建新的文件对象，使用标准化文件名
+            const renamedFile = new File(
+              [attachment.file],
+              standardFileName,
+              {
+                type: attachment.file.type || 'application/octet-stream',
+                lastModified: attachment.file.lastModified || Date.now()
+              }
+            )
+            
+            console.log(`[uploadAttachments] 附件重命名: ${originalFileName} -> ${standardFileName}`)
+            
+            const response = await knowledgeAPI.uploadFile(renamedFile, achievementId)
+            
+            // 检查响应
+            if (response && response.code !== undefined && response.code !== 200) {
+              throw new Error(response.msg || '附件上传失败')
+            }
+            
+            successCount++
+            this.updateProgress('', 1) // 增加进度
+          } else if (attachment.url) {
+            // 如果附件是URL，需要先下载再上传
+            try {
+              console.log(`[uploadAttachments] 开始下载URL附件: ${attachment.url}`)
+              
+              const token = localStorage.getItem('access_token')
+              
+              // 下载文件
+              const fileResponse = await axios.get(attachment.url, {
+                responseType: 'blob',
+                headers: {
+                  'Authorization': token ? `Bearer ${token}` : undefined
+                },
+                timeout: 60000 // 60秒超时
+              })
+              
+              // 从响应头获取文件类型
+              let fileType = fileResponse.headers['content-type'] || 'application/octet-stream'
+              if (fileType === 'application/octet-stream') {
+                const ext = originalFileName.split('.').pop()?.toLowerCase()
+                const mimeTypes = {
+                  'pdf': 'application/pdf',
+                  'doc': 'application/msword',
+                  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                  'xls': 'application/vnd.ms-excel',
+                  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  'ppt': 'application/vnd.ms-powerpoint',
+                  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                  'txt': 'text/plain',
+                  'md': 'text/markdown',
+                  'jpg': 'image/jpeg',
+                  'jpeg': 'image/jpeg',
+                  'png': 'image/png',
+                  'gif': 'image/gif'
+                }
+                fileType = mimeTypes[ext] || fileType
+              }
+              
+              // 创建 File 对象
+              const downloadedFile = new File(
+                [fileResponse.data],
+                originalFileName,
+                {
+                  type: fileType,
+                  lastModified: Date.now()
+                }
+              )
+              
+              // 生成标准化的文件名
+              const standardFileName = this.generateStandardFileName(originalFileName)
+              
+              // 创建重命名后的文件对象
+              const renamedFile = new File(
+                [downloadedFile],
+                standardFileName,
+                {
+                  type: fileType,
+                  lastModified: downloadedFile.lastModified
+                }
+              )
+              
+              console.log(`[uploadAttachments] URL附件下载成功: ${originalFileName} -> ${standardFileName}`)
+              
+              // 上传文件
+              const response = await knowledgeAPI.uploadFile(renamedFile, achievementId)
+              
+              // 检查响应
+              if (response && response.code !== undefined && response.code !== 200) {
+                throw new Error(response.msg || '附件上传失败')
+              }
+              
+              successCount++
+              this.updateProgress('', 1) // 增加进度
+            } catch (urlError) {
+              console.error(`[uploadAttachments] URL附件处理失败: ${originalFileName}`, urlError)
+              failCount++
+              this.updateProgress('', 1) // 增加进度，避免卡住
+            }
+          } else {
+            console.warn('附件格式不支持:', attachment)
+            failCount++
+            this.updateProgress('', 1) // 增加进度，避免卡住
+          }
+        } catch (error) {
+          console.warn(`附件上传失败: ${originalFileName}`, error)
+          failCount++
+          // 继续上传其他附件，但也要更新进度
+          this.updateProgress('', 1)
+        }
+      }
+      
+      // 显示上传结果摘要
+      if (failCount > 0) {
+        this.updateProgress(`附件上传完成：成功 ${successCount} 个，失败 ${failCount} 个`, 0)
+      } else {
+        this.updateProgress(`所有附件上传成功 (${successCount} 个)`, 0)
+      }
+    },
+
+    // 关联任务
+    async linkTasks(achievementId) {
+      if (!this.selectedTaskIds || this.selectedTaskIds.length === 0) {
+        return
+      }
+      
+      try {
+        this.updateProgress(`正在关联 ${this.selectedTaskIds.length} 个任务...`)
+        
+        const response = await linkTasksToAchievement(achievementId, this.selectedTaskIds)
+        
+        // 检查响应
+        if (response && response.code !== undefined && response.code !== 200) {
+          throw new Error(response.msg || '关联任务失败')
+        }
+        
+        this.updateProgress('任务关联成功', 1)
+      } catch (error) {
+        console.warn('关联任务失败:', error)
+        // 不抛出错误，允许继续，但也要更新进度
+        const errorMsg = error.message || error.msg || '未知错误'
+        this.updateProgress(`任务关联失败: ${errorMsg}，但成果已创建`, 1)
+      }
+    },
+
+    // 获取任务附件（将选中的附件URL转换为文件对象）
+    async fetchTaskAttachments(taskIds) {
+      console.log('\n╔═══════════════════════════════════════════════════════════════════════╗')
+      console.log('║              [fetchTaskAttachments] 开始获取任务附件                  ║')
+      console.log('╚═══════════════════════════════════════════════════════════════════════╝')
+      
+      // 参数验证
+      console.log('\n📌 参数检查:')
+      console.log('   taskIds =', JSON.stringify(taskIds))
+      console.log('   taskIds.length =', taskIds ? taskIds.length : 'undefined')
+      
+      if (!taskIds || taskIds.length === 0) {
+        console.log('❌ taskIds 为空，返回空数组')
+        return []
+      }
+
+      // 检查选中的附件URL
+      console.log('\n📌 selectedAttachmentUrls 检查:')
+      console.log('   存在? =', !!this.selectedAttachmentUrls)
+      console.log('   类型 =', typeof this.selectedAttachmentUrls)
+      console.log('   是数组? =', Array.isArray(this.selectedAttachmentUrls))
+      console.log('   长度 =', this.selectedAttachmentUrls ? this.selectedAttachmentUrls.length : 'undefined')
+      
+      if (!this.selectedAttachmentUrls || this.selectedAttachmentUrls.length === 0) {
+        console.log('❌ 没有选中的附件URL，返回空数组')
+        return []
+      }
+      
+      console.log('   ✅ 用户选中了', this.selectedAttachmentUrls.length, '个附件URL')
+      this.selectedAttachmentUrls.forEach((url, idx) => {
+        console.log(`      [${idx}] ${url}`)
+      })
+
+      const attachments = []
+      
+      try {
+        console.log('\n📌 availableAttachments 检查:')
+        console.log('   存在? =', !!this.availableAttachments)
+        console.log('   类型 =', typeof this.availableAttachments)
+        console.log('   是数组? =', Array.isArray(this.availableAttachments))
+        console.log('   长度 =', this.availableAttachments ? this.availableAttachments.length : 'undefined')
+        
+        if (!this.availableAttachments || this.availableAttachments.length === 0) {
+          console.error('❌ availableAttachments 为空，无法获取附件信息')
+          return []
+        }
+        
+        console.log('   ✅ 可用附件列表:')
+        this.availableAttachments.forEach((att, idx) => {
+          console.log(`      [${idx}] taskId=${att.taskId}, name="${att.name}", url="${att.url}"`)
+        })
+        
+        // 从 availableAttachments 中获取选中URL对应的附件信息
+        console.log('\n🔍 匹配选中的附件...')
+        const selectedAttachments = this.availableAttachments.filter(att => 
+          this.selectedAttachmentUrls.includes(att.url)
+        )
+        
+        console.log(`✅ 匹配到 ${selectedAttachments.length}/${this.selectedAttachmentUrls.length} 个附件`)
+        
+        if (selectedAttachments.length === 0) {
+          console.error('❌ 没有匹配到任何附件！')
+          console.error('   可能原因: selectedAttachmentUrls 中的URL与 availableAttachments 中的URL不匹配')
+          console.error('   selectedAttachmentUrls:', this.selectedAttachmentUrls)
+          console.error('   availableAttachments URLs:', this.availableAttachments.map(a => a.url))
+          return []
+        }
+        
+        console.log('   匹配的附件:')
+        selectedAttachments.forEach((att, idx) => {
+          console.log(`      [${idx}] ${att.name}`)
+        })
+        
+        // 遍历选中的附件，下载并转换为文件对象
+        console.log('\n🔄 开始下载附件文件...')
+        for (let i = 0; i < selectedAttachments.length; i++) {
+          const attachment = selectedAttachments[i]
+          const originalUrl = attachment.url // 保留原始URL（可能是相对路径）
+          const fileName = attachment.name || this.extractFileNameFromUrl(originalUrl) || `attachment_${i + 1}`
+          
+          console.log(`\n📥 [${i + 1}/${selectedAttachments.length}] 下载: ${fileName}`)
+          
+          try {
+            // 注意：这里传递原始URL给后端，让后端处理完整URL的拼接
+            console.log('   原始URL:', originalUrl)
+            console.log('   URL类型:', originalUrl.startsWith('http') ? '完整URL' : '相对路径')
+            
+            // 使用后端代理下载文件，避免CORS问题
+            console.log('   🔐 准备通过后端代理下载...')
+            const token = localStorage.getItem('access_token')
+            console.log('   Token:', token ? `存在 (前10字符: ${token.substring(0, 10)}...)` : '不存在')
+            
+            // Step 1: 先获取预签名URL（传递原始URL，不做任何转换）
+            console.log('   📤 请求后端获取预签名URL...')
+            console.log('      请求参数 fileUrl=', originalUrl)
+            console.log('      编码后=', encodeURIComponent(originalUrl))
+            
+            const presignedResponse = await axios.get(`/zhiyan/projects/tasks/submissions/files/presigned-url?fileUrl=${encodeURIComponent(originalUrl)}`, {
+              headers: {
+                'Authorization': token ? `Bearer ${token}` : undefined
+              },
+              timeout: 10000
+            })
+            
+            console.log('   ✅ 后端响应成功')
+            console.log('      响应状态:', presignedResponse.status)
+            console.log('      响应数据:', JSON.stringify(presignedResponse.data, null, 2))
+            
+            const presignedUrl = presignedResponse.data?.data?.url
+            
+            if (!presignedUrl) {
+              console.error('   ❌ 预签名URL为空！')
+              console.error('      响应结构:', presignedResponse.data)
+              throw new Error('无法获取文件下载链接')
+            }
+            
+            console.log('   📋 预签名URL (完整):', presignedUrl)
+            console.log('   📋 预签名URL (前100字符):', presignedUrl.substring(0, 100) + '...')
+            
+            // Step 2: 通过后端代理下载文件，避免CORS问题
+            // 不直接访问预签名URL，而是通过后端接口下载
+            console.log('   📥 通过后端代理下载文件...')
+            console.log('      代理接口: /zhiyan/projects/tasks/submissions/files/download')
+            console.log('      参数 fileUrl:', originalUrl)
+            
+            const response = await axios.get(`/zhiyan/projects/tasks/submissions/files/download`, {
+              params: {
+                fileUrl: originalUrl
+              },
+              headers: {
+                'Authorization': token ? `Bearer ${token}` : undefined
+              },
+              responseType: 'blob',
+              timeout: 60000 // 60秒超时
+            })
+            
+            console.log('   ✅ 代理下载成功！')
+            
+            console.log('   ✅ HTTP 响应状态:', response.status)
+            console.log('   响应头 Content-Type:', response.headers['content-type'])
+            console.log('   响应数据大小:', response.data.size, 'bytes')
+            
+            // 从响应头获取文件类型，如果没有则根据文件名推断
+            let fileType = response.headers['content-type'] || 'application/octet-stream'
+            if (fileType === 'application/octet-stream') {
+              const ext = fileName.split('.').pop()?.toLowerCase()
+              const mimeTypes = {
+                'pdf': 'application/pdf',
+                'doc': 'application/msword',
+                'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'xls': 'application/vnd.ms-excel',
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'ppt': 'application/vnd.ms-powerpoint',
+                'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                'txt': 'text/plain',
+                'md': 'text/markdown',
+                'jpg': 'image/jpeg',
+                'jpeg': 'image/jpeg',
+                'png': 'image/png',
+                'gif': 'image/gif'
+              }
+              fileType = mimeTypes[ext] || fileType
+              console.log('   推断文件类型:', fileType, '(基于扩展名:', ext + ')')
+            }
+            
+            // 创建 File 对象
+            const file = new File(
+              [response.data],
+              fileName,
+              {
+                type: fileType,
+                lastModified: Date.now()
+              }
+            )
+            
+            console.log('   ✅ File对象创建成功:')
+            console.log('      文件名:', file.name)
+            console.log('      大小:', file.size, 'bytes')
+            console.log('      类型:', file.type)
+            
+            attachments.push({
+              file: file,
+              fileName: fileName,
+              fileSize: file.size,
+              fileType: fileType,
+              url: originalUrl // 保留原始URL用于调试
+            })
+          } catch (downloadError) {
+            console.error(`   ❌ 下载失败: ${fileName}`)
+            console.error('   错误:', downloadError.message)
+            console.error('   错误详情:', downloadError)
+            // 继续处理其他附件，不中断整个流程
+          }
+        }
+        
+        console.log('\n📊 下载结果统计:')
+        console.log(`   成功: ${attachments.length}/${selectedAttachments.length}`)
+        console.log(`   失败: ${selectedAttachments.length - attachments.length}/${selectedAttachments.length}`)
+        
+        if (attachments.length > 0) {
+          console.log('\n✅ 已下载的附件列表:')
+          attachments.forEach((att, idx) => {
+            console.log(`   [${idx}] ${att.fileName} (${att.fileSize} bytes, ${att.fileType})`)
+          })
+        }
+        
+        console.log('\n╚═══════════════════════════════════════════════════════════════════════╝\n')
+      } catch (error) {
+        console.error('\n❌ [fetchTaskAttachments] 发生异常:', error)
+        console.error('错误堆栈:', error.stack)
+        // 不抛出错误，允许继续上传流程
+      }
+      
+      return attachments
+    },
+
+    // 重置表单
+    resetForm() {
+      this.taskResultTitle = ''
+      this.taskResultOutput = ''
+      this.selectedTaskIds = []
+      this.selectedTaskSummaries = []
+      this.uploadProgress = null
+      this.isUploading = false
+      // 重置附件相关状态
+      this.taskAttachments = []
+      this.selectedAttachmentIds = []
+      this.isSelectingAttachments = false
+      this.selectAllAttachments = false
+      this.isIndeterminateAttachments = false
+      this.showUploadProgress = false
+    },
+    
+    isAttachmentSelected(attachmentId) {
+      return this.selectedAttachmentIds.includes(attachmentId)
+    },
+    
+    toggleAttachmentSelection(attachmentId) {
+      const index = this.selectedAttachmentIds.indexOf(attachmentId)
+      if (index === -1) {
+        this.selectedAttachmentIds.push(attachmentId)
+      } else {
+        this.selectedAttachmentIds.splice(index, 1)
+      }
+      this.updateAttachmentSelectionState()
+    },
+    
+    handleAttachmentSelectionChange(attachmentId, selected) {
+      if (selected && !this.selectedAttachmentIds.includes(attachmentId)) {
+        this.selectedAttachmentIds.push(attachmentId)
+      } else if (!selected) {
+        const index = this.selectedAttachmentIds.indexOf(attachmentId)
+        if (index !== -1) {
+          this.selectedAttachmentIds.splice(index, 1)
+        }
+      }
+      this.updateAttachmentSelectionState()
+    },
+    
+    handleSelectAllAttachments(selected) {
+      if (selected) {
+        this.selectedAttachmentIds = this.taskAttachments.map(a => a.id)
+      } else {
+        this.selectedAttachmentIds = []
+      }
+      this.updateAttachmentSelectionState()
+    },
+    
+    updateAttachmentSelectionState() {
+      const selectedCount = this.selectedAttachmentIds.length
+      const total = this.taskAttachments.length
+      
+      this.selectAllAttachments = selectedCount === total && total > 0
+      this.isIndeterminateAttachments = selectedCount > 0 && selectedCount < total
+    },
+    
+    getTaskAttachmentCount(taskId) {
+      return this.taskAttachments.filter(a => a.taskId === taskId).length
+    },
+    
+    getTaskName(taskId) {
+      const task = this.selectedTaskSummaries.find(t => t.id === taskId)
+      return task ? task.name : ''
+    },
+    
+    getFileIconClass(fileName) {
+      if (!fileName) return 'el-icon-document'
+      const ext = fileName.split('.').pop()?.toLowerCase()
+      const iconMap = {
+        'pdf': 'el-icon-document',
+        'doc': 'el-icon-document',
+        'docx': 'el-icon-document',
+        'xls': 'el-icon-s-grid',
+        'xlsx': 'el-icon-s-grid',
+        'ppt': 'el-icon-s-data',
+        'pptx': 'el-icon-s-data',
+        'txt': 'el-icon-tickets',
+        'md': 'el-icon-edit',
+        'jpg': 'el-icon-picture',
+        'jpeg': 'el-icon-picture',
+        'png': 'el-icon-picture',
+        'gif': 'el-icon-picture'
+      }
+      return iconMap[ext] || 'el-icon-document'
+    },
+    
+    formatFileSize(bytes) {
+      if (!bytes) return '0 B'
+      const k = 1024
+      const sizes = ['B', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    },
+    
+    
+    resetTaskResultForm() {
+      this.taskResultTitle = ''
+      this.taskResultOutput = ''
+      this.selectedTaskIds = []
+      this.selectedTaskSummaries = []
+      this.taskAttachments = []
+      this.selectedAttachmentIds = []
+      this.isSelectingAttachments = false
+      this.uploadProgress = {
+        percentage: 0,
+        message: '',
+        status: ''
+      }
+      this.showUploadProgress = false
     }
   }
 }
 
 </script>
+
+<style scoped>
+/* 成果信息栏样式 */
+.achievement-info-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-btn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.achievement-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* 文件大小徽章样式 */
+.file-size-badge {
+  padding: 2px 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 深色模式支持 */
+html.dark-mode .achievement-info-bar {
+  background: #1f2937;
+}
+
+html.dark-mode .back-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+html.dark-mode .back-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+html.dark-mode .achievement-name {
+  color: #f3f4f6;
+}
+
+html.dark-mode .file-size-badge {
+  background: #374151;
+  color: #9ca3af;
+}
+</style>
+

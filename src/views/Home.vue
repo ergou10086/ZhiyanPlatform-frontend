@@ -100,7 +100,8 @@
                     <!-- 被打回标识 -->
                     <div v-if="task.isRejected" class="rejected-badge" title="任务提交已被打回">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M10 15L15 20M15 15L10 20M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 9L15 15M15 9L9 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                       </svg>
                       <span class="alert-text">已打回</span>
                     </div>
@@ -164,7 +165,6 @@
                   <p class="project-description">{{ project.description }}</p>
                   <div class="project-meta">
                     <span :class="['status-badge', `status-${project.status}`]">{{ getProjectStatusText(project.status) }}</span>
-                    <span class="progress-text">{{ project.progress }}% 完成</span>
                   </div>
                 </div>
               </div>
@@ -344,22 +344,29 @@
         </div>
       </div>
     </div>
+    
+    <!-- 页脚（仅在首页显示） -->
+    <Footer />
   </div>
 </template>
 
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import RightSidebar from '@/components/RightSidebar.vue'
+import Footer from '@/components/Footer.vue'
 import { authAPI } from '@/api/auth'
 import { projectAPI } from '@/api/project'
 import { taskAPI } from '@/api/task'
 import '@/assets/styles/Home.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 export default {
   name: 'Home',
   components: {
     Sidebar,
-    RightSidebar
+    RightSidebar,
+    Footer
   },
   data() {
     return {
@@ -378,7 +385,8 @@ export default {
       isLoadingTasks: false, // 是否正在加载任务
       taskDetailModalOpen: false, // 任务详情弹窗是否打开
       selectedTask: null, // 选中的任务
-      showOAuth2SuccessToast: false // OAuth2授权成功提示
+      showOAuth2SuccessToast: false, // OAuth2授权成功提示
+      scifiBgCleanup: null
     }
   },
   mounted() {
@@ -404,12 +412,23 @@ export default {
     
     // 监听任务状态变化事件，刷新任务列表
     this.$root.$on('taskStatusChanged', this.handleTaskStatusChanged)
+
+    // 仅首页启用科技感背景（低侵入）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
   },
   beforeDestroy() {
     // 移除事件监听
     document.removeEventListener('click', this.handleClickOutside)
     // 移除任务状态变化事件监听
     this.$root.$off('taskStatusChanged', this.handleTaskStatusChanged)
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
+    }
   },
   methods: {
     handleOAuth2Callback() {

@@ -1,5 +1,5 @@
 <template>
-  <div class="message-notification">
+  <div class="message-notification" ref="messageNotificationRef">
     <!-- 消息铃铛按钮 -->
     <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99" class="message-badge">
       <el-button 
@@ -48,6 +48,20 @@
               <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>全部已读</span>
+          </button>
+
+          <button
+            class="toolbar-btn"
+            @click="handleClearReadMessages"
+            :disabled="!hasReadMessages || clearReadLoading"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M3 6H5H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M10 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>清空已读</span>
           </button>
         </div>
 
@@ -246,6 +260,8 @@
       width="480px"
       class="send-message-dialog"
       append-to-body
+      :z-index="13000"
+      modal-class="send-message-modal"
       :show-close="false"
     >
       <!-- 自定义头部 -->
@@ -406,6 +422,7 @@ import {
   getUnreadCount, 
   markAsRead, 
   markAllAsRead,
+  clearReadMessages,
   deleteMessage,
   sendMessageToUser,
   sendMessageToProject,
@@ -430,6 +447,7 @@ export default {
       currentPage: 0,
       pageSize: 10,
       hasMore: true,
+      clearReadLoading: false,
       pollingTimer: null,
       detailDialogVisible: false,
       detailMessage: null,
@@ -452,11 +470,23 @@ export default {
     console.log('🔔 GlobalMessageNotification 组件已挂载')
     this.fetchUnreadCount()
     this.startPolling()
+    document.addEventListener('click', this.handleGlobalClick, true)
   },
   beforeDestroy() {
     this.stopPolling()
+    document.removeEventListener('click', this.handleGlobalClick, true)
   },
   methods: {
+    /**
+     * 点击任意非组件区域时关闭消息面板
+     */
+    handleGlobalClick(event) {
+      if (!this.showPanel) return
+      const root = this.$refs.messageNotificationRef
+      if (root && !root.contains(event.target)) {
+        this.closeMessagePanel()
+      }
+    },
     /**
      * 切换消息面板显示
      */
@@ -474,7 +504,7 @@ export default {
      * 关闭消息面板
      */
     closeMessagePanel() {
-      this.showPanel = false
+    this.showPanel = false
     },
 
       /**
@@ -718,7 +748,16 @@ export default {
         'receiverUsername': '接收者用户名',
         'messageType': '消息类型',
         'businessId': '业务ID',
-        'businessType': '业务类型'
+        'businessType': '业务类型',
+        // 文件相关
+        'fileIds': '文件ID列表',
+        'fileCount': '文件数量',
+        'fileNames': '文件名称',
+        'uploaderId': '上传人ID',
+        'uploaderName': '上传人',
+        'redirectUrl': '跳转链接',
+        'achievementId': '成果ID',
+        'achievementTitle': '成果名称'
       }
       
       try {
@@ -730,8 +769,24 @@ export default {
         if (typeof data !== 'object' || data === null) {
           return []
         }
-        
-        return Object.entries(data).map(([key, value]) => {
+
+        // 如果是带有文件信息的扩展数据，只展示与文件相关的几个关键字段
+        const hasFileInfo = Object.prototype.hasOwnProperty.call(data, 'fileCount') ||
+          Object.prototype.hasOwnProperty.call(data, 'fileNames') ||
+          Object.prototype.hasOwnProperty.call(data, 'uploaderName') ||
+          Object.prototype.hasOwnProperty.call(data, 'achievementTitle')
+
+        let entries
+        if (hasFileInfo) {
+          const allowedKeys = ['fileCount', 'fileNames', 'uploaderName', 'achievementTitle']
+          entries = allowedKeys
+            .filter(key => Object.prototype.hasOwnProperty.call(data, key))
+            .map(key => [key, data[key]])
+        } else {
+          entries = Object.entries(data)
+        }
+
+        return entries.map(([key, value]) => {
           // 对项目ID做特殊处理：展示项目名称而不是纯ID
           if (key === 'projectId') {
             const projectName = this.getProjectNameById(value)
@@ -783,6 +838,37 @@ export default {
       } catch (error) {
         console.error('标记全部已读失败:', error)
         this.$message.error('操作失败')
+      }
+    },
+
+    /**
+     * 清空所有已读消息（真删除）
+     */
+    async handleClearReadMessages() {
+      if (this.clearReadLoading) return
+
+      try {
+        await this.$confirm('确定清空所有已读消息吗？此操作不可撤销。', '提示', {
+          confirmButtonText: '清空',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+
+        this.clearReadLoading = true
+        await clearReadMessages()
+
+        // 仅保留未读消息
+        this.messages = this.messages.filter(msg => !msg.isRead)
+        // 保持未读数不变（只删除已读）
+
+        this.$message.success('已清空所有已读消息')
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('清空已读消息失败:', error)
+          this.$message.error('清空失败，请稍后重试')
+        }
+      } finally {
+        this.clearReadLoading = false
       }
     },
 
@@ -1205,11 +1291,19 @@ export default {
           }
         }
 
+        const rawReadFlag = item.readFlag
+        const isRead = rawReadFlag === true || rawReadFlag === 'true' || rawReadFlag === 1 || rawReadFlag === '1'
+        console.log('🧪 transformMessages item:', {
+          id: item.recipientId || item.id,
+          rawReadFlag,
+          computedIsRead: isRead
+        })
+
         return {
           id: item.recipientId || item.id,
           title: item.title || '',
           content: item.content || '',
-          isRead: item.readFlag || false,
+          isRead,
           createdAt: createdAt,
           scene: item.scene || '',
           businessId: item.businessId,
@@ -1294,6 +1388,11 @@ export default {
       return filtered.filter(message => this.matchSceneCategory(message.scene, this.selectedScene))
     },
 
+    // 是否存在已读消息，用于控制“清空已读”按钮
+    hasReadMessages() {
+      return this.messages.some(msg => msg.isRead)
+    },
+
     /**
      * 当前详情消息的动作类型：
      * - INVITATION: 项目邀请
@@ -1325,6 +1424,17 @@ export default {
             // 检查是否点击了铃铛按钮
             const messageButton = document.querySelector('.message-button')
             if (messageButton && (messageButton === event.target || messageButton.contains(event.target))) {
+              return
+            }
+            // 如果点击发生在消息详情弹窗区域内，则不关闭消息面板
+            const detailOverlay = document.querySelector('.message-detail-overlay')
+            if (detailOverlay && (detailOverlay === event.target || detailOverlay.contains(event.target))) {
+              return
+            }
+            // 如果当前有 ElementUI 的对话框或确认框打开，则不关闭消息面板
+            const dialogWrapper = document.querySelector('.el-dialog__wrapper')
+            const msgBoxWrapper = document.querySelector('.el-message-box__wrapper')
+            if (dialogWrapper || msgBoxWrapper) {
               return
             }
             binding.value()
@@ -1448,8 +1558,9 @@ export default {
 .message-notification {
   position: fixed;
   top: 12px;
-  right: 220px;
-  z-index: 10003;
+  right: 210px;
+  /* 提高层级，确保在所有业务弹窗和确认框之上，但低于错误对话框 */
+  z-index: 15000;
   display: block;
   visibility: visible;
 }
@@ -1469,6 +1580,9 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+  /* 单独抬高铃铛按钮，确保始终浮在页眉和用户信息之上 */
+  z-index: 10060;
 }
 
 .message-button:hover {
@@ -1508,7 +1622,8 @@ export default {
   border: 1px solid var(--border-primary);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
-  z-index: 10004;
+  /* 提高层级，确保在所有业务弹窗和确认框之上 */
+  z-index: 15001;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1899,12 +2014,14 @@ export default {
 
 .unread-dot {
   position: absolute;
-  top: 20px;
-  right: 20px;
-  width: 8px;
-  height: 8px;
-  background: var(--danger-color);
+  top: 18px;
+  right: 18px;
+  width: 12px;
+  height: 12px;
+  background: #ff4d4f;
   border-radius: 50%;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .delete-btn {
@@ -1975,7 +2092,8 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10005;
+  /* 提高层级，确保在所有业务弹窗和确认框之上 */
+  z-index: 15002;
   padding: 16px;
 }
 
@@ -2292,6 +2410,13 @@ export default {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
+/* 抬高发送消息对话框与遮罩的层级，确保盖住消息面板和其他业务弹窗 */
+.send-message-dialog ::v-deep .el-dialog__wrapper,
+.send-message-dialog ::v-deep .el-overlay,
+.send-message-dialog ::v-deep .v-modal {
+  z-index: 15003 !important;
+}
+
 .send-message-dialog ::v-deep .el-dialog__header {
   padding: 0;
   margin: 0;
@@ -2532,9 +2657,9 @@ export default {
 /* 响应式 */
 @media (max-width: 768px) {
   .message-notification {
-    right: 210px;
-    top: 10px;
-    z-index: 10005;
+    right: 300px;
+    top: 12px;
+    z-index: 11000;
   }
 
   .message-button {
@@ -2570,9 +2695,9 @@ export default {
 
 @media (max-width: 480px) {
   .message-notification {
-    right: 200px;
-    top: 10px;
-    z-index: 10005;
+    right: 280px;
+    top: 12px;
+    z-index: 11000;
   }
 
   .message-button {
@@ -2631,6 +2756,27 @@ export default {
 
 <!-- 深色模式弹窗和工具栏的全局样式（不加 scoped，覆盖 el-dialog 等 append-to-body 的元素） -->
 <style>
+/* 确保消息提醒组件始终在最顶层，高于ElementUI的确认框和对话框 */
+.message-notification,
+.message-panel,
+.message-detail-overlay,
+.floating-message-reminder,
+.reminder-panel {
+  /* 消息提醒相关组件的z-index已在各自组件中设置，这里确保不会被ElementUI覆盖 */
+}
+
+/* 确保ElementUI的确认框和对话框不会遮盖消息提醒 */
+.el-message-box__wrapper {
+  z-index: 14000 !important;
+}
+
+.el-dialog__wrapper:not(.send-message-dialog .el-dialog__wrapper) {
+  z-index: 14000 !important;
+}
+
+.v-modal:not(.send-message-dialog .v-modal) {
+  z-index: 13999 !important;
+}
 /* 消息面板顶部工具栏在黑夜模式下变暗色 */
 .dark-mode .message-panel .panel-toolbar {
   background: #020617;

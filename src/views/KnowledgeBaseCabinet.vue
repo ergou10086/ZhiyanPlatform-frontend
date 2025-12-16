@@ -3,20 +3,20 @@
     <div class="cabinet-layout" :class="{ 'sidebar-collapsed': sidebarCollapsed }">
       <!-- 左侧列表 -->
       <div class="list-pane" :class="{ 'collapsed': sidebarCollapsed }">
-      <div class="toolbar">
+        <div class="toolbar">
           <div class="toolbar-buttons" v-if="!sidebarCollapsed">
-          <button
-            class="btn primary small"
-            @click="createNewDocument"
-            :disabled="isArchived"
-            :title="isArchived ? '项目已归档，仅支持查看' : '新建文档'"
-          >+ 新建文档</button>
-          <button
-            class="btn secondary small"
-            @click="createNewFolder"
-            :disabled="isArchived"
-            :title="isArchived ? '项目已归档，仅支持查看' : '新建节点'"
-          >+ 新建节点</button>
+            <button
+              class="btn primary small"
+              @click="createNewDocument"
+              :disabled="isArchived"
+              :title="isArchived ? '项目已归档，仅支持查看' : '新建文档'"
+            >+ 新建文档</button>
+            <button
+              class="btn secondary small"
+              @click="createNewFolder"
+              :disabled="isArchived"
+              :title="isArchived ? '项目已归档，仅支持查看' : '新建节点'"
+            >+ 新建节点</button>
           </div>
           <div class="search-container" v-if="!sidebarCollapsed">
             <input
@@ -32,14 +32,23 @@
             </svg>
           </div>
         </div>
+
+        <!-- 左侧空状态：没有任何节点和文档时提示 -->
+        <div
+          v-if="!sidebarCollapsed && folders.length === 0 && docs.length === 0"
+          class="list-empty-hint"
+        >
+          <p>应该先创建节点再创建文档</p>
+        </div>
+
         <div v-for="folder in folders" :key="folder.id" class="folder-section" v-if="!sidebarCollapsed">
           <div class="group-title" @click="toggleFolder(folder.id)">
             <span>{{ folder.name }}</span>
             <div class="title-actions">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
-                 :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
-              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                   :class="{ 'folder-icon': true, 'expanded': folder.expanded }">
+                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
               <button class="delete-node-btn"
                       @click.stop="confirmDeleteNode(folder.id, 'folder', folder.name)"
                       title="删除节点">
@@ -81,27 +90,30 @@
         <div class="doc-meta" v-if="activeDoc">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
-          <div class="export-btn-wrapper" @mouseleave="showExportMenu = false">
-            <button
-              class="export-btn"
-              @click.stop="toggleExportMenu"
-              :disabled="!activeDoc || isArchived || exporting"
-              :title="isArchived ? '项目已归档，仅支持查看' : '导出文档'"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <span>{{ exporting ? '导出中...' : '导出' }}</span>
-              <svg class="export-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </button>
-            <div v-if="showExportMenu" class="export-dropdown" @click.stop>
-              <button class="export-option" @click="exportWiki('MARKDOWN')">导出为 Markdown</button>
-              <button class="export-option" @click="exportWiki('WORD')">导出为 Word</button>
-              <button class="export-option" @click="exportWiki('PDF')">导出为 PDF</button>
+          <div class="doc-actions-top">
+            <!-- 导出按钮 -->
+            <div class="export-btn-wrapper" @mouseleave="showExportMenu = false">
+              <button
+                class="export-btn"
+                @click.stop="toggleExportMenu"
+                :disabled="!activeDoc || isArchived || exporting"
+                :title="isArchived ? '项目已归档，仅支持查看' : '导出文档'"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <polyline points="7 10 12 15 17 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <span>{{ exporting ? '导出中...' : '导出' }}</span>
+                <svg class="export-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div v-if="showExportMenu" class="export-dropdown" @click.stop>
+                <button class="export-option" @click="exportWiki('MARKDOWN')">导出为 Markdown</button>
+                <button class="export-option" @click="exportWiki('WORD')">导出为 Word</button>
+                <button class="export-option" @click="exportWiki('PDF')">导出为 PDF</button>
+              </div>
             </div>
           </div>
         </div>
@@ -193,13 +205,13 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
                 <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/>
-                <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2"/>
+                <polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               {{ imageCount }} 张图片
             </span>
             <span class="stat-item">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2"/>
+                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
               {{ fileCount }} 个文件
             </span>
@@ -258,28 +270,57 @@
               </div>
             </div>
           </div>
-          
-          <!-- 空状态 -->
-          <div class="attachments-empty" v-else>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <p>暂无附件</p>
-            <span>点击上方按钮上传文件</span>
-          </div>
         </div>
-
-        <div class="editor-footer">
-          <button class="btn" @click="showVersionHistory" :disabled="!activeDoc || isArchived">版本历史</button>
-          <button class="btn" @click="showVersionCompare" :disabled="!activeDoc || isArchived">差异对比</button>
-          <div class="flex-spacer" />
-          <button class="btn secondary" @click="toggleEditMode" v-if="!isEditing" :disabled="isArchived" :title="isArchived ? '项目已归档，仅支持查看' : '编辑文档'">
+        
+        <!-- 空状态 -->
+        <div class="attachments-empty" v-if="filteredAttachments.length === 0">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>暂无附件</p>
+          <span>点击上方按钮上传文件</span>
+        </div>
+        
+        <!-- 文档操作按钮 -->
+        <div class="document-actions" v-if="activeDoc">
+          <button 
+            class="action-btn" 
+            @click="showVersionHistory" 
+            :disabled="!activeDoc" 
+            :title="!activeDoc ? '请先选择文档' : '版本历史'"
+          >
+            版本历史
+          </button>
+          <button 
+            class="action-btn" 
+            @click="showVersionCompare" 
+            :disabled="!activeDoc" 
+            :title="!activeDoc ? '请先选择文档' : '差异对比'"
+          >
+            差异对比
+          </button>
+          <button 
+            class="action-btn" 
+            @click="toggleEditMode" 
+            v-if="!isEditing" 
+            :disabled="isArchived || !activeDoc" 
+            :title="isArchived ? '项目已归档，仅支持查看' : (!activeDoc ? '请先选择文档' : '编辑文档')"
+          >
             编辑
           </button>
-          <button class="btn secondary" @click="cancelEdit" v-if="isEditing">
+          <button 
+            class="action-btn" 
+            @click="cancelEdit" 
+            v-if="isEditing"
+          >
             取消
           </button>
-          <button class="btn primary" @click="saveDocument" :disabled="!activeDoc || saving">
+          <button 
+            class="action-btn primary" 
+            @click="saveDocument" 
+            :disabled="!activeDoc || saving" 
+            :title="!activeDoc ? '请先选择文档' : '保存文档'"
+          >
             {{ saving ? '保存中...' : (hasUnsavedChanges ? '保存*' : '已保存') }}
           </button>
         </div>
@@ -344,7 +385,7 @@
                   @focus="showNodePicker = true"
                   @input="showNodePicker = true"
                   @click="showNodePicker = true"
-                  placeholder="请选择节点（可选）"
+                  placeholder="请选择节点（必选）"
                   class="node-input"
                   autocomplete="off"
                 />
@@ -359,12 +400,6 @@
                   未找到匹配的节点
                 </div>
                 <template v-else>
-                  <div 
-                    class="node-picker-item" 
-                    :class="{ 'selected': selectedNodeId === null }"
-                    @click="selectNode(null, '根目录')">
-                    <span>根目录</span>
-                  </div>
                   <div 
                     v-for="node in filteredNodeList" 
                     :key="node.id" 
@@ -426,7 +461,7 @@
           </div>
           <div class="dialog-actions">
              <button class="btn secondary" @click="closeNewDocDialog" :disabled="isCreatingDoc">取消</button>
-             <button class="btn primary" @click="confirmNewDoc" :disabled="!selectedFile || !newDocTitle.trim() || isCreatingDoc">
+             <button class="btn primary" @click="confirmNewDoc" :disabled="!newDocTitle.trim() || isCreatingDoc">
                {{ isCreatingDoc ? '创建中...' : '确认创建' }}
              </button>
           </div>
@@ -1577,13 +1612,14 @@ export default {
         this.$message?.error('项目已归档，仅支持查看，不能新建Wiki文档')
         return
       }
-      if (!this.selectedFile) {
-        this.$message?.error('请选择要上传的Markdown文件')
-        return
-      }
       
       if (!this.newDocTitle.trim()) {
         this.$message?.error('请输入文档名称')
+        return
+      }
+      
+      if (this.selectedNodeId === null || this.selectedNodeId === undefined) {
+        this.$message?.error('请选择节点')
         return
       }
       
@@ -1606,15 +1642,18 @@ export default {
           console.log('[confirmNewDoc] 选择的父节点ID:', parentId)
         }
         
-        // 读取文件内容
-        const fileContent = await this.readFileContent(this.selectedFile)
+        // 读取文件内容（如果上传了文件）
+        let fileContent = ''
+        if (this.selectedFile) {
+          fileContent = await this.readFileContent(this.selectedFile)
+        }
         
         // 调用后端API创建Wiki文档
         const response = await wikiAPI.page.createPage({
           projectId: this.projectId,
           title: this.newDocTitle.trim(),
           pageType: 'DOCUMENT',
-          content: fileContent,
+          content: fileContent, // 如果没上传文件，这里会是空字符串
           parentId: parentId, // 作为字符串传递，后端会自动转换为Long
           isPublic: false,
           changeDescription: '创建文档'
@@ -4085,8 +4124,9 @@ export default {
   font-weight: 600;
 }
 .group-title { 
-  color: #6b7280; 
-  font-size: 12px; 
+  color: #4b5563; 
+  font-size: 16px; 
+  font-weight: 600;
   margin: 10px 0 6px; 
   display: flex;
   align-items: center;
@@ -4161,7 +4201,7 @@ export default {
   border-radius: 8px;
   cursor: pointer;
   color: #374151;
-  font-size: 13px;
+  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4171,6 +4211,7 @@ export default {
 
 .doc-list .doc-item .doc-title {
   flex: 1;
+  font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4248,10 +4289,18 @@ export default {
   margin-top: 4px;
   font-weight: 500;
 }
-.export-btn {
+
+/* 顶部操作按钮区域 */
+.doc-actions-top {
   position: absolute;
   top: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-btn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -5025,9 +5074,55 @@ export default {
   margin-top: 6px;
 }
 
-.version-actions {
-  display: flex;
+/* 文档操作按钮栏（底部，四个按钮统一样式） */
+.document-actions {
+  display: flex !important;
   gap: 8px;
+  align-items: center;
+  padding: 12px 16px;
+  margin-top: 16px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-radius: 0 0 10px 10px;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.action-btn {
+  padding: 8px 16px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 6px rgba(0, 68, 204, 0.2);
+}
+
+.action-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+  box-shadow: 0 4px 12px rgba(0, 68, 204, 0.3);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-small {

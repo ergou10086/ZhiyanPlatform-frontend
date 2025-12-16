@@ -15,12 +15,14 @@ import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
+import ProjectOperationLog from '../views/ProjectOperationLog.vue'
 import MyActivity from '../views/MyActivity.vue'
 import OAuth2Callback from '../views/OAuth2Callback.vue'
 import OAuth2Bind from '../views/OAuth2Bind.vue'
 import OAuth2Supplement from '../views/OAuth2Supplement.vue'
 import OAuth2Error from '../views/OAuth2Error.vue'
 import ChangeEmail from '../views/ChangeEmail.vue'
+import NotFound from '../views/NotFound.vue'
 
 Vue.use(VueRouter)
 
@@ -105,6 +107,11 @@ const routes = [
     component: ProjectDashboard
   },
   {
+    path: '/project-operation-log/:id',
+    name: 'ProjectOperationLog',
+    component: ProjectOperationLog
+  },
+  {
     path: '/knowledge-base',
     name: 'KnowledgeBase',
     component: KnowledgeBase,
@@ -134,12 +141,41 @@ const routes = [
     path: '/task-review',
     redirect: '/my-activity'
   },
+  {
+    path: '/docs',
+    beforeEnter(to, from, next) {
+      // 开发环境：重定向到代理路径
+      // 生产环境：直接访问静态文件（由 Nginx 或服务器处理）
+      if (process.env.NODE_ENV === 'development') {
+        // 开发环境，文档由代理处理，直接允许访问
+        next()
+      } else {
+        // 生产环境，文档是静态文件，直接允许访问
+        next()
+      }
+    }
+  },
+  // 404页面 - 必须放在最后，作为catch-all路由
+  {
+    path: '*',
+    name: 'NotFound',
+    component: NotFound
+  }
 ]
 
 const router = new VueRouter({
   mode: 'history',
   base: process.env.BASE_URL,
-  routes
+  routes,
+  // 每次路由切换后将页面滚动到顶部，避免沿用上一页的滚动位置
+  scrollBehavior(to, from, savedPosition) {
+    // 如果浏览器有记录（如浏览器前进/后退），优先使用记录的位置
+    if (savedPosition) {
+      return savedPosition
+    }
+    // 否则一律回到页面顶部
+    return { x: 0, y: 0 }
+  }
 })
 
 // 路由守卫
@@ -191,8 +227,27 @@ router.beforeEach((to, from, next) => {
     return
   }
   
+  // 个人页面特殊处理：查看自己的资料需要登录，查看他人资料允许游客访问
+  if (to.path === '/profile') {
+    // 如果有 userId 参数，说明是查看他人资料，允许访问
+    if (to.query.userId) {
+      console.log('查看他人资料，允许访问')
+      next()
+      return
+    }
+    // 如果没有 userId 参数，说明是查看自己的资料，需要登录
+    if (!isAuthenticated) {
+      console.log('未登录用户访问个人页面，重定向到登录页')
+      next({ path: '/login', replace: true })
+    } else {
+      console.log('已登录用户访问个人页面，允许访问')
+      next()
+    }
+    return
+  }
+  
   // 游客可以访问的页面
-  const guestAllowedPages = ['/home', '/project-square', '/profile']
+  const guestAllowedPages = ['/home', '/project-square']
   if (guestAllowedPages.includes(to.path)) {
     console.log('游客可访问页面，允许访问')
     next()
@@ -207,6 +262,7 @@ router.beforeEach((to, from, next) => {
     '/project-detail',
     '/project-knowledge',
     '/project-dashboard',
+    '/project-operation-log',
     '/project',
     '/my-activity'
   ]

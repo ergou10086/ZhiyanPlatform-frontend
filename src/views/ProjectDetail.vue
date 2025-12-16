@@ -33,7 +33,6 @@
         <div class="project-header-top">
           <h1 class="project-title">
             {{ project.title }}
-            <button class="dashboard-btn" @click="goToProjectDashboard">仪表盘</button>
           </h1>
           <div class="project-actions" v-if="canManageProject">
             <button class="btn secondary" @click="editProject">
@@ -105,14 +104,26 @@
               >
                 AI实验分析助手
               </button>
+              <button
+                class="btn"
+                @click="goToProjectDashboard"
+              >
+                仪表盘
+              </button>
+              <button
+                class="btn"
+                @click="goToOperationLog"
+              >
+                操作日志
+              </button>
             </div>
           </div>
           <!-- 项目图片区域 -->
           <div class="project-image-section">
             <div class="project-image-container">
               <img 
-                v-if="project.imageUrl || project.image" 
-                :src="project.imageUrl || project.image" 
+                v-if="project.image || project.imageUrl" 
+                :src="project.image || project.imageUrl" 
                 alt="项目图片" 
                 class="project-image"
                 @load="onImageLoad"
@@ -186,7 +197,7 @@
             </p>
           </div>
         </div>
-        <!-- 任务网格 -->
+        <!-- 任务列表横向滚动 -->
         <div v-else class="task-grid">
           <div v-for="task in filteredTasks" :key="task.id" class="task-card" @click="openTaskDetailModal(task)">
             <div class="task-header" @click.stop>
@@ -298,15 +309,6 @@
               <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
             </div>
           </div>
-        </div>
-        <!-- 更多按钮放在任务网格下面 -->
-        <div v-if="allTasks.length > 5" class="more-button-container">
-          <button class="more-button" @click="openTaskListModal">
-            <span class="more-text">更多</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
         </div>
       </div>
       <!-- 团队成员 -->
@@ -470,7 +472,7 @@
       </div>
     </div>
     <!-- 新建任务模态框 -->
-    <div v-if="taskModalOpen" class="modal-overlay" @click="closeTaskModal">
+    <div v-if="taskModalOpen" class="modal-overlay" @click.self="closeTaskModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">新建任务</h3>
@@ -551,7 +553,7 @@
     </div>
 
     <!-- 接取任务确认弹窗（替代浏览器 confirm） -->
-    <div v-if="claimTaskConfirmOpen" class="modal-overlay" @click="cancelClaimTask">
+    <div v-if="claimTaskConfirmOpen" class="modal-overlay" @click.self="cancelClaimTask">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">确认接取任务</h3>
@@ -575,7 +577,7 @@
     </div>
 
     <!-- 取消邀请成员确认弹窗（替代浏览器 confirm） -->
-    <div v-if="removeInviteConfirmOpen" class="modal-overlay" @click="cancelRemoveInviteSlot">
+    <div v-if="removeInviteConfirmOpen" class="modal-overlay" @click.self="cancelRemoveInviteSlot">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">取消邀请成员</h3>
@@ -596,7 +598,7 @@
     </div>
 
     <!-- 移除项目成员确认弹窗（替代浏览器 confirm） -->
-    <div v-if="removeMemberConfirmOpen" class="modal-overlay" @click="cancelRemoveMember">
+    <div v-if="removeMemberConfirmOpen" class="modal-overlay" @click.self="cancelRemoveMember">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">移除项目成员</h3>
@@ -622,7 +624,7 @@
     </div>
 
     <!-- 删除项目确认弹窗（替代浏览器 confirm） -->
-    <div v-if="deleteProjectConfirmOpen" class="modal-overlay" @click="cancelDeleteProject">
+    <div v-if="deleteProjectConfirmOpen" class="modal-overlay" @click.self="cancelDeleteProject">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">删除项目</h3>
@@ -642,7 +644,7 @@
       </div>
     </div>
     <!-- 删除任务确认弹窗（替代浏览器 confirm） -->
-    <div v-if="deleteTaskConfirmOpen" class="modal-overlay" @click="cancelDeleteTask">
+    <div v-if="deleteTaskConfirmOpen" class="modal-overlay" @click.self="cancelDeleteTask">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">删除任务</h3>
@@ -662,7 +664,7 @@
       </div>
     </div>
     <!-- 错误提示弹窗（替代浏览器 alert） -->
-    <div v-if="errorDialogOpen" class="modal-overlay" @click="closeErrorDialog">
+    <div v-if="errorDialogOpen" class="modal-overlay" @click.self="closeErrorDialog">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">提示</h3>
@@ -681,7 +683,7 @@
       </div>
     </div>
     <!-- 角色变更确认弹窗（替代浏览器 confirm） -->
-    <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click="cancelRoleChange">
+    <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click.self="cancelRoleChange">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">{{ roleChangeTitle }}</h3>
@@ -701,7 +703,7 @@
       </div>
     </div>
     <!-- 编辑项目模态框 -->
-    <div v-if="editProjectModalOpen" class="modal-overlay" @click="closeEditProjectModal">
+    <div v-if="editProjectModalOpen" class="modal-overlay" @click.self="closeEditProjectModal">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">编辑项目</h3>
@@ -777,123 +779,8 @@
         </div>
       </div>
     </div>
-    <!-- 任务列表弹窗 -->
-    <div v-if="taskListModalOpen" class="modal-overlay" @click="closeTaskListModal">
-      <div class="modal-content task-list-modal" @click.stop>
-        <div class="modal-header">
-          <h3 class="modal-title">所有任务</h3>
-          <button class="modal-close" @click="closeTaskListModal">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <div class="task-list-container">
-            <div v-for="task in allFilteredTasks" :key="task.id" class="task-list-item" @click="openTaskDetailModal(task)">
-              <div class="task-item-header" @click.stop>
-                <div class="task-priority" :class="priorityClass(task.priority)">{{ task.priority }}</div>
-                <div class="task-actions" v-if="canManageProject">
-                  <div class="task-status-dropdown">
-                    <button 
-                      class="task-status-btn" 
-                    :class="[statusClass(task.status), { 'disabled': isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '')) }]"
-                      @click="toggleTaskStatusDropdown(task)" 
-                    :title="isArchived ? '项目已归档，仅支持查看，不能更改任务状态' : (task.status === '待接取' && (!task.assignee_name || task.assignee_name === '') ? '任务未被接取，无法修改状态' : '更改状态')"
-                    :disabled="isArchived || (task.status === '待接取' && (!task.assignee_name || task.assignee_name === ''))">
-                      {{ task.status }}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    </button>
-                    <div class="task-status-menu" v-if="task.showStatusMenu">
-                      <!-- 移除"待接取"选项，用户不应该手动将任务改回待接取状态 -->
-                      <button @click="changeTaskStatus(task, '进行中')" class="status-option" :class="{ active: task.status === '进行中' }">进行中</button>
-                      <button @click="changeTaskStatus(task, '阻塞')" class="status-option" :class="{ active: task.status === '阻塞' }">阻塞</button>
-                      <button @click="changeTaskStatus(task, '待审核')" class="status-option" :class="{ active: task.status === '待审核' }">待审核</button>
-                      <button @click="changeTaskStatus(task, '完成')" class="status-option" :class="{ active: task.status === '完成' }">完成</button>
-                    </div>
-                  </div>
-                  <button
-                    class="task-edit-btn"
-                    @click="editTask(task)"
-                    :disabled="isArchived"
-                    :title="isArchived ? '项目已归档，仅支持查看，不能编辑任务' : '编辑任务'"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18.5 2.5C18.8978 2.10218 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.10218 21.5 2.5C21.8978 2.89782 22.1213 3.43739 22.1213 4C22.1213 4.56261 21.8978 5.10218 21.5 5.5L12 15L8 16L9 12L18.5 2.5Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                  <button
-                    class="task-delete-btn"
-                    @click="deleteTask(task.id)"
-                    :disabled="isArchived"
-                    :title="isArchived ? '项目已归档，仅支持查看，不能删除任务' : '删除任务'"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="task-item-content" @click="openTaskDetailModal(task)">
-                <h4 class="task-item-title">{{ task.title }}</h4>
-                <p class="task-item-description">{{ task.description }}</p>
-                <div class="task-item-meta">
-                  <span class="task-date" v-if="task.date">截止日期：{{ task.date }}</span>
-                  <span class="task-creator">创建人: {{ task.created_by_name }}</span>
-                  <span v-if="task.assignee_name" class="task-assignee">
-                    负责人: {{ task.assignee_name }}
-                  </span>
-                  <span v-if="task.participantCount" class="task-participant-count">
-                    接取人数: {{ task.assignees ? task.assignees.length : 0 }}/{{ task.participantCount }}
-                  </span>
-                </div>
-              </div>
-              <!-- 任务操作区域 - 支持多人接取 -->
-              <div class="task-item-assign" @click.stop>
-                <!-- 已完成状态 -->
-                <span v-if="task.status === '完成' || task.status === 'DONE' || task.status_value === 'DONE'" class="assign-status-badge completed">已完成</span>
-                
-                <!-- 当前用户已接取 -->
-                <template v-else-if="isCurrentUserAssignee(task)">
-                  <span class="assign-status-badge assigned-by-me">已接取</span>
-                  <!-- 归档项目不显示任何操作按钮 -->
-                  <template v-if="!isArchived">
-                    <!-- 逾期显示已逾期标识 -->
-                    <span v-if="isTaskOverdue(task)" class="overdue-badge" style="margin-left: 8px;">已逾期</span>
-                    <!-- 未逾期显示提交按钮 -->
-                    <button v-else @click="openTaskSubmissionModal(task)" class="upload-result-btn" :title="(task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务'">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  {{ (task.hasSubmission || task.status === '待审核' || task.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
-                </button>
-                  </template>
-                </template>
-                
-                <!-- 当前用户未接取，但可以接取（项目未归档时才允许） -->
-                <button
-                  v-else-if="!isArchived && canClaimTask(task)"
-                  @click="assignTask(task)"
-                  class="assign-btn"
-                  :title="isArchived ? '项目已归档，仅支持查看，不能接取任务' : '接取任务'"
-                >
-                  接取任务
-                </button>
-                
-                <!-- 任务已满员 -->
-                <span v-else-if="isTaskFull(task)" class="assign-status-badge task-full">已满员</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
     <!-- 编辑任务模态框 -->
-    <div v-if="editTaskModalOpen" class="modal-overlay" @click="closeEditTaskModal">
+    <div v-if="editTaskModalOpen" class="modal-overlay" @click.self="closeEditTaskModal">
       <div class="modal-content task-modal" @click.stop>
         <div class="modal-header">
           <h3>编辑任务</h3>
@@ -953,7 +840,7 @@
       </div>
     </div>
     <!-- 邀请成员弹窗 -->
-    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click="closeInviteMemberModal">
+    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click.self="closeInviteMemberModal">
       <div class="modal-content invite-member-modal" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">邀请成员</h3>
@@ -1059,7 +946,7 @@
       </div>
     </div>
     <!-- 任务详情弹窗 -->
-    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click="closeTaskDetailModal">
+    <div v-if="taskDetailModalOpen && selectedTask" class="modal-overlay" @click.self="closeTaskDetailModal">
       <div class="modal-content task-detail-modal" @click.stop>
         <div class="modal-header">
           <div class="task-detail-header-content">
@@ -1303,15 +1190,15 @@
             </svg>
             接取任务
           </button>
-          <!-- 更改提交按钮 - 已接取且未逾期时显示 -->
+          <!-- 更改提交按钮 - 已接取且未逾期时显示（归档项目不显示） -->
           <button 
-            v-if="isCurrentUserAssignee(selectedTask) && !isTaskOverdue(selectedTask)" 
+            v-if="!isArchived && isCurrentUserAssignee(selectedTask) && !isTaskOverdue(selectedTask)" 
             @click="openTaskSubmissionModal(selectedTask)" 
             class="btn btn-success" 
             style="margin-right: 12px;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 6px;">
               <path d="M9 11L12 14L22 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 3.58579C3.21071 3.96086 3 4.46957 3 5V19C3 19.5304 3.21071 20.0391 3.58579 20.4142C3.96086 20.7893 4.46957 21 5 21H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             {{ (selectedTask.hasSubmission || selectedTask.status === '待审核' || selectedTask.status_value === 'PENDING_REVIEW') ? '更改提交' : '提交任务' }}
           </button>
@@ -1321,7 +1208,7 @@
     </div>
     </div>
     <!-- 任务统计详情弹窗 -->
-    <div v-if="statisticsModalOpen && taskForStatistics" class="modal-overlay" @click="closeStatisticsModal">
+    <div v-if="statisticsModalOpen && taskForStatistics" class="modal-overlay" @click.self="closeStatisticsModal">
       <div class="modal-content statistics-modal" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">任务统计详情</h3>
@@ -1454,7 +1341,7 @@
     </div>
     </div>
     <!-- 分配任务模态框 -->
-    <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click="closeAssignTaskModal">
+    <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click.self="closeAssignTaskModal">
       <div class="modal-content assign-task-modal" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">分配任务</h3>
@@ -1575,6 +1462,7 @@
 import '@/assets/styles/ProjectDetail.css'
 import { normalizeProjectCoverUrl, normalizeImageUrl, getDefaultProjectImage, preloadImages } from '@/utils/imageUtils'
 import { addTimestampToUrl } from '@/utils/imageUtils'
+import { cacheProjectCoverIfNeeded, getCachedProjectCover, saveProjectCover } from '@/utils/projectImageCache'
 import TaskSubmissionModal from '@/components/TaskSubmissionModal.vue'
 import TaskSubmissionReviewModal from '@/components/TaskSubmissionReviewModal.vue'
 import { getTaskSubmissions, getLatestSubmission } from '@/api/taskSubmission'
@@ -1704,22 +1592,13 @@ export default {
       if (this.selectedTaskType) {
         tasks = tasks.filter(task => task.priority === this.selectedTaskType)
       }
-      // 按创建时间排序，返回最新的5个任务
+      // 按创建时间排序，返回所有任务（用于横向滚动展示全部任务）
       return tasks
         .sort((a, b) => new Date(b.created_at || b.id) - new Date(a.created_at || a.id))
-        .slice(0, 5)
     },
     allTasks() {
-      // 返回所有任务（用于判断是否显示更多按钮）
+      // 已不再用于“更多”按钮，仅保留兼容性
       return this.tasks
-    },
-    allFilteredTasks() {
-      // 返回所有任务（用于弹窗显示）
-      let tasks = this.tasks
-      if (this.selectedTaskType) {
-        tasks = tasks.filter(task => task.priority === this.selectedTaskType)
-      }
-      return tasks
     },
     taskCount() {
       return Array.isArray(this.tasks) ? this.tasks.length : 0
@@ -1735,10 +1614,12 @@ export default {
       return this.isArchived === true || completedStatus
     },
     canManageProject() {
-      return !this.isProjectLocked && this.isProjectManager
+      // 只检查是否已归档，不检查是否已完成，允许已完成的项目仍然可以编辑
+      return !this.isArchived && this.isProjectManager
     },
     canOperateAsOwner() {
-      return !this.isProjectLocked && this.isProjectOwner
+      // 只检查是否已归档，不检查是否已完成，允许已完成的项目仍然可以删除
+      return !this.isArchived && this.isProjectOwner
     },
     // 当前用户是否已经是项目成员（用于控制“申请加入”按钮显隐）
     isCurrentUserProjectMember() {
@@ -1870,6 +1751,18 @@ export default {
       this.handleTaskStatusUpdated,
       { debounce: 500 } // 500ms防抖，避免频繁刷新
     )
+  },
+  beforeRouteUpdate(to, from, next) {
+    // 当路由中的项目ID发生变化时，先清空当前详情，再加载新项目，避免短暂显示上一个项目
+    if (to.params && to.params.id && to.params.id !== from.params.id) {
+      this.isLoading = true
+      this.project = null
+      this.tasks = []
+      this.teamMembers = []
+      this.inviteSlots = []
+      this.loadProject(to.params.id)
+    }
+    next()
   },
   beforeDestroy() {
     document.removeEventListener('click', this.handleClickOutside)
@@ -2439,8 +2332,8 @@ export default {
         }
       }
     },
-    async loadProject() {
-      const projectId = this.$route.params.id
+    async loadProject(projectIdOverride) {
+      const projectId = projectIdOverride || this.$route.params.id
       // 先尝试从缓存加载，立即显示
       try {
         const cachedProject = localStorage.getItem(`project_detail_${projectId}`)
@@ -2448,12 +2341,37 @@ export default {
           const parsed = JSON.parse(cachedProject)
           // 检查缓存是否过期（3分钟）
           if (parsed.timestamp && Date.now() - parsed.timestamp < 3 * 60 * 1000) {
-            this.project = parsed.data.project
+            // 规范化并尝试使用封面缓存
+            const rawProject = parsed.data.project || null
+            let normalizedUrl = null
+            let finalImage = null
+            if (rawProject) {
+              normalizedUrl = normalizeProjectCoverUrl(rawProject.imageUrl || rawProject.image)
+              if (normalizedUrl) {
+                const cachedCover = getCachedProjectCover(rawProject.id, normalizedUrl)
+                finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : normalizedUrl
+              }
+            }
+
+            this.project = rawProject
+              ? {
+                  ...rawProject,
+                  image: finalImage || rawProject.image,
+                  imageUrl: normalizedUrl || rawProject.imageUrl || rawProject.image
+                }
+              : null
             this.teamMembers = parsed.data.teamMembers || []
             this.tasks = parsed.data.tasks || []
             this.isLoading = false
             // 使用缓存数据时也提前预加载项目图片和头像
             this.preloadDetailImages()
+            // 后台静默刷新封面缓存
+            try {
+              const proj = this.project
+              if (proj && proj.id && proj.imageUrl) {
+                cacheProjectCoverIfNeeded(proj.id, proj.imageUrl).catch(() => {})
+              }
+            } catch (e) {}
             // 后台更新数据（包括团队成员）
             this.loadProjectFromAPI().then(() => {
               // 在数据加载完成后再检查权限
@@ -2467,8 +2385,69 @@ export default {
           }
         }
       } catch (e) {
-        // 缓存读取失败，继续从API加载
+        // 缓存读取失败，继续后续逻辑
       }
+
+      // 如果没有可用的详情缓存，优先尝试使用项目广场列表缓存，立即渲染基础信息
+      try {
+        const savedProjects = localStorage.getItem('projects')
+        if (savedProjects) {
+          const projects = JSON.parse(savedProjects)
+          const foundProject = projects.find(p => String(p.id) === String(projectId))
+          if (foundProject) {
+            // 规范化封面 URL 并尝试使用 dataURL 缓存
+            const normalizedImageUrl = normalizeProjectCoverUrl(foundProject.imageUrl || foundProject.image)
+            const cachedCover = normalizedImageUrl
+              ? getCachedProjectCover(foundProject.id, normalizedImageUrl)
+              : null
+            const finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : normalizedImageUrl
+
+            this.project = {
+              id: foundProject.id,
+              name: foundProject.name || foundProject.title,
+              title: foundProject.title || foundProject.name,
+              description: foundProject.description || foundProject.dataAssets || foundProject.direction || '暂无描述',
+              startDate: foundProject.startDate || foundProject.start_date || '',
+              endDate: foundProject.endDate || foundProject.end_date || '',
+              period: (foundProject.start_date || foundProject.startDate) && (foundProject.end_date || foundProject.endDate) ? 
+                `${foundProject.start_date || foundProject.startDate} 至 ${foundProject.end_date || foundProject.endDate}` : 
+                '未设置',
+              status: this.getStatusValue(foundProject.status),
+              visibility: foundProject.visibility || 'PRIVATE',
+              imageUrl: normalizedImageUrl || getDefaultProjectImage('Project Image'),
+              image: finalImage || normalizedImageUrl,
+              manager: foundProject.creatorName || '未知',
+              teamSize: foundProject.teamSize,
+              category: foundProject.category,
+              aiCore: foundProject.aiCore,
+              tags: foundProject.tags || [],
+              tasks: foundProject.tasks || [],
+              created_by: foundProject.created_by || 1,
+              creatorName: foundProject.creatorName || '未知'
+            }
+            this.projectStatus = this.project.status || null
+            this.isArchived = this.projectStatus === 'ARCHIVED' || this.projectStatus === '已归档'
+            // 立即使用列表缓存中的团队成员和邀请槽
+            this.teamMembers = foundProject.teamMembers || []
+            this.inviteSlots = foundProject.inviteSlots || []
+
+            this.isLoading = false
+            // 预加载当前详情需要的图片
+            this.preloadDetailImages()
+            // 后台更新完整详情和权限
+            this.loadProjectFromAPI().then(() => {
+              this.checkAdminPermission()
+            }).catch(error => {
+              console.error('后台更新项目数据失败:', error)
+              this.checkAdminPermission()
+            })
+            return
+          }
+        }
+      } catch (e) {
+        // 使用列表缓存失败时，继续从API加载
+      }
+
       // 优先从后端API获取最新的项目数据
       try {
         const { projectAPI } = await import('@/api/project')
@@ -2486,6 +2465,10 @@ export default {
           })
           
           // 使用API返回的最新数据
+          let detailImageUrl = normalizeProjectCoverUrl(apiProject.imageUrl)
+          const cachedCover = getCachedProjectCover(apiProject.id, detailImageUrl)
+          const finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : detailImageUrl || getDefaultProjectImage('Project Image')
+
           this.project = {
             id: apiProject.id,
             name: apiProject.name,
@@ -2498,8 +2481,8 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
-            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            imageUrl: detailImageUrl || getDefaultProjectImage('Project Image'),
+            image: finalImage,
             manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
             category: apiProject.category || '其他',
@@ -2627,6 +2610,10 @@ export default {
           })
           
           // 使用API返回的最新数据
+          let detailImageUrl = normalizeProjectCoverUrl(apiProject.imageUrl)
+          const cachedCover = getCachedProjectCover(apiProject.id, detailImageUrl)
+          const finalImage = cachedCover && cachedCover.dataUrl ? cachedCover.dataUrl : detailImageUrl || getDefaultProjectImage('Project Image')
+
           this.project = {
             id: apiProject.id,
             name: apiProject.name,
@@ -2639,8 +2626,8 @@ export default {
               '未设置',
             status: apiProject.status || 'PLANNING',
             visibility: apiProject.visibility || 'PRIVATE',
-            imageUrl: normalizeProjectCoverUrl(apiProject.imageUrl) || getDefaultProjectImage('Project Image'),
-            image: normalizeProjectCoverUrl(apiProject.imageUrl),
+            imageUrl: detailImageUrl || getDefaultProjectImage('Project Image'),
+            image: finalImage,
             manager: apiProject.creatorName || '未知', // 使用项目的创建者名称作为负责人
             teamSize: apiProject.teamSize || 1,
             category: apiProject.category || '其他',
@@ -2795,6 +2782,25 @@ export default {
     goToAIAssistant() {
       const projectId = this.project?.id || this.$route.params.id
       this.$router.push({ path: '/ai-assistant', query: { projectId } })
+    },
+    goToOperationLog() {
+      const projectId = this.project?.id || this.$route.params.id
+      if (!projectId) {
+        console.error('项目ID为空，无法跳转')
+        alert('项目ID无效，无法跳转到操作日志')
+        return
+      }
+      this.$router.push({
+        name: 'ProjectOperationLog',
+        params: { id: String(projectId) }
+      }).catch(err => {
+        if (err.name !== 'NavigationDuplicated') {
+          console.error('路由跳转失败:', err)
+          this.$router.push(`/project-operation-log/${projectId}`).catch(e => {
+            console.error('路径跳转也失败:', e)
+          })
+        }
+      })
     },
     addTeamMember() {
       const name = prompt('请输入成员姓名:')
@@ -4639,29 +4645,101 @@ export default {
         }
         if (response && response.code === 200 && response.data) {
           // 更新项目图片URL
-          const imageUrl = response.data.imageUrl
-          console.log('[uploadCroppedImage] 提取到的imageUrl:', imageUrl)
-          if (!imageUrl) {
+          const rawUrl = response.data.imageUrl
+          console.log('[uploadCroppedImage] 提取到的imageUrl:', rawUrl)
+          if (!rawUrl) {
             console.warn('[uploadCroppedImage] ⚠️ 警告：imageUrl 为空或不存在！')
             console.warn('[uploadCroppedImage] response.data 的所有字段:', response.data)
             alert('上传成功但未获取到图片URL')
             return
           }
-          // ✅ 使用 Vue.set 来确保响应式更新
-          this.$set(this.project, 'imageUrl', imageUrl)
-          this.$set(this.project, 'image', imageUrl)
-          console.log('[uploadCroppedImage] 项目对象已更新:', {
+          // 规范化后端返回的 URL
+          const normalizedUrl = normalizeProjectCoverUrl(rawUrl)
+
+          // ✅ 使用裁剪后的 dataURL 作为当前页面立即显示的图片，避免闪现旧图
+          this.$set(this.project, 'image', imageDataUrl || normalizedUrl)
+          this.$set(this.project, 'imageUrl', normalizedUrl || rawUrl)
+
+          console.log('[uploadCroppedImage] 项目对象已更新为新封面:', {
             imageUrl: this.project.imageUrl,
             image: this.project.image
           })
-          // 保存到localStorage
+
+          // ✅ 覆盖本地封面缓存，使后续进入广场/详情时直接使用新图
+          try {
+            if (this.project && this.project.id) {
+              saveProjectCover(this.project.id, imageDataUrl || normalizedUrl, normalizedUrl || rawUrl)
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 覆盖封面缓存失败:', e)
+          }
+
+          // ✅ 同步更新 localStorage('projects') 中对应项目的图片字段
+          try {
+            const savedProjects = localStorage.getItem('projects')
+            if (savedProjects) {
+              const projectList = JSON.parse(savedProjects)
+              if (Array.isArray(projectList)) {
+                const updatedList = projectList.map(p => {
+                  if (!p || String(p.id) !== String(this.project.id)) return p
+                  return {
+                    ...p,
+                    image: imageDataUrl || normalizedUrl || rawUrl,
+                    imageUrl: normalizedUrl || rawUrl
+                  }
+                })
+                localStorage.setItem('projects', JSON.stringify(updatedList))
+              }
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 更新 projects 缓存失败:', e)
+          }
+
+          // ✅ 更新项目详情缓存 project_detail_<id>
+          try {
+            const projectId = this.project?.id
+            if (projectId) {
+              const cacheKey = `project_detail_${projectId}`
+              const raw = localStorage.getItem(cacheKey)
+              if (raw) {
+                const parsed = JSON.parse(raw)
+                if (parsed && parsed.data && parsed.data.project) {
+                  parsed.data.project = {
+                    ...parsed.data.project,
+                    image: imageDataUrl || normalizedUrl || rawUrl,
+                    imageUrl: normalizedUrl || rawUrl
+                  }
+                  localStorage.setItem(cacheKey, JSON.stringify(parsed))
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 更新 project_detail 缓存失败:', e)
+          }
+
+          // 保存到localStorage（保持原有逻辑，写入 this.project 及相关字段）
           this.saveProjectData()
+
+          // ✅ 通过根实例广播项目封面更新事件，通知项目广场等页面立即更新
+          try {
+            const projectId = this.project?.id
+            if (projectId && this.$root && this.$root.$emit) {
+              this.$root.$emit('projectCoverUpdated', {
+                projectId,
+                image: imageDataUrl || normalizedUrl || rawUrl,
+                imageUrl: normalizedUrl || rawUrl
+              })
+            }
+          } catch (e) {
+            console.warn('[uploadCroppedImage] 发送 projectCoverUpdated 事件失败:', e)
+          }
+
           // ✅ 强制Vue重新渲染（以防万一）
           this.$forceUpdate()
           console.log('[uploadCroppedImage] ✅ 强制更新Vue视图')
-          console.log('[uploadCroppedImage] ✅ 图片URL已设置:', imageUrl)
+          console.log('[uploadCroppedImage] ✅ 图片URL已设置并缓存:', normalizedUrl || rawUrl)
           this.showSuccessToast('项目图片上传成功！')
-          console.log('[uploadCroppedImage] 项目图片上传成功，URL:', imageUrl)
+          console.log('[uploadCroppedImage] 项目图片上传成功，新URL:', normalizedUrl || rawUrl)
         } else {
           console.error('[uploadCroppedImage] ❌ 响应不符合预期')
           console.error('[uploadCroppedImage] response:', response)

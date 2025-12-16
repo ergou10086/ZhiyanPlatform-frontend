@@ -121,6 +121,34 @@ export const profileAPI = {
   },
 
   /**
+   * 获取当前用户的关联链接
+   */
+  getMyProfileLinks() {
+    console.log('[profileAPI.getMyProfileLinks] 获取我的关联链接')
+    return api.get('/zhiyan/auth/profile/links')
+  },
+
+  /**
+   * 获取指定用户的关联链接
+   * @param {String|Number} userId 用户ID
+   */
+  getUserProfileLinks(userId) {
+    console.log('[profileAPI.getUserProfileLinks] 获取用户关联链接, userId:', userId)
+    return api.get(`/zhiyan/auth/users/${userId}/links`)
+  },
+
+  /**
+   * 更新当前用户的关联链接
+   * @param {Array<{label?: string, url: string}>} links
+   */
+  updateProfileLinks(links) {
+    console.log('[profileAPI.updateProfileLinks] 更新我的关联链接:', links)
+    return api.put('/zhiyan/auth/profile/links', {
+      links
+    })
+  },
+
+  /**
    * 获取我的学术成果关联列表
    * @returns {Promise} 返回成果关联列表
    */

@@ -3,20 +3,50 @@ import config from '@/config'
 
 /**
  * 自定义JSON解析函数 - 将大整数转换为字符串以避免精度丢失
+ * 增强健壮性：只有在看起来是 JSON 字符串时才尝试解析，
+ * 避免对错误页/纯文本执行 JSON.parse 导致控制台频繁 SyntaxError。
  */
 function parseJSONWithBigInt(data) {
   if (typeof data !== 'string') return data
+
+  const trimmed = data.trim()
+  if (!trimmed) return data
+
+  // 仅当响应内容以 "{" 或 "[" 开头时，才视为 JSON 尝试解析
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    return data
+  }
+
   try {
-    return JSON.parse(data.replace(/:(\s*)(\d{16,})/g, ':$1"$2"'))
+    // ⚠️ 必须在 JSON.parse 之前用正则替换大整数！
+    // 因为一旦 JSON.parse 执行，大整数就已经被转换成 Number，精度已丢失
+    const processedData = trimmed
+      // 匹配对象属性值中的大整数: "key": 数字 (16位及以上)
+      .replace(/:(\s*)(\d{16,})(\s*[,}\]])/g, ':$1"$2"$3')
+      // 匹配数组开头的大整数: [数字
+      .replace(/\[(\s*)(\d{16,})(\s*[,\]])/g, '[$1"$2"$3')
+      // 匹配数组中间的大整数: ,数字
+      .replace(/,(\s*)(\d{16,})(\s*[,\]])/g, ',$1"$2"$3')
+    
+    return JSON.parse(processedData)
   } catch (e) {
     console.error('JSON解析错误:', e)
+    console.error('原始数据前500字符:', trimmed.substring(0, 500))
+    // 尝试找到出错位置
+    if (e.message && e.message.includes('position')) {
+      const match = e.message.match(/position (\d+)/)
+      if (match) {
+        const pos = parseInt(match[1])
+        console.error(`出错位置附近的内容: ...${trimmed.substring(Math.max(0, pos - 50), Math.min(trimmed.length, pos + 50))}...`)
+      }
+    }
     return data
   }
 }
 
 // 创建axios实例 - 使用Vue代理
 const api = axios.create({
-  baseURL: '', // 使用相对路径，通过Vue代理转发
+  baseURL: config.api.baseURL, // 使用相对路径，通过Vue代理转发
   timeout: config.api.timeout,
   headers: {
     'Content-Type': 'application/json',
@@ -53,7 +83,24 @@ api.interceptors.request.use(
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type']
       console.log('知识库API请求 (FormData):', config.method?.toUpperCase(), config.url)
-      console.log('FormData 包含', config.data.getAll('files')?.length || 0, '个文件')
+      // 检查所有可能的文件键名
+      const fileKeys = ['file', 'files']
+      let fileCount = 0
+      for (const key of fileKeys) {
+        const files = config.data.getAll(key)
+        if (files && files.length > 0) {
+          fileCount += files.length
+          console.log(`FormData 包含 ${files.length} 个文件 (键: ${key})`)
+          files.forEach((f, i) => {
+            console.log(`  文件 ${i + 1}:`, f.name || f.fileName || '未命名', `(${f.size || 0} bytes)`)
+          })
+        }
+      }
+      // 显示所有 FormData 的键
+      console.log('FormData 所有键:', Array.from(config.data.keys()))
+      if (fileCount === 0) {
+        console.warn('⚠️ FormData 中没有找到文件！')
+      }
     } else {
       console.log('知识库API请求:', config.method?.toUpperCase(), config.url)
       console.log('请求数据:', config.data)
@@ -264,10 +311,34 @@ export const knowledgeAPI = {
    * @param {Number} achievementId - 成果ID
    */
   uploadFile(file, achievementId) {
-    console.log('[knowledgeAPI.uploadFile] 上传单个文件, achievementId:', achievementId, 'fileName:', file?.name)
+    console.log('[knowledgeAPI.uploadFile] 上传单个文件')
+    console.log('  achievementId:', achievementId, '类型:', typeof achievementId)
+    console.log('  file:', file)
+    console.log('  fileName:', file?.name)
+    console.log('  fileSize:', file?.size, 'bytes')
+    console.log('  fileType:', file?.type)
+    
+    // 验证文件对象
+    if (!file || !(file instanceof File) && !(file instanceof Blob)) {
+      console.error('❌ 文件对象无效:', file)
+      return Promise.reject(new Error('文件对象无效'))
+    }
+    
+    // 验证文件大小
+    if (file.size === 0) {
+      console.warn('⚠️ 文件大小为 0')
+    }
+    
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('achievementId', achievementId)
+    // 确保 achievementId 是字符串或数字
+    const achievementIdStr = String(achievementId)
+    formData.append('achievementId', achievementIdStr)
+    
+    console.log('FormData 已创建，包含键:', Array.from(formData.keys()))
+    console.log('FormData file 值:', formData.get('file'))
+    console.log('FormData achievementId 值:', formData.get('achievementId'))
+    
     return api.post('/zhiyan/achievement/file/upload', formData)
   },
 

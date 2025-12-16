@@ -158,7 +158,10 @@
 <script>
 import Sidebar from '@/components/Sidebar.vue'
 import { normalizeProjectCoverUrl, normalizeImageUrl, preloadImages } from '@/utils/imageUtils'
+import { cacheProjectCoverIfNeeded, getCachedProjectCover } from '@/utils/projectImageCache'
 import '@/assets/styles/ProjectSquare.css'
+import '@/assets/styles/scifiBackground.css'
+import { mountSciFiBackground, destroySciFiBackground } from '@/utils/scifiBackground'
 
 export default {
   name: 'ProjectSquare',
@@ -166,6 +169,49 @@ export default {
     Sidebar
   },
   data() {
+    // 在 data() 中同步初始化项目列表，优先使用本地缓存，避免首次挂载时出现空白
+    let initialProjects = []
+    let initialIsLoading = true
+    try {
+      const cachedProjects = localStorage.getItem('projects')
+      if (cachedProjects) {
+        const projects = JSON.parse(cachedProjects)
+        const accessibleProjects = Array.isArray(projects)
+          ? projects.filter(p => {
+              // data() 中无法访问 this.canDisplayProject，这里只做最基本的存在性检查
+              return p && (p.visibility !== 'PRIVATE' || p.visibility === 'PRIVATE')
+            })
+          : []
+        if (accessibleProjects.length > 0) {
+          initialProjects = accessibleProjects.map(project => {
+            const normalizedUrl = normalizeProjectCoverUrl(project.image || project.imageUrl)
+            const cached = normalizedUrl ? getCachedProjectCover(project.id, normalizedUrl) : null
+            const finalImage = cached && cached.dataUrl ? cached.dataUrl : normalizedUrl
+            return {
+              ...project,
+              status: project.status, // 详细的状态映射在后续 loadProjects 中会统一处理
+              image: finalImage,
+              imageUrl: normalizedUrl
+            }
+
+          // 为避免因后端排序规则变化导致项目卡片顺序抖动，统一按id升序排序
+          backendProjects = Array.isArray(backendProjects)
+            ? [...backendProjects].sort((a, b) => {
+                const idA = Number(a && a.id) || 0
+                const idB = Number(b && b.id) || 0
+                return idA - idB
+              })
+            : []
+          })
+          initialIsLoading = false
+        }
+      }
+    } catch (e) {
+      // 初始化失败时退回到空列表，由后续逻辑接管
+      initialProjects = []
+      initialIsLoading = true
+    }
+    
     return {
       sidebarOpen: false,
       searchText: '',
@@ -173,17 +219,18 @@ export default {
       statusOpen: false,
       currentPage: 1,
       pageSize: 8, // 每页显示8个项目（2行，每行4个）
-      projects: [],
+      projects: initialProjects,
       showModal: false,
       modalMessage: '',
-      isLoading: true, // 添加加载状态
+      isLoading: initialIsLoading, // 如果有本地缓存，则初始不显示 loading
       showToast: false,
       toastMessage: '',
       saveStateTimer: null, // 防抖定时器
       isAuthenticated: false,
       currentUserId: null,
       imagesReady: false,
-      loadingStartTime: 0
+      loadingStartTime: 0,
+      scifiBgCleanup: null
     }
   },
   computed: {
@@ -243,6 +290,17 @@ export default {
     
     this.loadProjects()
     document.addEventListener('click', this.handleClickOutside)
+    // 科技感背景（仅本页面，低侵入）
+    mountSciFiBackground().then((cleanup) => {
+      this.scifiBgCleanup = cleanup
+    }).catch(err => {
+      console.warn('科幻背景初始化失败，已忽略：', err)
+    })
+
+    // 监听项目封面更新事件，确保从详情页返回时项目广场立即显示新封面
+    if (this.$root && this.$root.$on) {
+      this.$root.$on('projectCoverUpdated', this.handleProjectCoverUpdated)
+    }
   },
   activated() {
     this.refreshAuthState()
@@ -287,6 +345,14 @@ export default {
     // 保存页面状态（组件销毁前）
     this.savePageState()
     document.removeEventListener('click', this.handleClickOutside)
+    if (this.scifiBgCleanup) {
+      this.scifiBgCleanup()
+      this.scifiBgCleanup = null
+    }
+
+    if (this.$root && this.$root.$off) {
+      this.$root.$off('projectCoverUpdated', this.handleProjectCoverUpdated)
+    }
   },
   methods: {
     /**
@@ -507,37 +573,51 @@ export default {
     async loadProjects(backgroundUpdate = false) {
       this.refreshAuthState()
 
-      // 非后台加载时，立即进入 loading 状态并记录开始时间（包括使用缓存的路径）
+      // 非后台加载时，优先尝试直接使用本地缓存渲染，避免出现整体 loading 态
       if (!backgroundUpdate) {
-        this.isLoading = true
-        this.loadingStartTime = Date.now()
-
-        // 先尝试从缓存加载
         const cachedProjects = localStorage.getItem('projects')
         if (cachedProjects) {
           try {
             const projects = JSON.parse(cachedProjects)
-            const accessibleProjects = projects.filter(p => this.canDisplayProject(p))
+            // 为避免因后端或缓存写入顺序变化导致卡片乱跳，先按id升序固定排序
+            const sortedProjects = Array.isArray(projects)
+              ? [...projects].sort((a, b) => {
+                  const idA = Number(a && a.id) || 0
+                  const idB = Number(b && b.id) || 0
+                  return idA - idB
+                })
+              : []
+
+            const accessibleProjects = sortedProjects.filter(p => this.canDisplayProject(p))
             if (accessibleProjects.length > 0) {
-              // 先准备好缓存数据
-              this.projects = accessibleProjects.map(project => ({
-                ...project,
-                status: this.getStatusDisplay(project.status),
-                image: normalizeProjectCoverUrl(project.image || project.imageUrl),
-                imageUrl: normalizeProjectCoverUrl(project.imageUrl || project.image)
-              }))
-              // 首次加载时，仅对当前页项目阻塞式预加载封面图，避免图片逐个出现
-              await this.preloadProjectImages(true, this.paginatedProjects)
+              // 使用缓存数据直接渲染网格
+              this.projects = accessibleProjects.map(project => {
+                const normalizedUrl = normalizeProjectCoverUrl(project.image || project.imageUrl)
+                const cached = getCachedProjectCover(project.id, normalizedUrl)
+                const finalImage = cached && cached.dataUrl ? cached.dataUrl : normalizedUrl
+                return {
+                  ...project,
+                  status: this.getStatusDisplay(project.status),
+                  image: finalImage,
+                  imageUrl: normalizedUrl
+                }
+              })
 
-              // 确保 loading 至少展示一小段时间，避免一闪而过
-              const minDuration = 1200
-              const elapsed = Date.now() - (this.loadingStartTime || Date.now())
-              if (elapsed < minDuration) {
-                await new Promise(resolve => setTimeout(resolve, minDuration - elapsed))
-              }
+              // 为当前页项目和后续页面的封面触发后台静默缓存拉取，不阻塞首屏展示
+              try {
+                const currentPageProjects = [...this.paginatedProjects]
+                setTimeout(() => {
+                  currentPageProjects.forEach(p => {
+                    if (p && p.imageUrl) {
+                      cacheProjectCoverIfNeeded(p.id, p.imageUrl).catch(() => {})
+                    }
+                  })
+                }, 0)
+              } catch (e) {}
 
+              // 首屏不再阻塞等待预加载，保持页面立即可见
               this.isLoading = false
-              // 后台更新数据
+              // 后台静默更新最新项目数据
               setTimeout(() => this.loadProjects(true), 100)
               return
             }
@@ -545,6 +625,10 @@ export default {
             // 缓存读取失败，继续从API加载
           }
         }
+
+        // 本地无可用缓存时，再进入 loading 状态
+        this.isLoading = true
+        this.loadingStartTime = Date.now()
       }
       
       try {
@@ -565,6 +649,14 @@ export default {
           } else {
             backendProjects = []
           }
+          // 统一按id升序排序，避免因为后端排序变化导致前端卡片顺序抖动
+          backendProjects = Array.isArray(backendProjects)
+            ? [...backendProjects].sort((a, b) => {
+                const idA = Number(a && a.id) || 0
+                const idB = Number(b && b.id) || 0
+                return idA - idB
+              })
+            : []
           
           // 获取localStorage中的旧项目数据（如果有的话）
           const savedProjects = localStorage.getItem('projects')
@@ -581,6 +673,10 @@ export default {
               
               // 规范化图片 URL（转换为完整的 MinIO URL）
               imageUrl = normalizeProjectCoverUrl(imageUrl)
+
+              // 尝试使用本地已缓存的 dataURL 作为封面，避免重复从网络加载
+              const cached = getCachedProjectCover(project.id, imageUrl)
+              const finalImage = cached && cached.dataUrl ? cached.dataUrl : imageUrl
               
               // 调试：检查后端返回的创建者信息
               console.log(`[ProjectSquare] 项目 ${project.id} (${project.name}) 创建者信息:`, {
@@ -605,7 +701,7 @@ export default {
                 aiCore: '待定',
                 category: project.category || '其他',
                 tags: project.tags || [],
-                image: imageUrl,
+                image: finalImage,
                 imageUrl: imageUrl,
                 startDate: project.startDate,
                 endDate: project.endDate,
@@ -631,6 +727,12 @@ export default {
                 ),
                 inviteSlots: localProject?.inviteSlots || []
               }
+            })
+            // 再按id升序排一次，确保最终 this.projects 顺序稳定
+            .sort((a, b) => {
+              const idA = Number(a && a.id) || 0
+              const idB = Number(b && b.id) || 0
+              return idA - idB
             })
             .filter(project => {
               const canShow = this.canDisplayProject(project)
@@ -658,6 +760,18 @@ export default {
           
           // 保存合并后的数据到localStorage（先保存，不等待成员数量）
           localStorage.setItem('projects', JSON.stringify(this.projects))
+
+          // 后台静默为所有项目触发封面缓存拉取，不阻塞当前渲染
+          try {
+            const projectsForCache = [...this.projects]
+            setTimeout(() => {
+              projectsForCache.forEach(p => {
+                if (p && p.imageUrl) {
+                  cacheProjectCoverIfNeeded(p.id, p.imageUrl).catch(() => {})
+                }
+              })
+            }, backgroundUpdate ? 0 : 50)
+          } catch (e) {}
           
           // 如果不是后台更新模式，在结束 loading 前，对当前页项目阻塞式预加载封面图
           if (!backgroundUpdate) {
@@ -1008,6 +1122,39 @@ export default {
         localStorage.removeItem('project_square_from_detail')
       } catch (e) {
         // 忽略错误
+      }
+    },
+    handleProjectCoverUpdated(payload) {
+      if (!payload || !payload.projectId) return
+      const { projectId, image, imageUrl } = payload
+      const idStr = String(projectId)
+
+      // 更新当前列表中的对应项目
+      const index = this.projects.findIndex(p => String(p.id) === idStr)
+      if (index !== -1) {
+        this.$set(this.projects[index], 'image', image || imageUrl)
+        this.$set(this.projects[index], 'imageUrl', imageUrl || image)
+      }
+
+      // 同步更新本地缓存（防止后续刷新丢失）
+      try {
+        const saved = localStorage.getItem('projects')
+        if (saved) {
+          const list = JSON.parse(saved)
+          if (Array.isArray(list)) {
+            const updated = list.map(p => {
+              if (!p || String(p.id) !== idStr) return p
+              return {
+                ...p,
+                image: image || imageUrl,
+                imageUrl: imageUrl || image
+              }
+            })
+            localStorage.setItem('projects', JSON.stringify(updated))
+          }
+        }
+      } catch (e) {
+        // 忽略缓存更新错误
       }
     },
     viewProjectDetail(project) {

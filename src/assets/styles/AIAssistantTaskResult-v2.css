@@ -65,6 +65,30 @@
   min-height: 0;
 }
 
+/* 中小屏：将对话模式从左右结构改为上下结构，并让文件面板始终为完整卡片 */
+@media (max-width: 1024px) {
+  .ai-assistant-container .chat-mode-content {
+    flex-direction: column;
+    height: auto;
+    gap: 12px;
+  }
+
+  .ai-assistant-container .ai-chat-section {
+    height: auto;
+  }
+
+  .ai-assistant-container .uploaded-files-panel {
+    height: auto;
+    width: 100%;
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  }
+
+  .ai-assistant-container .files-panel-body {
+    max-height: 32vh; /* 文件区域高度明显小于聊天区域，但不至于只有一条线 */
+  }
+}
+
 /* 主布局容器 */
 .ai-assistant-container .task-result-mode-content {
   display: flex;
@@ -81,12 +105,13 @@
   width: 320px;
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border-radius: 20px;
-  padding: 28px 24px;
+  padding: 24px 22px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #e5e7eb;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  /* 适当压缩整体纵向间距，为附件区域腾出空间 */
+  gap: 20px;
   flex-shrink: 0;
   height: 100%;
   overflow: visible;
@@ -94,7 +119,7 @@
 
 .ai-assistant-container .control-header {
   border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 16px;
+  padding-bottom: 12px;
 }
 
 .ai-assistant-container .control-title {
@@ -118,7 +143,8 @@
 .ai-assistant-container .control-item {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  /* 略微缩小控制项之间的间距 */
+  gap: 10px;
 }
 
 /* 附件设置区域 */
@@ -181,17 +207,32 @@
 
 .ai-assistant-container .attachment-filters .filters-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 10px;
+  /* 单列纵向排列附件，每个附件占一行 */
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 6px;
+  /* 提高附件列表可视高度，至少能看到约 4 行附件，但保留下方留白 */
+  max-height: 160px;
+  overflow-y: auto;
+  /* 只允许纵向滚动，隐藏横向滚动条 */
+  overflow-x: hidden;
+  padding-right: 4px;
 }
 
 .ai-assistant-container .attachment-filters .filter-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   font-size: 12px;
   color: #374151;
   cursor: pointer;
+}
+
+/* 附件文件名过长时自动换行，避免产生横向滚动条 */
+.ai-assistant-container .attachment-filters .filter-item span {
+  max-width: 100%;
+  word-break: break-all;
+  white-space: normal;
 }
 
 .ai-assistant-container .attachment-filters .filter-item input[type="checkbox"] {
@@ -288,6 +329,42 @@
 .ai-assistant-container .control-select option:disabled {
   color: #94a3b8;
   font-style: italic;
+}
+
+/* 文本输入框 */
+.ai-assistant-container .control-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.ai-assistant-container .control-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.ai-assistant-container .control-input:hover:not(:disabled) {
+  border-color: #5EB6E4;
+}
+
+.ai-assistant-container .control-input:focus {
+  outline: none;
+  border-color: #0044CC;
+  box-shadow: 0 0 0 3px rgba(0, 68, 204, 0.1);
+}
+
+.ai-assistant-container .control-input:disabled {
+  background: #f8f9fa;
+  color: #94a3b8;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
 }
 
 /* 下拉框增强包装：用于自定义箭头，保持与整体 UI 一致 */
@@ -1213,4 +1290,93 @@
   .ai-assistant-container .empty-state-inline p {
     font-size: 13px;
   }
+
+
+  /* 附件选择面板 */
+.attachments-panel {
+  margin-top: 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  background: #fff;
+  overflow: hidden;
+  
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: #f5f7fa;
+    border-bottom: 1px solid #e8e8e8;
+    
+    h4 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+  
+  .attachment-list {
+    max-height: 300px;
+    overflow-y: auto;
+    
+    .attachment-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      
+      &:hover {
+        background-color: #f5f7fa;
+      }
+      
+      &.is-selected {
+        background-color: #f0f7ff;
+      }
+      
+      .el-checkbox {
+        margin-right: 8px;
+      }
+      
+      .file-icon {
+        margin-right: 8px;
+        color: #606266;
+      }
+      
+      .file-name {
+        flex: 1;
+        margin: 0 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .file-size {
+        font-size: 12px;
+        color: #909399;
+        margin-right: 8px;
+      }
+    }
+    
+    .no-attachments {
+      padding: 20px;
+      text-align: center;
+      color: #909399;
+      font-size: 14px;
+    }
+  }
+}
+
+/* 上传进度 */
+.upload-progress {
+  padding: 20px;
+  
+  .progress-message {
+    margin-top: 10px;
+    text-align: center;
+    color: #606266;
+    font-size: 14px;
+  }
+}
 }

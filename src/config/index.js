@@ -1,10 +1,13 @@
 // 应用配置文件，带有安全的默认值和可选的运行时覆盖
 
+// Vue CLI 会在构建时进行静态替换
+// 生产构建时：process.env.NODE_ENV 会被替换为 'production'
+// 开发构建时：process.env.NODE_ENV 会被替换为 'development'
 const DEFAULT_HOST =
   (typeof process !== 'undefined' && process.env && process.env.VUE_APP_API_BASE_URL) ||
   (process.env.NODE_ENV === 'production'
-    ? 'https://your-production-api.com'
-    : 'http://localhost:9006')
+    ? 'https://api.zyplatform.xyz'   // 生产环境使用相对路径，由 Nginx 代理转发
+    : 'http://localhost:9006')  // 开发环境使用本地后端
 
 const DEFAULTS = {
   api: {
@@ -24,6 +27,16 @@ const DEFAULTS = {
   app: {
     name: '智研平台',
     version: '1.0.0'
+  },
+  // 文档配置
+  docs: {
+    // 开发环境：使用代理路径
+    // 生产环境：使用相对路径（静态文件）
+    baseURL: process.env.NODE_ENV === 'production'
+        ? '/docs/'
+        : '/docs/',
+    // 开发环境 VuePress 服务器地址（仅用于代理）
+    devServer: 'http://localhost:8012'
   },
   storage: {
     tokenKey: 'access_token',
@@ -71,5 +84,9 @@ export const MINIO_BUCKET = config.minio?.bucket || DEFAULTS.minio.bucket
 export const AUTH_API_URL = config.api?.endpoints?.auth || DEFAULTS.api.endpoints.auth
 export const KNOWLEDGE_API_URL = config.api?.endpoints?.knowledge || DEFAULTS.api.endpoints.knowledge
 export const PROJECT_API_URL = config.api?.endpoints?.project || DEFAULTS.api.endpoints.project
+
+// 导出文档配置
+export const DOCS_BASE_URL = config.docs?.baseURL || DEFAULTS.docs.baseURL
+export const DOCS_DEV_SERVER = config.docs?.devServer || DEFAULTS.docs.devServer
 
 export default config

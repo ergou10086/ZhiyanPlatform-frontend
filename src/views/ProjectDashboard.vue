@@ -70,26 +70,19 @@
             </div>
           </div>
 
-          <!-- 任务状态分布卡片 -->
+          <!-- 任务状态分布卡片（使用 Chart.js 饼图） -->
           <div class="chart-card-modern status-distribution">
             <div class="chart-header">
               <h3 class="chart-title">任务状态分布</h3>
               <div class="chart-subtitle">实时任务进度概览</div>
             </div>
             <div class="chart-body">
-              <div class="pie-chart-wrapper" v-if="pieSegments.length">
-                <svg class="pie-svg" viewBox="0 0 200 200">
-                  <g>
-                    <path
-                      v-for="segment in pieSegments"
-                      :key="segment.key"
-                      :d="getPiePath(segment.animatedStartAngle, segment.animatedEndAngle)"
-                      :fill="segment.color"
-                      @mousemove="showTooltip($event, segment.label, segment.value, `个（${segment.percent}%）`)"
-                      @mouseleave="hideTooltip"
-                    />
-                  </g>
-                </svg>
+              <div class="pie-chart-wrapper" v-if="statusChartData">
+                <status-pie-chart
+                  :key="statusChartKey"
+                  :chart-data="statusChartData"
+                  :options="statusChartOptions"
+                />
               </div>
               <div class="pie-empty" v-else>暂无任务数据</div>
               <div class="legend-modern">
@@ -362,43 +355,6 @@
             <div class="task-list-header">
               <span class="task-list-title">成果详情</span>
               <span class="task-list-count">共 {{ achievements.length }} 个成果</span>
-              <!-- 导出按钮 -->
-              <div class="export-dropdown" @click.stop>
-                <button class="export-btn" @click="toggleExportMenu">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M17 8L12 13L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M12 3V13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                  <span>导出</span>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="dropdown-arrow" :class="{ 'rotated': showExportMenu }">
-                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
-                </button>
-                <div v-if="showExportMenu" class="export-menu">
-                  <div class="export-menu-item" @click="exportAchievements('csv')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>导出为 CSV</span>
-                  </div>
-                  <div class="export-menu-item" @click="exportAchievements('excel')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M14 2V8H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>导出为 Excel</span>
-                  </div>
-                  <div class="export-menu-item" @click="exportAchievements('json')">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4 7C4 6.46957 4.21071 5.96086 4.58579 5.58579C4.96086 5.21071 5.46957 5 6 5H20C20.5304 5 21.0391 5.21071 21.4142 5.58579C21.7893 5.96086 22 6.46957 22 7V19C22 19.5304 21.7893 20.0391 21.4142 20.4142C21.0391 20.7893 20.5304 21 20 21H6C5.46957 21 4.96086 20.7893 4.58579 20.4142C4.21071 20.0391 4 19.5304 4 19V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M8 12L10 14L16 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>导出为 JSON</span>
-                  </div>
-                </div>
-              </div>
             </div>
             <div class="task-list-items">
               <div 
@@ -674,7 +630,7 @@
               <!-- 下方：任务完成时间线散点图 -->
               <div class="card glass gradient-border chart-item timeline-chart-item">
                 <div class="card-title timeline-title">任务完成时间线</div>
-                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0">
+                <div class="task-timeline-scatter" v-if="taskCompletionTimeline.length > 0" @click="handleTimelineOutsideClick">
                   <svg viewBox="0 0 700 160" preserveAspectRatio="xMidYMid meet" class="timeline-scatter-svg">
                     <defs>
                       <radialGradient id="bubbleGradient1" cx="30%" cy="30%">
@@ -708,7 +664,24 @@
                       <text v-for="(member, i) in timelineMemberNames" :key="'member-' + i" :x="getTimelineMemberX(i)" y="155" text-anchor="middle" class="axis-label member-label">{{ truncateMemberName(member) }}</text>
                     </g>
                     <g class="scatter-bubbles" :class="{ 'bubbles-animated': timelineScatterAnimated }">
-                      <circle v-for="(point, i) in taskCompletionTimeline" :key="'bubble-' + i" :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)" :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)" :r="getBubbleRadius(i, point)" :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`" :class="['task-bubble', `bubble-float-${(i % 3) + 1}`]" :style="{ '--delay': `${i * 0.1}s` }" @mouseenter="showTimelineTooltip($event, point)" @mousemove="updateTimelineTooltip($event)" @mouseleave="hideTimelineTooltip"/>
+                      <circle
+                        v-for="(point, i) in taskCompletionTimeline"
+                        :key="'bubble-' + i"
+                        :cx="getTimelineMemberX(point.memberIndex) + getBubbleOffsetX(i, point)"
+                        :cy="getTimelineDateY(point.completedDate) + getBubbleOffsetY(i, point)"
+                        :r="getBubbleRadius(i, point)"
+                        :fill="`url(#bubbleGradient${(point.memberIndex % 5) + 1})`"
+                        :class="[
+                          'task-bubble',
+                          `bubble-float-${(i % 3) + 1}`,
+                          { 'bubble-exploding': activeTimelineBubbleIndex === i }
+                        ]"
+                        :style="{
+                          '--delay': `${i * 0.1}s`,
+                          opacity: timelineTooltip.show && activeTimelineBubbleIndex === i ? 0 : 1
+                        }"
+                        @click.stop="handleTimelineBubbleClick($event, point, i)"
+                      />
                     </g>
                   </svg>
                   <div v-if="timelineTooltip.show" class="timeline-scatter-tooltip" :style="{ left: timelineTooltip.x + 'px', top: timelineTooltip.y + 'px' }">
@@ -858,9 +831,47 @@
 
 <script>
 import { getLatestSubmission, getTaskSubmissions } from '@/api/taskSubmission'
+import { Pie, mixins } from 'vue-chartjs'
+import Chart from 'chart.js'
+
+const { reactiveProp } = mixins
+
+const StatusPieChart = {
+  extends: Pie,
+  mixins: [reactiveProp],
+  props: ['chartData', 'options'],
+  mounted() {
+    if (this.chartData) {
+      this.renderChart(this.chartData, this.options || {})
+    }
+  },
+  watch: {
+    chartData: {
+      deep: true,
+      handler(newVal) {
+        if (newVal) {
+          this.renderChart(newVal, this.options || {})
+        }
+      }
+    },
+    options: {
+      deep: true,
+      handler(newOptions) {
+        if (this.chartData) {
+          this.renderChart(this.chartData, newOptions || {})
+        }
+      }
+    }
+  }
+}
+
+Chart.defaults.global.defaultFontFamily = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif"
 
 export default {
   name: 'ProjectDashboard',
+  components: {
+    StatusPieChart
+  },
   data() {
     return {
       // 加载状态
@@ -900,6 +911,8 @@ export default {
       statusCounts: { pendingReview: 0, doing: 0, blocked: 0, done: 0 },
       // 饼图动画进度 (0-1)
       pieAnimationProgress: 0,
+      // Chart.js 饼图组件 key，用于在每次进入路由时强制重新挂载以触发动画
+      statusChartKey: Date.now(),
       // 从后端获取的完整任务列表（真实任务数据）
       allTasks: [],
       // 从后端获取的已完成任务列表（真实完成任务数据）
@@ -950,6 +963,8 @@ export default {
       timelineMemberNames: [],
       // 时间线日期范围
       timelineDateRange: { min: null, max: null },
+      // 当前被点击触发动画的时间线气泡索引
+      activeTimelineBubbleIndex: null,
       // 时间线tooltip
       timelineTooltip: {
         show: false,
@@ -979,67 +994,69 @@ export default {
     // 可按需通过项目ID拉取统计数据：this.$route.params.id
   },
   async mounted() {
-    // 启动粒子背景
-    this.initParticles()
-    window.addEventListener('resize', this.resizeCanvas)
-    
-    // 添加滚动监听，用于检测何时滚动到图表section
-    this.setupScrollObserver()
-    
-    // 点击外部关闭导出菜单
-    document.addEventListener('click', this.handleClickOutside)
-    
-    // 优化加载策略：先加载关键数据，立即显示页面
-    try {
-      this.isLoading = true
-      this.loadingProgress = 10
-      
-      // 第一步：并行加载关键数据（第一屏需要的数据）
-      // 使用快速模式：先加载前几页任务，剩余任务异步加载
-      const [allTasks, projectMembers] = await Promise.all([
-        this.fetchAllTasks(true), // 快速模式
-        this.loadProjectMembers()
-      ])
-      
-      this.allTasks = allTasks
-      this.loadingProgress = 40
-      
-      // 第二步：加载第一屏的关键数据（KPI和任务统计）
-      await Promise.all([
-        this.loadTaskStatistics(allTasks),
-        this.loadMemberWorktimes(allTasks)
-      ])
-      
-      this.loadingProgress = 60
-      
-      // 立即显示页面（关键数据已加载完成）
+    // 每次首次挂载时重置饼图 key，确保进入页面时播放一次动画
+    this.statusChartKey = Date.now()
+
+    // 固定加载遮罩显示约 2 秒，之后无论接口是否完成都先展示页面
+    this.isLoading = true
+    this.loadingProgress = 10
+    setTimeout(() => {
       this.isLoading = false
       this.loadingProgress = 100
-      
-      // 数字滚动动画
-      Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
-      // 饼图动画
-      this.animatePieChart()
-      
-      // 第三步：异步加载非关键数据（不阻塞页面显示）
-      // 使用 requestIdleCallback 或 setTimeout 延迟加载，避免阻塞主线程
-      setTimeout(() => {
-        Promise.all([
-          this.loadCompletionTrend(),
-          this.loadAchievements(),
-          this.loadTaskSubmissions(),
-          this.loadWikiStatistics(),
-          this.loadMilestoneTasks()
-        ]).catch(error => {
-          console.error('[ProjectDashboard] 非关键数据加载失败:', error)
-        })
-      }, 100)
-      
-    } catch (error) {
-      console.error('[ProjectDashboard] 加载关键数据失败:', error)
-      // 即使关键数据加载失败，也显示页面
-      this.isLoading = false
-    }
+    }, 2000)
+
+    // 优化加载策略：保持原有数据加载流程，但不再由其控制遮罩，只负责填充数据
+    ;(async () => {
+      try {
+        // 第一步：并行加载关键数据（第一屏需要的数据）
+        // 使用快速模式：先加载前几页任务，剩余任务异步加载
+        const [allTasks, projectMembers] = await Promise.all([
+          this.fetchAllTasks(true), // 快速模式
+          this.loadProjectMembers()
+        ])
+
+        this.allTasks = allTasks
+        this.loadingProgress = 40
+
+        // 第二步：仅加载首屏必须的 KPI / 任务统计
+        await this.loadTaskStatistics(allTasks)
+        this.loadingProgress = 70
+
+        // 在关键数据渲染完成后，再延迟初始化与数据无关的效果和监听
+        setTimeout(() => {
+          // 启动粒子背景
+          this.initParticles()
+          window.addEventListener('resize', this.resizeCanvas)
+
+          // 添加滚动监听，用于检测何时滚动到图表section
+          this.setupScrollObserver()
+
+          // 点击外部关闭导出菜单
+          document.addEventListener('click', this.handleClickOutside)
+        }, 0)
+
+        // 数字滚动动画 + 饼图动画
+        Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
+        this.animatePieChart()
+
+        // 第三步：其余统计和图表异步加载（不再阻塞界面显示）
+        setTimeout(() => {
+          Promise.all([
+            this.loadMemberWorktimes(allTasks),
+            this.loadCompletionTrend(),
+            this.loadAchievements(),
+            this.loadTaskSubmissions(),
+            this.loadWikiStatistics(),
+            this.loadMilestoneTasks()
+          ]).catch(error => {
+            console.error('[ProjectDashboard] 非关键数据加载失败:', error)
+          })
+        }, 50)
+      } catch (error) {
+        console.error('[ProjectDashboard] 加载关键数据失败:', error)
+        // 即使关键数据加载失败，也显示页面（遮罩已由定时器控制关闭）
+      }
+    })()
   },
   beforeDestroy() {
     cancelAnimationFrame(this.rafId)
@@ -1052,6 +1069,58 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
   },
   computed: {
+    statusChartData() {
+      const total = Object.values(this.statusCounts).reduce((sum, v) => sum + v, 0)
+      if (!total) {
+        return null
+      }
+
+      const labels = ['待审核', '进行中', '阻塞', '已完成']
+      const data = [
+        this.statusCounts.pendingReview || 0,
+        this.statusCounts.doing || 0,
+        this.statusCounts.blocked || 0,
+        this.statusCounts.done || 0
+      ]
+
+      return {
+        labels,
+        datasets: [
+          {
+            data,
+            backgroundColor: ['#60a5fa', '#3b82f6', '#f59e0b', '#10b981'],
+            borderWidth: 0
+          }
+        ]
+      }
+    },
+    statusChartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        legend: {
+          display: false
+        },
+        animation: {
+          animateScale: true,
+          animateRotate: true,
+          duration: 800,
+          easing: 'easeOutQuart'
+        },
+        tooltips: {
+          callbacks: {
+            label: (tooltipItem, data) => {
+              const dataset = data.datasets[tooltipItem.datasetIndex]
+              const value = dataset.data[tooltipItem.index] || 0
+              const total = dataset.data.reduce((sum, v) => sum + v, 0) || 1
+              const percent = Math.round((value / total) * 100)
+              const label = data.labels[tooltipItem.index] || ''
+              return `${label}: ${value}个（${percent}%）`
+            }
+          }
+        }
+      }
+    },
     // 计算总工时
     totalWorktime() {
       return this.memberWorktimes.reduce((sum, member) => sum + (member.worktime || 0), 0)
@@ -1204,8 +1273,13 @@ export default {
         return 10
       }
       const maxTotal = Math.max(...this.memberContributionData.map(m => m.wikiCount + m.achievementCount))
-      // 向上取整到合适的刻度
-      return Math.max(Math.ceil(maxTotal / 5) * 5, 5)
+      const maxWiki = Math.max(...this.memberContributionData.map(m => m.wikiCount))
+      const maxAchievement = Math.max(...this.memberContributionData.map(m => m.achievementCount))
+      // 确保即使wikiCount很小，也能在图表中显示
+      // 如果maxTotal太小，至少使用maxWiki和maxAchievement中的较大值
+      const minMax = Math.max(maxWiki, maxAchievement, 1)
+      // 向上取整到合适的刻度，但至少保证最小值
+      return Math.max(Math.ceil(Math.max(maxTotal, minMax) / 5) * 5, 5)
     },
     // 检查是否有Wiki数据
     hasWikiData() {
@@ -1242,7 +1316,24 @@ export default {
         // 计算成果区域的顶部位置（Wiki区域的底部）
         const achievementTopY = chartBottom - (member.achievementCount / maxY) * chartHeight
         // 计算Wiki区域的顶部位置（从成果顶部向上堆叠）
-        const wikiTopY = achievementTopY - (member.wikiCount / maxY) * chartHeight
+        let wikiTopY = achievementTopY
+        
+        // 只有当wikiCount > 0时才计算Wiki区域
+        if (member.wikiCount > 0) {
+          // 计算Wiki区域的理论高度
+          const wikiHeight = (member.wikiCount / maxY) * chartHeight
+          wikiTopY = achievementTopY - wikiHeight
+          
+          // 确保Wiki区域至少有最小高度（至少8像素），即使wikiCount很小
+          const heightDiff = achievementTopY - wikiTopY
+          if (heightDiff < 8) {
+            // 如果高度差太小，至少显示8像素，确保可见
+            wikiTopY = Math.max(achievementTopY - 8, 30) // 至少8像素高度，但不超过图表顶部
+          }
+        } else {
+          // 如果wikiCount为0，wikiTopY应该等于achievementTopY（高度为0）
+          wikiTopY = achievementTopY
+        }
         
         topPathPoints.push({ x, y: wikiTopY })
         bottomPathPoints.push({ x, y: achievementTopY })
@@ -1256,12 +1347,17 @@ export default {
         const top = topPathPoints[0]
         const bottom = bottomPathPoints[0]
         // 确保有高度差，即使很小也要显示
-        if (Math.abs(top.y - bottom.y) < 0.1) {
-          // 如果高度差太小，至少显示1像素
-          const adjustedTop = Math.max(top.y - 1, 30)
-          return `M ${chartLeft} ${bottom.y} L ${chartLeft} ${adjustedTop} L ${chartRight} ${adjustedTop} L ${chartRight} ${bottom.y} Z`
+        const heightDiff = Math.abs(top.y - bottom.y)
+        if (heightDiff < 8) {
+          // 如果高度差太小，至少显示8像素，确保可见
+          const adjustedTop = Math.max(bottom.y - 8, 30)
+          const path = `M ${chartLeft} ${bottom.y} L ${chartLeft} ${adjustedTop} L ${chartRight} ${adjustedTop} L ${chartRight} ${bottom.y} Z`
+          console.log('[ProjectDashboard] 单个数据点Wiki路径:', { top: adjustedTop, bottom: bottom.y, heightDiff: 8, path })
+          return path
         }
-        return `M ${chartLeft} ${bottom.y} L ${chartLeft} ${top.y} L ${chartRight} ${top.y} L ${chartRight} ${bottom.y} Z`
+        const path = `M ${chartLeft} ${bottom.y} L ${chartLeft} ${top.y} L ${chartRight} ${top.y} L ${chartRight} ${bottom.y} Z`
+        console.log('[ProjectDashboard] 单个数据点Wiki路径:', { top: top.y, bottom: bottom.y, heightDiff, path })
+        return path
       }
       
       // 多个数据点时，构建堆叠面积图
@@ -1269,6 +1365,19 @@ export default {
       const firstBottom = bottomPathPoints[0]
       const lastTop = topPathPoints[topPathPoints.length - 1]
       const lastBottom = bottomPathPoints[bottomPathPoints.length - 1]
+      
+      // 检查是否有有效的Wiki区域（至少有一个点的高度差>0）
+      const hasValidWikiArea = topPathPoints.some((top, i) => {
+        const bottom = bottomPathPoints[i]
+        const heightDiff = Math.abs(top.y - bottom.y)
+        return heightDiff > 1 // 至少1像素的高度差
+      })
+      
+      if (!hasValidWikiArea) {
+        // 如果没有有效的Wiki区域，返回空路径
+        console.warn('[ProjectDashboard] 没有有效的Wiki区域，所有点的高度差都太小')
+        return ''
+      }
       
       // 从左侧边界开始，到第一个数据点的底部
       let path = `M ${chartLeft} ${firstBottom.y} L ${firstBottom.x} ${firstBottom.y}`
@@ -1288,6 +1397,16 @@ export default {
       
       // 返回到左侧边界并闭合
       path += ` L ${chartLeft} ${firstBottom.y} Z`
+      
+      // 调试信息
+      console.log('[ProjectDashboard] Wiki路径计算:', {
+        hasWikiData: hasWiki,
+        memberData: data.map(m => ({ name: m.name, wikiCount: m.wikiCount, achievementCount: m.achievementCount })),
+        maxY: maxY,
+        topPoints: topPathPoints,
+        bottomPoints: bottomPathPoints,
+        pathLength: path.length
+      })
       
       return path
     },
@@ -1345,6 +1464,13 @@ export default {
 
       this.scrollObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
+          // 监听顶部 KPI 区（包含任务状态分布饼图）
+          if (entry.target.classList.contains('kpi-section')) {
+            if (entry.isIntersecting) {
+              // 每次滚动回到这一屏时，重置饼图 key，强制重新挂载以触发 Chart.js 动画
+              this.statusChartKey = Date.now()
+            }
+          }
           if (entry.target.classList.contains('charts-section')) {
             if (entry.isIntersecting) {
               console.log('[ProjectDashboard] 图表section进入视口，触发动画')
@@ -1379,6 +1505,10 @@ export default {
 
       // 监听图表section
       this.$nextTick(() => {
+        const kpiSection = this.$el.querySelector('.kpi-section')
+        if (kpiSection) {
+          this.scrollObserver.observe(kpiSection)
+        }
         const chartsSection = this.$el.querySelector('.charts-section')
         if (chartsSection) {
           this.scrollObserver.observe(chartsSection)
@@ -1497,6 +1627,27 @@ export default {
         backgroundColor: backgroundColor,
         minHeight: `${Math.max(size * 2, 80)}px`  // 增加到80px，高度更大
       }
+    },
+
+    /**
+     * 点击时间线气泡：触发爆炸动画并显示任务信息
+     */
+    handleTimelineBubbleClick(event, point, index) {
+      // 触发当前气泡的爆炸动画，并记录当前激活的气泡
+      this.activeTimelineBubbleIndex = index
+
+      // 稍微延迟再显示 tooltip，让信息像是从爆炸中“生长”出来
+      setTimeout(() => {
+        this.showTimelineTooltip(event, point)
+      }, 150)
+    },
+
+    /**
+     * 点击时间线空白区域：关闭任务信息并恢复气泡
+     */
+    handleTimelineOutsideClick() {
+      this.hideTimelineTooltip()
+      this.activeTimelineBubbleIndex = null
     },
 
     /**
@@ -2836,16 +2987,16 @@ export default {
         if (treeResponse && treeResponse.code === 200 && treeResponse.data) {
           const wikiTree = treeResponse.data
           
-          // 统计每个成员的Wiki文档数量
-          const memberWikiCount = new Map()
+          // 统计每个成员的Wiki文档数量（优先按成员ID聚合，保证与成果负责人能对上）
+          const memberWikiMap = new Map() // key: id:xxx 或 name:xxx -> { memberId, name, count }
           let totalCount = 0
           
-          // 构建成员ID到名称的映射
+          // 构建成员ID到统一显示名称的映射
           const memberIdToName = new Map()
           if (Array.isArray(this.projectMembers)) {
             this.projectMembers.forEach(m => {
-              const id = String(m.userId || m.id)
-              const name = m.nickname || m.username || m.name
+              const id = String(m.userId || m.id || '')
+              const name = m.nickname || m.username || m.name || m.realName
               if (id && name) {
                 memberIdToName.set(id, name)
               }
@@ -2858,31 +3009,39 @@ export default {
             
             pages.forEach(page => {
               const pageType = page.pageType || page.type || ''
-              // 判断是否为文档：pageType为DOCUMENT，或者没有子节点
               const hasChildren = page.children && Array.isArray(page.children) && page.children.length > 0
+              // 判断是否为文档：pageType为DOCUMENT，或者没有子节点
               const isDocument = pageType === 'DOCUMENT' || pageType === 'document' || !hasChildren
               
-              // 只统计文档类型，不统计目录/节点
               if (isDocument) {
                 totalCount++
                 
-                // 获取创建者ID和名称
-                const creatorId = String(page.creatorId || page.createdBy || page.authorId || '')
-                const creatorName = page.creatorName || page.createdByName || page.authorName || null
+                // 获取创建者ID和名称（来自后端 WikiPageTreeDTO）
+                const rawCreatorId = page.creatorId
+                const creatorId = rawCreatorId != null ? String(rawCreatorId) : ''
+                const creatorName = page.creatorName || null
                 
-                let memberName = null
-                
-                // 优先使用创建者名称
-                if (creatorName && creatorName !== '未知') {
-                  memberName = creatorName
-                } else if (creatorId && creatorId !== '' && creatorId !== 'undefined') {
-                  // 从成员映射中查找
-                  memberName = memberIdToName.get(creatorId)
+                // 统一的展示名称：优先项目成员里的名称
+                let displayName = null
+                if (creatorId && creatorId !== 'undefined') {
+                  displayName = memberIdToName.get(creatorId) || creatorName
+                } else {
+                  displayName = creatorName
                 }
                 
-                if (memberName && memberName !== '未知') {
-                  memberWikiCount.set(memberName, (memberWikiCount.get(memberName) || 0) + 1)
+                if (!displayName || displayName === '未知') {
+                  return
                 }
+                
+                // 聚合Key：优先按ID聚合，如果没有ID就按名称聚合
+                const key = creatorId && creatorId !== 'undefined' ? `id:${creatorId}` : `name:${displayName}`
+                const existing = memberWikiMap.get(key) || { memberId: creatorId || null, name: displayName, count: 0 }
+                existing.count += 1
+                // 如果之前没有名称，用当前名称填充
+                if (!existing.name) {
+                  existing.name = displayName
+                }
+                memberWikiMap.set(key, existing)
               }
               
               // 递归处理子页面
@@ -2901,16 +3060,20 @@ export default {
             countWikiByCreator(wikiTree.pages)
           }
           
-          // 保存统计结果
+          // 保存统计结果：同时带上 memberId，方便前端按ID合并
           this.wikiStatistics = {
             totalPages: totalCount,
-            memberStats: Array.from(memberWikiCount.entries()).map(([name, count]) => ({
-              memberName: name,
-              documentCount: count
+            memberStats: Array.from(memberWikiMap.values()).map(stat => ({
+              memberId: stat.memberId,
+              memberName: stat.name,
+              documentCount: stat.count
             }))
           }
           this.totalWikiCount = totalCount
           
+          console.log('[ProjectDashboard] Wiki统计数据:', this.wikiStatistics)
+          console.log('[ProjectDashboard] 项目成员列表:', this.projectMembers)
+
           // 更新成员贡献数据
           this.updateMemberContributionData()
         } else {
@@ -2931,9 +3094,10 @@ export default {
      * 更新成员贡献数据（合并Wiki和成果数据）
      */
     updateMemberContributionData() {
-      const memberMap = new Map()
+      // 使用统一的 key 聚合成员数据：优先按成员ID，其次按名称
+      const memberMap = new Map() // key: id:xxx 或 name:xxx -> { name, wikiCount, achievementCount }
       
-      // 1）先根据成果统计每个成员的成果数量
+      // 1）根据成果统计每个成员的成果数量
       if (Array.isArray(this.achievements) && this.achievements.length > 0) {
         this.achievements.forEach(achievement => {
           // 优先使用负责人姓名，与左侧列表保持一致
@@ -2944,18 +3108,19 @@ export default {
             memberName = null
           }
           
+          // 同时尝试获取成员ID
+          const rawMemberId = achievement.creatorId || achievement.responsibleId || achievement.ownerId
+          const memberId = rawMemberId != null ? String(rawMemberId) : ''
+          
           // 如果没有有效姓名，尝试通过成员ID在项目成员列表中反查
-          if (!memberName) {
-            const memberId = achievement.creatorId || achievement.responsibleId
-            if (memberId && Array.isArray(this.projectMembers) && this.projectMembers.length > 0) {
-              const member = this.projectMembers.find(m => 
-                String(m.userId) === String(memberId) || 
-                String(m.id) === String(memberId) ||
-                String(m.user?.id) === String(memberId)
-              )
-              if (member) {
-                memberName = member.nickname || member.username || member.name || member.realName || member.user?.nickname || member.user?.username
-              }
+          if (!memberName && memberId && Array.isArray(this.projectMembers) && this.projectMembers.length > 0) {
+            const member = this.projectMembers.find(m => 
+              String(m.userId) === memberId || 
+              String(m.id) === memberId ||
+              String(m.user?.id) === memberId
+            )
+            if (member) {
+              memberName = member.nickname || member.username || member.name || member.realName || member.user?.nickname || member.user?.username
             }
           }
           
@@ -2963,24 +3128,70 @@ export default {
             return
           }
           
-          if (!memberMap.has(memberName)) {
-            memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
+          // 统一的聚合key
+          const key = memberId ? `id:${memberId}` : `name:${memberName}`
+          if (!memberMap.has(key)) {
+            memberMap.set(key, { name: memberName, wikiCount: 0, achievementCount: 0 })
           }
-          memberMap.get(memberName).achievementCount++
+          memberMap.get(key).achievementCount++
         })
       }
       
-      // 2）合并 Wiki 统计的真实数据
+      // 2）合并 Wiki 统计的真实数据（优先按ID匹配成果中的成员）
       if (this.wikiStatistics && Array.isArray(this.wikiStatistics.memberStats) && this.wikiStatistics.memberStats.length > 0) {
         this.wikiStatistics.memberStats.forEach(stat => {
-          const memberName = stat.memberName || stat.name
           const wikiCount = stat.documentCount || stat.count || 0
-          if (memberName && wikiCount > 0) {
-            if (!memberMap.has(memberName)) {
-              memberMap.set(memberName, { name: memberName, wikiCount: 0, achievementCount: 0 })
+          if (!wikiCount || wikiCount <= 0) return
+          
+          const rawMemberId = stat.memberId
+          const memberId = rawMemberId != null ? String(rawMemberId) : ''
+          const memberNameFromStat = stat.memberName || stat.name
+          
+          let key = null
+          let displayName = memberNameFromStat
+          
+          // 如果有ID，优先按ID聚合
+          if (memberId) {
+            key = `id:${memberId}`
+            // 如果成果中已存在该ID的成员，则沿用那里的显示名称
+            const existing = memberMap.get(key)
+            if (existing && existing.name) {
+              displayName = existing.name
+            } else if (!displayName && Array.isArray(this.projectMembers)) {
+              const member = this.projectMembers.find(m => 
+                String(m.userId) === memberId || 
+                String(m.id) === memberId ||
+                String(m.user?.id) === memberId
+              )
+              if (member) {
+                displayName = member.nickname || member.username || member.name || member.realName || member.user?.nickname || member.user?.username
+              }
             }
-            memberMap.get(memberName).wikiCount = wikiCount
           }
+          
+          // 如果没有ID，或者按ID没找到，则退回按名称聚合
+          if (!key) {
+            // 先尝试在现有映射中找到同名成员
+            let foundKey = null
+            if (displayName) {
+              for (const [k, v] of memberMap.entries()) {
+                if (v.name === displayName) {
+                  foundKey = k
+                  break
+                }
+              }
+            }
+            key = foundKey || (displayName ? `name:${displayName}` : null)
+          }
+          
+          if (!key || !displayName) {
+            return
+          }
+          
+          if (!memberMap.has(key)) {
+            memberMap.set(key, { name: displayName, wikiCount: 0, achievementCount: 0 })
+          }
+          memberMap.get(key).wikiCount = wikiCount
         })
       }
       
@@ -4129,7 +4340,8 @@ export default {
   overflow-y:scroll;
   scroll-snap-type:y mandatory;
   scroll-behavior:smooth;
-  background:linear-gradient(135deg, #f0f9ff 0%, #faf5ff 50%, #f0f9ff 100%);
+  /* 使用全局背景变量，白天为浅色，黑夜为深色 */
+  background: var(--bg-secondary);
 }
 
 /* 隐藏滚动条但保留滚动功能 */
@@ -4310,7 +4522,8 @@ export default {
 
 /* 现代统计卡片 */
 .stat-card-modern {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  /* 使用主题主背景，跟随明暗模式 */
+  background: var(--bg-primary, #ffffff);
   border-radius: 20px;
   padding: 24px 24px;
   box-shadow: 
@@ -4322,7 +4535,7 @@ export default {
   position: relative;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid var(--border-primary, rgba(226, 232, 240, 0.8));
 }
 
 .stat-card-modern::before {
@@ -4406,7 +4619,7 @@ export default {
 
 /* 现代图表卡片 */
 .chart-card-modern {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: var(--bg-primary, #ffffff);
   border-radius: 20px;
   padding: 20px;
   box-shadow: 
@@ -4494,14 +4707,15 @@ export default {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #f8fafc;
+  /* 使用主题背景，暗色模式下会变成深色卡片 */
+  background: var(--bg-primary, #f8fafc);
   border-radius: 12px;
   transition: all 0.3s ease;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-primary, transparent);
 }
 
 .legend-item-modern:hover {
-  background: #f1f5f9;
+  background: var(--bg-tertiary, #f1f5f9);
   transform: translateX(4px);
 }
 
@@ -4515,19 +4729,21 @@ export default {
 .legend-text {
   font-size: 13px;
   font-weight: 600;
-  color: #475569;
+  /* 文字使用主题颜色，暗色模式下变为浅色 */
+  color: var(--text-primary, #475569);
   flex: 1;
 }
 
 .legend-value {
   font-size: 16px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text-primary, #111827);
 }
 
 .legend-percent {
   font-size: 12px;
   font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
   color: #94a3b8;
   padding: 2px 8px;
   background: white;
@@ -4594,6 +4810,8 @@ export default {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 1;
 }
 
 .task-list-title {
@@ -4617,6 +4835,7 @@ export default {
 .export-dropdown {
   position: relative;
   display: inline-block;
+  z-index: 10;
 }
 
 .export-btn {
@@ -5006,6 +5225,21 @@ export default {
   padding-bottom: 8px;
 }
 
+.task-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+  margin-bottom: 2px;
+}
+
+.task-item-assignee {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-secondary, #6b7280);
+}
+
 .commit-message {
   font-size: 15px;
   font-weight: 600;
@@ -5384,6 +5618,7 @@ export default {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5651,6 +5886,7 @@ export default {
     linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0)) border-box,
     linear-gradient(135deg,#cfe8ff 0%, #b6e3ff 30%, #a5f3fc 100%) border-box;
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;
 }
 .gradient-border::after{
@@ -6159,6 +6395,7 @@ export default {
   line-height:1.4;
   display:-webkit-box;
   -webkit-line-clamp:2;
+  line-clamp: 2;
   -webkit-box-orient:vertical;
   overflow:hidden;
 }
@@ -7222,6 +7459,11 @@ export default {
   filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35)) brightness(1.15);
 }
 
+/* 点击时的爆炸动画状态（使用更高优先级，覆盖浮动动画） */
+.timeline-scatter-svg .scatter-bubbles.bubbles-animated .task-bubble.bubble-exploding {
+  animation: bubbleExplode 0.6s ease-out forwards !important;
+}
+
 /* 入场动画 */
 @keyframes bubbleEnter {
   0% {
@@ -7234,6 +7476,24 @@ export default {
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* 气泡爆炸动画：快速放大并淡出，再回到正常状态由 JS 移除 class */
+@keyframes bubbleExplode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.8);
+    opacity: 0.9;
+    filter: drop-shadow(0 8px 26px rgba(59, 130, 246, 0.55));
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+    filter: drop-shadow(0 0 0 rgba(0, 0, 0, 0));
   }
 }
 
@@ -7330,6 +7590,246 @@ export default {
   color: #94a3b8;
   font-size: 14px;
 }
+
+/* =========================
+   深色模式适配（整体仪表盘）
+   ========================= */
+/* 由于本文件样式未使用主题变量，这里通过 dark-mode 统一覆盖主要卡片与文字颜色 */
+:deep(html.dark-mode) .dashboard-container {
+  color: #e5e7eb;
+}
+
+:deep(html.dark-mode) .dashboard-container .stat-card-modern,
+:deep(html.dark-mode) .dashboard-container .chart-card-modern,
+:deep(html.dark-mode) .dashboard-container .member-task-chart-card,
+:deep(html.dark-mode) .dashboard-container .submission-stats-card,
+:deep(html.dark-mode) .dashboard-container .submission-timeline-card,
+:deep(html.dark-mode) .dashboard-container .member-task-item,
+:deep(html.dark-mode) .dashboard-container .card.glass,
+:deep(html.dark-mode) .dashboard-container .charts-grid .chart-item {
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* 仪表盘内主要标题/文字颜色变亮 */
+:deep(html.dark-mode) .dashboard-container .page-title,
+:deep(html.dark-mode) .dashboard-container .stat-label,
+:deep(html.dark-mode) .dashboard-container .stat-value,
+:deep(html.dark-mode) .dashboard-container .stat-description,
+:deep(html.dark-mode) .dashboard-container .chart-title,
+:deep(html.dark-mode) .dashboard-container .chart-subtitle,
+:deep(html.dark-mode) .dashboard-container .task-item-name,
+:deep(html.dark-mode) .dashboard-container .task-item-assignee span,
+:deep(html.dark-mode) .dashboard-container .legend-text,
+:deep(html.dark-mode) .dashboard-container .legend-value,
+:deep(html.dark-mode) .dashboard-container .card .card-title,
+:deep(html.dark-mode) .dashboard-container .timeline-task-name,
+:deep(html.dark-mode) .dashboard-container .member-task-item .task-item-name,
+:deep(html.dark-mode) .dashboard-container .charts-grid .card-title {
+  color: #e5e7eb;
+}
+
+/* 次级文字微微变暗但保持可读 */
+:deep(html.dark-mode) .dashboard-container .task-item-assignee,
+:deep(html.dark-mode) .dashboard-container .task-item-assignee span,
+:deep(html.dark-mode) .dashboard-container .timeline-meta,
+:deep(html.dark-mode) .dashboard-container .timeline-time,
+:deep(html.dark-mode) .dashboard-container .no-data-hint {
+  color: #9ca3af;
+}
+
+/* 仪表盘卡片边框在暗色下使用深色描边 */
+:deep(html.dark-mode) .dashboard-container .stat-card-modern,
+:deep(html.dark-mode) .dashboard-container .chart-card-modern,
+:deep(html.dark-mode) .dashboard-container .member-task-chart-card,
+:deep(html.dark-mode) .dashboard-container .submission-stats-card,
+:deep(html.dark-mode) .dashboard-container .submission-timeline-card,
+:deep(html.dark-mode) .dashboard-container .charts-grid .chart-item {
+  border-color: #1f2937;
+}
+
+/* 左侧任务列表小卡片在暗色模式下使用深色背景与浅色文字 */
+:deep(html.dark-mode) .dashboard-container .task-item-compact {
+  background: #020617;
+  border-color: #1f2937;
+}
+
+:deep(html.dark-mode) .dashboard-container .task-item-compact .task-item-name {
+  color: #f9fafb;
+}
+
+:deep(html.dark-mode) .dashboard-container .task-item-compact .task-item-assignee {
+  color: #cbd5e1;
+}
 </style>
 
+<!-- 全局样式：确保左侧任务列表在黑夜模式下为黑框白字 -->
+<style>
+html.dark-mode .dashboard-container .task-item-compact {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
 
+html.dark-mode .dashboard-container .task-item-compact .task-item-name {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .dashboard-container .task-item-compact .task-item-assignee {
+  color: #cbd5e1 !important;
+}
+/* 可视化图表相关卡片：黑夜模式下改为深色背景 */
+html.dark-mode .dashboard-container .kpi-card,
+html.dark-mode .dashboard-container .kpi-card-large,
+html.dark-mode .dashboard-container .stat-card,
+html.dark-mode .dashboard-container .achievement-card,
+html.dark-mode .dashboard-container .achievements-list-card,
+html.dark-mode .dashboard-container .member-contribution-chart,
+html.dark-mode .dashboard-container .submission-stats-card,
+html.dark-mode .dashboard-container .submission-timeline-card,
+html.dark-mode .dashboard-container .member-task-chart-card,
+html.dark-mode .dashboard-container .line-chart,
+html.dark-mode .dashboard-container .line-chart-empty,
+html.dark-mode .dashboard-container .bar-chart-empty,
+html.dark-mode .dashboard-container .pie-empty {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .line-chart .empty-text,
+html.dark-mode .dashboard-container .bar-chart-empty .empty-text {
+  color: #9ca3af !important;
+}
+
+/* 成员任务负载卡片在黑夜模式下使用深色背景 */
+html.dark-mode .dashboard-container .card.glass.gradient-border {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
+
+/* 里程碑时间线左侧任务卡片：黑夜模式下黑框白字 */
+html.dark-mode .dashboard-container .timeline .steps li {
+  background: #020617 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .timeline .steps li .name {
+  color: #f9fafb !important;
+}
+
+html.dark-mode .dashboard-container .timeline .steps li .date,
+html.dark-mode .dashboard-container .timeline .steps li .milestone-members span {
+  color: #cbd5e1 !important;
+}
+
+/* 成果列表相关样式在黑夜模式下的修复 */
+html.dark-mode .dashboard-container .task-list-compact {
+  background: #020617 !important;
+  border-color: #1f2937 !important;
+}
+
+html.dark-mode .dashboard-container .task-list-header {
+  border-bottom-color: #1f2937 !important;
+}
+
+html.dark-mode .dashboard-container .task-list-title,
+html.dark-mode .dashboard-container .task-list-count {
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .achievement-type-badge-small {
+  background: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+
+html.dark-mode .dashboard-container .achievement-list-empty .empty-text {
+  color: #9ca3af !important;
+}
+
+/* 成果类型徽章在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .badge-paper {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+  color: #dbeafe !important;
+}
+
+html.dark-mode .dashboard-container .badge-patent {
+  background: linear-gradient(135deg, #92400e 0%, #b45309 100%) !important;
+  color: #fef3c7 !important;
+}
+
+html.dark-mode .dashboard-container .badge-dataset {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+  color: #d1fae5 !important;
+}
+
+html.dark-mode .dashboard-container .badge-model {
+  background: linear-gradient(135deg, #6b21a8 0%, #7c3aed 100%) !important;
+  color: #e9d5ff !important;
+}
+
+html.dark-mode .dashboard-container .badge-report {
+  background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%) !important;
+  color: #fecaca !important;
+}
+
+html.dark-mode .dashboard-container .badge-custom {
+  background: linear-gradient(135deg, #3730a3 0%, #4f46e5 100%) !important;
+  color: #e0e7ff !important;
+}
+
+html.dark-mode .dashboard-container .badge-default {
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
+  color: #f1f5f9 !important;
+}
+
+/* 成果日期在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .achievement-date {
+  color: #94a3b8 !important;
+}
+
+html.dark-mode .dashboard-container .achievement-date svg {
+  color: #64748b !important;
+}
+
+/* 任务列表计数标签在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .task-list-count {
+  background: #374151 !important;
+  color: #d1d5db !important;
+}
+
+/* 成果状态点在黑夜模式下的样式 */
+html.dark-mode .dashboard-container .task-item-status.status-paper {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-patent {
+  background: #f59e0b !important;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-dataset {
+  background: #10b981 !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-model {
+  background: #8b5cf6 !important;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-report {
+  background: #ef4444 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-custom {
+  background: #6366f1 !important;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6) !important;
+}
+
+html.dark-mode .dashboard-container .task-item-status.status-default {
+  background: #64748b !important;
+  box-shadow: 0 0 8px rgba(100, 116, 139, 0.6) !important;
+}
+</style>
