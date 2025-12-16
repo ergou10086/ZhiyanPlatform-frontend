@@ -67,10 +67,15 @@
             >
               <div class="task-info">
                 <h4 class="task-name">{{ task.title }}</h4>
-                <p class="task-due">截止日期：{{ formatDueDate(task.dueDate) }}</p>
+                <p class="task-due">{{ formatTaskDueDate(task) }}</p>
               </div>
-              <div class="task-badge" :class="getPriorityClass(task.priority)">
-                {{ getPriorityText(task.priority) }}
+              <div class="task-badges">
+                <div class="task-status-badge" :class="getStatusClass(task.status)">
+                  {{ getStatusText(task.status) }}
+                </div>
+                <div class="task-badge" :class="getPriorityClass(task.priority)">
+                  {{ getPriorityText(task.priority) }}
+                </div>
               </div>
             </div>
           </div>
@@ -119,10 +124,15 @@
               >
                 <div class="task-info">
                   <h4 class="task-name">{{ task.title }}</h4>
-                  <p class="task-due">{{ formatDueDate(task.dueDate) }}</p>
+                  <p class="task-due">{{ formatTaskDueDate(task) }}</p>
                 </div>
-                <div class="task-badge" :class="getPriorityClass(task.priority)">
-                  {{ getPriorityText(task.priority) }}
+                <div class="task-badges">
+                  <div class="task-status-badge" :class="getStatusClass(task.status)">
+                    {{ getStatusText(task.status) }}
+                  </div>
+                  <div class="task-badge" :class="getPriorityClass(task.priority)">
+                    {{ getPriorityText(task.priority) }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -331,6 +341,7 @@ export default {
           if (!task.dueDate) {
             return false
           }
+          
           const due = new Date(task.dueDate)
           due.setHours(0, 0, 0, 0)
           const t = due.getTime()
@@ -431,6 +442,83 @@ export default {
         return `已逾期${Math.abs(diffDays)}天`
       }
     },
+    /**
+     * 根据任务状态格式化截止日期显示
+     */
+    formatTaskDueDate(task) {
+      if (!task.dueDate) return '未设置截止日期'
+      
+      const status = String(task.status || '').trim().toUpperCase()
+      const isDone = status === 'DONE' || status === '已完成'
+      
+      const dueDate = new Date(task.dueDate)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      dueDate.setHours(0, 0, 0, 0)
+      
+      const diffTime = dueDate - today
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      // 如果任务已完成，显示完成状态而不是逾期
+      if (isDone) {
+        if (diffDays < 0) {
+          return `截止日期：${this.formatDateString(task.dueDate)}（已完成）`
+        } else {
+          return `截止日期：${this.formatDateString(task.dueDate)}`
+        }
+      }
+      
+      // 未完成的任务，显示逾期或剩余天数
+      if (diffDays === 0) {
+        return '今天截止'
+      } else if (diffDays === 1) {
+        return '明天截止'
+      } else if (diffDays === 2) {
+        return '后天截止'
+      } else if (diffDays > 0) {
+        return `${diffDays}天后截止`
+      } else {
+        return `已逾期${Math.abs(diffDays)}天`
+      }
+    },
+    /**
+     * 格式化日期字符串为 YYYY-MM-DD
+     */
+    formatDateString(dateStr) {
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    },
+    /**
+     * 获取任务状态文本
+     */
+    getStatusText(status) {
+      const statusMap = {
+        'TODO': '待办',
+        'IN_PROGRESS': '进行中',
+        'PENDING_REVIEW': '待审核',
+        'DONE': '已完成',
+        'REJECTED': '已打回'
+      }
+      const statusUpper = String(status || '').trim().toUpperCase()
+      return statusMap[statusUpper] || status || '待办'
+    },
+    /**
+     * 获取任务状态样式类
+     */
+    getStatusClass(status) {
+      const statusUpper = String(status || '').trim().toUpperCase()
+      const classMap = {
+        'TODO': 'status-todo',
+        'IN_PROGRESS': 'status-in-progress',
+        'PENDING_REVIEW': 'status-pending-review',
+        'DONE': 'status-done',
+        'REJECTED': 'status-rejected'
+      }
+      return classMap[statusUpper] || 'status-todo'
+    },
     getPriorityText(priority) {
       const map = {
         'HIGH': '高优先级',
@@ -462,6 +550,7 @@ export default {
         if (!task.dueDate) {
           return false
         }
+        
         const dueDate = new Date(task.dueDate)
         dueDate.setHours(0, 0, 0, 0)
         return dueDate.getTime() === targetDate.getTime()
@@ -677,13 +766,56 @@ export default {
   margin: 0;
 }
 
+/* 任务徽章容器 */
+.task-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+/* 任务状态徽章 */
+.task-status-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  padding: 3px 8px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+
+.task-status-badge.status-todo {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.task-status-badge.status-in-progress {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.task-status-badge.status-pending-review {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.task-status-badge.status-done {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.task-status-badge.status-rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* 优先级徽章 */
 .task-badge {
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
-  padding: 4px 8px;
+  padding: 3px 8px;
   border-radius: var(--radius-md);
   white-space: nowrap;
-  flex-shrink: 0;
 }
 
 .task-badge.priority-high {
