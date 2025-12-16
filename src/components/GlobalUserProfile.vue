@@ -241,17 +241,28 @@ export default {
 .global-user-profile {
   position: relative;
   z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .global-user-profile.floating {
-  position: fixed;
-  top: 8px;
-  right: 20px;
+  position: relative;
+  /* 移除固定定位，由父容器控制位置 */
   z-index: 10003;
   display: flex;
   align-items: center;
   gap: 12px; /* 切换按钮和用户信息之间的间距 */
   /* 切换按钮在模板中已经放在用户信息之前，所以不需要反转 */
+  flex-shrink: 0;
+}
+
+/* 当不在浮动模式时，也使用相同的布局 */
+.global-user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .user-profile {
@@ -306,7 +317,11 @@ export default {
   font-weight: 500;
   color: #333;
   font-size: 14px;
-  /* 不限制用户名长度，允许完整显示 */
+  /* 限制用户名最大宽度，防止过长导致遮挡 */
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-menu {
