@@ -244,10 +244,8 @@ export default {
 }
 
 .global-user-profile.floating {
-  position: fixed;
-  top: 8px;
-  right: 20px;
-  z-index: 10003;
+  /* 由外层 App.vue 的 global-header-right 统一控制 fixed 定位 */
+  position: static;
   display: flex;
   align-items: center;
   gap: 12px; /* 切换按钮和用户信息之间的间距 */
