@@ -42,7 +42,7 @@ const BACKEND_DIFY_CONFIG = {
 }
 
 // 知识库工作流专用基础路径
-const KNOWLEDGE_BASE_URL = '/zhiyan/ai/dify/knowledge'
+const KNOWLEDGE_BASE_URL = config.api.baseURL + '/zhiyan/ai/dify/knowledge'
 
 // 创建Dify API客户端
 const api = axios.create({

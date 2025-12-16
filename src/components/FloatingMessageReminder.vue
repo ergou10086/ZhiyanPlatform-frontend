@@ -530,7 +530,8 @@ export default {
   right: 0;
   bottom: 100px; /* 稍微靠上，避免贴到底部 */
   transform: none;
-  z-index: 9999;
+  /* 提高层级，确保在所有业务弹窗和确认框之上，但低于错误对话框 */
+  z-index: 15000;
   transition: all 0.3s ease;
   pointer-events: auto;
 }
@@ -595,6 +596,8 @@ export default {
   /* 面板本身不滚动，由内部内容区域滚动 */
   overflow: hidden;
   min-height: 0;
+  /* 确保面板也在最顶层 */
+  z-index: 15001;
 }
 
 .panel-header {

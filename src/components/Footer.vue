@@ -33,9 +33,9 @@
           <div class="footer-section">
             <h3 class="section-title">文档资源</h3>
             <ul class="link-list">
-              <li><a href="http://localhost:8002" target="_blank" class="footer-link">帮助文档</a></li>
-              <li><a href="http://localhost:8002/get-started.html" target="_blank" class="footer-link">快速开始</a></li>
-              <li><a href="http://localhost:8002/API.html" target="_blank" class="footer-link">API文档</a></li>
+              <li><a :href="docsBaseUrl" class="footer-link">帮助文档</a></li>
+              <li><a :href="docsBaseUrl + 'get-started.html'" class="footer-link">快速开始</a></li>
+              <li><a :href="docsBaseUrl + 'API.html'" class="footer-link">API文档</a></li>
               <li><a href="#" class="footer-link">使用指南</a></li>
             </ul>
           </div>
@@ -115,8 +115,16 @@
 </template>
 
 <script>
+import { DOCS_BASE_URL } from '@/config'
+
 export default {
-  name: 'Footer'
+  name: 'Footer',
+  computed: {
+    docsBaseUrl() {
+      // 使用配置的文档基础 URL，默认为 '/docs/'
+      return DOCS_BASE_URL || '/docs/'
+    }
+  }
 }
 </script>
 

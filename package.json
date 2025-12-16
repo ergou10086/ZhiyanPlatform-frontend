@@ -8,7 +8,10 @@
     "build": "vue-cli-service build",
     "dev": "vue-cli-service serve",
     "docs:dev": "cd docs && npm run docs:dev",
-    "start": "npm-run-all --parallel serve docs:dev"
+    "docs:build": "cd docs && npm run docs:build",
+    "start": "npm-run-all --parallel serve docs:dev",
+    "build:all": "npm run docs:build && npm run build && npm run docs:deploy",
+    "docs:deploy": "mkdir -p dist/docs && cp -r docs/.vuepress/dist/* dist/docs/"
   },
   "dependencies": {
     "axios": "^0.27.2",
