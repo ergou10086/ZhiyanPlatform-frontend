@@ -31,7 +31,11 @@
               :class="{
                 'current-month': day.isCurrentMonth,
                 'today': day.isToday,
-                'selected': selectedDate && day.date && selectedDate.toDateString() === day.date.toDateString()
+                'selected': selectedDate && day.date && selectedDate.toDateString() === day.date.toDateString(),
+                'has-tasks': day.hasTasks,
+                'priority-high': day.highestPriority === 'HIGH',
+                'priority-medium': day.highestPriority === 'MEDIUM',
+                'priority-low': day.highestPriority === 'LOW'
               }"
               @click="selectDate(day)"
             >
@@ -195,11 +199,19 @@ export default {
       for (let day = 1; day <= lastDay.getDate(); day++) {
         const date = new Date(year, month, day)
         const today = new Date()
+        date.setHours(0, 0, 0, 0)
+        
+        // 获取该日期的任务和最高优先级
+        const dayTasks = this.getTasksForDate(date)
+        const highestPriority = this.getHighestPriority(dayTasks)
+        
         days.push({
           day: day,
           isCurrentMonth: true,
           isToday: date.toDateString() === today.toDateString(),
-          date: date
+          date: date,
+          hasTasks: dayTasks.length > 0,
+          highestPriority: highestPriority
         })
       }
 
@@ -435,6 +447,47 @@ export default {
       }
       return map[priority] || 'priority-medium'
     },
+    /**
+     * 获取指定日期的所有任务
+     */
+    getTasksForDate(date) {
+      if (!this.myTasks || this.myTasks.length === 0) {
+        return []
+      }
+      
+      const targetDate = new Date(date)
+      targetDate.setHours(0, 0, 0, 0)
+      
+      return this.myTasks.filter(task => {
+        if (!task.dueDate) {
+          return false
+        }
+        const dueDate = new Date(task.dueDate)
+        dueDate.setHours(0, 0, 0, 0)
+        return dueDate.getTime() === targetDate.getTime()
+      })
+    },
+    /**
+     * 获取任务列表中的最高优先级
+     * 优先级顺序：HIGH > MEDIUM > LOW
+     */
+    getHighestPriority(tasks) {
+      if (!tasks || tasks.length === 0) {
+        return null
+      }
+      
+      const priorities = tasks.map(task => task.priority || 'MEDIUM')
+      
+      if (priorities.includes('HIGH')) {
+        return 'HIGH'
+      } else if (priorities.includes('MEDIUM')) {
+        return 'MEDIUM'
+      } else if (priorities.includes('LOW')) {
+        return 'LOW'
+      }
+      
+      return null
+    }
   }
 }
 </script>
@@ -891,6 +944,85 @@ export default {
   border: 2px solid var(--primary-color);
 }
 
+/* 有任务的日期标记样式 */
+.day.has-tasks {
+  position: relative;
+}
+
+.day.has-tasks.priority-high {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+  font-weight: var(--font-semibold);
+  border: 2px solid #ef4444;
+}
+
+.day.has-tasks.priority-high:hover {
+  background: linear-gradient(135deg, #fecaca, #fca5a5);
+  transform: scale(1.1);
+}
+
+.day.has-tasks.priority-medium {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+  font-weight: var(--font-semibold);
+  border: 2px solid #f59e0b;
+}
+
+.day.has-tasks.priority-medium:hover {
+  background: linear-gradient(135deg, #fde68a, #fcd34d);
+  transform: scale(1.1);
+}
+
+.day.has-tasks.priority-low {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+  font-weight: var(--font-semibold);
+  border: 2px solid #10b981;
+}
+
+.day.has-tasks.priority-low:hover {
+  background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+  transform: scale(1.1);
+}
+
+/* 如果日期是今天且有任务，优先级颜色优先于今天的样式 */
+.day.today.has-tasks.priority-high {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+  border: 2px solid #ef4444;
+}
+
+.day.today.has-tasks.priority-medium {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+  border: 2px solid #f59e0b;
+}
+
+.day.today.has-tasks.priority-low {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+  border: 2px solid #10b981;
+}
+
+/* 如果日期被选中且有任务，优先级颜色优先于选中样式 */
+.day.selected.has-tasks.priority-high {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #dc2626;
+  border: 2px solid #ef4444;
+}
+
+.day.selected.has-tasks.priority-medium {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #d97706;
+  border: 2px solid #f59e0b;
+}
+
+.day.selected.has-tasks.priority-low {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #059669;
+  border: 2px solid #10b981;
+}
+
 .day:not(.current-month) {
   color: var(--text-disabled);
 }
@@ -1266,6 +1398,75 @@ export default {
   background: #334155 !important;
   color: #60a5fa !important;
   border-color: #60a5fa !important;
+}
+
+/* 暗色模式下的任务优先级标记 */
+.dark-mode .right-sidebar .day.has-tasks.priority-high {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b) !important;
+  color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+}
+
+.dark-mode .right-sidebar .day.has-tasks.priority-high:hover {
+  background: linear-gradient(135deg, #991b1b, #b91c1c) !important;
+}
+
+.dark-mode .right-sidebar .day.has-tasks.priority-medium {
+  background: linear-gradient(135deg, #78350f, #92400e) !important;
+  color: #fcd34d !important;
+  border-color: #f59e0b !important;
+}
+
+.dark-mode .right-sidebar .day.has-tasks.priority-medium:hover {
+  background: linear-gradient(135deg, #92400e, #a16207) !important;
+}
+
+.dark-mode .right-sidebar .day.has-tasks.priority-low {
+  background: linear-gradient(135deg, #064e3b, #065f46) !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+}
+
+.dark-mode .right-sidebar .day.has-tasks.priority-low:hover {
+  background: linear-gradient(135deg, #065f46, #047857) !important;
+}
+
+/* 暗色模式下今天且有任务的样式 */
+.dark-mode .right-sidebar .day.today.has-tasks.priority-high {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b) !important;
+  color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+}
+
+.dark-mode .right-sidebar .day.today.has-tasks.priority-medium {
+  background: linear-gradient(135deg, #78350f, #92400e) !important;
+  color: #fcd34d !important;
+  border-color: #f59e0b !important;
+}
+
+.dark-mode .right-sidebar .day.today.has-tasks.priority-low {
+  background: linear-gradient(135deg, #064e3b, #065f46) !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
+}
+
+/* 暗色模式下选中且有任务的样式 */
+.dark-mode .right-sidebar .day.selected.has-tasks.priority-high {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b) !important;
+  color: #fca5a5 !important;
+  border-color: #ef4444 !important;
+}
+
+.dark-mode .right-sidebar .day.selected.has-tasks.priority-medium {
+  background: linear-gradient(135deg, #78350f, #92400e) !important;
+  color: #fcd34d !important;
+  border-color: #f59e0b !important;
+}
+
+.dark-mode .right-sidebar .day.selected.has-tasks.priority-low {
+  background: linear-gradient(135deg, #064e3b, #065f46) !important;
+  color: #6ee7b7 !important;
+  border-color: #10b981 !important;
 }
 
 .dark-mode .right-sidebar .day:not(.current-month) {

@@ -1,4 +1,3 @@
 node_modules
 
-/docs/docs/.vuepress/.cache/
-/docs/docs/.vuepress/.temp/
+/bin/

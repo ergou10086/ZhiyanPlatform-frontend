@@ -12,6 +12,8 @@
  * - /zhiyan/* → http://localhost:8091 (其他API默认使用认证服务，端口8091)
  */
 module.exports = {
+  publicPath: process.env.NODE_ENV === 'production' ? '/' : '/',
+
   devServer: {
     port: 8001,
     host: '0.0.0.0',
@@ -27,6 +29,14 @@ module.exports = {
     compress: false,
     
     proxy: {
+      // VuePress 文档代理（开发环境）
+      '/docs': {
+        target: 'http://localhost:8012',
+        changeOrigin: true,
+        secure: false,
+        ws: true,
+        logLevel: 'debug',
+      },
       '/zhiyan/message': {
         target: 'http://localhost:9006',
         changeOrigin: true,
