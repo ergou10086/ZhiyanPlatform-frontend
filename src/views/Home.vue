@@ -413,6 +413,10 @@ export default {
     // 监听任务状态变化事件，刷新任务列表
     this.$root.$on('taskStatusChanged', this.handleTaskStatusChanged)
 
+    // 页面重新聚焦/可见时触发一次全局未读刷新（替代后台轮询）
+    window.addEventListener('focus', this.handleWindowFocusForMessages)
+    document.addEventListener('visibilitychange', this.handleVisibilityChangeForMessages)
+
     // 仅首页启用科技感背景（低侵入）
     mountSciFiBackground().then((cleanup) => {
       this.scifiBgCleanup = cleanup
@@ -425,6 +429,8 @@ export default {
     document.removeEventListener('click', this.handleClickOutside)
     // 移除任务状态变化事件监听
     this.$root.$off('taskStatusChanged', this.handleTaskStatusChanged)
+    window.removeEventListener('focus', this.handleWindowFocusForMessages)
+    document.removeEventListener('visibilitychange', this.handleVisibilityChangeForMessages)
     if (this.scifiBgCleanup) {
       this.scifiBgCleanup()
       this.scifiBgCleanup = null
@@ -590,6 +596,18 @@ export default {
     },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
+    },
+    handleWindowFocusForMessages() {
+      this.emitRefreshUnreadCount()
+    },
+    handleVisibilityChangeForMessages() {
+      if (document.visibilityState === 'visible') {
+        this.emitRefreshUnreadCount()
+      }
+    },
+    emitRefreshUnreadCount() {
+      // 通知全局消息组件刷新未读数，避免依赖轮询
+      this.$root.$emit('refreshUnreadCount')
     },
     closeSidebar() {
       this.sidebarOpen = false

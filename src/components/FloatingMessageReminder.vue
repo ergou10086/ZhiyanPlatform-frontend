@@ -137,7 +137,14 @@ export default {
         // 首次加载使用静默模式，避免一开始就出现 loading 闪烁
         this.loadProjectMessages(true)
       })
+      // 页面重新聚焦/前后台切换时静默刷新，替代定时轮询
+      window.addEventListener('focus', this.handleWindowFocus)
+      document.addEventListener('visibilitychange', this.handleVisibilityChange)
     }
+  },
+  beforeDestroy() {
+    window.removeEventListener('focus', this.handleWindowFocus)
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
   },
   methods: {
     // 鼠标移入悬浮入口，展开并尝试刷新一次最新消息
@@ -151,6 +158,17 @@ export default {
       if (!this.isLoadingMessages) {
         // 鼠标悬停时是用户主动查看，保留可见的加载态
         this.loadProjectMessages(false)
+      }
+    },
+    // 页面从后台切回或窗口聚焦时静默刷新消息
+    handleWindowFocus() {
+      if (this.isHomePage) {
+        this.loadProjectMessages(true)
+      }
+    },
+    handleVisibilityChange() {
+      if (document.visibilityState === 'visible' && this.isHomePage) {
+        this.loadProjectMessages(true)
       }
     },
 

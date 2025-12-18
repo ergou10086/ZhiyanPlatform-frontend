@@ -106,10 +106,46 @@ export function getInboxMessages(params) {
 }
 
 /**
- * 获取未读消息数量
+ * 获取未读消息数量（带简单去抖与缓存，避免高频轮询打爆服务）
+ * - 默认 20 秒内重复调用复用同一 promise，不再触发请求
+ * - 可通过传入 { force: true } 强制刷新
  */
-export function getUnreadCount() {
-  return api.get('/zhiyan/message/unread/count')
+const UNREAD_COUNT_CACHE_TTL = 20 * 1000 // 20 秒
+let unreadCountCache = null
+let unreadCountCacheTime = 0
+let unreadCountPending = null
+
+export function getUnreadCount(options = {}) {
+  const { force = false } = options
+  const now = Date.now()
+
+  // 如果有进行中的请求且不强制刷新，直接复用
+  if (!force && unreadCountPending) {
+    return unreadCountPending
+  }
+
+  // 命中本地缓存且未过期
+  if (!force && unreadCountCache !== null && now - unreadCountCacheTime < UNREAD_COUNT_CACHE_TTL) {
+    return Promise.resolve({
+      code: 200,
+      data: unreadCountCache,
+      _fromCache: true
+    })
+  }
+
+  // 发起新请求并复用 promise
+  unreadCountPending = api.get('/zhiyan/message/unread/count').then(res => {
+    // 成功后更新缓存
+    if (res && res.code === 200) {
+      unreadCountCache = res.data || 0
+      unreadCountCacheTime = Date.now()
+    }
+    return res
+  }).finally(() => {
+    unreadCountPending = null
+  })
+
+  return unreadCountPending
 }
 
 /**
