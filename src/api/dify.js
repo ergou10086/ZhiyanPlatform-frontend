@@ -191,7 +191,6 @@ export async function uploadLocalFile(file) {
   })
 
   if (!response.ok) throw new Error('上传失败')
-  // 解析响应，注意处理大整数
   const text = await response.text()
   const res = parseJSONWithBigInt(text)
 
@@ -251,12 +250,18 @@ export async function chatStreamWithPreloadedFiles(query, conversationId, difyFi
   let url = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files?query=${encodeURIComponent(query)}`
   if (conversationId) url += `&conversationId=${encodeURIComponent(conversationId)}`
 
+  const params = new URLSearchParams()
+  params.append('query', query)
+  if (conversationId) params.append('conversationId', conversationId)
+
   // 拼接 difyFileIds 参数 (Spring Boot List<String> @RequestParam 接收方式: ?difyFileIds=a&difyFileIds=b)
   if (difyFileIds && difyFileIds.length > 0) {
     difyFileIds.forEach(id => {
-      url += `&difyFileIds=${encodeURIComponent(id)}`
+      params.append('difyFileIds', id)
     })
   }
+
+  url = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files?${params.toString()}`
 
   try {
     const response = await fetch(url, {

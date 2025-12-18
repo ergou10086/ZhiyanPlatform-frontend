@@ -1036,7 +1036,10 @@ export default {
     
     // 处理文件选择（暂存，发送消息时一起传给后端）
     async handleFileUpload(event) {
-      if (files.length === 0) return
+      const filesList = event?.target?.files || []
+      if (!filesList || filesList.length === 0) return
+
+      const files = Array.from(filesList);
 
       // 1. 先将文件加入列表，状态设为 uploading
       const newFiles = files.map(file => ({
@@ -1058,7 +1061,7 @@ export default {
           console.log(`[上传] 开始上传文件: ${item.fileName}`)
 
           // 调用 dify.js 中的新接口
-          const result = await difyAPI.uploadLocalFile(item.fileObj)
+          const result = await difyAPI.uploadLocalFile(item.fileObj);
 
           // 3. 上传成功，从 uploading 移入 uploadedFiles
           // 并且必须保存 difyFileId
@@ -1067,14 +1070,13 @@ export default {
             fileName: result.fileName,
             fileSize: item.fileSize,
             fileType: this.getFileType(result.fileName),
-            difyFileId: result.fileId, // 关键：保存 Dify ID
+            difyFileId: result.fileId, // 保存 Dify ID
             source: 'local'
           })
 
           // 从上传中移除
           this.uploadingFiles = this.uploadingFiles.filter(f => f.id !== item.id)
           console.log(`[上传] 成功: ${item.fileName}, ID: ${result.fileId}`)
-
         } catch (error) {
           console.error(`[上传] 失败: ${item.fileName}`, error)
           this.$message && this.$message.error(`${item.fileName} 上传失败`)
@@ -1299,16 +1301,7 @@ export default {
         console.log('[文件管理] 移除文件:', fileId)
       }
     },
-    
-    // 格式化文件大小
-    formatFileSize(bytes) {
-      if (!bytes || bytes === 0) return '0 B'
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-    },
-    
+
     // 处理点击外部关闭下拉菜单
     handleClickOutside(event) {
       if (this.showFileMenu && !event.target.closest('.file-menu-wrapper')) {
@@ -1720,7 +1713,7 @@ export default {
     /**
      * 复制用户发送的文字
      */
-    // ⭐ 格式化 Markdown 内容（使用 marked 库）
+    // 格式化 Markdown 内容（使用 marked 库）
     formatMarkdown(content) {
       if (!content) return ''
 
