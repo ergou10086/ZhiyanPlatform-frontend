@@ -763,6 +763,11 @@ export default {
       const userQuery = this.inputMessage.trim()
       // 过滤出有效的 Dify 文件 (必须有 difyFileId)
       const validFiles = this.uploadedFiles.filter(f => f.difyFileId)
+      
+      // 调试日志：检查文件状态
+      console.log('[发送消息] 已上传文件列表:', this.uploadedFiles)
+      console.log('[发送消息] 有效文件列表（有difyFileId）:', validFiles)
+      console.log('[发送消息] 有效文件数量:', validFiles.length)
 
       // 如果没字也没文件，不发送
       if (!userQuery && validFiles.length === 0) return
@@ -798,13 +803,19 @@ export default {
 
       // --- 2. 准备发送数据 ---
 
-      // 提取所有的 difyFileId (String List)
-      const difyFileIdsToSend = validFiles.map(f => f.difyFileId)
+      // 提取所有的 difyFileId (String List)，过滤掉空值
+      const difyFileIdsToSend = validFiles
+        .map(f => f.difyFileId)
+        .filter(id => id && id.trim() !== '') // 确保文件ID不为空
       const queryToSend = userQuery || '请分析这些文件'
+      
+      console.log('[发送消息] 提取的文件ID列表:', difyFileIdsToSend)
+      console.log('[发送消息] 文件ID数量:', difyFileIdsToSend.length)
 
-      // 清空文件列表 (实现一次对话中文件只会携带一次)
+      // 清空输入框，但保留已上传的文件列表（允许在对话中继续使用）
       this.inputMessage = ''
-      this.uploadedFiles = [] // 清空侧边栏
+
+      this.uploadedFiles = []
       this.selectedLocalFiles = [] // 清空旧逻辑遗留
       this.selectedAchievementFiles = []
 
@@ -1064,19 +1075,27 @@ export default {
           const result = await difyAPI.uploadLocalFile(item.fileObj);
 
           // 3. 上传成功，从 uploading 移入 uploadedFiles
-          // 并且必须保存 difyFileId
+          // 后端返回的 JSON 字段是 id 和 name（对应 Java 的 fileId 和 fileName）
+          const difyFileId = result.id || result.fileId // 兼容两种字段名
+          const fileName = result.name || result.fileName // 兼容两种字段名
+          
+          if (!difyFileId) {
+            console.error(`[上传] 返回数据缺少文件ID:`, result)
+            throw new Error('上传失败：未返回文件ID')
+          }
+          
           this.uploadedFiles.push({
-            id: `local_${result.fileId}`, // 使用返回的ID
-            fileName: result.fileName,
+            id: `local_${difyFileId}`, // 使用返回的ID
+            fileName: fileName || item.fileName, // 优先使用返回的文件名
             fileSize: item.fileSize,
-            fileType: this.getFileType(result.fileName),
-            difyFileId: result.fileId, // 保存 Dify ID
+            fileType: this.getFileType(fileName || item.fileName),
+            difyFileId: difyFileId, // 保存 Dify ID（关键字段）
             source: 'local'
           })
 
           // 从上传中移除
           this.uploadingFiles = this.uploadingFiles.filter(f => f.id !== item.id)
-          console.log(`[上传] 成功: ${item.fileName}, ID: ${result.fileId}`)
+          console.log(`[上传] 成功: ${item.fileName}, DifyFileId: ${difyFileId}`)
         } catch (error) {
           console.error(`[上传] 失败: ${item.fileName}`, error)
           this.$message && this.$message.error(`${item.fileName} 上传失败`)
