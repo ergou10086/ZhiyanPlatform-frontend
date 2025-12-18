@@ -247,21 +247,27 @@ export async function chatStreamWithPreloadedFiles(query, conversationId, difyFi
   }, BACKEND_DIFY_CONFIG.streamTimeout)
 
   // 构建 URL 参数
-  let url = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files?query=${encodeURIComponent(query)}`
-  if (conversationId) url += `&conversationId=${encodeURIComponent(conversationId)}`
-
   const params = new URLSearchParams()
   params.append('query', query)
-  if (conversationId) params.append('conversationId', conversationId)
+  if (conversationId) {
+    params.append('conversationId', conversationId)
+  }
 
   // 拼接 difyFileIds 参数 (Spring Boot List<String> @RequestParam 接收方式: ?difyFileIds=a&difyFileIds=b)
   if (difyFileIds && difyFileIds.length > 0) {
-    difyFileIds.forEach(id => {
-      params.append('difyFileIds', id)
+    // 过滤掉空值
+    const validFileIds = difyFileIds.filter(id => id && id.trim() !== '')
+    console.log('[chatStreamWithPreloadedFiles] 准备发送的文件ID:', validFileIds)
+    
+    validFileIds.forEach(id => {
+      params.append('difyFileIds', id.trim())
     })
+  } else {
+    console.warn('[chatStreamWithPreloadedFiles] 警告：没有文件ID要发送')
   }
 
-  url = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files?${params.toString()}`
+  const url = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files?${params.toString()}`
+  console.log('[chatStreamWithPreloadedFiles] 最终请求URL:', url)
 
   try {
     const response = await fetch(url, {
