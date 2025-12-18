@@ -2960,11 +2960,24 @@ export default {
         }
         // 显示邀请结果
         if (successCount > 0 && failCount === 0) {
-          this.showSuccessToast(`成功邀请 ${successCount} 位用户！`)
+          // 使用弹窗提示
+          this.$alert('邀请成员成功，等待成员同意', '提示', {
+            confirmButtonText: '确定',
+            type: 'success',
+            center: true
+          })
         } else if (successCount > 0 && failCount > 0) {
-          this.showSuccessToast(`成功邀请 ${successCount} 位，失败 ${failCount} 位`)
+          this.$alert(`成功邀请 ${successCount} 位，失败 ${failCount} 位`, '提示', {
+            confirmButtonText: '确定',
+            type: 'warning',
+            center: true
+          })
         } else {
-          this.showSuccessToast('邀请失败，请重试')
+          this.$alert('邀请失败，请重试', '提示', {
+            confirmButtonText: '确定',
+            type: 'error',
+            center: true
+          })
         }
         if (successCount > 0) {
           this.closeInviteMemberModal()
@@ -2973,7 +2986,11 @@ export default {
         }
       } catch (error) {
         console.error('邀请成员失败:', error)
-        this.showSuccessToast('邀请失败: ' + (error.message || '网络错误'))
+        this.$alert('邀请失败: ' + (error.message || '网络错误'), '提示', {
+          confirmButtonText: '确定',
+          type: 'error',
+          center: true
+        })
       } finally {
         this.isInviting = false
       }
