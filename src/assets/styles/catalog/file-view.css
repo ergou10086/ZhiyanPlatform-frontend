@@ -1107,6 +1107,60 @@
   color: #0044CC;
 }
 
+/* 文件操作区域 */
+.file-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* 文件删除按钮 */
+.file-delete-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.file-delete-btn:hover {
+  background: #fee2e2;
+  border-color: #ef4444;
+  color: #dc2626;
+  transform: scale(1.05);
+}
+
+.file-delete-btn:active {
+  transform: scale(0.95);
+}
+
+.file-delete-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* 暗黑模式下的删除按钮 */
+.dark-mode .file-delete-btn {
+  border-color: #374151;
+  color: #9ca3af;
+}
+
+.dark-mode .file-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #fca5a5;
+}
+
 /* 文件元信息容器 */
 .file-preview-meta {
   display: flex;

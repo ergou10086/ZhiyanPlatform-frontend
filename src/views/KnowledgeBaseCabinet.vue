@@ -92,7 +92,7 @@
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
           <div class="doc-actions-top">
             <!-- 导出按钮 -->
-            <div class="export-btn-wrapper" @mouseleave="showExportMenu = false">
+            <div class="export-btn-wrapper" ref="exportBtnWrapper">
               <button
                 class="export-btn"
                 @click.stop="toggleExportMenu"
@@ -105,7 +105,7 @@
                   <line x1="12" y1="15" x2="12" y2="3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
                 <span>{{ exporting ? '导出中...' : '导出' }}</span>
-                <svg class="export-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <svg class="export-arrow" :class="{ 'rotated': showExportMenu }" width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
@@ -1003,7 +1003,7 @@ export default {
     // 监听页面离开事件，提醒用户保存
     window.addEventListener('beforeunload', this.handleBeforeUnload)
     
-    // 监听点击外部关闭节点选择器
+    // 监听点击外部关闭节点选择器和导出菜单
     document.addEventListener('click', this.handleClickOutside)
   },
   beforeDestroy() {
@@ -1478,6 +1478,11 @@ export default {
     },
     
     handleClickOutside(event) {
+      // 关闭导出菜单（如果点击在外部）
+      if (this.showExportMenu && this.$refs.exportBtnWrapper && !this.$refs.exportBtnWrapper.contains(event.target)) {
+        this.showExportMenu = false
+      }
+      
       // 如果节点选择器打开，点击外部时关闭
       if (this.showNodePicker && !event.target.closest('.node-selector')) {
         this.showNodePicker = false

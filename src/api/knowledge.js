@@ -347,14 +347,21 @@ export const knowledgeAPI = {
    * @param {File[]} files - 文件数组
    * @param {Number} achievementId - 成果ID
    */
-  uploadFilesBatch(files, achievementId) {
+  uploadFilesBatch(files, achievementId, onProgress) {
     console.log('[knowledgeAPI.uploadFilesBatch] 批量上传文件, achievementId:', achievementId, 'fileCount:', files?.length)
     const formData = new FormData()
     files.forEach(file => {
       formData.append('files', file)
     })
     formData.append('achievementId', achievementId)
-    return api.post('/zhiyan/achievement/file/upload/batch', formData)
+    return api.post('/zhiyan/achievement/file/upload/batch', formData, {
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(percentCompleted)
+        }
+      }
+    })
   },
 
   /**
