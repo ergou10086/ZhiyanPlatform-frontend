@@ -3,8 +3,8 @@
     <div class="supplement-content">
       <!-- 头部 -->
       <div class="header">
-        <h2>完善信息</h2>
-        <p>请补充以下信息以完成注册</p>
+        <h2>设置登录密码</h2>
+        <p>我们已从 {{ providerName }} 获取您的邮箱，请设置密码完成注册</p>
       </div>
 
       <!-- OAuth2用户信息 -->
@@ -16,22 +16,13 @@
       <!-- 补充信息表单 -->
       <div class="form-container">
         <form @submit.prevent="handleSubmit">
-          <div class="form-group" v-if="needUsername">
-            <label>用户名 *</label>
-            <input 
-              v-model="form.username" 
-              type="text" 
-              placeholder="请输入用户名"
-              required
-            >
-          </div>
-          <div class="form-group" v-if="needEmail">
+          <div class="form-group">
             <label>邮箱 *</label>
             <input 
-              v-model="form.email" 
+              :value="oauth2UserInfo?.email" 
               type="email" 
-              placeholder="请输入邮箱"
-              required
+              disabled
+              class="readonly-input"
             >
           </div>
           <div class="form-group">
@@ -78,8 +69,6 @@ export default {
     return {
       oauth2UserInfo: null,
       form: {
-        username: '',
-        email: '',
         password: '',
         confirmPassword: ''
       },
@@ -88,11 +77,15 @@ export default {
     }
   },
   computed: {
-    needUsername() {
-      return !this.oauth2UserInfo?.username
-    },
-    needEmail() {
-      return !this.oauth2UserInfo?.email
+    providerName() {
+      const names = {
+        github: 'GitHub',
+        orcid: 'ORCID',
+        gitee: 'Gitee',
+        google: 'Google',
+        wechat: '微信'
+      }
+      return names[this.oauth2UserInfo?.provider] || this.oauth2UserInfo?.provider || '第三方平台'
     }
   },
   mounted() {
@@ -103,13 +96,7 @@ export default {
         this.oauth2UserInfo = JSON.parse(oauth2UserInfoStr)
         console.log('📥 OAuth2用户信息:', this.oauth2UserInfo)
         
-        // 预填充已有信息
-        if (this.oauth2UserInfo.username) {
-          this.form.username = this.oauth2UserInfo.username
-        }
-        if (this.oauth2UserInfo.email) {
-          this.form.email = this.oauth2UserInfo.email
-        }
+        // 邮箱直接使用OAuth2返回的值
       } catch (error) {
         console.error('❌ 解析OAuth2用户信息失败:', error)
         this.$router.replace('/login')
@@ -131,12 +118,11 @@ export default {
         const response = await authAPI.supplementOAuth2Info({
           provider: this.oauth2UserInfo.provider,
           providerUserId: this.oauth2UserInfo.oauth2UserId,
-          email: this.form.email || this.oauth2UserInfo.email,
+          email: this.oauth2UserInfo.email,
           password: this.form.password,
           confirmPassword: this.form.confirmPassword,
           oauth2UserInfo: {
-            ...this.oauth2UserInfo,
-            username: this.form.username || this.oauth2UserInfo.username
+            ...this.oauth2UserInfo
           }
         })
 
@@ -302,6 +288,12 @@ export default {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.readonly-input {
+  background: #edf2f7;
+  color: #4a5568;
+  cursor: not-allowed;
 }
 
 .btn-submit {

@@ -133,17 +133,10 @@ export default {
           this.handleLoginSuccess(loginResponse)
           break
 
-        case 'NEED_BIND':
-          // 需要绑定或创建账号
-          console.log('⚠️ 需要绑定或创建账号')
-          sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
-          this.loading = false
-          this.$router.replace('/oauth2/bind')
-          break
-
         case 'NEED_SUPPLEMENT':
-          // 需要补充信息
-          console.log('⚠️ 需要补充信息')
+        case 'NEED_BIND':
+          // 新用户：补充登录密码后创建账号（邮箱已由OAuth2提供）
+          console.log('⚠️ 需要设置密码完成注册')
           sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
           this.loading = false
           this.$router.replace('/oauth2/supplement')
