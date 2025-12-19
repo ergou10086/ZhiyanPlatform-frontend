@@ -179,6 +179,21 @@
   border-radius: 4px;
 }
 
+/* 暗黑模式下的现有成果信息样式，避免出现亮色块 */
+.dark-mode .existing-achievement-info {
+  background: #020617;
+  border-color: #1e293b;
+}
+
+.dark-mode .info-label {
+  color: #9ca3af;
+}
+
+.dark-mode .achievement-name {
+  color: #e5f2ff;
+  background: rgba(37, 99, 235, 0.25);
+}
+
 /* 描述字段样式 */
 .description-fields {
   display: flex;
@@ -535,6 +550,18 @@
 .dark-mode .file-upload-area {
   background: #1e293b;
   border-color: #475569;
+}
+
+/* 上传对话框中的文件卡片在暗黑模式下进一步压暗，避免大块浅色 */
+.dark-mode .upload-dialog .file-upload-area {
+  background: #020617;
+  border-color: #1e293b;
+}
+
+/* 上传对话框中的文件卡片在暗黑模式下强制使用深色背景，避免残留白块 */
+.dark-mode .upload-dialog .file-item {
+  background: #020617 !important;
+  border-color: #1e293b !important;
 }
 
 .dark-mode .file-item {
