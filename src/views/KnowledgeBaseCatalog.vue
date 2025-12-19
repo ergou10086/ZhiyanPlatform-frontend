@@ -105,7 +105,7 @@
     />
 
     <!-- 成果上传对话框 -->
-    <div v-if="showUploadDialog" class="upload-dialog-overlay" @click="closeUploadDialog" @wheel.self.prevent @touchmove.self.prevent>
+    <div v-if="showUploadDialog" class="upload-dialog-overlay" :class="{ 'no-click-close': isAddingToExisting }" @click="handleUploadDialogOverlayClick" @wheel.self.prevent @touchmove.self.prevent>
       <div class="upload-dialog" @click.stop @wheel.stop @touchmove.stop>
         <div class="dialog-header">
           <div class="dialog-title-section">
@@ -445,7 +445,14 @@
           <!-- 文件上传区域 -->
           <div class="form-group">
             <label>上传文件：</label>
-            <div class="file-upload-area">
+            <div 
+              class="file-upload-area"
+              :class="{ 'drag-over': isDragging }"
+              @drop.prevent="handleDrop"
+              @dragover.prevent="handleDragOver"
+              @dragenter.prevent="handleDragEnter"
+              @dragleave.prevent="handleDragLeave"
+            >
               <div class="uploaded-files" v-if="achievementForm.files.length > 0">
                 <div 
                   v-for="(file, index) in achievementForm.files" 
@@ -457,18 +464,24 @@
                     <span class="file-name">{{ file.name }}</span>
                     <span class="file-size">({{ formatFileSize(file.size) }})</span>
                   </div>
-                  <button class="remove-file-btn" @click="removeFile(index)" title="删除文件">
+                  <!-- 上传进度条 -->
+                  <div v-if="uploadProgress[index] !== undefined" class="upload-progress-bar">
+                    <div class="upload-progress-fill" :style="{ width: uploadProgress[index] + '%' }"></div>
+                    <span class="upload-progress-text">{{ uploadProgress[index] }}%</span>
+                  </div>
+                  <button class="remove-file-btn" @click="removeFile(index)" title="删除文件" :disabled="isUploading">
                     ×
                   </button>
                 </div>
               </div>
-              <div class="upload-zone" @click="triggerFileSelect">
+              <div class="upload-zone" @click="triggerFileSelect" :class="{ 'drag-over': isDragging }">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <p>点击添加文件</p>
+                <p v-if="!isDragging">点击添加文件或拖拽文件到此处</p>
+                <p v-else class="drag-hint">松开鼠标以添加文件</p>
                 <p class="upload-hint">支持多文件上传</p>
               </div>
             </div>
@@ -565,7 +578,14 @@
           <!-- 文件上传区域 -->
           <div class="form-group">
             <label>上传文件：</label>
-            <div class="file-upload-area">
+            <div 
+              class="file-upload-area"
+              :class="{ 'drag-over': isDragging }"
+              @drop.prevent="handleDrop"
+              @dragover.prevent="handleDragOver"
+              @dragenter.prevent="handleDragEnter"
+              @dragleave.prevent="handleDragLeave"
+            >
               <div class="uploaded-files" v-if="customUploadForm.files.length > 0">
                 <div 
                   v-for="(file, index) in customUploadForm.files" 
@@ -577,18 +597,24 @@
                     <span class="file-name">{{ file.name }}</span>
                     <span class="file-size">({{ formatFileSize(file.size) }})</span>
                   </div>
-                  <button class="remove-file-btn" @click="removeCustomFile(index)" title="删除文件">
+                  <!-- 上传进度条 -->
+                  <div v-if="uploadProgress[index] !== undefined" class="upload-progress-bar">
+                    <div class="upload-progress-fill" :style="{ width: uploadProgress[index] + '%' }"></div>
+                    <span class="upload-progress-text">{{ uploadProgress[index] }}%</span>
+                  </div>
+                  <button class="remove-file-btn" @click="removeCustomFile(index)" title="删除文件" :disabled="isUploading">
                     ×
                   </button>
                 </div>
               </div>
-              <div class="upload-zone" @click="triggerCustomFileSelect">
+              <div class="upload-zone" @click="triggerCustomFileSelect" :class="{ 'drag-over': isDragging }">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M17 8L12 3L7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                <p>点击添加文件</p>
+                <p v-if="!isDragging">点击添加文件或拖拽文件到此处</p>
+                <p v-else class="drag-hint">松开鼠标以添加文件</p>
                 <p class="upload-hint">支持多文件上传</p>
               </div>
             </div>
@@ -809,11 +835,24 @@
               <div class="file-preview-info">
                 <div class="file-preview-name">{{ file.name || file.originalFileName || viewingFile.name || '未知文件' }}</div>
                 <div class="file-preview-meta">
-                  <span class="file-preview-type">{{ getFileTypeDisplay(file.type) || '未知类型' }}</span>
+                  <span class="file-preview-type">{{ getFileTypeDisplay(file.type, file.name || file.originalFileName) }}</span>
                   <span v-if="file.size" class="file-preview-size">{{ formatFileSize(file.size) }}</span>
                 </div>
               </div>
-              <div class="file-preview-hint">点击查看</div>
+              <div class="file-preview-actions">
+                <!--<div class="file-preview-hint">点击查看</div>-->
+                <button
+                  v-if="canEditAchievement(viewingFile) && !isArchived && !isNotMember"
+                  class="file-delete-btn"
+                  @click.stop="deleteSingleFile(file, index)"
+                  title="删除文件"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 6H5H21M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M10 11V17M14 11V17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -908,6 +947,34 @@
           <div v-else-if="previewFileType === 'pdf'" class="file-preview-pdf-container">
             <iframe :src="previewFileUrl" class="file-preview-pdf" frameborder="0"></iframe>
           </div>
+          <!-- Office文档预览 -->
+          <div v-else-if="previewFileType === 'office'" class="file-preview-office-container">
+            <div class="office-viewer-wrapper">
+              <!-- 方案1: 直接使用iframe加载文件 -->
+              <iframe
+                  v-if="!useOnlineViewer"
+                  :src="previewFileUrl"
+                  class="file-preview-office"
+                  frameborder="0"
+                  @load="handleOfficeIframeLoad"
+                  @error="handleOfficeIframeError"
+                  title="Office文档预览"
+              ></iframe>
+              <!-- 方案2: 在线查看器 -->
+              <iframe
+                  v-else
+                  :src="useMicrosoftViewer ? getMicrosoftViewerUrl(previewFileUrl) : getGoogleDocsViewerUrl(previewFileUrl)"
+                  class="file-preview-office"
+                  frameborder="0"
+                  @error="handleOfficeViewerError"
+                  title="Office文档预览"
+              ></iframe>
+              <!-- 备选方案 -->
+              <div v-if="officeViewerError && useOnlineViewer" class="office-viewer-fallback">
+                <!-- ... 错误提示 ... -->
+              </div>
+            </div>
+          </div>
           <!-- 文本预览 -->
           <div v-else-if="previewFileType === 'text'" class="file-preview-text-container">
             <pre class="file-preview-text"><code>{{ previewFileContent }}</code></pre>
@@ -937,47 +1004,9 @@
               </audio>
             </div>
           </div>
-          <!-- Office文档预览（优先直接加载，失败则使用在线查看器） -->
-          <div v-else-if="previewFileType === 'office'" class="file-preview-office-container">
-            <div class="office-viewer-wrapper">
-              <!-- 方案1: 直接使用iframe加载文件（类似PDF，浏览器原生支持） -->
-              <iframe 
-                v-if="!useOnlineViewer"
-                :src="previewFileUrl" 
-                class="file-preview-office" 
-                frameborder="0"
-                @load="handleOfficeIframeLoad"
-                @error="handleOfficeIframeError"
-                title="Office文档预览"
-              ></iframe>
-              <!-- 方案2: 在线查看器（Google Docs Viewer或Microsoft Office Online Viewer） -->
-              <iframe 
-                v-else
-                :src="useMicrosoftViewer ? getMicrosoftViewerUrl(previewFileUrl) : getGoogleDocsViewerUrl(previewFileUrl)" 
-                class="file-preview-office" 
-                frameborder="0"
-                @error="handleOfficeViewerError"
-                title="Office文档预览"
-              ></iframe>
-              <!-- 如果所有方案都失败，显示备选方案 -->
-              <div v-if="officeViewerError && useOnlineViewer" class="office-viewer-fallback">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <p>在线预览失败</p>
-                <p class="office-viewer-hint">可能是文件需要认证或网络问题</p>
-                <div class="office-viewer-options">
-                  <button v-if="!useMicrosoftViewer" class="btn primary" @click="tryMicrosoftViewer">尝试Microsoft查看器</button>
-                  <button class="btn secondary" @click="tryDirectLoad">尝试直接加载</button>
-                  <button class="btn secondary" @click="downloadPreviewFile">下载文件</button>
-                </div>
-              </div>
-            </div>
-          </div>
           <!-- 代码文件预览 -->
           <div v-else-if="previewFileType === 'code'" class="file-preview-code-container">
-            <pre class="file-preview-code"><code>{{ previewFileContent }}</code></pre>
+            <pre class="file-preview-code"><code v-html="highlightedCode"></code></pre>
           </div>
           <!-- 不支持预览的文件类型 -->
           <div v-else class="file-preview-unsupported">
@@ -1229,6 +1258,8 @@ import { projectAPI } from '@/api/project'
 import { getCurrentUserId } from '@/utils/auth'
 import { marked } from 'marked'
 import { getLinkedTasks as apiGetLinkedTasks, linkTasksToAchievement as apiLinkTasks, unlinkTasksFromAchievement as apiUnlinkTasks } from '@/api/taskResult'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github-dark.css' // 代码高亮主题
 
 export default {
   name: 'KnowledgeBaseCatalog',
@@ -1287,6 +1318,7 @@ export default {
       previewLoading: false,
       previewError: null,
       previewMarkdownHtml: '', // 渲染后的Markdown HTML
+      highlightedCode: '', // 代码高亮后的HTML
       // Office查看器相关
       officeViewerError: false,
       useMicrosoftViewer: false,
@@ -1297,6 +1329,12 @@ export default {
       isEditingContent: false,
       editableContent: '',
       hasContentChanges: false,
+      // 拖拽上传相关
+      isDragging: false,
+      dragCounter: 0,
+      // 上传进度相关
+      uploadProgress: {}, // { fileIndex: progress }
+      isUploading: false,
       editForm: {
         // 论文字段
         paperAuthors: '',
@@ -1876,8 +1914,64 @@ export default {
       this.$refs.fileInput.click()
     },
     
+    // 拖拽上传相关方法
+    handleDragEnter(e) {
+      e.preventDefault()
+      this.dragCounter++
+      if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        this.isDragging = true
+      }
+    },
+    
+    handleDragLeave(e) {
+      e.preventDefault()
+      this.dragCounter--
+      if (this.dragCounter === 0) {
+        this.isDragging = false
+      }
+    },
+    
+    handleDragOver(e) {
+      e.preventDefault()
+    },
+    
+    handleDrop(e) {
+      e.preventDefault()
+      this.isDragging = false
+      this.dragCounter = 0
+      
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length > 0) {
+        if (this.showUploadDialog) {
+          // 上传对话框已打开，将文件添加到表单中
+          files.forEach(file => {
+            this.achievementForm.files.push({
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              file: file
+            })
+          })
+        } else if (this.showCustomDialog) {
+          // 自定义类型弹窗
+          files.forEach(file => {
+            this.customUploadForm.files.push({
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              file: file
+            })
+          })
+        }
+      }
+    },
+    
     removeFile(index) {
       this.achievementForm.files.splice(index, 1)
+      // 清除对应的上传进度
+      if (this.uploadProgress[index] !== undefined) {
+        delete this.uploadProgress[index]
+      }
     },
     
     
@@ -1932,9 +2026,29 @@ export default {
             // 准备文件对象列表（只保留真实的File对象）
             const files = this.achievementForm.files.map(f => f.file)
             
-            // 调用批量上传API
-            const response = await knowledgeAPI.uploadFilesBatch(files, this.targetAchievementId)
+            // 初始化上传进度
+            this.isUploading = true
+            this.uploadProgress = {}
+            files.forEach((_, index) => {
+              this.$set(this.uploadProgress, index, 0)
+            })
+            
+            // 调用批量上传API（带进度回调）
+            const response = await knowledgeAPI.uploadFilesBatch(
+              files, 
+              this.targetAchievementId,
+              (progress) => {
+                // 更新所有文件的上传进度（批量上传时统一进度）
+                files.forEach((_, index) => {
+                  this.$set(this.uploadProgress, index, progress)
+                })
+              }
+            )
             console.log('批量上传文件成功:', response)
+            
+            // 清除上传进度
+            this.isUploading = false
+            this.uploadProgress = {}
             
             // 如果当前正在查看这个成果，需要更新 viewingFile 的文件列表
             if (this.showViewDialog && this.viewingFile && this.viewingFile.id === this.targetAchievementId) {
@@ -1995,8 +2109,28 @@ export default {
           const files = this.achievementForm.files.map(f => f.file)
           console.log('准备批量上传文件, 数量:', files.length)
           
-          const uploadResponse = await knowledgeAPI.uploadFilesBatch(files, achievementId)
+          // 初始化上传进度
+          this.isUploading = true
+          this.uploadProgress = {}
+          files.forEach((_, index) => {
+            this.$set(this.uploadProgress, index, 0)
+          })
+          
+          const uploadResponse = await knowledgeAPI.uploadFilesBatch(
+            files, 
+            achievementId,
+            (progress) => {
+              // 更新所有文件的上传进度（批量上传时统一进度）
+              files.forEach((_, index) => {
+                this.$set(this.uploadProgress, index, progress)
+              })
+            }
+          )
           console.log('批量上传文件成功:', uploadResponse)
+          
+          // 清除上传进度
+          this.isUploading = false
+          this.uploadProgress = {}
           
           // 4. 刷新成果列表
           await this.loadAchievements()
@@ -2184,6 +2318,16 @@ export default {
       return false
     },
     
+    // 处理上传弹窗遮罩层点击事件
+    handleUploadDialogOverlayClick(event) {
+      // 如果正在为现有成果添加文件，不允许点击外部关闭
+      if (this.isAddingToExisting) {
+        return
+      }
+      // 否则调用原有的关闭逻辑
+      this.closeUploadDialog()
+    },
+    
     closeUploadDialog() {
       // 检查是否有未保存的内容
       if (this.hasUploadFormContent()) {
@@ -2243,64 +2387,70 @@ export default {
     },
     
     async confirmCustomType() {
-      if (this.customUploadForm.typeName.trim() && this.customUploadForm.name.trim() && this.customUploadForm.files.length > 0) {
-        try {
-          const typeDisplay = this.customUploadForm.typeName.trim()
-          
-          // 转换文件为 ArrayBuffer 以便保存到 localStorage
-          const filesWithBuffer = await Promise.all(
-            this.customUploadForm.files.map(async (fileData, index) => {
-              const arrayBuffer = await fileData.file.arrayBuffer()
-              const originalFileName = fileData.name
-              const fileExtension = getFileExtension(originalFileName)
-              
-              return {
-                id: Date.now() + index,
-                name: this.customUploadForm.name + (this.customUploadForm.files.length > 1 ? `_${index + 1}` : '') + fileExtension,
-                type: fileData.type, // 使用原始文件的 MIME 类型
-                uploader: '当前用户',
-                time: new Date().toLocaleString('zh-CN'),
-                typeCls: this.getTypeClass(typeDisplay),
-                fileBuffer: arrayBuffer, // 保存 ArrayBuffer
-                file: fileData.file, // 保留原始 File 对象用于当前会话
-                descriptions: this.customUploadForm.descriptions.filter(d => d.leftField.trim() || d.rightField.trim()).map(d => `${d.leftField || ''} | ${d.rightField || ''}`),
-                originalFileName: originalFileName,
-                size: fileData.size
-              }
-            })
-          )
-          
-          // 创建一个成果记录，包含所有文件
-          const newAchievement = {
-            id: Date.now(),
-            name: this.customUploadForm.name,
-            type: typeDisplay,
-            uploader: '当前用户',
-            time: new Date().toLocaleString('zh-CN'),
-            typeCls: 'doc',
-            files: filesWithBuffer,
-            fileCount: this.customUploadForm.files.length,
-            descriptions: this.customUploadForm.descriptions.filter(d => d.leftField.trim() || d.rightField.trim()).map(d => `${d.leftField || ''} | ${d.rightField || ''}`)
-          }
-          
-          this.uploadedFiles.push(newAchievement)
-          this.$emit('file-uploaded', newAchievement)
-          
-          // 重置状态
-          this.resetCustomForm()
-          this.showCustomDialog = false
-          
-          // 跳转到最后一页显示新上传的文件
-          this.goToLastPage()
-          
-          // 自动保存到本地存储
-          saveToLocalStorage(this.uploadedFiles, this.currentPage, this.projectId)
-          
-          alert(`自定义类型"${typeDisplay}"的成果已上传！已添加${this.customUploadForm.files.length}个文件到成果档案中。`)
-        } catch (error) {
-          console.error('自定义类型文件上传失败:', error)
-          alert('文件上传失败，请重试')
+      // 基础校验
+      if (!this.customUploadForm.typeName.trim() || !this.customUploadForm.name.trim() || this.customUploadForm.files.length === 0) {
+        return
+      }
+
+      // 必须有项目ID，且项目未归档
+      if (!this.projectId) {
+        alert('当前没有项目ID，无法创建自定义成果')
+        return
+      }
+      if (!this.checkNotArchived('创建自定义成果')) {
+        return
+      }
+
+      try {
+        const typeDisplay = this.customUploadForm.typeName.trim()
+
+        // 1. 构建后端 CreateAchievementDTO（类型固定为 custom）
+        const detailFields = (this.customUploadForm.descriptions || [])
+          .filter(d => (d.leftField && d.leftField.trim()) || (d.rightField && d.rightField.trim()))
+          .map(d => ({
+            label: d.leftField || '',
+            value: d.rightField || ''
+          }))
+
+        const createDTO = {
+          projectId: this.projectId,
+          title: this.customUploadForm.name.trim(),
+          type: 'custom',              // 后端枚举：自定义成果
+          status: 'draft',
+          isPublic: false,
+          detailData: detailFields.length > 0 ? { fields: detailFields, typeName: typeDisplay } : { typeName: typeDisplay }
         }
+
+        console.log('[自定义成果] 创建DTO:', createDTO)
+
+        // 2. 调用后端创建成果
+        const createResp = await knowledgeAPI.createAchievement(createDTO)
+        console.log('[自定义成果] 创建成果响应:', createResp)
+
+        if (!createResp || createResp.code !== 200 || !createResp.data || !createResp.data.id) {
+          throw new Error(createResp?.msg || '创建自定义成果失败')
+        }
+
+        const achievementId = createResp.data.id
+
+        // 3. 批量上传文件
+        const files = this.customUploadForm.files.map(f => f.file)
+        console.log('[自定义成果] 准备批量上传文件, achievementId:', achievementId, 'files:', files)
+        const uploadResp = await knowledgeAPI.uploadFilesBatch(files, achievementId)
+        console.log('[自定义成果] 批量上传文件响应:', uploadResp)
+
+        // 4. 重新加载成果列表，并跳转到最后一页
+        await this.loadAchievements()
+        this.goToLastPage()
+
+        // 5. 重置状态并关闭弹窗
+        this.resetCustomForm()
+        this.showCustomDialog = false
+
+        this.showSuccessToast(`自定义类型"${typeDisplay}"的成果已创建并上传${files.length}个文件`)
+      } catch (error) {
+        console.error('自定义类型成果创建/上传失败:', error)
+        alert('自定义成果创建失败: ' + (error.message || '请重试'))
       }
     },
     
@@ -2982,14 +3132,21 @@ export default {
           size: file.size
         })
         
-        // 判断文件类型
-        if (this.isImageFile(fileExtension, mimeType)) {
-          this.previewFileType = 'image'
-        } else if (this.isPdfFile(fileExtension, mimeType)) {
+        // 判断文件类型（增强版，支持更多文件类型预览）
+        if (this.isPdfFile(fileExtension, mimeType)) {
           this.previewFileType = 'pdf'
+          console.log('🔍 [预览] 识别为 PDF 文件')
+        } else if (this.isOfficeFile(fileExtension, mimeType)) {
+            this.previewFileType = 'office'
+            console.log('🔍 [预览] 识别为 Office 文件')
+        } else if (this.isImageFile(fileExtension, mimeType)) {
+          this.previewFileType = 'image'
         } else if (this.isMarkdownFile(fileExtension, mimeType)) {
           // Markdown：前端拉取并渲染为HTML
           this.previewFileType = 'markdown'
+        } else if (this.isCodeFile(fileExtension, mimeType)) {
+          // 代码文件：使用语法高亮
+          this.previewFileType = 'code'
         } else if (this.isTextFile(fileExtension, mimeType)) {
           // 纯文本：前端拉取渲染，失败再回退iframe
           this.previewFileType = 'text'
@@ -2999,10 +3156,9 @@ export default {
           this.previewFileType = 'audio'
         } else if (this.isOfficeFile(fileExtension, mimeType)) {
           this.previewFileType = 'office'
-        } else if (this.isCodeFile(fileExtension, mimeType)) {
-          this.previewFileType = 'code'
         } else {
-          this.previewFileType = 'unknown'
+          // 未知类型，尝试作为文本预览
+          this.previewFileType = 'text'
         }
         
         // 获取文件访问URL
@@ -3033,12 +3189,16 @@ export default {
         
         console.log('📄 [预览] 文件URL:', fileUrl)
         this.previewFileUrl = fileUrl
-        
-        // 加载文本/代码/Markdown内容
+
+        // 只有文本类型才需要预加载内容，PDF 和 Office 直接用 iframe
         if (this.previewFileType === 'markdown') {
           await this.loadMarkdownForPreview(fileUrl)
-        } else if (this.previewFileType === 'text' || this.previewFileType === 'code') {
+        } else if (this.previewFileType === 'code') {
+          await this.loadCodeContentForPreview(fileUrl, fileExtension)
+        } else if (this.previewFileType === 'text') {
           await this.loadTextContentForPreview(fileUrl)
+        } else if (this.previewFileUrl === 'pdf' || this.previewingFile === 'office'){
+          console.log(`🔍 [预览] ${this.previewFileType.toUpperCase()} 将使用 iframe 直接加载`)
         }
         
         this.previewLoading = false
@@ -3212,6 +3372,119 @@ export default {
       }
     },
     
+    // 加载代码内容并应用语法高亮
+    async loadCodeContentForPreview(url, extension) {
+      try {
+        console.log('📄 [预览] 加载代码内容:', url, '扩展名:', extension)
+        const token = localStorage.getItem('access_token')
+        const headers = { 'Accept': 'text/plain, text/html, text/css, text/javascript, application/json, */*' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        
+        const res = await fetch(url, { method: 'GET', headers, credentials: 'include' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+        
+        // 使用二进制 + 多编码解码，避免中文出现乱码
+        const buf = await res.arrayBuffer()
+        const contentType = (res.headers.get('content-type') || '').toLowerCase()
+        
+        const tryDecode = (enc) => {
+          try {
+            const dec = new TextDecoder(enc)
+            return dec.decode(buf)
+          } catch (_) {
+            return null
+          }
+        }
+        
+        let candidates = []
+        // 根据响应头的charset优先解码
+        const charsetMatch = contentType.match(/charset=([^;]+)/)
+        if (charsetMatch) {
+          const byHeader = tryDecode(charsetMatch[1].trim())
+          if (byHeader) candidates.push(byHeader)
+        }
+        
+        // BOM 检测
+        const bytes = new Uint8Array(buf)
+        const hasUtf8Bom = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF
+        if (hasUtf8Bom) { const s = tryDecode('utf-8'); if (s) candidates.push(s) }
+        
+        // 常见编码依次尝试
+        const utf8 = tryDecode('utf-8'); if (utf8 && !hasUtf8Bom) candidates.push(utf8)
+        const gb18030 = tryDecode('gb18030'); if (gb18030) candidates.push(gb18030)
+        const gbk = tryDecode('gbk'); if (gbk) candidates.push(gbk)
+        
+        // 选出乱码最少的结果（使用替换字符 \uFFFD）
+        let best = candidates[0] || ''
+        let bestScore = (best.match(/\uFFFD/g) || []).length
+        for (let i = 1; i < candidates.length; i++) {
+          const s = candidates[i]
+          const score = (s.match(/\uFFFD/g) || []).length
+          if (score < bestScore) {
+            best = s; bestScore = score
+          }
+        }
+        
+        this.previewFileContent = best
+        
+        // 根据文件扩展名确定语言类型
+        const langMap = {
+          'java': 'java',
+          'py': 'python',
+          'c': 'c',
+          'cpp': 'cpp',
+          'h': 'c',
+          'js': 'javascript',
+          'jsx': 'javascript',
+          'ts': 'typescript',
+          'tsx': 'typescript',
+          'vue': 'vue',
+          'html': 'html',
+          'css': 'css',
+          'scss': 'scss',
+          'less': 'less',
+          'json': 'json',
+          'xml': 'xml',
+          'php': 'php',
+          'rb': 'ruby',
+          'go': 'go',
+          'rs': 'rust',
+          'swift': 'swift',
+          'kt': 'kotlin',
+          'sql': 'sql',
+          'sh': 'bash',
+          'bash': 'bash',
+          'yaml': 'yaml',
+          'yml': 'yaml',
+          'toml': 'toml',
+          'ini': 'ini',
+          'conf': 'ini',
+          'properties': 'properties'
+        }
+        
+        const language = langMap[extension] || extension || 'plaintext'
+        
+        // 使用 highlight.js 进行语法高亮
+        try {
+          if (hljs.getLanguage(language)) {
+            this.highlightedCode = hljs.highlight(best, { language: language }).value
+          } else {
+            // 如果语言不支持，尝试自动检测
+            this.highlightedCode = hljs.highlightAuto(best).value
+          }
+        } catch (e) {
+          console.warn('📄 [预览] 代码高亮失败，使用纯文本:', e)
+          // 如果高亮失败，转义HTML并显示纯文本
+          this.highlightedCode = escapeHtml(best)
+        }
+        
+        console.log('📄 [预览] 代码内容加载成功，长度:', best.length, '语言:', language)
+      } catch (error) {
+        console.error('📄 [预览] 加载代码内容失败:', error)
+        throw error
+      }
+    },
+    
     // 获取Google Docs Viewer URL
     getGoogleDocsViewerUrl(fileUrl) {
       // 检查URL是否是跨域的（MinIO或其他对象存储）
@@ -3368,26 +3641,41 @@ export default {
             console.log('✅ 文件删除成功')
             
             // 从当前查看的成果文件列表中删除
-        this.viewingFile.files.splice(index, 1)
-        this.viewingFile.fileCount = this.viewingFile.files.length
-        
-        // 如果删除了所有文件，删除整个成果
-        if (this.viewingFile.files.length === 0) {
-              await this.deleteFile(this.viewingFile)
-          this.closeViewDialog()
-        } else {
-          // 重新选择文件（如果删除的是当前选中的文件）
-          if (this.selectedFileIndex === index) {
-            this.selectedFileIndex = Math.max(0, index - 1)
-          } else if (this.selectedFileIndex > index) {
-            this.selectedFileIndex = this.selectedFileIndex - 1
-          }
-          
-              // 重新加载成果列表以保持数据同步
-              await this.loadAchievements()
-              
-          alert('文件删除成功！')
+            this.viewingFile.files.splice(index, 1)
+            this.viewingFile.fileCount = this.viewingFile.files.length
+            
+            // 重新选择文件（如果删除的是当前选中的文件）
+            if (this.selectedFileIndex === index) {
+              this.selectedFileIndex = Math.max(0, index - 1)
+            } else if (this.selectedFileIndex > index) {
+              this.selectedFileIndex = this.selectedFileIndex - 1
             }
+            
+            // 重新加载成果列表以保持数据同步
+            await this.loadAchievements()
+            
+            // 如果当前正在查看这个成果，需要更新文件列表
+            if (this.showViewDialog && this.viewingFile && this.viewingFile.id) {
+              // 重新获取文件列表
+              const filesResponse = await knowledgeAPI.getAchievementFiles(this.viewingFile.id)
+              if (filesResponse && filesResponse.code === 200 && filesResponse.data) {
+                // 更新 viewingFile 的文件列表
+                const newFiles = filesResponse.data.map(fileDto => ({
+                  id: fileDto.id,
+                  name: fileDto.fileName,
+                  originalFileName: fileDto.originalFileName,
+                  type: fileDto.mimeType,
+                  size: fileDto.fileSize,
+                  uploadTime: fileDto.uploadedAt,
+                  downloadUrl: fileDto.downloadUrl || fileDto.accessUrl
+                }))
+                this.viewingFile.files = newFiles
+                this.viewingFile.fileCount = newFiles.length
+                console.log('文件列表已更新，剩余', newFiles.length, '个文件')
+              }
+            }
+            
+            this.showSuccessToast('文件删除成功！')
           } else {
             throw new Error(response?.msg || '删除文件失败')
           }
@@ -3647,8 +3935,8 @@ export default {
     },
     
     // 获取文件类型显示（包装工具函数）
-    getFileTypeDisplay(mimeType) {
-      return getFileTypeDisplay(mimeType)
+    getFileTypeDisplay(mimeType, fileName) {
+      return getFileTypeDisplay(mimeType, fileName)
     },
     
     // 格式化文件大小（包装工具函数）
@@ -4618,6 +4906,36 @@ html:not(.dark-mode) .status-select option {
   font-family: inherit;
   background: transparent;
   padding: 0;
+}
+
+/* 代码预览 */
+.file-preview-code-container {
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  overflow: auto;
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.file-preview-code {
+  margin: 0;
+  padding: 0;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre;
+  word-wrap: break-word;
+  color: #ffffff;
+  overflow-x: auto;
+}
+
+.file-preview-code code {
+  font-family: inherit;
+  background: transparent;
+  padding: 0;
+  display: block;
+  width: 100%;
 }
 
 /* 视频预览 */

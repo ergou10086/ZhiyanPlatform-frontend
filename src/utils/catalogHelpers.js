@@ -104,9 +104,117 @@ export function getMimeType(extension) {
 }
 
 /**
- * 获取文件类型显示名称
+ * 根据文件扩展名获取文件类型显示名称
  */
-export function getFileTypeDisplay(mimeType) {
+export function getFileTypeDisplayByExtension(extension) {
+  const ext = (extension || '').toLowerCase()
+  const extensionMap = {
+    // 文档类型
+    'pdf': 'PDF文档',
+    'doc': 'Word文档',
+    'docx': 'Word文档',
+    'txt': '文本文件',
+    'md': 'Markdown文档',
+    'rtf': 'RTF文档',
+    'odt': 'OpenDocument文档',
+    // 表格类型
+    'xls': 'Excel表格',
+    'xlsx': 'Excel表格',
+    'csv': 'CSV数据',
+    'ods': 'OpenDocument表格',
+    // 演示文稿
+    'ppt': 'PowerPoint演示',
+    'pptx': 'PowerPoint演示',
+    'odp': 'OpenDocument演示',
+    // 图片类型
+    'jpg': 'JPEG图片',
+    'jpeg': 'JPEG图片',
+    'png': 'PNG图片',
+    'gif': 'GIF图片',
+    'bmp': 'BMP图片',
+    'webp': 'WebP图片',
+    'svg': 'SVG图片',
+    'ico': '图标文件',
+    'tiff': 'TIFF图片',
+    'tif': 'TIFF图片',
+    // 视频类型
+    'mp4': 'MP4视频',
+    'avi': 'AVI视频',
+    'mov': 'MOV视频',
+    'wmv': 'WMV视频',
+    'flv': 'FLV视频',
+    'webm': 'WebM视频',
+    'mkv': 'MKV视频',
+    'm4v': 'M4V视频',
+    '3gp': '3GP视频',
+    // 音频类型
+    'mp3': 'MP3音频',
+    'wav': 'WAV音频',
+    'ogg': 'OGG音频',
+    'm4a': 'M4A音频',
+    'flac': 'FLAC音频',
+    'aac': 'AAC音频',
+    'wma': 'WMA音频',
+    // 压缩包
+    'zip': 'ZIP压缩包',
+    'rar': 'RAR压缩包',
+    '7z': '7Z压缩包',
+    'tar': 'TAR压缩包',
+    'gz': 'GZ压缩包',
+    'bz2': 'BZ2压缩包',
+    // 数据格式
+    'json': 'JSON数据',
+    'xml': 'XML数据',
+    'yaml': 'YAML数据',
+    'yml': 'YAML数据',
+    // 代码文件
+    'html': 'HTML文件',
+    'htm': 'HTML文件',
+    'css': 'CSS样式',
+    'js': 'JavaScript文件',
+    'jsx': 'JSX文件',
+    'ts': 'TypeScript文件',
+    'tsx': 'TSX文件',
+    'py': 'Python脚本',
+    'java': 'Java文件',
+    'cpp': 'C++文件',
+    'c': 'C文件',
+    'h': 'C头文件',
+    'cs': 'C#文件',
+    'php': 'PHP文件',
+    'rb': 'Ruby文件',
+    'go': 'Go文件',
+    'rs': 'Rust文件',
+    'swift': 'Swift文件',
+    'kt': 'Kotlin文件',
+    'sql': 'SQL文件',
+    'sh': 'Shell脚本',
+    'bash': 'Bash脚本',
+    // 模型文件
+    'pkl': 'Python模型',
+    'h5': 'HDF5模型',
+    'pt': 'PyTorch模型',
+    'pth': 'PyTorch模型',
+    'onnx': 'ONNX模型',
+    'pb': 'TensorFlow模型',
+    'tflite': 'TensorFlow Lite模型',
+    // 其他
+    'exe': '可执行文件',
+    'dll': '动态链接库',
+    'so': '共享库',
+    'dmg': '磁盘镜像',
+    'iso': 'ISO镜像'
+  }
+  return extensionMap[ext] || null
+}
+
+/**
+ * 获取文件类型显示名称
+ * @param {string} mimeType - MIME类型
+ * @param {string} fileName - 文件名（可选，当MIME类型不可用时用于推断）
+ */
+export function getFileTypeDisplay(mimeType, fileName) {
+  // 首先尝试根据MIME类型判断
   const typeMap = {
     'application/pdf': 'PDF文档',
     'application/msword': 'Word文档',
@@ -121,22 +229,87 @@ export function getFileTypeDisplay(mimeType) {
     'image/png': 'PNG图片',
     'image/gif': 'GIF图片',
     'image/svg+xml': 'SVG图片',
+    'image/bmp': 'BMP图片',
+    'image/webp': 'WebP图片',
+    'image/x-icon': '图标文件',
+    'image/tiff': 'TIFF图片',
     'video/mp4': 'MP4视频',
     'video/avi': 'AVI视频',
     'video/quicktime': 'MOV视频',
+    'video/x-ms-wmv': 'WMV视频',
+    'video/x-flv': 'FLV视频',
+    'video/webm': 'WebM视频',
+    'video/x-matroska': 'MKV视频',
     'audio/mpeg': 'MP3音频',
     'audio/wav': 'WAV音频',
+    'audio/ogg': 'OGG音频',
+    'audio/mp4': 'M4A音频',
+    'audio/flac': 'FLAC音频',
+    'audio/aac': 'AAC音频',
+    'audio/x-ms-wma': 'WMA音频',
     'application/zip': 'ZIP压缩包',
     'application/x-rar-compressed': 'RAR压缩包',
     'application/x-7z-compressed': '7Z压缩包',
+    'application/x-tar': 'TAR压缩包',
+    'application/gzip': 'GZ压缩包',
+    'application/x-bzip2': 'BZ2压缩包',
     'text/csv': 'CSV数据',
     'application/json': 'JSON数据',
     'text/xml': 'XML数据',
+    'application/xml': 'XML数据',
+    'text/yaml': 'YAML数据',
     'text/html': 'HTML文件',
     'text/css': 'CSS样式',
-    'application/x-python-code': 'Python脚本'
+    'application/javascript': 'JavaScript文件',
+    'text/javascript': 'JavaScript文件',
+    'application/x-python-code': 'Python脚本',
+    'text/x-python': 'Python脚本',
+    'text/x-java-source': 'Java文件',
+    'text/x-c++': 'C++文件',
+    'text/x-c': 'C文件',
+    'text/x-csharp': 'C#文件',
+    'text/x-php': 'PHP文件',
+    'text/x-ruby': 'Ruby文件',
+    'text/x-go': 'Go文件',
+    'text/x-rust': 'Rust文件',
+    'text/x-swift': 'Swift文件',
+    'text/x-kotlin': 'Kotlin文件',
+    'application/x-sql': 'SQL文件',
+    'application/x-sh': 'Shell脚本',
+    'application/x-bash': 'Bash脚本'
   }
-  return typeMap[mimeType] || '未知类型'
+  
+  // 如果MIME类型存在且在映射表中，直接返回
+  if (mimeType && typeMap[mimeType]) {
+    return typeMap[mimeType]
+  }
+  
+  // 如果MIME类型不可用或不在映射表中，尝试根据文件名后缀推断
+  if (fileName) {
+    const extension = getFileExtension(fileName)
+    const typeByExtension = getFileTypeDisplayByExtension(extension)
+    if (typeByExtension) {
+      return typeByExtension
+    }
+  }
+  
+  // 如果MIME类型存在但不在映射表中，尝试从MIME类型中提取主要类型
+  if (mimeType) {
+    const mainType = mimeType.split('/')[0]
+    const mainTypeMap = {
+      'image': '图片文件',
+      'video': '视频文件',
+      'audio': '音频文件',
+      'text': '文本文件',
+      'application': '应用程序'
+    }
+    if (mainTypeMap[mainType]) {
+      return mainTypeMap[mainType]
+    }
+  }
+  
+  // 最后返回未知类型
+  return '未知类型'
 }
 
 /**
