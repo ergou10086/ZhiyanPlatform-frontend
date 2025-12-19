@@ -1258,3 +1258,43 @@ html.dark-mode .file-preview-dialog .single-file-card-container .file-preview-ca
   border-color: #1f2937 !important;
 }
 
+/* PDF.js 预览样式 */
+.file-preview-pdf-canvas-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-height: 70vh;
+  overflow: auto;
+  background: #0f172a;
+  border-radius: 8px;
+}
+
+.file-preview-pdf-canvas-wrapper canvas {
+  background: #ffffff;
+  border-radius: 4px;
+}
+
+.pdf-viewer-toolbar {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.pdf-viewer-toolbar .btn.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.pdf-page-info {
+  font-size: 13px;
+  color: #e5e7eb;
+}
+
+.pdf-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
