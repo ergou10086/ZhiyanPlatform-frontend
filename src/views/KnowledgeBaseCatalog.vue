@@ -943,34 +943,34 @@
           <div v-else-if="previewFileType === 'image'" class="file-preview-image-container">
             <img :src="previewFileUrl" :alt="previewingFile?.name" class="file-preview-image" @error="handlePreviewError" />
           </div>
-          <!-- PDF预览 -->
+          <!-- PDF预览（使用 pdf.js 在前端渲染，避免浏览器直接下载） -->
           <div v-else-if="previewFileType === 'pdf'" class="file-preview-pdf-container">
-            <iframe :src="previewFileUrl" class="file-preview-pdf" frameborder="0"></iframe>
+            <div class="file-preview-pdf-canvas-wrapper">
+              <canvas ref="pdfCanvas"></canvas>
+            </div>
+            <div class="pdf-viewer-toolbar">
+              <button class="btn small" @click="renderPrevPdfPage" :disabled="pdfPage <= 1">上一页</button>
+              <span class="pdf-page-info">{{ pdfPage }} / {{ pdfTotalPages || '?' }}</span>
+              <button class="btn small" @click="renderNextPdfPage" :disabled="pdfPage >= pdfTotalPages">下一页</button>
+              <span class="pdf-zoom">
+                <button class="btn small" @click="zoomOutPdf" :disabled="pdfScale <= 0.5">-</button>
+                <span>{{ Math.round(pdfScale * 100) }}%</span>
+                <button class="btn small" @click="zoomInPdf" :disabled="pdfScale >= 2">+</button>
+              </span>
+            </div>
           </div>
-          <!-- Office文档预览 -->
+          <!-- Office文档预览（始终使用在线查看器，避免浏览器直接下载 doc/docx 等文件） -->
           <div v-else-if="previewFileType === 'office'" class="file-preview-office-container">
             <div class="office-viewer-wrapper">
-              <!-- 方案1: 直接使用iframe加载文件 -->
               <iframe
-                  v-if="!useOnlineViewer"
-                  :src="previewFileUrl"
-                  class="file-preview-office"
-                  frameborder="0"
-                  @load="handleOfficeIframeLoad"
-                  @error="handleOfficeIframeError"
-                  title="Office文档预览"
-              ></iframe>
-              <!-- 方案2: 在线查看器 -->
-              <iframe
-                  v-else
                   :src="useMicrosoftViewer ? getMicrosoftViewerUrl(previewFileUrl) : getGoogleDocsViewerUrl(previewFileUrl)"
                   class="file-preview-office"
                   frameborder="0"
                   @error="handleOfficeViewerError"
                   title="Office文档预览"
               ></iframe>
-              <!-- 备选方案 -->
-              <div v-if="officeViewerError && useOnlineViewer" class="office-viewer-fallback">
+              <!-- 备选方案：如果在线查看器加载失败，可以在这里提示用户改为下载 -->
+              <div v-if="officeViewerError" class="office-viewer-fallback">
                 <!-- ... 错误提示 ... -->
               </div>
             </div>
@@ -1319,6 +1319,11 @@ export default {
       previewError: null,
       previewMarkdownHtml: '', // 渲染后的Markdown HTML
       highlightedCode: '', // 代码高亮后的HTML
+      // PDF.js 预览相关
+      pdfDoc: null,
+      pdfPage: 1,
+      pdfTotalPages: 0,
+      pdfScale: 1.0,
       // Office查看器相关
       officeViewerError: false,
       useMicrosoftViewer: false,
@@ -3136,29 +3141,53 @@ export default {
         if (this.isPdfFile(fileExtension, mimeType)) {
           this.previewFileType = 'pdf'
           console.log('🔍 [预览] 识别为 PDF 文件')
+          // PDF 使用浏览器原生预览
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isOfficeFile(fileExtension, mimeType)) {
-            this.previewFileType = 'office'
-            console.log('🔍 [预览] 识别为 Office 文件')
+          // Office 文档统一走在线查看器（例如 doc/docx/xls/ppt 等），以尽量保留原始排版 / 表格 / 字体
+          this.previewFileType = 'office'
+          console.log('🔍 [预览] 识别为 Office 文件，默认使用 Microsoft Office Online 进行预览')
+          this.useOnlineViewer = true
+          // 默认优先使用 Microsoft Viewer（效果最接近本地 Word），Google 作为备用
+          this.useMicrosoftViewer = true
         } else if (this.isImageFile(fileExtension, mimeType)) {
           this.previewFileType = 'image'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isMarkdownFile(fileExtension, mimeType)) {
           // Markdown：前端拉取并渲染为HTML
           this.previewFileType = 'markdown'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isCodeFile(fileExtension, mimeType)) {
           // 代码文件：使用语法高亮
           this.previewFileType = 'code'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isTextFile(fileExtension, mimeType)) {
           // 纯文本：前端拉取渲染，失败再回退iframe
           this.previewFileType = 'text'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isVideoFile(fileExtension, mimeType)) {
           this.previewFileType = 'video'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isAudioFile(fileExtension, mimeType)) {
           this.previewFileType = 'audio'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         } else if (this.isOfficeFile(fileExtension, mimeType)) {
+          // 兜底逻辑：再次识别为 Office 时同样使用在线查看器
           this.previewFileType = 'office'
+          this.useOnlineViewer = true
+          this.useMicrosoftViewer = false
         } else {
           // 未知类型，尝试作为文本预览
           this.previewFileType = 'text'
+          this.useOnlineViewer = false
+          this.useMicrosoftViewer = false
         }
         
         // 获取文件访问URL
@@ -3190,15 +3219,19 @@ export default {
         console.log('📄 [预览] 文件URL:', fileUrl)
         this.previewFileUrl = fileUrl
 
-        // 只有文本类型才需要预加载内容，PDF 和 Office 直接用 iframe
+        // 文本 / Markdown / 代码 / PDF 需要预加载内容
         if (this.previewFileType === 'markdown') {
           await this.loadMarkdownForPreview(fileUrl)
         } else if (this.previewFileType === 'code') {
           await this.loadCodeContentForPreview(fileUrl, fileExtension)
         } else if (this.previewFileType === 'text') {
           await this.loadTextContentForPreview(fileUrl)
-        } else if (this.previewFileUrl === 'pdf' || this.previewingFile === 'office'){
-          console.log(`🔍 [预览] ${this.previewFileType.toUpperCase()} 将使用 iframe 直接加载`)
+        } else if (this.previewFileType === 'pdf') {
+          // 等待 DOM 切换到 PDF 预览分支（canvas 挂载完成）后再渲染第一页
+          await this.$nextTick()
+          await this.loadPdfForPreview(fileUrl)
+        } else if (this.previewingFile === 'office') {
+          console.log(`🔍 [预览] Office 文件将通过在线查看器加载`)
         }
         
         this.previewLoading = false
@@ -3371,6 +3404,99 @@ export default {
         await this.loadTextContentForPreview(url)
       }
     },
+
+    // 加载 PDF 内容并使用 pdf.js 渲染到 canvas
+    async loadPdfForPreview(url) {
+      try {
+        console.log('📄 [预览] 加载 PDF 内容用于在线预览:', url)
+        const token = localStorage.getItem('access_token')
+        const headers = { 'Accept': 'application/pdf,*/*' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        const res = await fetch(url, { method: 'GET', headers, credentials: 'include' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+
+        const arrayBuffer = await res.arrayBuffer()
+        const uint8Array = new Uint8Array(arrayBuffer)
+
+        const pdfjsLib = window.pdfjsLib
+        if (!pdfjsLib || !pdfjsLib.getDocument) {
+          console.warn('📄 [预览] pdf.js 未就绪，无法解析 PDF')
+          this.previewError = '当前环境暂不支持 PDF 在线预览，请尝试下载后查看'
+          return
+        }
+
+        // 配置 worker
+        if (pdfjsLib.GlobalWorkerOptions) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+        }
+
+        const loadingTask = pdfjsLib.getDocument({ data: uint8Array })
+        const pdf = await loadingTask.promise
+        this.pdfDoc = pdf
+        this.pdfTotalPages = pdf.numPages || 1
+        this.pdfPage = 1
+        this.pdfScale = 1.0
+
+        // 首次渲染当前页
+        await this.renderPdfPage(this.pdfPage)
+        // 再异步触发一次渲染，避免某些浏览器首次进入时出现空白的问题
+        setTimeout(() => {
+          this.renderPdfPage(this.pdfPage)
+        }, 50)
+        console.log('📄 [预览] PDF 加载并渲染成功，页数:', this.pdfTotalPages)
+      } catch (error) {
+        console.error('📄 [预览] PDF 在线预览失败:', error)
+        this.previewError = '无法在线预览该 PDF 文档，请尝试下载后查看'
+      }
+    },
+
+    async renderPdfPage(pageNumber) {
+      if (!this.pdfDoc) return
+      try {
+        const page = await this.pdfDoc.getPage(pageNumber)
+        const viewport = page.getViewport({ scale: this.pdfScale })
+        const canvas = this.$refs.pdfCanvas
+        if (!canvas) return
+        const context = canvas.getContext('2d')
+        canvas.height = viewport.height
+        canvas.width = viewport.width
+
+        const renderContext = {
+          canvasContext: context,
+          viewport
+        }
+
+        await page.render(renderContext).promise
+      } catch (e) {
+        console.error('📄 [预览] 渲染 PDF 页面失败:', e)
+        this.previewError = '渲染 PDF 页面失败'
+      }
+    },
+
+    async renderPrevPdfPage() {
+      if (!this.pdfDoc || this.pdfPage <= 1) return
+      this.pdfPage -= 1
+      await this.renderPdfPage(this.pdfPage)
+    },
+
+    async renderNextPdfPage() {
+      if (!this.pdfDoc || this.pdfPage >= this.pdfTotalPages) return
+      this.pdfPage += 1
+      await this.renderPdfPage(this.pdfPage)
+    },
+
+    async zoomInPdf() {
+      if (!this.pdfDoc) return
+      this.pdfScale = Math.min(this.pdfScale + 0.1, 2)
+      await this.renderPdfPage(this.pdfPage)
+    },
+
+    async zoomOutPdf() {
+      if (!this.pdfDoc) return
+      this.pdfScale = Math.max(this.pdfScale - 0.1, 0.5)
+      await this.renderPdfPage(this.pdfPage)
+    },
     
     // 加载代码内容并应用语法高亮
     async loadCodeContentForPreview(url, extension) {
@@ -3487,39 +3613,14 @@ export default {
     
     // 获取Google Docs Viewer URL
     getGoogleDocsViewerUrl(fileUrl) {
-      // 检查URL是否是跨域的（MinIO或其他对象存储）
-      const isExternalUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
-      const isLocalhost = fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')
-      const isSameOrigin = !isExternalUrl || isLocalhost || fileUrl.startsWith(window.location.origin)
-      
-      // 如果是跨域URL，需要通过后端代理
-      if (isExternalUrl && !isSameOrigin && this.previewingFile && this.previewingFile.id) {
-        // 通过后端API获取可访问的URL
-        // 使用文件ID通过后端代理访问
-        const fileId = String(this.previewingFile.id)
-        // 构建通过Vue代理的URL
-        const proxyUrl = `${window.location.origin}/zhiyan/achievement/file/${fileId}/download-url`
-        return `https://docs.google.com/viewer?url=${encodeURIComponent(proxyUrl)}&embedded=true`
-      }
-      
-      // 对于同源URL或公开URL，直接使用
+      // 这里直接把 COS 预签名 URL 交给 Google Docs Viewer，
+      // 不再通过后端 `/download-url` 代理（那个接口返回的是 JSON 而不是文件本身，会导致预览失败）
       return `https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`
     },
     
     // 获取Microsoft Office Online Viewer URL
     getMicrosoftViewerUrl(fileUrl) {
-      // 检查URL是否是跨域的
-      const isExternalUrl = fileUrl.startsWith('http://') || fileUrl.startsWith('https://')
-      const isLocalhost = fileUrl.includes('localhost') || fileUrl.includes('127.0.0.1')
-      const isSameOrigin = !isExternalUrl || isLocalhost || fileUrl.startsWith(window.location.origin)
-      
-      // 如果是跨域URL，需要通过后端代理
-      if (isExternalUrl && !isSameOrigin && this.previewingFile && this.previewingFile.id) {
-        const fileId = String(this.previewingFile.id)
-        const proxyUrl = `${window.location.origin}/zhiyan/achievement/file/${fileId}/download-url`
-        return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(proxyUrl)}`
-      }
-      
+      // 同样直接使用 COS 预签名 URL，让 Microsoft Office Online 直接拉取文件进行渲染
       return `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`
     },
     
