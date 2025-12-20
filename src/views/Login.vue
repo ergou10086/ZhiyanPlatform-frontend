@@ -82,6 +82,14 @@
             <span>或使用第三方账号登录</span>
           </div>
           
+          <!-- 第三方登录政策提示 -->
+          <div class="oauth2-policy-notice">
+            <p class="policy-text">
+              <span class="policy-icon">ℹ️</span>
+              本平台仅支持已注册用户通过第三方登录。请确保您的注册邮箱与第三方平台邮箱一致。
+            </p>
+          </div>
+          
           <!-- GitHub授权登录按钮 -->
           <button type="button" class="github-login-btn" @click="handleGithubLogin">
             <svg class="github-icon" viewBox="0 0 24 24" width="20" height="20">

@@ -366,6 +366,39 @@
   border-bottom-color: #4a5568;
 }
 
+/* OAuth2政策提示 */
+.login-container .oauth2-policy-notice {
+  margin: 16px 0 20px;
+  padding: 12px 16px;
+  background: #e6f2ff;
+  border-left: 4px solid #667eea;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.login-container .oauth2-policy-notice .policy-text {
+  margin: 0;
+  color: #4a5568;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.login-container .oauth2-policy-notice .policy-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.dark-mode .login-container .oauth2-policy-notice {
+  background: #2d3748;
+  border-left-color: #667eea;
+}
+
+.dark-mode .login-container .oauth2-policy-notice .policy-text {
+  color: #cbd5e0;
+}
+
 /* GitHub登录按钮 */
 .login-container .github-login-btn {
   width: 100%;
