@@ -133,13 +133,29 @@ export default {
           this.handleLoginSuccess(loginResponse)
           break
 
-        case 'NEED_SUPPLEMENT':
         case 'NEED_BIND':
-          // 新用户：补充登录密码后创建账号（邮箱已由OAuth2提供）
-          console.log('⚠️ 需要设置密码完成注册')
+          // 需要绑定已有账号（不支持未注册用户直接创建）
+          console.log('⚠️ 需要绑定已有账号')
+          sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
+          sessionStorage.setItem('oauth2_email', oauth2UserInfo?.email || '')
+          this.loading = false
+          this.$router.replace('/oauth2/bind')
+          break
+
+        case 'NEED_SUPPLEMENT':
+          // 需要补充信息，但不支持未注册用户直接创建账号
+          console.log('⚠️ OAuth2未提供邮箱，需要引导用户注册')
           sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
           this.loading = false
-          this.$router.replace('/oauth2/supplement')
+          // 跳转到错误页面，提示用户需要先注册
+          this.$router.replace({
+            path: '/oauth2/error',
+            query: {
+              message: encodeURIComponent('本平台不支持未注册用户直接通过第三方登录创建账号。请先前往注册页面完成账号创建，并确保注册邮箱与第三方平台邮箱一致。'),
+              provider: oauth2UserInfo?.provider || 'unknown',
+              needRegister: 'true'
+            }
+          })
           break
 
         default:
