@@ -7,22 +7,6 @@
         <p>检测到您是首次使用 {{ providerName }} 登录</p>
       </div>
 
-      <!-- 政策说明 -->
-      <div class="policy-notice">
-        <div class="notice-icon">ℹ️</div>
-        <div class="notice-content">
-          <p class="notice-title">账号绑定说明</p>
-          <p class="notice-text">
-            出于账号管理与用户权益保护的考量，本平台不支持未注册用户直接通过 OAuth2 第三方登录创建账号。
-            仅当你已注册本平台账号，且该账号绑定的邮箱与第三方登录平台的绑定邮箱完全一致时，方可通过对应第三方渠道登录。
-          </p>
-          <p class="notice-text">
-            若你暂未注册本平台账号，请先前往<router-link to="/register" class="register-link">注册页面</router-link>完成账号创建，
-            并确保注册邮箱与第三方平台邮箱一致，即可享受便捷的第三方登录服务。
-          </p>
-        </div>
-      </div>
-
       <!-- OAuth2用户信息 -->
       <div class="oauth2-info" v-if="oauth2UserInfo">
         <img :src="oauth2UserInfo.avatar || defaultAvatar" :alt="oauth2UserInfo.name" class="avatar">
@@ -30,23 +14,33 @@
         <div class="user-email" v-if="oauth2UserInfo.email">{{ oauth2UserInfo.email }}</div>
       </div>
 
+      <!-- 选项卡 -->
+      <div class="tabs">
+        <button 
+          :class="['tab', { active: activeTab === 'bind' }]" 
+          @click="activeTab = 'bind'"
+        >
+          绑定已有账号
+        </button>
+        <button 
+          :class="['tab', { active: activeTab === 'create' }]" 
+          @click="activeTab = 'create'"
+        >
+          创建新账号
+        </button>
+      </div>
+
       <!-- 绑定已有账号表单 -->
-      <div class="form-container">
+      <div v-if="activeTab === 'bind'" class="form-container">
         <form @submit.prevent="handleBind">
           <div class="form-group">
-            <label>邮箱</label>
+            <label>用户名或邮箱</label>
             <input 
               v-model="bindForm.username" 
-              type="email" 
-              :placeholder="oauth2UserInfo?.email ? `请输入邮箱（建议使用：${oauth2UserInfo.email}）` : '请输入已注册账号的邮箱'"
+              type="text" 
+              placeholder="请输入用户名或邮箱"
               required
             >
-            <p class="form-hint" v-if="oauth2UserInfo?.email">
-              您的 {{ providerName }} 邮箱：<strong>{{ oauth2UserInfo.email }}</strong>
-            </p>
-            <p class="form-hint">
-              请确保输入的邮箱与您在本平台注册时使用的邮箱一致
-            </p>
           </div>
           <div class="form-group">
             <label>密码</label>
@@ -63,15 +57,57 @@
         </form>
       </div>
 
-      <!-- 操作按钮 -->
-      <div class="action-buttons">
-        <button @click="goToRegister" class="btn-register">
-          前往注册
-        </button>
-        <button @click="cancel" class="btn-cancel">
-          取消
-        </button>
+      <!-- 创建新账号表单 -->
+      <div v-else class="form-container">
+        <form @submit.prevent="handleCreate">
+          <div class="form-group">
+            <label>用户名</label>
+            <input 
+              v-model="createForm.username" 
+              type="text" 
+              placeholder="请输入用户名"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label>邮箱</label>
+            <input 
+              v-model="createForm.email" 
+              type="email" 
+              placeholder="请输入邮箱"
+              required
+            >
+          </div>
+          <div class="form-group">
+            <label>密码</label>
+            <input 
+              v-model="createForm.password" 
+              type="password" 
+              placeholder="请输入密码（至少6位）"
+              required
+              minlength="6"
+            >
+          </div>
+          <div class="form-group">
+            <label>确认密码</label>
+            <input 
+              v-model="createForm.confirmPassword" 
+              type="password" 
+              placeholder="请再次输入密码"
+              required
+              minlength="6"
+            >
+          </div>
+          <button type="submit" class="btn-submit" :disabled="loading">
+            {{ loading ? '创建中...' : '创建账号' }}
+          </button>
+        </form>
       </div>
+
+      <!-- 取消按钮 -->
+      <button @click="cancel" class="btn-cancel">
+        取消
+      </button>
     </div>
   </div>
 </template>
@@ -84,10 +120,17 @@ export default {
   name: 'OAuth2Bind',
   data() {
     return {
+      activeTab: 'bind',
       oauth2UserInfo: null,
       bindForm: {
         username: '',
         password: ''
+      },
+      createForm: {
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
       },
       loading: false,
       defaultAvatar: 'https://via.placeholder.com/80'
@@ -112,9 +155,9 @@ export default {
         this.oauth2UserInfo = JSON.parse(oauth2UserInfoStr)
         console.log('📥 OAuth2用户信息:', this.oauth2UserInfo)
         
-        // 预填充邮箱到绑定表单（如果后端需要）
+        // 预填充邮箱
         if (this.oauth2UserInfo.email) {
-          // 可以在这里预填充邮箱提示
+          this.createForm.email = this.oauth2UserInfo.email
         }
       } catch (error) {
         console.error('❌ 解析OAuth2用户信息失败:', error)
@@ -127,26 +170,12 @@ export default {
   },
   methods: {
     async handleBind() {
-      // 验证邮箱是否匹配
-      const oauth2Email = this.oauth2UserInfo?.email || sessionStorage.getItem('oauth2_email')
-      if (oauth2Email && this.bindForm.username !== oauth2Email && !this.bindForm.username.includes('@')) {
-        // 如果输入的是用户名而不是邮箱，提示用户
-        const useEmail = window.confirm(
-          `为了确保账号安全，请使用与 ${this.providerName} 绑定的邮箱进行绑定。\n\n` +
-          `您的 ${this.providerName} 邮箱是：${oauth2Email}\n\n` +
-          `是否使用该邮箱进行绑定？`
-        )
-        if (useEmail) {
-          this.bindForm.username = oauth2Email
-        }
-      }
-
       this.loading = true
       try {
         const response = await authAPI.bindOAuth2Account({
           provider: this.oauth2UserInfo.provider,
           providerUserId: this.oauth2UserInfo.oauth2UserId,
-          email: this.bindForm.username.includes('@') ? this.bindForm.username : oauth2Email,
+          email: this.oauth2UserInfo.email,
           password: this.bindForm.password,
           oauth2UserInfo: this.oauth2UserInfo
         })
@@ -155,16 +184,46 @@ export default {
           console.log('✅ 绑定成功')
           this.handleLoginSuccess(response.data)
         } else {
-          // 检查是否是邮箱不匹配的错误
-          const errorMsg = response.msg || '绑定失败'
-          if (errorMsg.includes('邮箱') || errorMsg.includes('不匹配')) {
-            throw new Error(errorMsg + '。请确保使用与第三方平台一致的邮箱进行绑定。')
-          }
-          throw new Error(errorMsg)
+          throw new Error(response.msg || '绑定失败')
         }
       } catch (error) {
         console.error('❌ 绑定失败:', error)
-        alert(error.message || '绑定失败，请重试。如果尚未注册，请先前往注册页面完成账号创建。')
+        alert(error.message || '绑定失败，请重试')
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async handleCreate() {
+      this.loading = true
+      try {
+        // 验证密码
+        if (this.createForm.password !== this.createForm.confirmPassword) {
+          throw new Error('两次输入的密码不一致')
+        }
+
+        // 使用补充信息API来创建新账号
+        const response = await authAPI.supplementOAuth2Info({
+          provider: this.oauth2UserInfo.provider,
+          providerUserId: this.oauth2UserInfo.oauth2UserId,
+          email: this.createForm.email,
+          password: this.createForm.password,
+          confirmPassword: this.createForm.confirmPassword,
+          oauth2UserInfo: {
+            ...this.oauth2UserInfo,
+            username: this.createForm.username
+          }
+        })
+
+        if (response.code === 200) {
+          console.log('✅ 创建账号成功')
+          this.handleLoginSuccess(response.data)
+        } else {
+          throw new Error(response.msg || '创建账号失败')
+        }
+      } catch (error) {
+        console.error('❌ 创建账号失败:', error)
+        alert(error.message || '创建账号失败，请重试')
       } finally {
         this.loading = false
       }
@@ -207,7 +266,6 @@ export default {
       sessionStorage.removeItem('oauth2_state')
       sessionStorage.removeItem('oauth2_provider')
       sessionStorage.removeItem('oauth2_user_info')
-      sessionStorage.removeItem('oauth2_email')
 
       // 触发用户信息更新事件
       this.$root.$emit('userInfoUpdated')
@@ -216,30 +274,11 @@ export default {
       this.$router.replace('/home')
     },
 
-    goToRegister() {
-      // 清除OAuth2相关的sessionStorage
-      sessionStorage.removeItem('oauth2_state')
-      sessionStorage.removeItem('oauth2_provider')
-      sessionStorage.removeItem('oauth2_user_info')
-      sessionStorage.removeItem('oauth2_email')
-      
-      // 跳转到注册页面，并传递邮箱信息（如果有）
-      const email = this.oauth2UserInfo?.email
-      if (email) {
-        this.$router.push({
-          path: '/register',
-          query: { email: email, from: 'oauth2' }
-        })
-      } else {
-        this.$router.push('/register')
-      }
-    },
     cancel() {
       // 清除OAuth2相关的sessionStorage
       sessionStorage.removeItem('oauth2_state')
       sessionStorage.removeItem('oauth2_provider')
       sessionStorage.removeItem('oauth2_user_info')
-      sessionStorage.removeItem('oauth2_email')
       
       // 返回登录页
       this.$router.replace('/login')
@@ -314,52 +353,32 @@ export default {
   color: #718096;
 }
 
-/* 政策说明 */
-.policy-notice {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #e6f2ff;
-  border-left: 4px solid #667eea;
-  border-radius: 8px;
+.tabs {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: #f7fafc;
+  padding: 4px;
+  border-radius: 8px;
 }
 
-.notice-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.notice-content {
+.tab {
   flex: 1;
-}
-
-.notice-title {
-  margin: 0 0 8px;
+  padding: 12px;
+  border: none;
+  background: transparent;
+  color: #718096;
   font-size: 14px;
-  font-weight: 600;
-  color: #2d3748;
-}
-
-.notice-text {
-  margin: 0 0 8px;
-  font-size: 13px;
-  color: #4a5568;
-  line-height: 1.6;
-}
-
-.notice-text:last-child {
-  margin-bottom: 0;
-}
-
-.register-link {
-  color: #667eea;
-  text-decoration: none;
   font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.3s ease;
 }
 
-.register-link:hover {
-  text-decoration: underline;
+.tab.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .form-container {
@@ -394,18 +413,6 @@ export default {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.form-hint {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: #718096;
-  line-height: 1.5;
-}
-
-.form-hint strong {
-  color: #667eea;
-  font-weight: 600;
-}
-
 .btn-submit {
   width: 100%;
   padding: 14px;
@@ -430,32 +437,8 @@ export default {
   cursor: not-allowed;
 }
 
-.action-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.btn-register {
-  flex: 1;
-  padding: 14px;
-  border: none;
-  border-radius: 8px;
-  background: #48bb78;
-  color: white;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-register:hover {
-  background: #38a169;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
-}
-
 .btn-cancel {
-  flex: 1;
+  width: 100%;
   padding: 14px;
   border: none;
   border-radius: 8px;
@@ -496,21 +479,17 @@ export default {
   color: #a0aec0;
 }
 
-.dark-mode .policy-notice {
+.dark-mode .tabs {
   background: #2d3748;
-  border-left-color: #667eea;
 }
 
-.dark-mode .notice-title {
-  color: #f7fafc;
+.dark-mode .tab {
+  color: #a0aec0;
 }
 
-.dark-mode .notice-text {
-  color: #cbd5e0;
-}
-
-.dark-mode .register-link {
-  color: #90cdf4;
+.dark-mode .tab.active {
+  background: #4a5568;
+  color: #667eea;
 }
 
 .dark-mode .form-group label {
@@ -521,14 +500,6 @@ export default {
   background: #2d3748;
   border-color: #4a5568;
   color: #f7fafc;
-}
-
-.dark-mode .btn-register {
-  background: #38a169;
-}
-
-.dark-mode .btn-register:hover {
-  background: #2f855a;
 }
 
 .dark-mode .btn-cancel {

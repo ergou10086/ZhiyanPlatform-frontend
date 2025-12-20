@@ -18,44 +18,70 @@
 
         <div class="info-message">
           <p>
-            <strong>⚠️ 需要先注册账号</strong>
+            <strong>⚠️ 需要补充信息</strong>
           </p>
           <p>
-            {{ providerName }} 未提供邮箱信息，无法直接通过第三方登录创建账号。
+            {{ oauth2UserInfo.provider }} 未提供邮箱信息，请补充以下信息以完成账号创建。
           </p>
         </div>
 
-        <!-- 政策说明 -->
-        <div class="policy-notice">
-          <div class="notice-icon">ℹ️</div>
-          <div class="notice-content">
-            <p class="notice-title">账号注册说明</p>
-            <p class="notice-text">
-              出于账号管理与用户权益保护的考量，本平台不支持未注册用户直接通过 OAuth2 第三方登录创建账号。
-              仅当你已注册本平台账号，且该账号绑定的邮箱与第三方登录平台的绑定邮箱完全一致时，方可通过对应第三方渠道登录。
-            </p>
-            <p class="notice-text">
-              若你暂未注册本平台账号，请先前往注册页面完成账号创建，并确保注册邮箱与第三方平台邮箱一致，即可享受便捷的第三方登录服务。
-            </p>
+        <!-- 补充信息表单 -->
+        <form @submit.prevent="handleSubmit" class="supplement-form">
+          <div class="form-group">
+            <label>邮箱 <span class="required">*</span></label>
+            <input
+              type="email"
+              v-model="form.email"
+              placeholder="请输入邮箱地址"
+              required
+            />
+            <p class="hint">用于登录和接收通知</p>
           </div>
-        </div>
 
-        <!-- 操作按钮 -->
-        <div class="action-container">
-          <router-link to="/register" class="register-btn" @click.native="handleCancel">
-            前往注册页面
-          </router-link>
-          <button @click="handleCancel" class="cancel-btn">
-            取消
+          <div class="form-group">
+            <label>密码 <span class="required">*</span></label>
+            <input
+              type="password"
+              v-model="form.password"
+              placeholder="请设置密码（至少6位）"
+              required
+              minlength="6"
+            />
+            <p class="hint">密码长度至少6位</p>
+          </div>
+
+          <div class="form-group">
+            <label>确认密码 <span class="required">*</span></label>
+            <input
+              type="password"
+              v-model="form.confirmPassword"
+              placeholder="请再次输入密码"
+              required
+            />
+          </div>
+
+          <div class="form-info">
+            <p>
+              <strong>账号信息预览：</strong>
+            </p>
+            <ul>
+              <li>昵称：{{ oauth2UserInfo.nickname || oauth2UserInfo.username }}</li>
+              <li>头像：将使用 {{ providerName }} 头像</li>
+              <li>邮箱：{{ form.email || '待填写' }}</li>
+            </ul>
+          </div>
+
+          <button type="submit" class="submit-btn" :disabled="submitting">
+            {{ submitting ? '创建中...' : '创建账号' }}
           </button>
-        </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-// import { authAPI } from '@/api/auth'
+import { authAPI } from '@/api/auth'
 
 export default {
   name: 'OAuth2SupplementDialog',
@@ -67,6 +93,12 @@ export default {
   },
   data() {
     return {
+      submitting: false,
+      form: {
+        email: '',
+        password: '',
+        confirmPassword: ''
+      }
     }
   },
   computed: {
@@ -80,6 +112,63 @@ export default {
     }
   },
   methods: {
+    async handleSubmit() {
+      if (this.submitting) return
+
+      // 验证表单
+      if (!this.form.email) {
+        alert('请输入邮箱')
+        return
+      }
+
+      if (!this.form.password) {
+        alert('请输入密码')
+        return
+      }
+
+      if (this.form.password.length < 6) {
+        alert('密码至少需要6位')
+        return
+      }
+
+      if (this.form.password !== this.form.confirmPassword) {
+        alert('两次输入的密码不一致')
+        return
+      }
+
+      // 邮箱格式验证
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(this.form.email)) {
+        alert('请输入正确的邮箱格式')
+        return
+      }
+
+      this.submitting = true
+
+      try {
+        const response = await authAPI.supplementOAuth2Info({
+          provider: this.oauth2UserInfo.provider,
+          providerUserId: this.oauth2UserInfo.providerUserId,
+          email: this.form.email,
+          password: this.form.password,
+          confirmPassword: this.form.confirmPassword,
+          oauth2UserInfo: this.oauth2UserInfo
+        })
+
+        if (response.code === 200 && response.data?.status === 'SUCCESS') {
+          console.log('✅ 补充信息成功')
+          this.$emit('supplement-success', response.data.loginResponse)
+        } else {
+          alert(response.msg || '创建账号失败')
+        }
+      } catch (error) {
+        console.error('❌ 补充信息失败:', error)
+        alert(error.message || '创建账号失败，请重试')
+      } finally {
+        this.submitting = false
+      }
+    },
+
     handleCancel() {
       this.$emit('cancel')
     }
@@ -208,87 +297,97 @@ export default {
   font-weight: 600;
 }
 
-/* 政策说明 */
-.policy-notice {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #e6f2ff;
-  border-left: 4px solid #667eea;
-  border-radius: 8px;
-  display: flex;
-  gap: 12px;
+/* 表单 */
+.form-group {
+  margin-bottom: 20px;
 }
 
-.notice-icon {
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.notice-content {
-  flex: 1;
-}
-
-.notice-title {
-  margin: 0 0 8px;
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
   font-size: 14px;
-  font-weight: 600;
-  color: #2d3748;
+  font-weight: 500;
+  color: #4a5568;
 }
 
-.notice-text {
-  margin: 0 0 8px;
-  font-size: 13px;
+.required {
+  color: #e53e3e;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #a0aec0;
+}
+
+/* 表单信息 */
+.form-info {
+  margin: 24px 0;
+  padding: 16px;
+  background: #edf2f7;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.form-info p {
+  margin: 0 0 12px;
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.form-info ul {
+  margin: 0;
+  padding-left: 20px;
   color: #4a5568;
+}
+
+.form-info li {
+  margin-bottom: 8px;
   line-height: 1.6;
 }
 
-.notice-text:last-child {
+.form-info li:last-child {
   margin-bottom: 0;
 }
 
-/* 操作按钮区域 */
-.action-container {
-  display: flex;
-  gap: 12px;
-}
-
-.register-btn {
-  flex: 1;
-  display: inline-block;
+.submit-btn {
+  width: 100%;
   padding: 14px 24px;
-  background: #48bb78;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  text-decoration: none;
+  border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
-  text-align: center;
-  transition: all 0.3s ease;
-  border: none;
   cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-.register-btn:hover {
-  background: #38a169;
+.submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
-.cancel-btn {
-  flex: 1;
-  padding: 14px 24px;
-  background: #e2e8f0;
-  color: #2d3748;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn:hover {
-  background: #cbd5e0;
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* 暗黑模式 */
@@ -322,34 +421,34 @@ export default {
   color: #ffd54f;
 }
 
-.dark-mode .policy-notice {
-  background: #2d3748;
-  border-left-color: #667eea;
-}
-
-.dark-mode .notice-title {
-  color: #f7fafc;
-}
-
-.dark-mode .notice-text {
+.dark-mode .form-group label {
   color: #cbd5e0;
 }
 
-.dark-mode .register-btn {
-  background: #38a169;
-}
-
-.dark-mode .register-btn:hover {
-  background: #2f855a;
-}
-
-.dark-mode .cancel-btn {
+.dark-mode .form-group input {
   background: #2d3748;
+  border-color: #4a5568;
   color: #f7fafc;
 }
 
-.dark-mode .cancel-btn:hover {
-  background: #4a5568;
+.dark-mode .form-group input:focus {
+  border-color: #667eea;
+}
+
+.dark-mode .hint {
+  color: #718096;
+}
+
+.dark-mode .form-info {
+  background: #2d3748;
+}
+
+.dark-mode .form-info p {
+  color: #f7fafc;
+}
+
+.dark-mode .form-info ul {
+  color: #cbd5e0;
 }
 
 /* 响应式 */
@@ -372,4 +471,3 @@ export default {
   }
 }
 </style>
-
