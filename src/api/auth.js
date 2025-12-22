@@ -274,8 +274,7 @@ export const authAPI = {
    */
   handleOAuth2Callback(provider, code, state) {
     console.log('[authAPI.handleOAuth2Callback] 处理OAuth2回调, provider:', provider)
-    // 调用新的处理接口，返回JSON数据而不是重定向
-    return api.get(`/zhiyan/auth/oauth2/callback/${provider}/process`, {
+    return api.get(`/zhiyan/auth/oauth2/callback/${provider}`, {
       params: { code, state }
     })
   },
