@@ -52,13 +52,8 @@ const routes = [
     component: ChangeEmail
   },
   {
-    path: '/oauth2/callback/:provider',
-    name: 'OAuth2Callback',
-    component: OAuth2Callback
-  },
-  {
     path: '/auth/oauth2/callback/:provider',
-    name: 'OAuth2CallbackAlt',
+    name: 'OAuth2Callback',
     component: OAuth2Callback
   },
   {
