@@ -1474,6 +1474,11 @@ export default {
   },
   data() {
     return {
+      // 禁用所有动画和特效
+      enableBackgroundEffects: false,
+      disableAllAnimations: true,
+      // 任务加载状态
+      isLoadingTasks: false,
       taskTypeOpen: false,
       selectedTaskType: '',
       statusDropdownOpen: false,
@@ -1735,22 +1740,34 @@ export default {
       return today.toISOString().split('T')[0]
     }
   },
-  mounted() {
-    this.loadProject() // loadProject方法会自动调用loadProjectTasks和loadTeamMembers
-    // 注意：checkAdminPermission 会在 loadProject 完成后被调用，或者在 loadTeamMembers 内部更新权限状态
-    document.addEventListener('click', this.handleClickOutside)
+  async mounted() {
+    // 立即加载任务列表，不等待成员权限
+    const projectId = this.$route.params.id;
+    if (projectId) {
+      // 并行加载项目详情和任务列表
+      Promise.all([
+        this.loadProject(),
+        this.loadProjectTasks()
+      ]).catch(error => {
+        console.error('加载项目数据时出错:', error);
+      });
+    } else {
+      await this.loadProject();
+    }
+    
+    document.addEventListener('click', this.handleClickOutside);
     // 监听精确的头像更新事件
     this.$eventBus.on(
       this.$EventTypes.USER_AVATAR_UPDATED, 
       this.handleAvatarUpdated,
       { debounce: 300 } // 300ms防抖，避免频繁更新
-    )
+    );
     // 监听任务状态更新事件（从其他页面触发，如任务审核页面）
     this.$eventBus.on(
       this.$EventTypes.TASK_UPDATED,
       this.handleTaskStatusUpdated,
       { debounce: 500 } // 500ms防抖，避免频繁刷新
-    )
+    );
   },
   beforeRouteUpdate(to, from, next) {
     // 当路由中的项目ID发生变化时，先清空当前详情，再加载新项目，避免短暂显示上一个项目
@@ -1795,57 +1812,96 @@ export default {
     /**
      * 批量更新任务状态（仅更新待审核状态的任务，避免性能问题）
      */
-    async batchUpdateTaskStatus() {
+    /**
+     * 批量更新任务状态
+     * @param {Array} taskIds - 需要更新状态的任务ID数组
+     */
+    async batchUpdateTaskStatus(taskIds = []) {
+      if (!taskIds || taskIds.length === 0) {
+        console.log('[batchUpdateTaskStatus] 没有需要更新的任务')
+        return
+      }
+
+      console.log(`[batchUpdateTaskStatus] 开始批量更新 ${taskIds.length} 个任务的状态`)
+      
       try {
-        // 只检查状态为"待审核"的任务
-        const pendingTasks = this.tasks.filter(t => 
-          t.status === '待审核' || t.status_value === 'PENDING_REVIEW'
-        )
+        // 批量获取任务提交状态
+        const { batchGetTaskSubmissions } = await import('@/api/taskSubmission')
+        const response = await batchGetTaskSubmissions(taskIds)
         
-        if (pendingTasks.length === 0) {
-          console.log('[batchUpdateTaskStatus] 没有待审核的任务需要更新')
-          return
-        }
-        
-        console.log(`[batchUpdateTaskStatus] 检查 ${pendingTasks.length} 个待审核任务的提交状态`)
-        
-        const { getTaskSubmissions } = await import('@/api/taskSubmission')
-        
-        // 并发检查所有待审核任务（限制并发数为5，避免请求过多）
-        const batchSize = 5
-        for (let i = 0; i < pendingTasks.length; i += batchSize) {
-          const batch = pendingTasks.slice(i, i + batchSize)
-          await Promise.all(batch.map(async (task) => {
-            try {
-              const response = await getTaskSubmissions(task.id)
-              if (response && response.code === 200 && response.data) {
-                const submissions = response.data
-                
-                // 检查是否有已批准的最终提交
-                const hasApprovedSubmission = submissions.some(s => 
-                  s.reviewStatus === 'APPROVED' && s.isFinal === true
-                )
-                
-                if (hasApprovedSubmission) {
-                  // 更新任务状态为"完成"
-                  const taskIndex = this.tasks.findIndex(t => t.id === task.id)
-                  if (taskIndex !== -1) {
-                    this.$set(this.tasks[taskIndex], 'status', '完成')
-                    this.$set(this.tasks[taskIndex], 'status_value', 'DONE')
-                    this.$set(this.tasks[taskIndex], 'hasApprovedSubmission', true)
-                    console.log(`[batchUpdateTaskStatus] 任务 ${task.id}(${task.title}) 状态已更新为"完成"`)
-                  }
-                }
-              }
-            } catch (error) {
-              console.error(`[batchUpdateTaskStatus] 检查任务 ${task.id} 失败:`, error)
+        if (response?.code === 200 && response.data) {
+          const submissionsMap = response.data
+          let updatedCount = 0
+          
+          // 遍历所有任务，更新状态
+          this.tasks.forEach((task, index) => {
+            const taskSubmissions = submissionsMap[task.id] || []
+            const hasApprovedSubmission = taskSubmissions.some(s => 
+              s.reviewStatus === 'APPROVED' && s.isFinal === true
+            )
+            
+            if (hasApprovedSubmission) {
+              // 更新任务状态为"完成"
+              this.$set(this.tasks[index], 'status', '完成')
+              this.$set(this.tasks[index], 'status_value', 'DONE')
+              this.$set(this.tasks[index], 'hasApprovedSubmission', true)
+              updatedCount++
             }
-          }))
+          })
+          
+          console.log(`[batchUpdateTaskStatus] 成功更新了 ${updatedCount} 个任务的状态`)
+        } else {
+          console.warn('[batchUpdateTaskStatus] 批量获取任务提交状态失败，回退到单任务查询')
+          // 如果批量获取失败，回退到单任务查询
+          await this.fallbackToSingleTaskUpdate(taskIds)
         }
-        
-        console.log('[batchUpdateTaskStatus] 批量状态更新完成')
       } catch (error) {
         console.error('[batchUpdateTaskStatus] 批量更新失败:', error)
+        // 发生错误时尝试回退到单任务查询
+        await this.fallbackToSingleTaskUpdate(taskIds)
+      }
+    },
+    
+    /**
+     * 回退到单任务状态更新
+     * @param {Array} taskIds - 需要更新的任务ID数组
+     */
+    async fallbackToSingleTaskUpdate(taskIds) {
+      console.log('[fallbackToSingleTaskUpdate] 开始单任务状态更新')
+      const BATCH_SIZE = 3 // 限制并发数
+      
+      for (let i = 0; i < taskIds.length; i += BATCH_SIZE) {
+        const batch = taskIds.slice(i, i + BATCH_SIZE)
+        await Promise.all(batch.map(taskId => this.updateSingleTaskStatus(taskId)))
+      }
+    },
+    
+    /**
+     * 更新单个任务的状态
+     * @param {string} taskId - 任务ID
+     */
+    async updateSingleTaskStatus(taskId) {
+      try {
+        const { getTaskSubmissions } = await import('@/api/taskSubmission')
+        const response = await getTaskSubmissions(taskId)
+        
+        if (response?.code === 200 && response.data) {
+          const submissions = response.data
+          const hasApprovedSubmission = submissions.some(s => 
+            s.reviewStatus === 'APPROVED' && s.isFinal === true
+          )
+          
+          if (hasApprovedSubmission) {
+            const taskIndex = this.tasks.findIndex(t => t.id === taskId)
+            if (taskIndex !== -1) {
+              this.$set(this.tasks[taskIndex], 'status', '完成')
+              this.$set(this.tasks[taskIndex], 'status_value', 'DONE')
+              this.$set(this.tasks[taskIndex], 'hasApprovedSubmission', true)
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`[updateSingleTaskStatus] 更新任务 ${taskId} 状态失败:`, error)
       }
     },
     /**
@@ -2118,28 +2174,32 @@ export default {
      * 从后端API加载项目任务数据
      */
     async loadProjectTasks() {
-      const projectId = this.$route.params.id
+      const projectId = this.$route.params.id;
       if (!projectId) {
-        console.warn('项目ID不存在，无法加载任务')
-        return
+        console.warn('项目ID不存在，无法加载任务');
+        return;
       }
+      
+      // 设置加载状态
+      this.isLoadingTasks = true;
+      
       try {
         // 导入任务API
         const { taskAPI } = await import('@/api/task')
-        // 调用后端API获取任务列表
-        const response = await taskAPI.getProjectTasks(projectId, 0, 100) // 获取前100个任务
-        // 检查返回结果
-        if (response && response.code === 200 && response.data) {
-          const tasksData = response.data
+        console.log(`[任务加载] 开始获取项目${projectId}的任务列表`);
+        
+        // 获取所有任务（限制最大1000条）
+        const response = await taskAPI.getProjectTasks(projectId, 0, 1000, {
+          fields: 'id,title,status,assignees,dueDate,priority,isMilestone,createdAt,createdBy,creatorName,requiredPeople'
+        });
+        
+        if (response?.code === 200 && response.data) {
+          const tasksData = response.data;
           // 处理分页数据
-          let taskList = []
-          if (tasksData.content && Array.isArray(tasksData.content)) {
-            // 后端返回的是分页对象
-            taskList = tasksData.content
-          } else if (Array.isArray(tasksData)) {
-            // 后端返回的是数组
-            taskList = tasksData
-          }
+          const taskList = Array.isArray(tasksData) ? tasksData : 
+                         (tasksData.content || []);
+                          
+          console.log(`[任务加载] 成功获取到${taskList.length}个任务`);
           // 转换任务数据格式，优先使用后端返回的创建人信息，如果没有则使用本地用户信息
           const currentUserId = this.getCurrentUserId()
           const currentUserName = this.getCurrentUserName()
@@ -2180,20 +2240,36 @@ export default {
           })
           console.log('[loadProjectTasks] 转换后的任务数据:', this.tasks)
           
-          // 批量更新任务状态（检查提交记录，确保状态正确）
-          await this.batchUpdateTaskStatus()
+          // 批量更新任务状态（只检查待审核的任务）
+          if (taskList.length > 0) {
+            console.log(`[任务加载] 开始批量更新${taskList.length}个任务的状态`);
+            // 只获取待审核任务的ID
+            const pendingTaskIds = taskList
+              .filter(task => task.status === '待审核' || task.status_value === 'PENDING_REVIEW')
+              .map(task => task.id);
+              
+            if (pendingTaskIds.length > 0) {
+              console.log(`[任务加载] 发现${pendingTaskIds.length}个待审核任务，开始批量更新`);
+              await this.batchUpdateTaskStatus(pendingTaskIds);
+            } else {
+              console.log('[任务加载] 没有待审核的任务需要更新');
+            }
+          }
           
-          // 同步更新到localStorage
-          this.saveProjectData()
+          // 更新本地存储并完成加载
+          this.saveProjectData();
+          this.isLoadingTasks = false;
         } else {
-          console.warn('[loadProjectTasks] API返回数据格式异常:', response)
+          console.warn('[loadProjectTasks] API返回数据格式异常:', response);
           // 如果API返回失败，尝试从localStorage加载
-          this.loadTasksFromLocalStorage()
+          this.loadTasksFromLocalStorage();
+          this.isLoadingTasks = false;
         }
       } catch (error) {
-        console.error('[loadProjectTasks] 加载任务失败:', error)
+        console.error('[loadProjectTasks] 加载任务失败:', error);
         // 发生错误时，尝试从localStorage加载
-        this.loadTasksFromLocalStorage()
+        this.loadTasksFromLocalStorage();
+        this.isLoadingTasks = false;
       }
     },
     /**
