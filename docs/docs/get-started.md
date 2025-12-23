@@ -206,7 +206,7 @@ GitHub的第三方登录仅仅会获取你的邮箱，头像和昵称都不是�
 
 创建项目需要填写关于项目的各种基本信息
 
-![img](get-started/spaces%2FPMA3PoSU9zhy4mD7LoZK%2Fuploads%2FS1UFOJvrCSM8ijVLL7aB%2F图片.png)
+![img](https://files.gitbook.com/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FPMA3PoSU9zhy4mD7LoZK%2Fuploads%2FS1UFOJvrCSM8ijVLL7aB%2F%E5%9B%BE%E7%89%87.png?alt=media)
 
 虽然项目简介不是必须填写，但是还是希望你能添加一些描述性内容
 

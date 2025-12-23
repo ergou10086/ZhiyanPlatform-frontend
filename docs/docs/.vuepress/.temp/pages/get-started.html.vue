@@ -71,22 +71,196 @@
 <p>推荐使用Microsoft Authenticator，作为平台的最可靠的安全防线，请务必使用</p>
 <p><img src="@source/get-started/image-20251209103809219.png" alt="image-20251209103809219"></p>
 <h3 id="查看他人的个人主页" tabindex="-1"><a class="header-anchor" href="#查看他人的个人主页"><span>查看他人的个人主页</span></a></h3>
+<p>可以在项目的位置查看其他人头像，访问其他人的个人主页</p>
+<p>请放心，数据做了很好的脱敏</p>
+<p><img src="@source/get-started/image-20251223154849108.png" alt="image-20251223154849108"></p>
 <h2 id="项目部分" tabindex="-1"><a class="header-anchor" href="#项目部分"><span>项目部分</span></a></h2>
+<h3 id="项目广场" tabindex="-1"><a class="header-anchor" href="#项目广场"><span>项目广场</span></a></h3>
+<p>项目广场从主页的快捷部分就可以快速进入，是项目的重要场景</p>
+<p><img src="@source/get-started/image-20251223160303621.png" alt="image-20251223160303621"></p>
+<p>项目广场会展示所有公开的项目</p>
+<p>项目分为公开项目和私有项目，基本情况下，创建私有项目请注意调整你的默认设置</p>
+<p><img src="@source/get-started/image-20251223160317792.png" alt="image-20251223160317792"></p>
+<p>当然，你也可以在项目广场搜索项目，创建项目</p>
+<p>在这里查找你需要加入的和感兴趣的项目</p>
+<h3 id="创建项目" tabindex="-1"><a class="header-anchor" href="#创建项目"><span>创建项目</span></a></h3>
+<p>创建项目的位置位于项目广场</p>
+<p><img src="@source/get-started/image-20251223160856214.png" alt="image-20251223160856214"></p>
+<p>看看他人的项目吧，这有利于你的进度开展</p>
+<p>创建项目需要填写关于项目的各种基本信息</p>
+<p><img src="https://files.gitbook.com/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FPMA3PoSU9zhy4mD7LoZK%2Fuploads%2FS1UFOJvrCSM8ijVLL7aB%2F图片.png?alt=media" alt="img"></p>
+<p>虽然项目简介不是必须填写，但是还是希望你能添加一些描述性内容</p>
+<p>注意，保存草稿可以暂存你的创建项目的相关未完成的编辑，而且没有时间限制，但是请注意，在拥有一个草稿的情况下去再新建其他项目是不被允许的</p>
+<p>注意，项目的创建默认是私有的，这很有用</p>
+<p>请注意，如果项目设置私有，需要你主动招揽成员，因为其他成员无法主动在项目广场进入你的项目</p>
+<p><img src="@source/get-started/image-20251223161008566.png" alt="image-20251223161008566"></p>
+<h3 id="编辑项目信息" tabindex="-1"><a class="header-anchor" href="#编辑项目信息"><span>编辑项目信息</span></a></h3>
+<p>项目信息支持创建后编辑，请注意项目公开性和项目状态的编辑，因为二者十分敏感</p>
+<p>你只能编辑你的项目，这是肯定的</p>
+<p><img src="@source/get-started/image-20251223161335278.png" alt="image-20251223161335278"></p>
+<p>请注意，项目的开始日期和结束日期不会对项目本身存在什么影响，因为项目的周期只能估计并且不断调整，决定项目完整生命周期的各阶段依旧在你的手上，对于数据的存储，我们干涉的非常少</p>
+<p>而且你可以编辑项目名称，我们并不会限制你的操作，但是你需要有所考虑，经常编辑项目名称，其实是一件不靠谱的事情</p>
+<p>如果你只是项目成员，你是没有办法编辑的，你看不到这个按钮</p>
+<p>点击任意一个公开的项目，项目详情的开放程度是不一样的，根据你是否为项目的成员决定</p>
+<p><img src="https://images.gitbook.com/__img/dpr=2,width=760,onerror=redirect,format=auto,signature=1581259864/https%3A%2F%2Ffiles.gitbook.com%2Fv0%2Fb%2Fgitbook-x-prod.appspot.com%2Fo%2Fspaces%2FPMA3PoSU9zhy4mD7LoZK%2Fuploads%2FVHMu9Y4Gaadfew8GEXgq%2F%E5%9B%BE%E7%89%87.png%3Falt%3Dmedia%26token%3D31a02afa-23e6-4c30-ade8-c645fab38665" alt="img"></p>
+<p>其中，各种情况下的跳转都可以在项目详情页完整进行</p>
+<p>项目信息支持创建后编辑，请注意项目公开性和项目状态的编辑，因为二者十分敏感</p>
+<p><img src="@source/get-started/image-20251223160810985.png" alt="image-20251223160810985"></p>
+<p>请注意，项目的开始日期和结束日期不会对项目本身存在什么影响，因为项目的周期只能估计并且不断调整，决定项目完整生命周期的各阶段依旧在你的手上，对于数据的存储，我们干涉的非常少</p>
+<p>项目简介目前不支持富文本编辑，因为可能被运行不可预估的脚本</p>
+<h3 id="关于项目内角色" tabindex="-1"><a class="header-anchor" href="#关于项目内角色"><span>关于项目内角色</span></a></h3>
+<p>项目内设置三种角色，普通成员，管理员和项目创建者，三种角色的出发设计针对网站平台的设计本身，而且针对项目在平台上生命周期的管理，因此，更细化的角色需要你们私下调整</p>
+<p><img src="@source/get-started/image-20251223161035076.png" alt="image-20251223161035076"></p>
+<p>项目拥有者和项目管理员差别不大，两者都拥有对项目很高级别的管理，差别仅在于项目拥有者可以任命和解雇项目管理员，类似于QQ群的群主和管理员</p>
+<p>项目成员除了对项目本身进行管理，其他操作都可以进行，例如任务操作，成果上传等</p>
+<p>老资历不会压力其他人</p>
+<h3 id="成员加入项目" tabindex="-1"><a class="header-anchor" href="#成员加入项目"><span>成员加入项目</span></a></h3>
+<p>创建了一个项目，就需要有团队，要不然独自开展工作也太累了</p>
+<p><img src="@source/get-started/image-20251223161053962.png" alt="image-20251223161053962"></p>
+<p>平台不支持长期组队，追求效率的我们决定将项目的团队合作和项目本身绑定在一起，这样对于人员上的分配更加灵活</p>
+<p>是项目把大家聚在一起的，有了项目，才有团队，最大程度的保障人员的流动性</p>
+<p>成员加入项目有两种方式</p>
+<p>申请加入和主动邀请</p>
+<h4 id="申请加入" tabindex="-1"><a class="header-anchor" href="#申请加入"><span>申请加入</span></a></h4>
+<p>申请加入项目只能加入公开的项目，是你主动对项目发出加入的请求</p>
+<p><img src="@source/get-started/image-20251223161137708.png" alt="image-20251223161137708"></p>
+<p>加入项目会给项目管理员和拥有者都发送一个站内信，他们只要有一个人同意，你就可以进入，而且无论结果如何，你也会收到反馈的信息</p>
+<p>力排众议岂不是很好？</p>
+<p>注意，成员操作相关的消息，是有特殊提醒的，不要给别人放鸽子</p>
+<h4 id="邀请成员" tabindex="-1"><a class="header-anchor" href="#邀请成员"><span>邀请成员</span></a></h4>
+<p>这是最常见的情况，实际上，项目团队的组建都需要由项目的拥有者进行主导</p>
+<p><img src="@source/get-started/image-20251223161205625.png" alt="image-20251223161205625"></p>
+<p>邀请成员可以搜索，而且搜索邮箱，用户唯一id，用户名都是可以的</p>
+<p>邮箱进行了脱敏，不用担心别人随便能获取到你的邮箱</p>
+<p>因为是开源项目，实际上，这样并不是很可靠，所以，被邀请成员的同意十分重要</p>
+<p>被邀请成员会收到一个站内信，只有他同意了，才能进入项目，而且你也会收到对应反馈的信息，无论成员同意或拒绝</p>
+<p>注意，成员操作相关的消息，是有特殊提醒的，不要给别人放鸽子</p>
+<p><img src="@source/get-started/image-20251223161244861.png" alt="image-20251223161244861"></p>
+<h3 id="项目状态说明" tabindex="-1"><a class="header-anchor" href="#项目状态说明"><span>项目状态说明</span></a></h3>
+<p>请注意，项目状态，不要随意修改，会引发预料之外的问题</p>
+<p>项目状态有这样四种</p>
+<p><img src="@source/get-started/image-20251223161433459.png" alt="image-20251223161433459"></p>
+<p>规划中是最基础的状态，是项目创建的默认状态，在平台的设计中，这是最初的最基本的状态，就是代表你的项目正在进行流转，设计，准备工作中，代表项目离开始进行只差临门一脚</p>
+<p>进行中是代表你的项目的计划已经启动，注意，进行中是最多的状态，通常情况下，在这个状态发布与项目进度最相关的任务</p>
+<p>已完成是代表项目计划和目的已经达成，可以进行收尾，已完成完全是你自己调控的，即使全部任务已经完成，项目也不会被设置为已完成</p>
+<p>虽然已完成不会影响你项目的继续编辑和任务的处理，因为仍然可能出现一些需求导致项目继续一些收尾工作</p>
+<p><img src="@source/get-started/image-20251223161803865.png" alt="image-20251223161803865"></p>
+<p>已归档就是项目完全完成，封存起来的状态，完成的项目不必要删除，而是以归档的状态冷存储在平台中，调整为已归档的话，任务，项目信息，成员，知识库等等内容都将无法进行有关的修改，而且归档不会被搜索到，项目广场也不会展示，项目成员只能在项目的参与记录上看到并且点进去查看相关内容</p>
+<p><img src="@source/get-started/image-20251223161848240.png" alt="image-20251223161848240"></p>
+<p>这个设计说实话，等待优化</p>
+<p><img src="@source/get-started/image-20251223162048278.png" alt="image-20251223162048278"></p>
+<p>因为已归档实际上就是已经完成，为了不误导，我参与的项目中，已完成和已归档都标记为已完成</p>
+<p><img src="@source/get-started/image-20251223162139409.png" alt="image-20251223162139409"></p>
+<h3 id="项目操作日志" tabindex="-1"><a class="header-anchor" href="#项目操作日志"><span>项目操作日志</span></a></h3>
+<p>操作日志在该平台有两处，其中，项目操作日志就是项目内部的相关操作的日志记录</p>
+<p>这里的日志并非软件开发中打印没一步的运行流程，而是项目整个生命周期中，项目中每个成员都做了什么</p>
+<p>在项目的操作日志中，可以看到所有人的都做了什么与该项目相关的事情</p>
+<p><img src="@source/get-started/image-20251223162242393.png" alt="image-20251223162242393"></p>
+<p>日志类型如下，能且仅能查看这些日志类型</p>
+<p><img src="@source/get-started/image-20251223162232835.png" alt="image-20251223162232835"></p>
+<p>项目的操作日志是持久化的，因此你可以导出到本地进行审查</p>
+<p><img src="@source/get-started/image-20251223162304293.png" alt="image-20251223162304293"></p>
+<p>导出全部的操作日志太多了，你可以导出本周的全部操作日志，然后表格内按星期几分开</p>
 <h2 id="任务部分" tabindex="-1"><a class="header-anchor" href="#任务部分"><span>任务部分</span></a></h2>
 <h2 id="知识库部分" tabindex="-1"><a class="header-anchor" href="#知识库部分"><span>知识库部分</span></a></h2>
 <h3 id="主页" tabindex="-1"><a class="header-anchor" href="#主页"><span>主页</span></a></h3>
 <p>知识库的主页用于展示项目内成果总数、知识文档、团队成员以及针对知识库部分的，全员的最近活动</p>
 <p><img src="@source/get-started/image-20251208164102855.png" alt=""></p>
-<h3 id="成果创建和上传文件" tabindex="-1"><a class="header-anchor" href="#成果创建和上传文件"><span>成果创建和上传文件</span></a></h3>
+<h3 id="成果目录管理" tabindex="-1"><a class="header-anchor" href="#成果目录管理"><span>成果目录管理</span></a></h3>
+<h4 id="成果创建和上传文件" tabindex="-1"><a class="header-anchor" href="#成果创建和上传文件"><span>成果创建和上传文件</span></a></h4>
 <p>上传时候请注意，必须上传英文文件名的文件，这是COS的限制，因此，对于成果名请用尽可能描述的名字信息，如果是单文件成果，可以用原文件名作为成果名代替</p>
 <p>上传的文件类型如下，当然，你完全可以自定义类型，其中的字段你也可以自定义</p>
 <p><img src="@source/get-started/image-20251208164132239.png" alt=""></p>
-<p>上传项目可以根据成果的性质设置公开性</p>
-<p>而且当一个任务有关联成果的需求的时候，可以把成果和任务进行关联，在完成一个需要有产出的任务的时候，这个功能十分有用</p>
-<p>一个成果可以同时上传多个文件</p>
+<p>上传文件可以根据成果的性质设置公开性</p>
+<p>而且当一个任务需要有关联成果的需求的时候，可以把成果和任务进行关联，在完成一个需要有产出的任务的时候，这个功能十分有用，在任务审核部分，该部分帮助审核</p>
+<p>也就是说，也可以选择从项目的任务中选择完成的任务作为成果的关联信息</p>
+<p>一个成果可以同时上传多个文件，请注意，<strong>文件的公开性跟随成果的公开性</strong></p>
 <p><img src="@source/get-started/image-20251208164240275.png" alt=""></p>
+<p>右侧的已有成果文档打开可以看到成员的上传的公开的所有文档</p>
+<p><img src="@source/get-started/image-20251223152125829.png" alt="image-20251223152125829"></p>
+<p>创建后的成果可以在右侧已有成果目录中看到，包括接下来要说的 AI生成的任务成果，也会在其中显示，建议修改默认产生的名字</p>
+<p><img src="@source/get-started/image-20251223151528267.png" alt="image-20251223151528267"></p>
+<p>已有成果文档可以进行查看下载，搜索，修改和删除</p>
+<p><img src="@source/get-started/image-20251223152148618.png" alt="image-20251223152148618"></p>
+<p>根据文件内容搜索只支持简单的文本文件中的内容，而且分词很严格</p>
+<h4 id="修改成果" tabindex="-1"><a class="header-anchor" href="#修改成果"><span>修改成果</span></a></h4>
+<p>成果只有部分字段可以修改，类型无法修改，只有成果的详细描述可以进行修改</p>
+<p><img src="@source/get-started/image-20251223151649007.png" alt="image-20251223151649007"></p>
+<p>而且可以往创建完的成果内继续添加文件</p>
+<p><img src="@source/get-started/image-20251223151714898.png" alt="image-20251223151714898"></p>
+<p>添加文件依旧可以填写针对该文件的成果详细描述内容</p>
+<p><img src="@source/get-started/image-20251223151720890.png" alt="image-20251223151720890"></p>
+<p>文件支持很多类型，但是支持预览的类型，只有普通文本类型，PDF，DOCX，XSL，PPT，大部分图片类型，大部分视频类型，PS脚本文件（会打开关联的电脑程序），AE脚本文件（会打开关联的电脑程序）</p>
+<p>预览效果如下</p>
+<p><img src="@source/get-started/image-20251223152247560.png" alt="image-20251223152247560"></p>
+<h3 id="项目wiki文档" tabindex="-1"><a class="header-anchor" href="#项目wiki文档"><span>项目Wiki文档</span></a></h3>
+<p>默认情况下，如果你不是项目的成员，你是不允许被访问该项目的wiki文档的，也就是说，项目wiki文档默认项目内私有</p>
+<h4 id="创建项目wiki文档" tabindex="-1"><a class="header-anchor" href="#创建项目wiki文档"><span>创建项目Wiki文档</span></a></h4>
+<p>总览中可以看到，Wiki文档以文档目录的形式管理各个wiki文档页面</p>
+<p><img src="@source/get-started/image-20251223152417557.png" alt="image-20251223152417557"></p>
+<p>创建节点就是创建文件夹，需要有一个节点组织起来wiki的各个页面，目前不支持在根目录创建wiki的各个页面</p>
+<p><img src="@source/get-started/image-20251223152541808.png" alt="image-20251223152541808"></p>
+<p>wiki文档就相当于一棵大树，而新建节点就相当于树的枝杈，新建文档就相当于枝杈上的叶子，我们可以选择不同的节点上传文档。</p>
+<p><img src="@source/get-started/image-20251223152645779.png" alt="image-20251223152645779"></p>
+<p><img src="@source/get-started/image-20251223152656332.png" alt="image-20251223152656332"></p>
+<p>文档支持在线编辑，点击后可以对上传的文档进行编辑，编辑完成后别忘了进行保存</p>
+<p><img src="@source/get-started/image-20251223152729971.png" alt="image-20251223152729971"></p>
+<p>而且支持对当前文档进行导出，有三种文件格式可以选择。</p>
+<p><img src="@source/get-started/image-20251223153149747.png" alt="image-20251223153149747"></p>
+<h4 id="wiki版本管理" tabindex="-1"><a class="header-anchor" href="#wiki版本管理"><span>Wiki版本管理</span></a></h4>
+<p>在保存后可以对当前版本进行存档，方便后期操作，例如存档，回滚，复查，核对等操作</p>
+<p><img src="@source/get-started/image-20251223152808237.png" alt="image-20251223152808237"></p>
+<p>支持三个存档位</p>
+<p><img src="@source/get-started/image-20251223152835771.png" alt="image-20251223152835771"></p>
+<p>确认保存后会有对应的版本信息</p>
+<p><img src="@source/get-started/image-20251223152851585.png" alt="image-20251223152851585"></p>
+<p>可以查看该版本的内容，可以回滚到指定的状态，类似于游戏中的存档读档</p>
+<p><img src="@source/get-started/image-20251223152923110.png" alt="image-20251223152923110"></p>
+<p>可以选择不同版本之间的文档进行差异对比</p>
+<p><img src="@source/get-started/image-20251223153019559.png" alt="image-20251223153019559"></p>
+<p>绿色为新增文本内容，红色为失去内容</p>
+<h4 id="wiki内容引用" tabindex="-1"><a class="header-anchor" href="#wiki内容引用"><span>Wiki内容引用</span></a></h4>
+<p>在文档编辑时，有时可能需要引用文档或者图片这样可以直接采用markdown格式在文档中进行引用。也可以进行复制链接、下载、删除操作。</p>
+<p>图片和附件的引用使用markdown通用格式即可</p>
+<p><img src="@source/get-started/image-20251223153354065.png" alt="image-20251223153354065"></p>
+<p><img src="@source/get-started/image-20251223153401511.png" alt="image-20251223153401511"></p>
+<h3 id="ai赋能助手" tabindex="-1"><a class="header-anchor" href="#ai赋能助手"><span>AI赋能助手</span></a></h3>
+<p><img src="@source/get-started/0eb101e810eb2213cc1ea6e9beab909a-1766475121648-1.png" alt="0eb101e810eb2213cc1ea6e9beab909a"></p>
+<h4 id="_1-上传文档" tabindex="-1"><a class="header-anchor" href="#_1-上传文档"><span>1.上传文档</span></a></h4>
+<ul>
+<li>
+<p>可以选择从知识库上传文档</p>
+</li>
+<li>
+<p>也可以从本地上传文档</p>
+</li>
+</ul>
+<p>之后回复会围绕该文件进行回答</p>
+<p>上传的文件支持本地文件和知识库内的文件，而且支持多文件，文件上传和会话只会在一轮对话内生效</p>
+<p><img src="@source/get-started/image-20251223153753694.png" alt="image-20251223153753694"></p>
+<p><img src="@source/get-started/image-20251223153802971.png" alt="image-20251223153802971"></p>
+<h4 id="_2-已上传文档" tabindex="-1"><a class="header-anchor" href="#_2-已上传文档"><span>2.已上传文档</span></a></h4>
+<p>上传成功的 文档会在这里显示</p>
+<p><img src="@source/get-started/image-20251223153827542.png" alt="image-20251223153827542"></p>
+<h4 id="_3-发送" tabindex="-1"><a class="header-anchor" href="#_3-发送"><span>3.发送</span></a></h4>
+<p>上传文件后，ai会给出相应的回答</p>
+<p>注意，该部分AI支持查阅文献操作，可以进行尝试，但是信息来源高度依赖于知网，请保证您有对应的需求</p>
+<h4 id="_4-思维导图部分" tabindex="-1"><a class="header-anchor" href="#_4-思维导图部分"><span>4.思维导图部分</span></a></h4>
+<p>可以输入指定的提示词，让AI针对你的文件内容生成思维导图，如果你让ai生成思维导图回到该区域显示，点击上方按钮可以刷新或收起</p>
+<p><img src="@source/get-started/image-20251223153421415.png" alt="image-20251223153421415"></p>
+<p>点击后就可以查看思维导图，思维导图绘制较慢是正常的，因为生图限制，无法保证稳定的速率</p>
+<p>思维导图支持切换，按生成的顺序来，暂时不支持对思维导图命名控制</p>
+<h4 id="_5-历史记录" tabindex="-1"><a class="header-anchor" href="#_5-历史记录"><span>5.历史记录</span></a></h4>
+<p>可以查看和ai的历史对话记录</p>
+<p><img src="@source/get-started/image-20251223153457608.png" alt="image-20251223153457608"></p>
+<h4 id="_6-新建对话" tabindex="-1"><a class="header-anchor" href="#_6-新建对话"><span>6.新建对话</span></a></h4>
+<p>可以和ai开始新对话</p>
 <h2 id="ai实验分析助手" tabindex="-1"><a class="header-anchor" href="#ai实验分析助手"><span>AI实验分析助手</span></a></h2>
 <h2 id="我的活动" tabindex="-1"><a class="header-anchor" href="#我的活动"><span>我的活动</span></a></h2>
+<p>我的活动部分，可以查看与我相关的任务，任务的各统计部分会以仪表盘的形式呈现出来</p>
+<p>而且可以查看与你相关的各个项目</p>
+<p>我的活动内的操作日志主要就是你在各个项目内的所有与你相关的操作日志，而且支持导出为xsl</p>
+<p><img src="@source/get-started/image-20251223154412244.png" alt="image-20251223154412244"></p>
 </div></template>
 
 

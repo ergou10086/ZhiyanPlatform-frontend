@@ -3,6 +3,5 @@ node_modules
 /bin/
 #/docs/docs/.vuepress/.cache
 #/docs/docs/.vuepress/.temp
-/docs/docs/get-started/
 
 
