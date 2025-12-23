@@ -35,8 +35,8 @@
             <ul class="link-list">
               <li><a :href="docsBaseUrl" class="footer-link">帮助文档</a></li>
               <li><a :href="docsBaseUrl + 'get-started.html'" class="footer-link">快速开始</a></li>
-              <li><a :href="docsBaseUrl + 'API.html'" class="footer-link">API文档</a></li>
-              <li><a href="#" class="footer-link">使用指南</a></li>
+              <li><a :href="apiDocsUrl" target="_blank" rel="noopener" class="footer-link">API文档</a></li>
+              <li><a :href="usageGuideUrl" class="footer-link">使用指南</a></li>
             </ul>
           </div>
 
@@ -115,7 +115,7 @@
 </template>
 
 <script>
-import { DOCS_BASE_URL } from '@/config'
+import { DOCS_BASE_URL, API_BASE_URL } from '@/config'
 
 export default {
   name: 'Footer',
@@ -123,6 +123,15 @@ export default {
     docsBaseUrl() {
       // 使用配置的文档基础 URL，默认为 '/docs/'
       return DOCS_BASE_URL || '/docs/'
+    },
+    apiDocsUrl() {
+      // 后端 Swagger UI 地址（线上线下统一指向 /swagger-ui/index.html）
+      const base = API_BASE_URL || ''
+      return `${base}/swagger-ui/index.html`
+    },
+    usageGuideUrl() {
+      // 使用指南直达帮助文档的视频段落
+      return `${this.docsBaseUrl}docs/introduction.html#平台介绍视频`
     }
   }
 }

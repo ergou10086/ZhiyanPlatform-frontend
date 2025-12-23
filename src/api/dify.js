@@ -396,7 +396,7 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
     
     const internalController = abortSignal ? null : new AbortController()
     const signal = abortSignal || internalController?.signal
-
+    
     const response = await fetch(url, {
       method: 'POST',
       headers: {
