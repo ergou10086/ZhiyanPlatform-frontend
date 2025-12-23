@@ -874,6 +874,8 @@ export default {
   },
   data() {
     return {
+      // 是否启用背景特效（在低性能/生产环境默认关闭，避免卡死）
+      enableBackgroundEffects: false,
       // 加载状态
       isLoading: true,
       loadingProgress: 0, // 0-100
@@ -1024,9 +1026,11 @@ export default {
 
         // 在关键数据渲染完成后，再延迟初始化与数据无关的效果和监听
         setTimeout(() => {
-          // 启动粒子背景
-          this.initParticles()
-          window.addEventListener('resize', this.resizeCanvas)
+          // 启动粒子背景（可选，默认关闭以防页面卡死）
+          if (this.enableBackgroundEffects) {
+            this.initParticles()
+            window.addEventListener('resize', this.resizeCanvas)
+          }
 
           // 添加滚动监听，用于检测何时滚动到图表section
           this.setupScrollObserver()
@@ -1060,7 +1064,9 @@ export default {
   },
   beforeDestroy() {
     cancelAnimationFrame(this.rafId)
-    window.removeEventListener('resize', this.resizeCanvas)
+    if (this.enableBackgroundEffects) {
+      window.removeEventListener('resize', this.resizeCanvas)
+    }
     // 清理滚动监听器
     if (this.scrollObserver) {
       this.scrollObserver.disconnect()
@@ -2085,9 +2091,7 @@ export default {
 
         if (members.length === 0) {
           console.warn('[ProjectDashboard] 项目没有成员')
-          this.memberWorktimes = []
-          this.updateAchievementOwners()
-          return
+          // 继续往下走，用提交人/任务参与者生成虚拟成员，避免图表为空
         }
 
         console.log('[ProjectDashboard] 获取到项目成员:', members.length, '人')
@@ -3372,7 +3376,8 @@ export default {
      */
     getBubbleRadius(index, point) {
       // 使用索引和任务ID生成伪随机数，确保每次渲染结果一致
-      const seed = index * 17 + (point.taskId ? parseInt(point.taskId.slice(-4), 16) || 0 : 0)
+      const taskIdStr = point && point.taskId ? String(point.taskId) : ''
+      const seed = index * 17 + (taskIdStr ? parseInt(taskIdStr.slice(-4), 16) || 0 : 0)
       const random = ((seed * 9301 + 49297) % 233280) / 233280 // 伪随机数 0-1
       // 半径范围：8-22px，随机分布
       return 8 + random * 14

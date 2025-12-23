@@ -21,7 +21,7 @@
 
 <script>
 import { authAPI } from '@/api/auth'
-import { saveLoginData } from '@/utils/auth'
+import { saveLoginData, normalizeUserInfo } from '@/utils/auth'
 
 export default {
   name: 'OAuth2Callback',
@@ -43,71 +43,31 @@ export default {
   methods: {
     async handleCallback() {
       try {
-        // 从URL获取参数
         const urlParams = new URLSearchParams(window.location.search)
-        const code = urlParams.get('code')
-        const state = urlParams.get('state')
-        const status = urlParams.get('status')
+        const status = urlParams.get('oauth2')
         const message = urlParams.get('message')
-
-        // 从路由或sessionStorage获取provider
-        const provider = this.$route.params.provider ||
-            sessionStorage.getItem('oauth2_provider') ||
-            'unknown'
+        const token = urlParams.get('token')
+        const refreshToken = urlParams.get('refreshToken')
+        const provider = urlParams.get('provider')
 
         console.log('📥 OAuth2回调参数:', {
-          provider,
-          code: code ? `${code.substring(0, 10)}...` : null,
-          state: state ? `${state.substring(0, 10)}...` : null,
           status,
-          message: message ? decodeURIComponent(message) : null
+          provider,
+          hasToken: !!token,
+          hasRefreshToken: !!refreshToken,
+          message
         })
 
-        // 处理后端重定向的错误状态
-        if (status === 'ERROR') {
-          const decodedMessage = message ? decodeURIComponent(message) : '授权失败'
-          console.error('❌ 后端返回错误:', decodedMessage)
-          throw new Error(decodedMessage)
+        if (status !== 'success') {
+          const errMsg = message ? decodeURIComponent(message) : '授权失败，请重试'
+          throw new Error(errMsg)
         }
 
-        // 验证必要参数
-        if (!code) {
-          console.error('❌ 缺少授权码')
-          throw new Error('缺少授权码，请重新登录')
+        if (!token) {
+          throw new Error('未获取到访问令牌，请重试登录')
         }
 
-        if (!state) {
-          console.error('❌ 缺少state参数')
-          throw new Error('缺少state参数，请重新登录')
-        }
-
-        // 验证state（防止CSRF攻击）
-        const savedState = sessionStorage.getItem('oauth2_state')
-        console.log('🔍 State验证:', {
-          received: state.substring(0, 10) + '...',
-          saved: savedState ? savedState.substring(0, 10) + '...' : 'null'
-        })
-
-        if (!savedState) {
-          console.warn('⚠️ 未找到保存的state，可能是页面刷新导致')
-          // 不阻止流程继续，因为后端也会验证state
-        } else if (state !== savedState) {
-          console.error('❌ State不匹配')
-          throw new Error('State验证失败，可能存在安全风险')
-        }
-
-        console.log('✅ State验证通过，调用后端回调接口')
-
-        // 调用后端回调接口
-        const response = await authAPI.handleOAuth2Callback(provider, code, state)
-
-        console.log('📥 后端回调响应:', response)
-
-        if (response.code === 200 && response.data) {
-          this.handleCallbackResponse(response.data)
-        } else {
-          throw new Error(response.msg || '授权处理失败')
-        }
+        await this.handleLoginSuccess({ accessToken: token, refreshToken })
       } catch (error) {
         console.error('❌ OAuth2回调处理失败:', error)
         this.loading = false
@@ -121,59 +81,13 @@ export default {
       }
     },
 
-    handleCallbackResponse(data) {
-      const { status, loginResponse, oauth2UserInfo, message } = data
-
-      console.log('🔍 处理回调响应, status:', status)
-
-      switch (status) {
-        case 'SUCCESS':
-          // 直接登录成功
-          console.log('✅ 登录成功')
-          this.handleLoginSuccess(loginResponse)
-          break
-
-        case 'NEED_BIND':
-          // 需要绑定或创建账号
-          console.log('⚠️ 需要绑定或创建账号')
-          sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
-          this.loading = false
-          this.$router.replace('/oauth2/bind')
-          break
-
-        case 'NEED_SUPPLEMENT':
-          // 需要补充信息
-          console.log('⚠️ 需要补充信息')
-          sessionStorage.setItem('oauth2_user_info', JSON.stringify(oauth2UserInfo))
-          this.loading = false
-          this.$router.replace('/oauth2/supplement')
-          break
-
-        default:
-          throw new Error(message || '未知的响应状态: ' + status)
-      }
-    },
-
-    async handleLoginSuccess(loginResponse) {
-      if (!loginResponse) {
-        throw new Error('登录响应数据为空')
-      }
-
+    async handleLoginSuccess(tokenPayload) {
       console.log('💾 保存登录数据')
-      console.log('📦 登录响应中的用户信息:', loginResponse.user)
 
-      // 保存登录信息
-      const loginData = {
-        accessToken: loginResponse.accessToken,
-        refreshToken: loginResponse.refreshToken,
-        rememberMeToken: loginResponse.rememberMeToken,
-        userInfo: loginResponse.user
-      }
-
-      saveLoginData(loginData)
-
-      // 检查是否是绑定模式
-      const isBindMode = sessionStorage.getItem('oauth2_bind_mode') === 'true'
+      saveLoginData({
+        accessToken: tokenPayload.accessToken,
+        refreshToken: tokenPayload.refreshToken
+      })
 
       // 清除OAuth2相关的sessionStorage
       sessionStorage.removeItem('oauth2_state')
@@ -183,22 +97,14 @@ export default {
 
       // 重新从服务器获取最新的用户信息，确保包含OAuth2绑定状态
       try {
-        const { authAPI } = await import('@/api/auth')
-        const { normalizeUserInfo } = await import('@/utils/auth')
-        
         const userInfoResponse = await authAPI.getCurrentUserInfo()
         if (userInfoResponse && userInfoResponse.code === 200 && userInfoResponse.data) {
-          console.log('📥 从服务器获取最新用户信息（包含OAuth2绑定）:', userInfoResponse.data)
           const normalizedUserInfo = normalizeUserInfo(userInfoResponse.data)
           localStorage.setItem('user_info', JSON.stringify(normalizedUserInfo))
           console.log('✅ 已更新用户信息（包含OAuth2绑定状态）')
-          console.log('✅ GitHub ID:', normalizedUserInfo.githubId)
-          console.log('✅ GitHub用户名:', normalizedUserInfo.githubUsername)
-          console.log('✅ ORCID ID:', normalizedUserInfo.orcidId)
-          console.log('✅ ORCID绑定状态:', normalizedUserInfo.orcidBound)
         }
       } catch (error) {
-        console.warn('⚠️ 获取最新用户信息失败，使用登录响应中的信息:', error)
+        console.warn('⚠️ 获取最新用户信息失败，使用token继续', error)
       }
 
       // 触发用户信息更新事件
@@ -208,14 +114,7 @@ export default {
 
       // 跳转到目标页面
       this.loading = false
-
-      if (isBindMode) {
-        console.log('🔗 绑定模式，跳转到个人信息页面')
-        this.$router.replace('/profile')
-      } else {
-        console.log('🏠 登录模式，跳转到首页')
-        this.$router.replace('/home')
-      }
+      this.$router.replace('/home')
     },
 
     goToLogin() {

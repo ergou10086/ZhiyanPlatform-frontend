@@ -1233,7 +1233,7 @@ export default {
       clearInterval(this.syncTimer)
     }
 
-    // ⭐ 清理打字机定时器
+    // 清理打字机定时器
     if (this.typewriterTimer) {
       clearInterval(this.typewriterTimer)
       this.typewriterTimer = null
