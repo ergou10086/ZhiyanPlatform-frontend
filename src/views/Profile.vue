@@ -1662,10 +1662,8 @@ export default {
             this.twoFactorEnabled = Boolean(data.twoFactorEnabled)
             console.log('✅ 从服务器更新2FA状态:', this.twoFactorEnabled)
           }
-          
-          console.log('[Profile] 更新后的userInfo.introduction:', this.userInfo.introduction)
-          console.log('[Profile] 更新后的userInfo.description:', this.userInfo.description)
-          console.log('[Profile] 更新后的完整userInfo:', JSON.stringify(this.userInfo))
+
+          console.log('[Profile] 更新后的完整userInfo: 太长了，别打印了,能用')
           
           // 更新 localStorage 中的用户信息
           const savedUserInfo = localStorage.getItem('user_info')
