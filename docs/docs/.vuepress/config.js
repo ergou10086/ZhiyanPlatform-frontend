@@ -41,7 +41,7 @@ export default defineUserConfig({
         {
           text: '演示视频',
           children: [
-            '/videos/introduction.md'
+            '/introduction.md'
           ]
         }
       ]
