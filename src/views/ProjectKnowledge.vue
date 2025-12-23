@@ -388,7 +388,7 @@ export default {
       // 如果API失败，从localStorage加载项目数据（作为后备）
       const savedProjects = localStorage.getItem('projects')
       console.log('项目知识库 - 正在加载项目ID:', this.projectId, '类型:', typeof this.projectId)
-      console.log('localStorage中的项目数据:', savedProjects)
+      console.log('localStorage中的项目数据: 这个不应该打印的太详细')
       
       if (savedProjects) {
         try {

@@ -148,6 +148,11 @@
         </div>
 
         <div class="user-input-area">
+          <!-- 请求进行中提示 -->
+          <div v-if="isSending" class="composer-loading">
+            <span class="spinner"></span>
+            <span class="loading-text">AI 正在响应，请稍候...</span>
+          </div>
           <div class="file-menu-wrapper">
             <button 
               class="file-select-btn" 
@@ -2045,6 +2050,8 @@ export default {
       }
       this.chatMessages.push(aiMsg)
       const aiMessageIndex = this.chatMessages.length - 1
+      // 让AI气泡在响应前就展示加载动画
+      this.currentTypingMessageIndex = aiMessageIndex
 
       // 滚动到最新消息
       this.$nextTick(() => {
@@ -3905,6 +3912,29 @@ html.dark-mode .achievement-name {
 html.dark-mode .file-size-badge {
   background: #374151;
   color: #9ca3af;
+}
+
+/* 底部输入栏加载提示 */
+.composer-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #2563eb;
+}
+
+.composer-loading .spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #c7d2fe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
 

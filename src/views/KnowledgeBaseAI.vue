@@ -363,60 +363,6 @@
             </div>
           </div>
         </div>
-        
-        <!-- 已上传文件区域 -->
-        <div class="sidebar-files-section">
-          <h4 class="sidebar-files-title">已上传文件 ({{ uploadedFiles.length + uploadingFiles.length }})</h4>
-          
-          <!-- 无文件时的空状态 -->
-          <div v-if="uploadedFiles.length === 0 && uploadingFiles.length === 0" class="sidebar-files-empty">
-            <div class="empty-file-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <p class="empty-file-text">暂无文件</p>
-          </div>
-          
-          <!-- 文件列表 -->
-          <div v-else class="sidebar-files-list">
-            <!-- 上传中的文件 -->
-            <div v-for="file in uploadingFiles" :key="file.id" class="sidebar-file-item uploading">
-              <div class="sidebar-file-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="sidebar-file-info">
-                <div class="sidebar-file-name">{{ file.fileName }}</div>
-                <div class="sidebar-file-status">上传中...</div>
-              </div>
-              <div class="sidebar-loading-spinner"></div>
-            </div>
-            
-            <!-- 已上传的文件 -->
-            <div v-for="file in uploadedFiles" :key="file.id" class="sidebar-file-item">
-              <div class="sidebar-file-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="sidebar-file-info">
-                <div class="sidebar-file-name">{{ file.fileName }}</div>
-                <div class="sidebar-file-size">{{ formatFileSize(file.fileSize) }}</div>
-              </div>
-              <button class="sidebar-remove-btn" @click="removeUploadedFile(file.id)" title="移除">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
         <!-- 侧边栏底部 -->
         <div class="sidebar-footer">
           <button class="btn-primary" @click="createNewChatSession">
@@ -443,6 +389,18 @@
             </svg>
             思维导图
           </h3>
+          <!-- 思维导图历史下拉：仅在有多张思维导图时显示 -->
+          <div v-if="mindmapHistory.length > 0" class="mindmap-select">
+            <select v-model.number="currentMindmapIndex" @change="handleMindmapChange">
+              <option
+                v-for="(item, index) in mindmapHistory"
+                :key="item.url"
+                :value="index"
+              >
+                {{ item.label || ('思维导图 ' + (index + 1)) }}
+              </option>
+            </select>
+          </div>
           <div class="mindmap-actions">
             <button class="mindmap-refresh-btn" @click="generateMindmap" title="生成思维导图">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -597,7 +555,9 @@ export default {
       // ⭐ 复制功能状态
       copiedMsgIndex: null, // 当前已复制的消息索引
       // 思维导图相关
-      mindmapData: null, // 思维导图数据
+      mindmapData: null, // 思维导图数据（当前选中的一张）
+      mindmapHistory: [], // 当前对话中的思维导图链接历史
+      currentMindmapIndex: -1, // 当前选中的思维导图索引
       showMindmap: true, // 思维导图展开/收起状态
       isGeneratingMindmap: false, // 是否正在生成思维导图
       mindmapScale: 1, // 思维导图缩放倍数
@@ -1036,6 +996,24 @@ export default {
       }, 100)
     },
     
+    // 刷新当前思维导图显示：重置缩放/平移，并根据当前索引重新渲染
+    generateMindmap() {
+      // 如果没有任何思维导图记录，直接返回
+      if (!this.mindmapHistory || this.mindmapHistory.length === 0) {
+        return
+      }
+      // 如果当前索引无效，则默认使用最后一张
+      if (this.currentMindmapIndex == null || this.currentMindmapIndex < 0 || this.currentMindmapIndex >= this.mindmapHistory.length) {
+        this.currentMindmapIndex = this.mindmapHistory.length - 1
+      }
+      // 重置缩放和平移状态
+      this.mindmapScale = 1
+      this.mindmapOffsetX = 0
+      this.mindmapOffsetY = 0
+      // 使用已有的切换逻辑重新渲染当前思维导图
+      this.handleMindmapChange()
+    },
+
     // 从最新的AI消息中提取思维导图图片URL并更新右侧面板
     updateMindmapFromLastMessage() {
       if (!this.messages || this.messages.length === 0) {
@@ -1058,10 +1036,32 @@ export default {
       }
       const url = urlMatch[0]
       console.log('[思维导图] 检测到图片URL:', url)
+      // 记录到当前对话的思维导图历史中（避免重复）
+      if (!this.mindmapHistory.some(item => item.url === url)) {
+        this.mindmapHistory.push({
+          url,
+          label: '思维导图 ' + (this.mindmapHistory.length + 1)
+        })
+      }
+      // 将当前索引指向这张最新的思维导图
+      this.currentMindmapIndex = this.mindmapHistory.findIndex(item => item.url === url)
       // 在右侧思维导图面板中显示图片
       this.mindmapData = `<div class="mindmap-image-wrapper"><img src="${url}" alt="思维导图" style="max-width: 100%; height: auto; border-radius: 8px;" /></div>`
       // 成功解析到思维导图后关闭加载状态
       this.isGeneratingMindmap = false
+    },
+
+    // 下拉切换思维导图时，根据索引更新右侧展示
+    handleMindmapChange() {
+      const index = this.currentMindmapIndex
+      if (index == null || index < 0 || index >= this.mindmapHistory.length) {
+        return
+      }
+      const item = this.mindmapHistory[index]
+      if (!item || !item.url) {
+        return
+      }
+      this.mindmapData = `<div class="mindmap-image-wrapper"><img src="${item.url}" alt="思维导图" style="max-width: 100%; height: auto; border-radius: 8px;" /></div>`
     },
     
     scrollToBottom() {
@@ -1952,18 +1952,6 @@ export default {
       const month = date.getMonth() + 1
       const day = date.getDate()
       return `${month}月${day}日`
-    },
-    
-    /**
-     * 生成思维导图 - 控制右侧加载状态
-     * 实际生成由左侧 AI 对话完成，解析到图片链接后再更新 mindmapData
-     */
-    async generateMindmap() {
-      // 清空当前思维导图，进入“正在生成”状态
-      this.mindmapData = null
-      this.isGeneratingMindmap = true
-      // 实际生成流程：请在左侧对话中向 AI 发送生成思维导图的指令
-      // 或者后续接入后端专门的思维导图生成接口
     },
     
     /**
