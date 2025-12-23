@@ -8,9 +8,9 @@ actions:
   - text: 快速开始
     link: /get-started.html
     type: primary
-  - text: API文档
-    link: /API.html
-    type: secondary  
+  - text: 项目演示视频
+    link: /introduction.html
+    type: secondary
 
 features:
   - title: 一体化协作
