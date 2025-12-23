@@ -14,7 +14,7 @@ export default defineUserConfig({
   base: '/docs/',
 
   // 设置构建输出目录到主项目的 public/docs
-  //dest: path.resolve(__dirname, '../../../public/docs'),
+  dest: path.resolve(__dirname, '../../../public/docs'),
 
   // 添加端口配置
   port: 8012,
