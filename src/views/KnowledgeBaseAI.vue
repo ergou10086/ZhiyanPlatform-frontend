@@ -850,36 +850,61 @@ export default {
       try {
         console.log('[发送] 调用预上传模式接口', { query: queryToSend, fileIds: difyFileIdsToSend })
 
-        // 调用新写的只传 ID 的接口
-        this.currentStreamController = await difyAPI.chatStreamWithPreloadedFiles(
+        // 选择合适的流式接口：如果没有任何已上传的 Dify 文件（knowledge flow），
+        // 使用常规的 sendChatMessageStream；否则使用 chatStreamWithPreloadedFiles（knowledge 流程）
+        if (!difyFileIdsToSend || difyFileIdsToSend.length === 0) {
+          console.log('[发送] 无文件，使用普通流式对话接口 sendChatMessageStream')
+          this.currentStreamController = await difyAPI.sendChatMessageStream(
             queryToSend,
             this.conversationId,
-            difyFileIdsToSend,
             (delta, eventData) => {
-              // onMessage
-              // 检查是否是 connected 事件，保存 conversationId（internalEmitterId）
+              // onMessage 回调
               if (eventData && eventData.conversationId) {
                 this.currentStreamConversationId = eventData.conversationId
                 console.log('[KnowledgeBaseAI] 收到 conversationId:', this.currentStreamConversationId)
-                return // connected 事件不需要调用打字机
+                return
               }
-              // 只有在有实际内容时才调用打字机
               if (delta && delta.trim()) {
                 this.startTypewriter(this.currentTypingMessageIndex, delta)
               }
             },
             (endData) => {
-              // onEnd: 保存 conversationId
               if (endData && endData.conversation_id) {
                 this.conversationId = endData.conversation_id
               }
               this.handleStreamComplete(aiMessage)
             },
             (err) => {
-              // onError
               this.handleStreamError(err, aiMessage)
             }
-        )
+          )
+        } else {
+          // 有文件时走知识库专用接口
+          this.currentStreamController = await difyAPI.chatStreamWithPreloadedFiles(
+            queryToSend,
+            this.conversationId,
+            difyFileIdsToSend,
+            (delta, eventData) => {
+              if (eventData && eventData.conversationId) {
+                this.currentStreamConversationId = eventData.conversationId
+                console.log('[KnowledgeBaseAI] 收到 conversationId:', this.currentStreamConversationId)
+                return
+              }
+              if (delta && delta.trim()) {
+                this.startTypewriter(this.currentTypingMessageIndex, delta)
+              }
+            },
+            (endData) => {
+              if (endData && endData.conversation_id) {
+                this.conversationId = endData.conversation_id
+              }
+              this.handleStreamComplete(aiMessage)
+            },
+            (err) => {
+              this.handleStreamError(err, aiMessage)
+            }
+          )
+        }
       } catch (e) {
         this.handleStreamError(e, aiMessage)
       }
