@@ -345,7 +345,7 @@ export default {
           const due = new Date(task.dueDate)
           due.setHours(0, 0, 0, 0)
           const t = due.getTime()
-          return t >= startTime && t <= endTime
+          return t >= startTime && t <= endTimexie
         })
 
         this.showDateTaskModal = true
