@@ -888,6 +888,10 @@
   transition: transform 0.2s ease;
 }
 
+.export-arrow.rotated {
+  transform: rotate(180deg);
+}
+
 .export-dropdown {
   position: absolute;
   top: calc(100% + 8px);

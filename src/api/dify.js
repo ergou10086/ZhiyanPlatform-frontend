@@ -41,7 +41,7 @@ const BACKEND_DIFY_CONFIG = {
   streamTimeout: 300000 // fetch 流式响应超时：5分钟（AI文档分析需要更长时间）
 }
 
-// 知识库工作流专用基础路径
+// 知识库工作流专用基础路径（使用完整API URL，确保生产环境正确路由）
 const KNOWLEDGE_BASE_URL = config.api.baseURL + '/zhiyan/ai/dify/knowledge'
 
 // 创建Dify API客户端
@@ -141,7 +141,14 @@ function parseAndHandleSSEMessage(dataLines, eventType, onMessage, onError, onCo
     })
     
     // 根据事件类型处理
-    if (event === 'message' || event === 'agent_message') {
+    if (event === 'connected') {
+      // 连接成功事件 - 提取 conversationId（internalEmitterId）
+      console.log('[Dify API] 连接成功事件:', message)
+      if (message.conversationId && onMessage) {
+        // 传递 conversationId 给前端
+        onMessage('', { conversationId: message.conversationId })
+      }
+    } else if (event === 'message' || event === 'agent_message') {
       // AI消息事件 - 传递增量内容
       // 修复：只跳过 undefined 和 null，空字符串也应该传递（可能是有意义的）
       if (content !== undefined && content !== null && onMessage) {
@@ -172,6 +179,168 @@ function parseAndHandleSSEMessage(dataLines, eventType, onMessage, onError, onCo
   } catch (e) {
     console.error('[Dify API] JSON解析失败:', e.message)
     console.error('[Dify API] 原始数据:', dataLines.join('').substring(0, 200))
+  }
+}
+
+/**
+ * 上传本地文件
+ * 对应后端: /files/upload
+ */
+export async function uploadLocalFile(file) {
+  const token = localStorage.getItem('access_token')
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${KNOWLEDGE_BASE_URL}/files/upload`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData
+  })
+
+  if (!response.ok) throw new Error('上传失败')
+  const text = await response.text()
+  const res = parseJSONWithBigInt(text)
+
+  if (res.code !== 200) throw new Error(res.msg || '上传失败')
+
+  // 后端返回 R<DifyFileUploadResponse>，数据在 res.data
+  return res.data
+}
+
+/**
+ * 上传知识库文件 ID
+ * 对应后端: /files/upload/knowledge
+ */
+export async function uploadKnowledgeFilesToDify(knowledgeFileIds) {
+  const token = localStorage.getItem('access_token')
+  // 确保 ID 是字符串，防止精度丢失
+  const plainIds = knowledgeFileIds.map(id => String(id))
+
+  const response = await fetch(`${KNOWLEDGE_BASE_URL}/files/upload/knowledge`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ knowledgeFileIds: plainIds })
+  })
+
+  if (!response.ok) throw new Error('知识库文件同步失败')
+
+  const text = await response.text()
+  const res = parseJSONWithBigInt(text)
+
+  if (res.code !== 200) throw new Error(res.msg)
+
+  // 后端返回 R<Map>，其中 data.results 是列表
+  return res.data.results || []
+}
+
+/**
+ * 纯 ID 模式的流式对话
+ * 对应后端: /chat/stream-with-files
+ * * @param {string} query
+ * @param {string} conversationId
+ * @param {Array<string>} difyFileIds - 已经在之前步骤拿到的 difyFileIds
+ */
+export async function chatStreamWithPreloadedFiles(query, conversationId, difyFileIds, onMessage, onEnd, onError) {
+  const token = localStorage.getItem('access_token')
+  const controller = new AbortController()
+
+  // 超时控制
+  const timeoutId = setTimeout(() => {
+    controller.abort()
+    if(onError) onError(new Error('请求超时'))
+  }, BACKEND_DIFY_CONFIG.streamTimeout)
+
+  // 构建 URL 参数
+  const params = new URLSearchParams()
+  params.append('query', query)
+  if (conversationId) {
+    params.append('conversationId', conversationId)
+  }
+
+  // 拼接 difyFileIds 参数 (Spring Boot List<String> @RequestParam 接收方式: ?difyFileIds=a&difyFileIds=b)
+  if (difyFileIds && difyFileIds.length > 0) {
+    // 过滤掉空值
+    const validFileIds = difyFileIds.filter(id => id && id.trim() !== '')
+    console.log('[chatStreamWithPreloadedFiles] 准备发送的文件ID:', validFileIds)
+    
+    validFileIds.forEach(id => {
+      params.append('difyFileIds', id.trim())
+    })
+  } else {
+    console.warn('[chatStreamWithPreloadedFiles] 警告：没有文件ID要发送')
+  }
+
+  const url = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files?${params.toString()}`
+  console.log('[chatStreamWithPreloadedFiles] 最终请求URL:', url)
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      signal: controller.signal
+    })
+
+    if (!response.ok) {
+      const errText = await response.text()
+      throw new Error(`HTTP ${response.status}: ${errText}`)
+    }
+
+    // 复用 SSE 读取逻辑
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let currentDataLines = []
+    let currentEvent = null
+    let finalConversationId = null
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) {
+        clearTimeout(timeoutId)
+        if (onEnd) onEnd({ conversation_id: finalConversationId })
+        break
+      }
+
+      const chunk = decoder.decode(value, { stream: true })
+      buffer += chunk
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || ''
+
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (trimmed === '') {
+          // 空行表示一个完整的SSE消息结束
+          if (currentDataLines.length > 0) {
+            parseAndHandleSSEMessage(currentDataLines, currentEvent, onMessage, onError, (id) => finalConversationId = id)
+            currentDataLines = []
+            currentEvent = null
+          }
+          continue
+        }
+        if (trimmed.startsWith('event:')) currentEvent = trimmed.substring(6).trim()
+        else if (trimmed.startsWith('data:')) {
+          const data = trimmed.substring(5).trim()
+          currentDataLines.push(data)
+          // 检查是否是完整的JSON对象（以}结尾）或者是纯文本
+          if (data.endsWith('}') || data.endsWith(']') || (!data.startsWith('{') && !data.startsWith('['))) {
+            parseAndHandleSSEMessage(currentDataLines, currentEvent, onMessage, onError, (id) => finalConversationId = id)
+            currentDataLines = []
+            currentEvent = null
+          }
+        }
+      }
+    }
+
+  } catch (error) {
+    clearTimeout(timeoutId)
+    if (onError) onError(error)
+  }
+
+  return {
+    close: () => controller.abort()
   }
 }
 
@@ -375,12 +544,12 @@ export function stopMessageGeneration(taskId) {
 
 /**
  * 上传文件并发送聊天消息（流式响应）- 一站式接口
- * 
+ *
  * 适配工作流：知识库聊天机器人
  * - 支持本地文件上传（MultipartFile）
  * - 支持知识库文件引用（fileIds）
  * - 自动上传文件到 Dify 并进行对话
- * 
+ *
  * @param {string} query - 用户问题
  * @param {string} conversationId - 对话ID（可选，用于维持上下文）
  * @param {Array<number>} knowledgeFileIds - 知识库文件ID列表（成果档案文件）
@@ -408,18 +577,18 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
     // 构建FormData
     const formData = new FormData()
     formData.append('query', query)
-    
+
     if (conversationId) {
       formData.append('conversationId', conversationId)
     }
-    
+
     // 添加知识库文件ID列表（确保转为字符串，避免精度丢失）
     if (knowledgeFileIds && knowledgeFileIds.length > 0) {
       knowledgeFileIds.forEach(id => {
         formData.append('knowledgeFileIds', String(id))
       })
     }
-    
+
     // 添加本地文件
     if (localFiles && localFiles.length > 0) {
       localFiles.forEach(file => {
@@ -474,7 +643,7 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
     // 完全重写的SSE解析逻辑（与sendChatMessageStream一致）
     while (true) {
       const { done, value } = await reader.read()
-      
+
       if (done) {
         clearTimeout(timeoutId) // 清除超时定时器
         const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
@@ -489,7 +658,7 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
       const chunk = decoder.decode(value, { stream: true })
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2)
       console.log(`[Dify API] 数据块 #${chunkCount} (${elapsed}s, ${chunk.length}字节)`)
-      
+
       // 将chunk添加到缓冲区并按行分割
       buffer += chunk
       const lines = buffer.split('\n')
@@ -499,15 +668,15 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
       // 逐行处理
       for (const line of lines) {
         const trimmedLine = line.trim()
-        
+
         // 跳过空行（SSE消息分隔符）
         if (trimmedLine === '') {
           // 如果有累积的data行，尝试解析
           if (currentDataLines.length > 0) {
             parseAndHandleSSEMessage(
-              currentDataLines, 
-              currentEvent, 
-              onMessage, 
+              currentDataLines,
+              currentEvent,
+              onMessage,
               onError,
               (convId) => { finalConversationId = convId }
             )
@@ -516,39 +685,39 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
           }
           continue
         }
-        
+
         // 处理event行
         if (trimmedLine.startsWith('event:')) {
           currentEvent = trimmedLine.substring(6).trim()
           console.log('[Dify API] 事件:', currentEvent)
           continue
         }
-        
+
         // 处理data行
         if (trimmedLine.startsWith('data:')) {
           const dataContent = trimmedLine.substring(5).trim()
-          
+
           // 如果是新的JSON对象开始，先处理之前累积的
           if (dataContent.startsWith('{') && currentDataLines.length > 0) {
             parseAndHandleSSEMessage(
-              currentDataLines, 
-              currentEvent, 
-              onMessage, 
+              currentDataLines,
+              currentEvent,
+              onMessage,
               onError,
               (convId) => { finalConversationId = convId }
             )
             currentDataLines = []
           }
-          
+
           // 累积当前data行
           currentDataLines.push(dataContent)
-          
+
           // 如果这行以}结尾，说明JSON对象完整，立即处理
           if (dataContent.endsWith('}')) {
             parseAndHandleSSEMessage(
-              currentDataLines, 
-              currentEvent, 
-              onMessage, 
+              currentDataLines,
+              currentEvent,
+              onMessage,
               onError,
               (convId) => { finalConversationId = convId }
             )
@@ -556,7 +725,7 @@ export async function uploadAndChatStream(query, conversationId = null, knowledg
           }
           continue
         }
-        
+
         // 其他行（注释等）
         if (trimmedLine.startsWith(':')) {
           console.log('[Dify API] 注释:', trimmedLine)
@@ -619,15 +788,22 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
       })
     }
 
+    // 构建完整的请求URL
+    let requestUrl = `${KNOWLEDGE_BASE_URL}/chat/stream-with-files`
+    
     console.log('[Dify API - Knowledge] 上传文件并对话:', {
       query,
       conversationId,
       difyFileIds: difyFileIds?.length || 0,
       localFiles: localFiles?.length || 0,
-      timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`
+      timeout: `${BACKEND_DIFY_CONFIG.streamTimeout / 1000}秒`,
+      requestUrl: requestUrl,
+      baseURL: config.api.baseURL,
+      KNOWLEDGE_BASE_URL: KNOWLEDGE_BASE_URL,
+      isProduction: process.env.NODE_ENV === 'production'
     })
 
-    const response = await fetch(`${KNOWLEDGE_BASE_URL}/chat/stream-with-files`, {
+    const response = await fetch(requestUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -756,50 +932,50 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
   }
 }
 
+
+
 /**
- * 上传知识库文件到 Dify（提前上传，获取 difyFileId）
- * @param {Array<string>} knowledgeFileIds - 知识库文件ID列表
- * @returns {Promise<Array>} 返回上传结果列表 [{ knowledgeFileId, difyFileId, fileName, success, error }]
+ * 停止 AI 实验助手的流式响应
+ * @param {string} conversationId - 对话ID
+ * @returns {Promise} API响应
  */
-export async function uploadKnowledgeFilesToDify(knowledgeFileIds) {
-  try {
-    const token = localStorage.getItem('access_token')
-    if (!token) {
-      console.error('[Dify API] 未找到access_token，请先登录')
-      throw new Error('未登录，请先登录')
-    }
-
-    // 确保是普通数组（去除 Vue 响应式包装）
-    const plainFileIds = Array.isArray(knowledgeFileIds) 
-      ? knowledgeFileIds.map(id => String(id))
-      : []
-
-    console.log('[Dify API] 上传知识库文件到Dify:', plainFileIds)
-
-    // 调用后端接口，批量上传知识库文件
-    const response = await fetch(`${KNOWLEDGE_BASE_URL}/upload-knowledge-files`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ knowledgeFileIds: plainFileIds })
-    })
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error('[Dify API] 上传知识库文件失败:', errorText)
-      throw new Error(`上传失败: ${response.status}`)
-    }
-
-    const result = await response.json()
-    console.log('[Dify API] 上传知识库文件成功:', result)
-    
-    return result.data || []
-  } catch (error) {
-    console.error('[Dify API] 上传知识库文件异常:', error)
-    throw error
+export async function stopAIAssistantStream(conversationId) {
+  if (!conversationId) {
+    throw new Error('conversationId 不能为空')
   }
+  
+  const token = localStorage.getItem('access_token')
+  const url = `${BACKEND_DIFY_CONFIG.baseUrl}/chat/stop/${conversationId}`
+  
+  console.log('[Dify API] 停止 AI 实验助手流式响应:', conversationId)
+  
+  return api.post(url, {}, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+/**
+ * 停止知识库 AI 助手的流式响应
+ * @param {string} conversationId - 对话ID
+ * @returns {Promise} API响应
+ */
+export async function stopKnowledgeAIStream(conversationId) {
+  if (!conversationId) {
+    throw new Error('conversationId 不能为空')
+  }
+  
+  const token = localStorage.getItem('access_token')
+  const url = `${KNOWLEDGE_BASE_URL}/chat/stop/${conversationId}`
+  
+  console.log('[Dify API] 停止知识库 AI 助手流式响应:', conversationId)
+  
+  return api.post(url, {}, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
 }
 
 export default {
@@ -807,6 +983,10 @@ export default {
   sendChatMessageStream,
   uploadAndChatStream,
   uploadAndChatStreamForKnowledge,
+  stopMessageGeneration,
+  uploadLocalFile,
   uploadKnowledgeFilesToDify,
-  stopMessageGeneration
+  chatStreamWithPreloadedFiles,
+  stopAIAssistantStream,
+  stopKnowledgeAIStream,
 }

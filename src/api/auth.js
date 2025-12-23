@@ -266,48 +266,11 @@ export const authAPI = {
   },
 
   /**
-   * OAuth2回调处理（由后端重定向触发，前端处理响应）
-   * @param {String} provider - 第三方提供商
-   * @param {String} code - 授权码
-   * @param {String} state - 状态码
-   * @returns {Promise} 返回登录状态和用户信息
+   * 获取当前用户的第三方绑定列表
    */
-  handleOAuth2Callback(provider, code, state) {
-    console.log('[authAPI.handleOAuth2Callback] 处理OAuth2回调, provider:', provider)
-    return api.get(`/zhiyan/auth/oauth2/callback/${provider}`, {
-      params: { code, state }
-    })
-  },
-
-  /**
-   * 绑定已有账号
-   * @param {Object} data - 绑定数据
-   * @param {String} data.provider - 第三方提供商
-   * @param {String} data.providerUserId - 第三方用户ID
-   * @param {String} data.email - 邮箱（必须与OAuth2提供的邮箱一致）
-   * @param {String} data.password - 已有账号的密码
-   * @param {Object} data.oauth2UserInfo - OAuth2用户信息
-   * @returns {Promise} 返回登录响应
-   */
-  bindOAuth2Account(data) {
-    console.log('[authAPI.bindOAuth2Account] 绑定已有账号, provider:', data.provider)
-    return api.post('/zhiyan/auth/oauth2/bind', data)
-  },
-
-  /**
-   * 补充信息创建账号
-   * @param {Object} data - 补充数据
-   * @param {String} data.provider - 第三方提供商
-   * @param {String} data.providerUserId - 第三方用户ID
-   * @param {String} data.email - 邮箱
-   * @param {String} data.password - 密码
-   * @param {String} data.confirmPassword - 确认密码
-   * @param {Object} data.oauth2UserInfo - OAuth2用户信息
-   * @returns {Promise} 返回登录响应
-   */
-  supplementOAuth2Info(data) {
-    console.log('[authAPI.supplementOAuth2Info] 补充信息创建账号, provider:', data.provider)
-    return api.post('/zhiyan/auth/oauth2/supplement', data)
+  getOAuth2Connections() {
+    console.log('[authAPI.getOAuth2Connections] 获取绑定列表')
+    return api.get('/zhiyan/auth/oauth2/connections')
   },
 
   // ==================== 2FA 双因素认证 ====================
@@ -350,7 +313,7 @@ export const authAPI = {
    */
   unbindOAuth2Account(provider) {
     console.log('[authAPI.unbindOAuth2Account] 解绑OAuth2账号, provider:', provider)
-    return api.post(`/zhiyan/auth/oauth2/unbind/${provider}`)
+    return api.delete(`/zhiyan/auth/oauth2/unbind/${provider}`)
   },
 
   /**

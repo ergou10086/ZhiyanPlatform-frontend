@@ -448,7 +448,6 @@ export default {
       pageSize: 10,
       hasMore: true,
       clearReadLoading: false,
-      pollingTimer: null,
       detailDialogVisible: false,
       detailMessage: null,
       detailActionLoading: false,
@@ -463,17 +462,24 @@ export default {
       },
       sendLoading: false,
       myProjects: [],
-      myProjectsLoaded: false
+      myProjectsLoaded: false,
+      // 活跃刷新节流
+      lastActiveRefresh: 0,
+      activeRefreshCooldown: 5000
     }
   },
   mounted() {
     console.log('🔔 GlobalMessageNotification 组件已挂载')
+    // 首屏加载
     this.fetchUnreadCount()
-    this.startPolling()
+    // 页面可见或窗口聚焦时刷新，替代轮询
+    window.addEventListener('focus', this.handleWindowFocus)
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
     document.addEventListener('click', this.handleGlobalClick, true)
   },
   beforeDestroy() {
-    this.stopPolling()
+    window.removeEventListener('focus', this.handleWindowFocus)
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
     document.removeEventListener('click', this.handleGlobalClick, true)
   },
   methods: {
@@ -504,34 +510,60 @@ export default {
      * 关闭消息面板
      */
     closeMessagePanel() {
-    this.showPanel = false
+      this.showPanel = false
+    },
+    /**
+     * 页面重新聚焦时触发刷新（节流）
+     */
+    handleWindowFocus() {
+      const now = Date.now()
+      if (now - this.lastActiveRefresh < this.activeRefreshCooldown) return
+      this.lastActiveRefresh = now
+      this.refreshFromActivity()
+    },
+    /**
+     * 页面从后台切回前台时刷新
+     */
+    handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        this.refreshFromActivity()
+      }
+    },
+    /**
+     * 常规活跃场景刷新：只拉未读数，如面板已打开则顺带刷新列表
+     */
+    async refreshFromActivity() {
+      await this.fetchUnreadCount()
+      if (this.showPanel) {
+        this.loadMessages(true)
+      }
     },
 
-      /**
-       * 打开发送消息对话框
-       */
-      async openSendDialog(mode = 'USER') {
-        this.sendMode = mode
-        this.resetSendForm()
-        this.sendDialogVisible = true
+    /**
+     * 打开发送消息对话框
+     */
+    async openSendDialog(mode = 'USER') {
+      this.sendMode = mode
+      this.resetSendForm()
+      this.sendDialogVisible = true
 
-        // 如果是项目群发模式，且还未加载项目列表，则加载一次
-        if (this.sendMode === 'PROJECT' && !this.myProjectsLoaded) {
-          await this.loadMyProjects()
-        }
-      },
+      // 如果是项目群发模式，且还未加载项目列表，则加载一次
+      if (this.sendMode === 'PROJECT' && !this.myProjectsLoaded) {
+        await this.loadMyProjects()
+      }
+    },
 
-      /**
-       * 重置发送表单
-       */
-      resetSendForm() {
-        this.sendForm = {
-          receiverUsername: '',
-          projectId: null,
-          title: '',
-          content: ''
-        }
-      },
+    /**
+     * 重置发送表单
+     */
+    resetSendForm() {
+      this.sendForm = {
+        receiverUsername: '',
+        projectId: null,
+        title: '',
+        content: ''
+      }
+    },
 
       /**
        * 加载我参与的项目，用于项目群发选择
@@ -1227,26 +1259,6 @@ export default {
     },
 
     /**
-     * 开始轮询
-     */
-    startPolling() {
-      // 每30秒轮询一次未读数量
-      this.pollingTimer = setInterval(() => {
-        this.fetchUnreadCount()
-      }, 30000)
-    },
-
-    /**
-     * 停止轮询
-     */
-    stopPolling() {
-      if (this.pollingTimer) {
-        clearInterval(this.pollingTimer)
-        this.pollingTimer = null
-      }
-    },
-
-    /**
      * 将后端消息数据转换为前端可用结构
      */
     transformMessages(messageList) {
@@ -1556,11 +1568,9 @@ export default {
 
 <style scoped>
 .message-notification {
-  position: fixed;
-  top: 12px;
-  right: 210px;
-  /* 提高层级，确保在所有业务弹窗和确认框之上，但低于错误对话框 */
-  z-index: 15000;
+  /* 放在 App.vue 的 global-header-right 容器中，由外层控制 fixed 位置 */
+  position: relative;
+  z-index: 15000; /* 保持较高层级，确保在页眉内容之上 */
   display: block;
   visibility: visible;
 }
@@ -2756,15 +2766,6 @@ export default {
 
 <!-- 深色模式弹窗和工具栏的全局样式（不加 scoped，覆盖 el-dialog 等 append-to-body 的元素） -->
 <style>
-/* 确保消息提醒组件始终在最顶层，高于ElementUI的确认框和对话框 */
-.message-notification,
-.message-panel,
-.message-detail-overlay,
-.floating-message-reminder,
-.reminder-panel {
-  /* 消息提醒相关组件的z-index已在各自组件中设置，这里确保不会被ElementUI覆盖 */
-}
-
 /* 确保ElementUI的确认框和对话框不会遮盖消息提醒 */
 .el-message-box__wrapper {
   z-index: 14000 !important;
