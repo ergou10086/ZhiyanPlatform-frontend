@@ -1226,6 +1226,59 @@
   }
 }
 
+/* AI 加载动画指示器 */
+.ai-assistant-container .ai-loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.ai-assistant-container .ai-loading-indicator .loading-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ai-assistant-container .ai-loading-indicator .loading-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  animation: loading-dot 1.4s ease-in-out infinite both;
+}
+
+.ai-assistant-container .ai-loading-indicator .loading-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.ai-assistant-container .ai-loading-indicator .loading-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.ai-assistant-container .ai-loading-indicator .loading-dots span:nth-child(3) {
+  animation-delay: 0;
+}
+
+@keyframes loading-dot {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+.ai-assistant-container .ai-loading-indicator .loading-text {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
 
 /* ========== AI建议提示区域 ========== */
 .ai-assistant-container .ai-suggestions {

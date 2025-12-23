@@ -70,12 +70,21 @@
 
           <!-- ⭐ AI消息：支持Markdown渲染 -->
           <div v-if="message.type === 'left'" class="ai-message-content">
+            <!-- 加载动画：在AI还没有任何输出之前显示 -->
+            <div v-if="index === currentTypingMessageIndex && isSending && !message.content" class="ai-loading-indicator">
+              <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span class="loading-text">AI 正在思考中...</span>
+            </div>
             <!-- 打字时显示纯文本 -->
-            <span v-if="index === currentTypingMessageIndex && isTyping" style="white-space: pre-wrap;">{{ message.content }}</span>
+            <span v-else-if="index === currentTypingMessageIndex && isTyping" style="white-space: pre-wrap;">{{ message.content }}</span>
             <!-- 打字完成后渲染Markdown -->
             <span v-else v-html="formatMarkdown(message.content)"></span>
             <!-- 打字光标 -->
-            <span v-if="index === currentTypingMessageIndex && isTyping" class="cursor-blink">|</span>
+            <span v-if="index === currentTypingMessageIndex && isTyping && message.content" class="cursor-blink">|</span>
           </div>
           <!-- 用户消息：普通文本 -->
           <span v-else-if="message.content">{{ message.content }}</span>
@@ -150,14 +159,17 @@
         />
         <button 
           class="send-btn" 
-          @click="sendMessage"
-          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && uploadedFiles.length === 0) || isSending"
+          :class="{ 'stop-btn': isSending }"
+          @click="isSending ? stopStream() : sendMessage()"
+          :disabled="!isSending && (!inputMessage.trim() && selectedLocalFiles.length === 0 && uploadedFiles.length === 0)"
         >
           <svg v-if="!isSending" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <div v-else class="loading-spinner"></div>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+          </svg>
         </button>
         </div>
       </div>
@@ -571,6 +583,7 @@ export default {
       loadingAchievementFiles: false, // 加载成果文件状态
       conversationId: null, // 对话ID，用于维持会话
       currentStreamController: null, // 当前流式响应的控制器
+      currentStreamConversationId: null, // 当前流式响应的 conversationId（用于停止请求）
       // ⭐ 参考Dify的打字机实现
       isTyping: false, // 是否正在打字
       currentTypingMessageIndex: -1, // 当前正在打字的消息索引
@@ -826,6 +839,8 @@ export default {
       this.messages.push(aiMessage)
 
       this.isSending = true
+      // 生成临时 conversationId 用于停止请求（使用 UUID 格式）
+      this.currentStreamConversationId = this.generateUUID()
       this.$nextTick(() => this.scrollToBottom())
 
       // 初始化打字机
@@ -840,9 +855,18 @@ export default {
             queryToSend,
             this.conversationId,
             difyFileIdsToSend,
-            (delta) => {
+            (delta, eventData) => {
               // onMessage
-              this.startTypewriter(this.currentTypingMessageIndex, delta)
+              // 检查是否是 connected 事件，保存 conversationId（internalEmitterId）
+              if (eventData && eventData.conversationId) {
+                this.currentStreamConversationId = eventData.conversationId
+                console.log('[KnowledgeBaseAI] 收到 conversationId:', this.currentStreamConversationId)
+                return // connected 事件不需要调用打字机
+              }
+              // 只有在有实际内容时才调用打字机
+              if (delta && delta.trim()) {
+                this.startTypewriter(this.currentTypingMessageIndex, delta)
+              }
             },
             (endData) => {
               // onEnd: 保存 conversationId
@@ -868,6 +892,7 @@ export default {
       console.log('[Coze] 🏁 后端流式响应已结束')
       this.isSending = false
       this.currentStreamController = null
+      this.currentStreamConversationId = null
       
       // ⭐ 参考Dify：等待打字机完成
       this.finishTypewriter()
@@ -883,6 +908,7 @@ export default {
         this.currentStreamController = null
       }
       this.isSending = false
+      this.currentStreamConversationId = null
       // 停止打字机，避免继续追加内容
       this.stopTypewriter()
       if (aiMessage) {
@@ -890,6 +916,65 @@ export default {
         aiMessage.content = '抱歉，AI 调用失败：' + msg
       }
       this.saveMessagesToStorage()
+    },
+    
+    /**
+     * 停止流式响应
+     */
+    async stopStream() {
+      if (!this.isSending || !this.currentStreamConversationId) {
+        console.warn('[停止] 没有正在进行的流式响应')
+        return
+      }
+      
+      console.log('[停止] 请求停止流式响应, conversationId:', this.currentStreamConversationId)
+      
+      try {
+        // 先关闭前端的流式连接
+        if (this.currentStreamController) {
+          this.currentStreamController.close()
+          this.currentStreamController = null
+        }
+        
+        // 调用后端停止接口
+        await difyAPI.stopKnowledgeAIStream(this.currentStreamConversationId)
+        
+        console.log('[停止] 流式响应已停止')
+        
+        // 更新状态
+        this.isSending = false
+        this.currentStreamConversationId = null
+        this.stopTypewriter()
+        
+        // 如果当前消息还没有内容，添加提示
+        if (this.currentTypingMessageIndex >= 0 && this.messages[this.currentTypingMessageIndex]) {
+          const currentMsg = this.messages[this.currentTypingMessageIndex]
+          if (!currentMsg.content || currentMsg.content.trim() === '') {
+            currentMsg.content = '响应已停止'
+          } else {
+            currentMsg.content += '\n\n[响应已停止]'
+          }
+        }
+        
+        this.saveMessagesToStorage()
+      } catch (error) {
+        console.error('[停止] 停止流式响应失败:', error)
+        // 即使停止接口调用失败，也要关闭前端连接
+        this.isSending = false
+        this.currentStreamConversationId = null
+        this.stopTypewriter()
+      }
+    },
+    
+    /**
+     * 生成 UUID（用于停止请求的 conversationId）
+     */
+    generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0
+        const v = c === 'x' ? r : (r & 0x3 | 0x8)
+        return v.toString(16)
+      })
     },
     
     /**
