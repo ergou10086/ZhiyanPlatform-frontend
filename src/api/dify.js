@@ -365,7 +365,7 @@ export function sendChatMessage(query, conversationId = null) {
  * @param {function} onEnd - 流结束的回调函数
  * @param {function} onError - 错误处理回调函数
  */
-export async function sendChatMessageStream(query, conversationId = null, onMessage, onEnd, onError) {
+export async function sendChatMessageStream(query, conversationId = null, onMessage, onEnd, onError, abortSignal = null) {
   try {
     // 获取token（使用正确的key: access_token）
     const token = localStorage.getItem('access_token')
@@ -394,13 +394,17 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
 
     console.log('[Dify API] 请求URL:', url)
     
+    const internalController = abortSignal ? null : new AbortController()
+    const signal = abortSignal || internalController?.signal
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({})
+      body: JSON.stringify({}),
+      signal
     })
 
     console.log('[Dify API] 响应状态:', response.status, response.statusText)
@@ -524,12 +528,22 @@ export async function sendChatMessageStream(query, conversationId = null, onMess
         }
       }
     }
+  const closer = () => {
+    if (internalController) internalController.abort()
+  }
+
   } catch (error) {
     console.error('流式请求失败:', error)
     if (onError) {
       onError(error)
     }
     throw error
+  }
+
+  return {
+    close: () => {
+      closer()
+    }
   }
 }
 
@@ -559,9 +573,12 @@ export function stopMessageGeneration(taskId) {
  * @param {function} onError - 错误处理回调函数 (error) => void
  * @returns {Promise<void>}
  */
-export async function uploadAndChatStream(query, conversationId = null, knowledgeFileIds = [], localFiles = [], onMessage, onEnd, onError) {
-  // 创建 AbortController 用于超时控制
+export async function uploadAndChatStream(query, conversationId = null, knowledgeFileIds = [], localFiles = [], onMessage, onEnd, onError, abortSignal = null) {
+  // 创建 AbortController，用于超时以及外部中断
   const controller = new AbortController()
+  if (abortSignal) {
+    abortSignal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
   const timeoutId = setTimeout(() => {
     controller.abort()
     console.error('[Dify API] 请求超时:', BACKEND_DIFY_CONFIG.streamTimeout / 1000, '秒')

@@ -363,60 +363,6 @@
             </div>
           </div>
         </div>
-        
-        <!-- 已上传文件区域 -->
-        <div class="sidebar-files-section">
-          <h4 class="sidebar-files-title">已上传文件 ({{ uploadedFiles.length + uploadingFiles.length }})</h4>
-          
-          <!-- 无文件时的空状态 -->
-          <div v-if="uploadedFiles.length === 0 && uploadingFiles.length === 0" class="sidebar-files-empty">
-            <div class="empty-file-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <p class="empty-file-text">暂无文件</p>
-          </div>
-          
-          <!-- 文件列表 -->
-          <div v-else class="sidebar-files-list">
-            <!-- 上传中的文件 -->
-            <div v-for="file in uploadingFiles" :key="file.id" class="sidebar-file-item uploading">
-              <div class="sidebar-file-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="sidebar-file-info">
-                <div class="sidebar-file-name">{{ file.fileName }}</div>
-                <div class="sidebar-file-status">上传中...</div>
-              </div>
-              <div class="sidebar-loading-spinner"></div>
-            </div>
-            
-            <!-- 已上传的文件 -->
-            <div v-for="file in uploadedFiles" :key="file.id" class="sidebar-file-item">
-              <div class="sidebar-file-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="sidebar-file-info">
-                <div class="sidebar-file-name">{{ file.fileName }}</div>
-                <div class="sidebar-file-size">{{ formatFileSize(file.fileSize) }}</div>
-              </div>
-              <button class="sidebar-remove-btn" @click="removeUploadedFile(file.id)" title="移除">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
         <!-- 侧边栏底部 -->
         <div class="sidebar-footer">
           <button class="btn-primary" @click="createNewChatSession">
