@@ -11,6 +11,9 @@ actions:
   - text: 项目演示视频
     link: /introduction.html
     type: secondary
+  - text: 返回首页
+    link: https://zyplatform.xyz/home
+    type: secondary
 
 features:
   - title: 一体化协作

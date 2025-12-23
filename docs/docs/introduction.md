@@ -3,7 +3,7 @@
 ## 智研平台功能概览
 
 <video width="800" height="450" controls>
-  <source src="/introduction/introduction.mp4" type="video/mp4">
+  <source src="/opt/frontend/zyplatform/docs/docs/introduction" type="video/mp4">
   您的浏览器不支持视频播放。
 </video>
 
