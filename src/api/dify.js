@@ -141,7 +141,14 @@ function parseAndHandleSSEMessage(dataLines, eventType, onMessage, onError, onCo
     })
     
     // 根据事件类型处理
-    if (event === 'message' || event === 'agent_message') {
+    if (event === 'connected') {
+      // 连接成功事件 - 提取 conversationId（internalEmitterId）
+      console.log('[Dify API] 连接成功事件:', message)
+      if (message.conversationId && onMessage) {
+        // 传递 conversationId 给前端
+        onMessage('', { conversationId: message.conversationId })
+      }
+    } else if (event === 'message' || event === 'agent_message') {
       // AI消息事件 - 传递增量内容
       // 修复：只跳过 undefined 和 null，空字符串也应该传递（可能是有意义的）
       if (content !== undefined && content !== null && onMessage) {
@@ -305,6 +312,7 @@ export async function chatStreamWithPreloadedFiles(query, conversationId, difyFi
       for (const line of lines) {
         const trimmed = line.trim()
         if (trimmed === '') {
+          // 空行表示一个完整的SSE消息结束
           if (currentDataLines.length > 0) {
             parseAndHandleSSEMessage(currentDataLines, currentEvent, onMessage, onError, (id) => finalConversationId = id)
             currentDataLines = []
@@ -316,9 +324,11 @@ export async function chatStreamWithPreloadedFiles(query, conversationId, difyFi
         else if (trimmed.startsWith('data:')) {
           const data = trimmed.substring(5).trim()
           currentDataLines.push(data)
-          if (data.endsWith('}')) {
+          // 检查是否是完整的JSON对象（以}结尾）或者是纯文本
+          if (data.endsWith('}') || data.endsWith(']') || (!data.startsWith('{') && !data.startsWith('['))) {
             parseAndHandleSSEMessage(currentDataLines, currentEvent, onMessage, onError, (id) => finalConversationId = id)
             currentDataLines = []
+            currentEvent = null
           }
         }
       }
@@ -924,6 +934,50 @@ export async function uploadAndChatStreamForKnowledge(query, conversationId = nu
 
 
 
+/**
+ * 停止 AI 实验助手的流式响应
+ * @param {string} conversationId - 对话ID
+ * @returns {Promise} API响应
+ */
+export async function stopAIAssistantStream(conversationId) {
+  if (!conversationId) {
+    throw new Error('conversationId 不能为空')
+  }
+  
+  const token = localStorage.getItem('access_token')
+  const url = `${BACKEND_DIFY_CONFIG.baseUrl}/chat/stop/${conversationId}`
+  
+  console.log('[Dify API] 停止 AI 实验助手流式响应:', conversationId)
+  
+  return api.post(url, {}, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
+/**
+ * 停止知识库 AI 助手的流式响应
+ * @param {string} conversationId - 对话ID
+ * @returns {Promise} API响应
+ */
+export async function stopKnowledgeAIStream(conversationId) {
+  if (!conversationId) {
+    throw new Error('conversationId 不能为空')
+  }
+  
+  const token = localStorage.getItem('access_token')
+  const url = `${KNOWLEDGE_BASE_URL}/chat/stop/${conversationId}`
+  
+  console.log('[Dify API] 停止知识库 AI 助手流式响应:', conversationId)
+  
+  return api.post(url, {}, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+}
+
 export default {
   sendChatMessage,
   sendChatMessageStream,
@@ -933,4 +987,6 @@ export default {
   uploadLocalFile,
   uploadKnowledgeFilesToDify,
   chatStreamWithPreloadedFiles,
+  stopAIAssistantStream,
+  stopKnowledgeAIStream,
 }

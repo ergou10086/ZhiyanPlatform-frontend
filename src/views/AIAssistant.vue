@@ -110,12 +110,21 @@
               <div :class="message.type === 'ai' ? 'message-bubble ai-bubble' : 'user-bubble'">
                 <!-- AI消息：支持Markdown渲染和光标闪烁 -->
                 <div v-if="message.type === 'ai'" class="ai-content">
+                  <!-- 加载动画：在AI还没有任何输出之前显示 -->
+                  <div v-if="index === currentTypingMessageIndex && isSending && !message.content" class="ai-loading-indicator">
+                    <div class="loading-dots">
+                      <span></span>
+                      <span></span>
+                      <span></span>
+                    </div>
+                    <span class="loading-text">AI 正在思考中...</span>
+                  </div>
                   <!-- ⭐ 修复：打字时显示纯文本，避免不完整内容被错误格式化 -->
-                  <span v-if="isTyping && currentTypingMessageIndex === index" style="white-space: pre-wrap;">{{ message.content }}</span>
+                  <span v-else-if="isTyping && currentTypingMessageIndex === index" style="white-space: pre-wrap;">{{ message.content }}</span>
                   <!-- 打字完成后才进行Markdown格式化 -->
                   <span v-else v-html="formatMarkdown(message.content)"></span>
                   <!-- 打字光标（仅在打字时显示） -->
-                  <span v-if="isTyping && currentTypingMessageIndex === index" class="typing-cursor">|</span>
+                  <span v-if="isTyping && currentTypingMessageIndex === index && message.content" class="typing-cursor">|</span>
                 </div>
                 <!-- 用户消息：普通文本 -->
                 <template v-else>{{ message.content }}</template>
@@ -1024,6 +1033,7 @@ export default {
       // 流式请求控制
       currentStreamController: null, // 当前流式请求的控制器
       currentAbortController: null, // 用于中断请求的AbortController
+      currentStreamConversationId: null, // 当前流式响应的 conversationId（用于停止请求）
       // ⭐ 复制功能状态
       copiedMessageIndex: null, // 当前已复制的消息索引
       // 任务附件相关
@@ -2076,10 +2086,20 @@ export default {
 
         // 回调函数（相同的处理逻辑）
         const onMessage = (answerDelta, data) => {
+          // 检查是否是 connected 事件，保存 conversationId（internalEmitterId）
+          if (data && data.conversationId) {
+            this.currentStreamConversationId = data.conversationId
+            console.log('[AI助手] 收到 conversationId:', this.currentStreamConversationId)
+            return // connected 事件不需要调用打字机
+          }
+          
           console.log('[AI助手] 📥 收到消息片段 [长度:' + answerDelta.length + ']:', answerDelta.substring(0, 50))
-          console.log('[AI助手] 🎯 调用 startTypewriter, aiMessageIndex:', aiMessageIndex)
-          this.startTypewriter(aiMessageIndex, answerDelta)
-          console.log('[AI助手] ✅ startTypewriter 调用完成')
+          // 只有在有实际内容时才调用打字机
+          if (answerDelta && answerDelta.trim()) {
+            console.log('[AI助手] 🎯 调用 startTypewriter, aiMessageIndex:', aiMessageIndex)
+            this.startTypewriter(aiMessageIndex, answerDelta)
+            console.log('[AI助手] ✅ startTypewriter 调用完成')
+          }
         }
 
         const onEnd = (data) => {
@@ -2097,6 +2117,7 @@ export default {
             this.isSending = false
             this.currentStreamController = null
             this.currentAbortController = null
+            this.currentStreamConversationId = null
             this.$nextTick(() => {
               this.scrollToBottom()
             })
@@ -2118,6 +2139,7 @@ export default {
           this.isSending = false
           this.currentStreamController = null
           this.currentAbortController = null
+          this.currentStreamConversationId = null
           this.saveCurrentChatSession()
 
           this.$nextTick(() => {
@@ -2814,8 +2836,64 @@ export default {
     },
     
     // 停止发送/中断当前请求
+    async stopStream() {
+      if (!this.isSending || !this.currentStreamConversationId) {
+        console.warn('[AI助手] 没有正在进行的流式响应')
+        // 如果没有 conversationId，使用旧的 stopSending 方法
+        this.stopSending()
+        return
+      }
+      
+      console.log('[AI助手] 请求停止流式响应, conversationId:', this.currentStreamConversationId)
+      
+      try {
+        // 先关闭前端的流式连接
+        if (this.currentAbortController) {
+          this.currentAbortController.abort()
+          this.currentAbortController = null
+        }
+        if (this.currentStreamController) {
+          this.currentStreamController.close()
+          this.currentStreamController = null
+        }
+        
+        // 调用后端停止接口
+        await difyAPI.stopAIAssistantStream(this.currentStreamConversationId)
+        
+        console.log('[AI助手] 流式响应已停止')
+        
+        // 更新状态
+        this.isSending = false
+        this.currentStreamConversationId = null
+        this.stopTypewriter()
+        
+        // 如果当前消息还没有内容，添加提示
+        if (this.currentTypingMessageIndex >= 0 && this.chatMessages[this.currentTypingMessageIndex]) {
+          const currentMsg = this.chatMessages[this.currentTypingMessageIndex]
+          if (!currentMsg.content || currentMsg.content.trim() === '') {
+            currentMsg.content = '响应已停止'
+          } else {
+            currentMsg.content += '\n\n[响应已停止]'
+          }
+        }
+        
+        this.saveCurrentChatSession()
+      } catch (error) {
+        console.error('[AI助手] 停止流式响应失败:', error)
+        // 即使停止接口调用失败，也要关闭前端连接
+        this.isSending = false
+        this.currentStreamConversationId = null
+        this.stopTypewriter()
+      }
+      
+      this.$nextTick(() => {
+        this.scrollToBottom()
+      })
+    },
+    
+    // 旧的停止方法（保留作为备用）
     stopSending() {
-      console.log('[AI助手] 用户请求中断对话')
+      console.log('[AI助手] 用户请求中断对话（旧方法）')
       
       // 中断AbortController
       if (this.currentAbortController) {
@@ -2838,6 +2916,7 @@ export default {
       this.currentTypingMessageIndex = -1
       this.typewriterQueue = ''
       this.currentStreamController = null
+      this.currentStreamConversationId = null
       
       // 保存会话
       this.saveCurrentChatSession()
