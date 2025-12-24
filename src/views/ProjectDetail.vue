@@ -345,7 +345,8 @@
         </div>
         </div>
         <div class="team-grid">
-          <div v-for="member in teamMembers" :key="member.id" class="member-card">
+          <!-- 只展示部分成员，默认两行，通过“查看更多”逐步加载 -->
+          <div v-for="member in displayedTeamMembers" :key="member.id" class="member-card">
             <div class="member-avatar" @click="goToUserProfile(member)">
               <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
               <div v-else class="avatar-placeholder">
@@ -679,6 +680,44 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-primary" @click="closeErrorDialog">确定</button>
+        </div>
+      </div>
+    </div>
+    <!-- 申请加入项目弹窗（替代浏览器 prompt） -->
+    <div v-if="applyJoinDialogOpen" class="modal-overlay" @click.self="closeApplyJoinDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">申请加入项目</h3>
+          <button class="modal-close" @click="closeApplyJoinDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">
+              申请理由
+              <span class="form-label-optional">（可选）</span>
+            </label>
+            <textarea
+              v-model="applyJoinReason"
+              class="form-textarea"
+              rows="3"
+              placeholder="简单介绍一下自己、擅长方向或希望参与的工作内容，有助于项目负责人更快通过申请"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeApplyJoinDialog">取消</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="isSubmittingApplyJoin"
+            @click="confirmApplyJoinProject"
+          >
+            {{ isSubmittingApplyJoin ? '提交中...' : '提交申请' }}
+          </button>
         </div>
       </div>
     </div>
@@ -1174,6 +1213,16 @@
             </div>
           </div>
         </div>
+        <!-- 成员较多时的“查看更多”按钮 -->
+        <div v-if="hasMoreTeamMembers" class="load-more-container">
+          <button
+            class="load-more-btn"
+            type="button"
+            @click="loadMoreTeamMembers"
+          >
+            查看更多
+          </button>
+        </div>
         <div class="modal-footer">
           <!-- 接取任务按钮（仅项目未归档时可见） -->
           <button
@@ -1509,6 +1558,9 @@ export default {
       tasks: [],
       teamMembers: [],
       inviteSlots: [],
+      // 团队成员展示控制：默认显示两行，每行固定若干个成员
+      visibleMemberRows: 2,
+      membersPerRow: 4,
       isLoading: true,
       taskListModalOpen: false,
       isCreatingTask: false, // 防止重复点击创建任务
@@ -1584,6 +1636,10 @@ export default {
       roleChangeMessage: '',
       memberToChangeRole: null,
       newRoleToSet: null,
+      // 申请加入项目弹窗
+      applyJoinDialogOpen: false,
+      applyJoinReason: '',
+      isSubmittingApplyJoin: false,
       // 权限相关
       isAdmin: false, // 当前用户是否为项目管理员（包括OWNER和ADMIN）
       isOwner: false, // 当前用户是否为项目拥有者
@@ -1648,6 +1704,24 @@ export default {
     // 是否显示"更多"按钮
     showMoreButton() {
       return Array.isArray(this.searchedUsers) && this.searchedUsers.length > this.displayedUserCount
+    },
+    // 团队成员：根据行数控制显示数量，默认两行
+    displayedTeamMembers() {
+      if (!Array.isArray(this.teamMembers)) {
+        return []
+      }
+      const perRow = this.membersPerRow || 4
+      const maxCount = this.visibleMemberRows * perRow
+      return this.teamMembers.slice(0, maxCount)
+    },
+    // 是否还有更多成员可展示
+    hasMoreTeamMembers() {
+      if (!Array.isArray(this.teamMembers)) {
+        return false
+      }
+      const perRow = this.membersPerRow || 4
+      const maxCount = this.visibleMemberRows * perRow
+      return this.teamMembers.length > maxCount
     },
     isProjectManager() {
       // 判断当前用户是否是项目管理员（包括OWNER和ADMIN）
@@ -3001,6 +3075,11 @@ export default {
     loadMoreUsers() {
       // 每次点击"更多"按钮，增加4个用户
       this.displayedUserCount += 4
+    },
+    // 团队成员：点击“查看更多”时，多加载两行成员
+    loadMoreTeamMembers() {
+      const step = 2
+      this.visibleMemberRows += step
     },
     async confirmInvite() {
       if (this.selectedUserIds.length === 0) {
@@ -5097,19 +5176,54 @@ export default {
         return
       }
 
+      // 使用自定义弹窗而不是浏览器 prompt，避免误触发送
+      this.applyJoinDialogOpen = true
+      this.applyJoinReason = ''
+    },
+
+    /**
+     * 关闭申请加入弹窗（不发送申请）
+     */
+    closeApplyJoinDialog() {
+      this.applyJoinDialogOpen = false
+      this.applyJoinReason = ''
+      this.isSubmittingApplyJoin = false
+    },
+
+    /**
+     * 确认提交加入申请
+     */
+    async confirmApplyJoinProject() {
+      if (this.isSubmittingApplyJoin) return
+
+      const projectId = this.project?.id || this.$route.params.id
+      if (!projectId) {
+        this.showSuccessToast('项目信息异常，无法申请加入')
+        return
+      }
+
+      if (!this.getCurrentUserId()) {
+        this.showSuccessToast('请先登录后再申请加入项目')
+        return
+      }
+
       try {
-        const reason = window.prompt(`申请加入项目「${this.project?.name || this.project?.title || ''}」的理由（可选）：`, '')
+        this.isSubmittingApplyJoin = true
         const { projectAPI } = await import('@/api/project')
-        const res = await projectAPI.applyToJoinProject(projectId, reason || '')
+        const res = await projectAPI.applyToJoinProject(projectId, (this.applyJoinReason || '').trim())
 
         if (res && res.code === 200) {
           this.showSuccessToast(res.msg || '申请已发送，等待管理员处理')
+          this.applyJoinDialogOpen = false
+          this.applyJoinReason = ''
         } else {
           this.showSuccessToast(res?.msg || '申请失败，请稍后重试')
         }
       } catch (error) {
         console.error('申请加入项目失败:', error)
         this.showSuccessToast('申请失败: ' + (error.message || '网络错误'))
+      } finally {
+        this.isSubmittingApplyJoin = false
       }
     },
     onImageLoad() {

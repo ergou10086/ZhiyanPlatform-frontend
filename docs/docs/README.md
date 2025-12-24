@@ -1,7 +1,7 @@
 ---
 home: true
 title: 智研平台帮助文档
-heroImage: /logo.svg
+heroImage: /logo.png
 heroText: 智研平台
 tagline: 高校科研团队协作与成果管理平台
 actions:
@@ -10,6 +10,9 @@ actions:
     type: primary
   - text: 项目演示视频
     link: /introduction.html
+    type: secondary
+  - text: API文档
+    link: https://api.zyplatform.xyz/swagger-ui/swagger-ui/index.html
     type: secondary
   - text: 返回首页
     link: https://zyplatform.xyz/home

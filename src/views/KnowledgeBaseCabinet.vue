@@ -90,6 +90,33 @@
         <div class="doc-meta" v-if="activeDoc">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
+          <!-- 协同编辑在线用户条 -->
+          <div
+            class="collab-bar"
+            v-if="isCollabReady && onlineEditors && onlineEditors.length > 0"
+          >
+            <div class="collab-label">正在协同编辑：</div>
+            <div class="collab-users">
+              <div
+                v-for="editor in onlineEditors"
+                :key="editor.userId"
+                class="collab-user"
+                :class="{ 'is-self': String(editor.userId) === String(selfUserId) }"
+              >
+                <div class="collab-avatar">
+                  <img
+                    v-if="editor.avatar"
+                    :src="editor.avatar"
+                    :alt="editor.username || '用户'"
+                  >
+                  <span v-else>{{ (editor.username || '用户').charAt(0) }}</span>
+                </div>
+                <div class="collab-name">
+                  {{ String(editor.userId) === String(selfUserId) ? (editor.username || '我') + '（我）' : (editor.username || '用户') }}
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="doc-actions-top">
             <!-- 导出按钮 -->
             <div class="export-btn-wrapper" ref="exportBtnWrapper">
@@ -812,6 +839,8 @@
 <script>
 import '@/assets/styles/KnowledgeBaseCabinet.css'
 import { wikiAPI, PageType } from '@/api/wiki'
+import { createWikiCollaborationClient } from '@/utils/wikiCollaboration'
+import { getCurrentUserId, getCurrentUserName, getCurrentUserAvatar } from '@/utils/auth'
 
 export default {
   name: 'KnowledgeBaseCabinet',
@@ -910,7 +939,14 @@ export default {
       uploadingAttachment: false, // 是否正在上传附件
       attachmentFilter: 'all', // 附件筛选：all/image/file
       attachmentStats: true, // 是否显示附件统计
-      attachmentsCollapsed: false // 附件区域是否折叠
+      attachmentsCollapsed: false, // 附件区域是否折叠
+
+      // 协同编辑相关
+      collabClient: null, // Wiki 协同编辑客户端
+      onlineEditors: [], // 当前页面在线编辑者列表
+      cursorPositions: [], // 其他用户的光标位置（简单展示）
+      selfUserId: getCurrentUserId(), // 当前用户 ID
+      isCollabReady: false // WebSocket 是否已就绪
     }
   },
   computed: {
@@ -1019,6 +1055,12 @@ export default {
     if (this.scrollSyncTimer) {
       clearTimeout(this.scrollSyncTimer)
       this.scrollSyncTimer = null
+    }
+
+    // 离开时退出协同编辑
+    if (this.collabClient) {
+      this.collabClient.leave()
+      this.collabClient = null
     }
   },
   methods: {
@@ -1373,6 +1415,79 @@ export default {
           this.loadingDocIds.delete(pageIdStr)
         }
       })
+
+      // 切换文档后，初始化 / 切换协同编辑客户端
+      this.setupCollaborationForPage(pageIdStr)
+    },
+
+    /**
+     * 为当前页面初始化协同编辑客户端
+     */
+    setupCollaborationForPage(pageId) {
+      try {
+        // 先关闭旧的客户端
+        if (this.collabClient) {
+          this.collabClient.leave()
+          this.collabClient = null
+        }
+
+        if (!pageId) {
+          this.onlineEditors = []
+          this.cursorPositions = []
+          this.isCollabReady = false
+          return
+        }
+
+        // 创建新的协同编辑客户端
+        const client = createWikiCollaborationClient(pageId)
+
+        // 绑定事件回调
+        client.onEditorsUpdate = (editors) => {
+          // 保证数组结构，过滤空值
+          this.onlineEditors = Array.isArray(editors)
+            ? editors.filter(e => e && e.userId)
+            : []
+        }
+
+        client.onCursorsUpdate = (cursors) => {
+          this.cursorPositions = Array.isArray(cursors)
+            ? cursors.filter(c => c && c.userId && String(c.pageId) === String(pageId))
+            : []
+        }
+
+        client.onContentChange = (change) => {
+          // 当他人保存后，后端会广播完整内容，这里用于被动刷新（仅在非编辑模式下自动同步）
+          if (!change || !change.content) return
+          if (!this.activeId || String(this.activeId) !== String(pageId)) return
+
+          // 如果当前正在编辑且有未保存更改，则不覆盖用户内容
+          if (this.isEditing && this.hasUnsavedChanges) {
+            return
+          }
+
+          // 同步内容到当前文档
+          if (this.activeDoc) {
+            this.activeDoc.content = change.content
+            this.originalContent = change.content
+          }
+        }
+
+        client.onIncrementalChange = (change) => {
+          // 当前版本中不对增量变更做复杂合并，仅预留钩子
+          // 可以在这里根据需要做实时预览或小提示
+        }
+
+        client.onError = () => {
+          this.isCollabReady = false
+        }
+
+        this.collabClient = client
+        this.isCollabReady = true
+        client.connect()
+      } catch (e) {
+        console.warn('[KnowledgeBaseCabinet] 初始化协同编辑失败:', e)
+        this.isCollabReady = false
+      }
     },
     
     createNewDocument() {
@@ -1739,6 +1854,13 @@ export default {
       // 只有在编辑模式下才标记有未保存的更改
       if (this.isEditing) {
         this.hasUnsavedChanges = true
+        // 实时同步增量变更给其他在线编辑者（内容不入库，仅广播）
+        if (this.collabClient && this.isCollabReady && this.activeId) {
+          this.collabClient.sendIncrementalChange({
+            changeType: 'FULL',
+            content: this.activeDocContent || ''
+          })
+        }
       }
     },
     
@@ -1804,6 +1926,14 @@ export default {
 
           // 通知父组件
           this.$emit('document-saved', this.activeDoc)
+
+        // 保存成功后，通过协同编辑通道广播最新内容，方便其他用户同步
+        if (this.collabClient && this.isCollabReady && this.activeId) {
+          this.collabClient.sendContentChange({
+            content: this.activeDocContent || '',
+            changeDescription: '手动保存'
+          })
+        }
         } else {
           console.error('[saveDocument] 保存失败:', response)
           this.$message?.error(response.msg || '保存文档失败')
@@ -1843,6 +1973,13 @@ export default {
 
           // 通知父组件
         this.$emit('document-auto-saved', this.activeDoc)
+        // 自动保存成功后，也通过协同通道广播一次完整内容
+        if (this.collabClient && this.isCollabReady && this.activeId) {
+          this.collabClient.sendContentChange({
+            content: this.activeDocContent || '',
+            changeDescription: '自动保存'
+          })
+        }
         }
       } catch (error) {
         console.error('[autoSave] 自动保存失败:', error)
@@ -4293,6 +4430,76 @@ export default {
   font-size: 12px; 
   margin-top: 4px;
   font-weight: 500;
+}
+
+/* 协同编辑在线用户条 */
+.collab-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.collab-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.collab-users {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.collab-user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #475569;
+}
+
+.collab-user.is-self {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+}
+
+.collab-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.collab-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collab-name {
+  max-width: 90px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 /* 顶部操作按钮区域 */

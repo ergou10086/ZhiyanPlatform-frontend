@@ -14,12 +14,14 @@
     "docs:deploy": "mkdir -p dist/docs && cp -r docs/.vuepress/dist/* dist/docs/"
   },
   "dependencies": {
+    "@stomp/stompjs": "^7.2.1",
     "axios": "^0.27.2",
     "chart.js": "^2.9.4",
     "element-ui": "^2.15.14",
     "highlight.js": "^11.11.1",
     "json-bigint": "^1.0.0",
     "marked": "^11.2.0",
+    "sockjs-client": "^1.6.1",
     "three": "^0.181.2",
     "vue": "^2.6.14",
     "vue-chartjs": "^3.5.1",
