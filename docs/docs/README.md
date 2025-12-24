@@ -11,6 +11,9 @@ actions:
   - text: 项目演示视频
     link: /introduction.html
     type: secondary
+  - text: API文档
+    link: https://api.zyplatform.xyz/swagger-ui/swagger-ui/index.html
+    type: secondary
   - text: 返回首页
     link: https://zyplatform.xyz/home
     type: secondary
