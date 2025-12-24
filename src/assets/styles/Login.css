@@ -442,7 +442,10 @@
   transform: translateY(0);
 }
 
-.login-container .orcid-icon {
+.login-container .orcid-img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
   flex-shrink: 0;
 }
 

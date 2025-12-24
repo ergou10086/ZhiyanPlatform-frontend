@@ -345,7 +345,8 @@
         </div>
         </div>
         <div class="team-grid">
-          <div v-for="member in teamMembers" :key="member.id" class="member-card">
+          <!-- 只展示部分成员，默认两行，通过“查看更多”逐步加载 -->
+          <div v-for="member in displayedTeamMembers" :key="member.id" class="member-card">
             <div class="member-avatar" @click="goToUserProfile(member)">
               <img v-if="member.avatar" :src="member.avatar" :alt="member.name" />
               <div v-else class="avatar-placeholder">
@@ -1212,6 +1213,16 @@
             </div>
           </div>
         </div>
+        <!-- 成员较多时的“查看更多”按钮 -->
+        <div v-if="hasMoreTeamMembers" class="load-more-container">
+          <button
+            class="load-more-btn"
+            type="button"
+            @click="loadMoreTeamMembers"
+          >
+            查看更多
+          </button>
+        </div>
         <div class="modal-footer">
           <!-- 接取任务按钮（仅项目未归档时可见） -->
           <button
@@ -1547,6 +1558,9 @@ export default {
       tasks: [],
       teamMembers: [],
       inviteSlots: [],
+      // 团队成员展示控制：默认显示两行，每行固定若干个成员
+      visibleMemberRows: 2,
+      membersPerRow: 4,
       isLoading: true,
       taskListModalOpen: false,
       isCreatingTask: false, // 防止重复点击创建任务
@@ -1690,6 +1704,24 @@ export default {
     // 是否显示"更多"按钮
     showMoreButton() {
       return Array.isArray(this.searchedUsers) && this.searchedUsers.length > this.displayedUserCount
+    },
+    // 团队成员：根据行数控制显示数量，默认两行
+    displayedTeamMembers() {
+      if (!Array.isArray(this.teamMembers)) {
+        return []
+      }
+      const perRow = this.membersPerRow || 4
+      const maxCount = this.visibleMemberRows * perRow
+      return this.teamMembers.slice(0, maxCount)
+    },
+    // 是否还有更多成员可展示
+    hasMoreTeamMembers() {
+      if (!Array.isArray(this.teamMembers)) {
+        return false
+      }
+      const perRow = this.membersPerRow || 4
+      const maxCount = this.visibleMemberRows * perRow
+      return this.teamMembers.length > maxCount
     },
     isProjectManager() {
       // 判断当前用户是否是项目管理员（包括OWNER和ADMIN）
@@ -3043,6 +3075,11 @@ export default {
     loadMoreUsers() {
       // 每次点击"更多"按钮，增加4个用户
       this.displayedUserCount += 4
+    },
+    // 团队成员：点击“查看更多”时，多加载两行成员
+    loadMoreTeamMembers() {
+      const step = 2
+      this.visibleMemberRows += step
     },
     async confirmInvite() {
       if (this.selectedUserIds.length === 0) {
