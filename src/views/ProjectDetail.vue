@@ -682,6 +682,44 @@
         </div>
       </div>
     </div>
+    <!-- 申请加入项目弹窗（替代浏览器 prompt） -->
+    <div v-if="applyJoinDialogOpen" class="modal-overlay" @click.self="closeApplyJoinDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">申请加入项目</h3>
+          <button class="modal-close" @click="closeApplyJoinDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">
+              申请理由
+              <span class="form-label-optional">（可选）</span>
+            </label>
+            <textarea
+              v-model="applyJoinReason"
+              class="form-textarea"
+              rows="3"
+              placeholder="简单介绍一下自己、擅长方向或希望参与的工作内容，有助于项目负责人更快通过申请"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeApplyJoinDialog">取消</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="isSubmittingApplyJoin"
+            @click="confirmApplyJoinProject"
+          >
+            {{ isSubmittingApplyJoin ? '提交中...' : '提交申请' }}
+          </button>
+        </div>
+      </div>
+    </div>
     <!-- 角色变更确认弹窗（替代浏览器 confirm） -->
     <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click.self="cancelRoleChange">
       <div class="modal-content" @click.stop>
@@ -1584,6 +1622,10 @@ export default {
       roleChangeMessage: '',
       memberToChangeRole: null,
       newRoleToSet: null,
+      // 申请加入项目弹窗
+      applyJoinDialogOpen: false,
+      applyJoinReason: '',
+      isSubmittingApplyJoin: false,
       // 权限相关
       isAdmin: false, // 当前用户是否为项目管理员（包括OWNER和ADMIN）
       isOwner: false, // 当前用户是否为项目拥有者
@@ -5097,19 +5139,54 @@ export default {
         return
       }
 
+      // 使用自定义弹窗而不是浏览器 prompt，避免误触发送
+      this.applyJoinDialogOpen = true
+      this.applyJoinReason = ''
+    },
+
+    /**
+     * 关闭申请加入弹窗（不发送申请）
+     */
+    closeApplyJoinDialog() {
+      this.applyJoinDialogOpen = false
+      this.applyJoinReason = ''
+      this.isSubmittingApplyJoin = false
+    },
+
+    /**
+     * 确认提交加入申请
+     */
+    async confirmApplyJoinProject() {
+      if (this.isSubmittingApplyJoin) return
+
+      const projectId = this.project?.id || this.$route.params.id
+      if (!projectId) {
+        this.showSuccessToast('项目信息异常，无法申请加入')
+        return
+      }
+
+      if (!this.getCurrentUserId()) {
+        this.showSuccessToast('请先登录后再申请加入项目')
+        return
+      }
+
       try {
-        const reason = window.prompt(`申请加入项目「${this.project?.name || this.project?.title || ''}」的理由（可选）：`, '')
+        this.isSubmittingApplyJoin = true
         const { projectAPI } = await import('@/api/project')
-        const res = await projectAPI.applyToJoinProject(projectId, reason || '')
+        const res = await projectAPI.applyToJoinProject(projectId, (this.applyJoinReason || '').trim())
 
         if (res && res.code === 200) {
           this.showSuccessToast(res.msg || '申请已发送，等待管理员处理')
+          this.applyJoinDialogOpen = false
+          this.applyJoinReason = ''
         } else {
           this.showSuccessToast(res?.msg || '申请失败，请稍后重试')
         }
       } catch (error) {
         console.error('申请加入项目失败:', error)
         this.showSuccessToast('申请失败: ' + (error.message || '网络错误'))
+      } finally {
+        this.isSubmittingApplyJoin = false
       }
     },
     onImageLoad() {

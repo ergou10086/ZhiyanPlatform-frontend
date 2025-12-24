@@ -178,25 +178,8 @@
             @document-created="handleDocumentCreated" 
           />
 
-          <!-- AI 赋能面板 -->
+          <!-- AI 赋能面板（直接使用 KnowledgeBaseAI 内部的输入框与对话区） -->
           <div v-else class="ai-panel-container">
-            <!-- 简单文本输入，允许不带文件直接与AI对话 -->
-            <div class="ai-text-input">
-              <textarea
-                v-model="aiInput"
-                placeholder="向 AI 提问（可不上传文件）"
-                rows="2"
-                class="ai-textarea"
-              ></textarea>
-              <div class="ai-input-actions">
-                <button
-                  class="ai-send-btn"
-                  :disabled="!aiInput || !aiInput.trim()"
-                  @click="sendAIMessage"
-                >发送</button>
-              </div>
-            </div>
-
             <KnowledgeBaseAI
               ref="aiComponent"
               :projectId="projectId"
@@ -253,7 +236,6 @@ import KnowledgeBaseAI from './KnowledgeBaseAI.vue'
 import { knowledgeAPI } from '@/api/knowledge'
 import { projectAPI } from '@/api/project'
 import { wikiAPI } from '@/api/wiki'
-import axios from 'axios'
 import '@/assets/styles/ProjectKnowledge.css'
 
 export default {
@@ -279,9 +261,7 @@ export default {
       permissionErrorShown: false, // 标记是否已显示权限错误，防止重复显示
       showPermissionDialog: false, // 控制权限错误弹窗显示
       uploadedFiles: [], // AI赋能页面已上传的文件列表
-      uploadingFiles: [], // AI赋能页面上传中的文件列表
-      // 允许直接发送文本消息给AI（无文件时也可用）
-      aiInput: ''
+      uploadingFiles: [] // AI赋能页面上传中的文件列表
     }
   },
   computed: {
@@ -1040,109 +1020,6 @@ export default {
         this.uploadingFiles = filesData.uploadingFiles
       }
     },
-    
-    // 允许直接发送文本消息给 AI（当没有文件时也可用）
-    async sendAIMessage() {
-      const text = (this.aiInput || '').trim()
-      if (!text) return
-
-      // 优先尝试将文本传递给子组件 KnowledgeBaseAI 的已知处理器
-      const child = this.$refs.aiComponent
-      if (child) {
-        try {
-          // 若子组件提供直接接收文本的方法，优先调用（异步或同步）
-          const textHandlers = [
-            'handleUserMessage',
-            'receiveUserMessage',
-            'sendUserMessage',
-            'postUserMessage',
-            'submitQuery',
-            'handleUserInput'
-          ]
-          for (const name of textHandlers) {
-            if (typeof child[name] === 'function') {
-              const res = child[name](text)
-              if (res && typeof res.then === 'function') await res
-              this.aiInput = ''
-              return
-            }
-          }
-
-          // 如果没有接收文本的方法，但存在 sendMessage（组件内部使用 inputMessage），则设置并调用
-          if (typeof child.sendMessage === 'function') {
-            // 设置子组件的输入并调用它的发送方法
-            child.inputMessage = text
-            const res = child.sendMessage()
-            if (res && typeof res.then === 'function') await res
-            this.aiInput = ''
-            return
-          }
-        } catch (e) {
-          console.warn('[ProjectKnowledge] 调用子组件AI处理函数失败:', e)
-          // 继续回退到 SSE 逻辑
-        }
-      }
-
-      // 回退：使用后端 SSE 流式接口（DifyAIChatController）
-      try {
-        // 先创建一个新的会话 ID（后端会将其映射到 SSE emitter）
-        const convResp = await axios.get('/zhiyan/ai/dify/conversation/new')
-        const convId = convResp?.data?.data || ''
-
-        // 记录用户问题作为活动
-        this.activities.unshift({
-          id: Date.now(),
-          type: 'user',
-          text: text,
-          time: '刚刚'
-        })
-
-        // 打开 EventSource 连接以接收流式回复
-        const params = [
-          `query=${encodeURIComponent(text)}`,
-          `conversationId=${encodeURIComponent(convId)}`
-        ]
-        const url = `/zhiyan/ai/dify/chat/stream?${params.join('&')}`
-
-        if (typeof EventSource === 'undefined') {
-          // 浏览器不支持 SSE，回退到普通 POST（保留旧行为）
-          await axios.post('/api/ai/message', { projectId: this.projectId, text })
-          this.aiInput = ''
-          return
-        }
-
-        const es = new EventSource(url)
-
-        es.onmessage = (e) => {
-          const payload = e.data
-          // 将接收到的每条流式数据作为 AI 活动追加
-          this.activities.unshift({
-            id: Date.now(),
-            type: 'ai',
-            text: payload,
-            time: '刚刚'
-          })
-        }
-
-        es.onerror = (err) => {
-          console.warn('[ProjectKnowledge] SSE 错误：', err)
-          try { es.close() } catch (e) {}
-        }
-
-        // 当连接打开时清空输入框
-        es.addEventListener('open', () => {
-          this.aiInput = ''
-        })
-      } catch (error) {
-        console.warn('[ProjectKnowledge] 发送AI消息（SSE）失败：', error)
-        if (this.$message && typeof this.$message.error === 'function') {
-          this.$message.error('发送AI消息失败')
-        }
-        // 最后兜底：清空输入
-        this.aiInput = ''
-      }
-    },
-    
     // 移除已上传的文件
     removeUploadedFile(fileId) {
       console.log('[ProjectKnowledge] 移除文件:', fileId)
