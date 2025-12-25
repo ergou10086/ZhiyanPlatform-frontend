@@ -66,6 +66,7 @@ export class WikiCollaborationClient {
     this.onContentChange = null
     this.onIncrementalChange = null
     this.onError = null
+    this.onConnected = null // 连接成功回调
   }
 
   /**
@@ -107,6 +108,10 @@ export class WikiCollaborationClient {
         this.reconnectAttempts = 0
         console.log('[WikiCollaboration] WebSocket 连接成功, pageId=', this.pageId)
         this._afterConnected()
+        // 通知外部连接已成功
+        if (this.onConnected) {
+          this.onConnected()
+        }
       },
       onStompError: (frame) => {
         console.warn('[WikiCollaboration] STOMP 错误:', frame.headers['message'], frame.body)

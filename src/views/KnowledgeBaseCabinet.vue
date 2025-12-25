@@ -164,9 +164,9 @@
           ></textarea>
           <!-- 协同编辑覆盖层：显示光标和编辑区域 -->
           <WikiCollaborationOverlay
-            v-if="isEditing && isCollabReady"
+            v-if="isEditing && isCollabReady && $refs.editorTextarea"
             :textarea="$refs.editorTextarea"
-            :cursors="cursorPositions"
+            :cursors="allCursorPositions"
             :edit-ranges="editRanges"
             :self-user-id="selfUserId"
             :editor-info="editorInfoMap"
@@ -872,7 +872,7 @@
 import '@/assets/styles/KnowledgeBaseCabinet.css'
 import { wikiAPI, PageType } from '@/api/wiki'
 import { createWikiCollaborationClient } from '@/utils/wikiCollaboration'
-import { getCurrentUserId, getCurrentUserName, getCurrentUserAvatar } from '@/utils/auth'
+import { getCurrentUserId, getCurrentUserName, getCurrentUserAvatar, getCurrentUser } from '@/utils/auth'
 import WikiCollaborationOverlay from '@/components/WikiCollaborationOverlay.vue'
 
 export default {
@@ -978,6 +978,7 @@ export default {
       collabClient: null, // Wiki 协同编辑客户端
       onlineEditors: [], // 当前页面在线编辑者列表
       cursorPositions: [], // 其他用户的光标位置（简单展示）
+      selfCursorPosition: null, // 自己的光标位置
       selfUserId: getCurrentUserId(), // 当前用户 ID
       isCollabReady: false, // WebSocket 是否已就绪
       showEditRanges: false, // 是否显示编辑区域高亮
@@ -1012,6 +1013,15 @@ export default {
     // 编辑者信息映射（用于显示用户名和头像）
     editorInfoMap() {
       const map = {}
+      // 添加自己的信息
+      if (this.selfUserId) {
+        const currentUser = getCurrentUser()
+        map[this.selfUserId] = {
+          username: getCurrentUserName() || currentUser?.nickname || currentUser?.name || `用户${this.selfUserId}`,
+          avatar: getCurrentUserAvatar() || currentUser?.avatar || currentUser?.avatarUrl || null
+        }
+      }
+      // 添加其他在线编辑者的信息
       if (Array.isArray(this.onlineEditors)) {
         this.onlineEditors.forEach(editor => {
           if (editor && editor.userId) {
@@ -1023,6 +1033,18 @@ export default {
         })
       }
       return map
+    },
+    // 所有光标位置（包括自己的）
+    allCursorPositions() {
+      const cursors = [...this.cursorPositions]
+      // 添加自己的光标位置
+      if (this.selfCursorPosition && this.isEditing) {
+        cursors.push({
+          ...this.selfCursorPosition,
+          userId: this.selfUserId
+        })
+      }
+      return cursors
     },
     // 扁平化树形结构用于节点选择器
     flatNodeList() {
@@ -1311,6 +1333,20 @@ export default {
       
       const pageIdStr = String(pageId)
 
+      // 如果切换了文档，先清理旧的协同编辑连接（如果不在编辑状态）
+      if (this.activeId && String(this.activeId) !== pageIdStr) {
+        // 如果不在编辑状态，断开协同编辑连接
+        if (!this.isEditing && this.collabClient) {
+          this.collabClient.leave()
+          this.collabClient = null
+          this.isCollabReady = false
+          this.onlineEditors = []
+          this.cursorPositions = []
+        }
+        // 停止光标跟踪
+        this.stopCursorTracking()
+      }
+
       // 立即更新选中状态，确保界面立即响应（放在最前面）
       this.activeId = pageIdStr
 
@@ -1473,8 +1509,11 @@ export default {
         }
       })
 
-      // 切换文档后，初始化 / 切换协同编辑客户端
-      this.setupCollaborationForPage(pageIdStr)
+      // 切换文档后，如果正在编辑状态，初始化 / 切换协同编辑客户端
+      // 注意：只在编辑状态下才建立协同编辑连接
+      if (this.isEditing) {
+        this.setupCollaborationForPage(pageIdStr)
+      }
     },
 
     /**
@@ -1491,6 +1530,7 @@ export default {
         if (!pageId) {
           this.onlineEditors = []
           this.cursorPositions = []
+          this.selfCursorPosition = null
           this.isCollabReady = false
           return
         }
@@ -1509,12 +1549,19 @@ export default {
         client.onCursorsUpdate = (cursors) => {
           // 处理单个光标或光标数组
           const cursorList = Array.isArray(cursors) ? cursors : (cursors ? [cursors] : [])
-          this.cursorPositions = cursorList.filter(c => {
+          const filteredCursors = cursorList.filter(c => {
             if (!c || !c.userId) return false
             // 如果光标有pageId，需要匹配当前页面
             if (c.pageId !== undefined && String(c.pageId) !== String(pageId)) return false
+            // 过滤掉自己的光标（自己的光标由本地跟踪，不通过服务器同步）
+            if (String(c.userId) === String(this.selfUserId)) return false
             return true
           })
+          this.cursorPositions = filteredCursors
+          // 调试日志（仅在开发环境）
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[KnowledgeBaseCabinet] 收到光标更新:', filteredCursors.length, '个其他用户的光标')
+          }
         }
 
         client.onContentChange = (change) => {
@@ -1543,8 +1590,23 @@ export default {
           this.isCollabReady = false
         }
 
+        // 连接成功回调
+        client.onConnected = () => {
+          this.isCollabReady = true
+          console.log('[KnowledgeBaseCabinet] 协同编辑连接已就绪, pageId=', pageId)
+          // 如果已经在编辑状态，启动光标跟踪
+          if (this.isEditing) {
+            this.$nextTick(() => {
+              this.startCursorTracking()
+              // 立即发送一次光标位置
+              this.updateCursorPosition()
+            })
+          }
+        }
+
         this.collabClient = client
-        this.isCollabReady = true
+        // 先设置为 false，等连接成功后再设置为 true
+        this.isCollabReady = false
         client.connect()
       } catch (e) {
         console.warn('[KnowledgeBaseCabinet] 初始化协同编辑失败:', e)
@@ -1768,7 +1830,7 @@ export default {
         this.hasUnsavedChanges = true
       }
       
-      // 确保协同编辑已连接
+      // 确保协同编辑已连接（仅在编辑状态下启用）
       this.$nextTick(() => {
         if (this.activeId && !this.collabClient) {
           this.setupCollaborationForPage(String(this.activeId))
@@ -1776,8 +1838,10 @@ export default {
           this.collabClient.connect()
         }
         
-        // 启动光标位置跟踪
-        this.startCursorTracking()
+        // 如果连接已就绪，启动光标位置跟踪
+        if (this.isCollabReady) {
+          this.startCursorTracking()
+        }
       })
     },
 
@@ -1792,11 +1856,29 @@ export default {
           this.isEditing = false
           this.hasUnsavedChanges = false
           this.stopCursorTracking()
+          // 退出编辑状态后，断开协同编辑连接
+          if (this.collabClient) {
+            this.collabClient.leave()
+            this.collabClient = null
+          this.isCollabReady = false
+          this.onlineEditors = []
+          this.cursorPositions = []
+          this.selfCursorPosition = null
+          }
         }
       } else {
         this.isEditing = false
         this.hasUnsavedChanges = false
         this.stopCursorTracking()
+        // 退出编辑状态后，断开协同编辑连接
+        if (this.collabClient) {
+          this.collabClient.leave()
+          this.collabClient = null
+          this.isCollabReady = false
+          this.onlineEditors = []
+          this.cursorPositions = []
+          this.selfCursorPosition = null
+        }
       }
     },
 
@@ -1949,13 +2031,27 @@ export default {
     
     // 光标位置跟踪相关方法
     startCursorTracking() {
+      // 只在编辑状态下启动光标跟踪
+      if (!this.isEditing) {
+        return
+      }
       this.stopCursorTracking()
-      if (!this.$refs.editorTextarea) return
+      if (!this.$refs.editorTextarea) {
+        // 如果 textarea 还没准备好，延迟重试
+        this.$nextTick(() => {
+          if (this.isEditing && this.$refs.editorTextarea) {
+            this.startCursorTracking()
+          }
+        })
+        return
+      }
       
-      // 每500ms更新一次光标位置
+      // 每300ms更新一次光标位置（更频繁的更新以获得更好的实时性）
       this.cursorUpdateTimer = setInterval(() => {
-        this.updateCursorPosition()
-      }, 500)
+        if (this.isEditing) {
+          this.updateCursorPosition()
+        }
+      }, 300)
       
       // 立即更新一次
       this.updateCursorPosition()
@@ -1969,23 +2065,38 @@ export default {
     },
     
     updateCursorPosition() {
-      if (!this.$refs.editorTextarea || !this.collabClient || !this.isCollabReady || !this.activeId) {
+      // 只在编辑状态下发送光标位置
+      if (!this.isEditing) {
+        this.selfCursorPosition = null
+        return
+      }
+      if (!this.$refs.editorTextarea) {
+        this.selfCursorPosition = null
         return
       }
       
       const textarea = this.$refs.editorTextarea
       const cursorOffset = textarea.selectionStart
       
-      // 只在光标位置变化时发送
-      if (cursorOffset !== this.lastCursorOffset) {
+      // 计算行号和列号
+      const text = textarea.value || ''
+      const textBeforeCursor = text.substring(0, cursorOffset)
+      const lines = textBeforeCursor.split('\n')
+      const line = lines.length - 1
+      const column = lines[lines.length - 1].length
+      
+      // 更新自己的光标位置（用于本地显示）
+      this.selfCursorPosition = {
+        userId: this.selfUserId,
+        pageId: Number(this.activeId),
+        line: line,
+        column: column,
+        offset: cursorOffset
+      }
+      
+      // 只在光标位置变化时发送到服务器
+      if (cursorOffset !== this.lastCursorOffset && this.collabClient && this.isCollabReady && this.activeId) {
         this.lastCursorOffset = cursorOffset
-        
-        // 计算行号和列号
-        const text = textarea.value || ''
-        const textBeforeCursor = text.substring(0, cursorOffset)
-        const lines = textBeforeCursor.split('\n')
-        const line = lines.length - 1
-        const column = lines[lines.length - 1].length
         
         // 发送光标位置到服务器
         this.collabClient.sendCursor({

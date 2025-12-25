@@ -1,15 +1,24 @@
 <template>
   <div class="wiki-collab-overlay" ref="overlay">
-    <!-- 其他用户的光标 -->
+    <!-- 所有用户的光标（包括自己） -->
     <div
       v-for="cursor in visibleCursors"
       :key="`cursor-${cursor.userId}`"
       class="collab-cursor"
+      :class="{ 'is-self': String(cursor.userId) === String(selfUserId) }"
       :style="getCursorStyle(cursor)"
       :title="getCursorTitle(cursor)"
     >
       <div class="cursor-line"></div>
-      <div class="cursor-label">{{ getCursorLabel(cursor) }}</div>
+      <div class="cursor-label">
+        <img 
+          v-if="getCursorAvatar(cursor)" 
+          :src="getCursorAvatar(cursor)" 
+          class="cursor-avatar"
+          :alt="getCursorLabel(cursor)"
+        />
+        <span class="cursor-name">{{ getCursorLabel(cursor) }}</span>
+      </div>
     </div>
     
     <!-- 编辑区域高亮 -->
@@ -59,7 +68,8 @@ export default {
   computed: {
     visibleCursors() {
       if (!this.cursors || !Array.isArray(this.cursors)) return []
-      return this.cursors.filter(c => c && c.userId && String(c.userId) !== String(this.selfUserId))
+      // 显示所有光标，包括自己的
+      return this.cursors.filter(c => c && c.userId && c.offset !== undefined)
     },
     visibleRanges() {
       if (!this.editRanges || !Array.isArray(this.editRanges)) return []
@@ -124,25 +134,48 @@ export default {
       if (!this.textarea || !cursor || cursor.offset === undefined) return {}
       
       const text = this.textarea.value || ''
+      if (!text && cursor.offset === 0) {
+        // 空文本且光标在开头
+        const lineHeight = parseFloat(this.textareaStyle?.lineHeight || '20') || 20
+        const paddingTop = parseFloat(this.textareaStyle?.paddingTop || '0') || 0
+        const paddingLeft = parseFloat(this.textareaStyle?.paddingLeft || '0') || 0
+        const isSelf = String(cursor.userId) === String(this.selfUserId)
+        return {
+          top: `${paddingTop}px`,
+          left: `${paddingLeft}px`,
+          '--cursor-color': this.getUserColor(cursor.userId),
+          opacity: isSelf ? 0.7 : 1
+        }
+      }
+      
       const lines = text.split('\n')
       let currentOffset = 0
       let lineIndex = 0
       let columnIndex = 0
       
+      // 处理光标位置计算
+      const offset = Math.max(0, Math.min(cursor.offset, text.length))
+      
       for (let i = 0; i < lines.length; i++) {
         const lineLength = lines[i].length + 1 // +1 for newline
-        if (currentOffset + lineLength > cursor.offset) {
+        if (currentOffset + lineLength > offset) {
           lineIndex = i
-          columnIndex = cursor.offset - currentOffset
+          columnIndex = offset - currentOffset
           break
         }
         currentOffset += lineLength
       }
       
-      const lineHeight = parseFloat(this.textareaStyle?.lineHeight || '20')
-      const paddingTop = parseFloat(this.textareaStyle?.paddingTop || '10')
-      const paddingLeft = parseFloat(this.textareaStyle?.paddingLeft || '10')
-      const fontSize = parseFloat(this.textareaStyle?.fontSize || '14')
+      // 如果光标在文本末尾或超出
+      if (offset >= text.length && lines.length > 0) {
+        lineIndex = lines.length - 1
+        columnIndex = lines[lines.length - 1].length
+      }
+      
+      const lineHeight = parseFloat(this.textareaStyle?.lineHeight || '20') || 20
+      const paddingTop = parseFloat(this.textareaStyle?.paddingTop || '0') || 0
+      const paddingLeft = parseFloat(this.textareaStyle?.paddingLeft || '0') || 0
+      const fontSize = parseFloat(this.textareaStyle?.fontSize || '14') || 14
       const fontFamily = this.textareaStyle?.fontFamily || 'monospace'
       
       // 计算字符宽度（近似）
@@ -151,10 +184,13 @@ export default {
       const top = paddingTop + (lineIndex * lineHeight)
       const left = paddingLeft + (columnIndex * charWidth)
       
+      const isSelf = String(cursor.userId) === String(this.selfUserId)
+      
       return {
         top: `${top}px`,
         left: `${left}px`,
-        '--cursor-color': this.getUserColor(cursor.userId)
+        '--cursor-color': this.getUserColor(cursor.userId),
+        opacity: isSelf ? 0.7 : 1 // 自己的光标稍微透明一些
       }
     },
     getRangeStyle(range) {
@@ -229,9 +265,16 @@ export default {
       const editor = this.editorInfo[cursor.userId]
       return editor?.username || `用户${cursor.userId}`
     },
+    getCursorAvatar(cursor) {
+      const editor = this.editorInfo[cursor.userId]
+      return editor?.avatar || null
+    },
     getCursorTitle(cursor) {
       const editor = this.editorInfo[cursor.userId]
-      return `${editor?.username || `用户${cursor.userId}`} 正在编辑`
+      const isSelf = String(cursor.userId) === String(this.selfUserId)
+      return isSelf 
+        ? '您正在编辑'
+        : `${editor?.username || `用户${cursor.userId}`} 正在编辑`
     },
     getRangeLabel(range) {
       const editor = this.editorInfo[range.userId]
@@ -256,6 +299,12 @@ export default {
   background-color: var(--cursor-color, #5EB6E4);
   animation: cursor-blink 1s infinite;
   pointer-events: none;
+  z-index: 1;
+}
+
+.collab-cursor.is-self {
+  opacity: 0.7;
+  width: 2px;
 }
 
 .collab-cursor .cursor-line {
@@ -266,17 +315,37 @@ export default {
 
 .collab-cursor .cursor-label {
   position: absolute;
-  top: -18px;
+  top: -22px;
   left: 2px;
   padding: 2px 6px;
   background-color: var(--cursor-color, #5EB6E4);
   color: white;
   font-size: 11px;
   white-space: nowrap;
-  border-radius: 3px;
-  opacity: 0.9;
+  border-radius: 4px;
+  opacity: 0.95;
   transform: translateX(-50%);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  max-width: 150px;
+}
+
+.collab-cursor .cursor-avatar {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.collab-cursor .cursor-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .collab-range {

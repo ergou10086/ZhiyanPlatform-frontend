@@ -945,6 +945,50 @@
   color: #059669;
 }
 
+/* 已完成任务的样式 */
+.task-card.task-completed {
+  opacity: 0.7;
+  background: #f8f9fa;
+  border-color: #dee2e6;
+  position: relative;
+}
+
+.task-card.task-completed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.05) 0%, rgba(34, 197, 94, 0.02) 100%);
+  pointer-events: none;
+  border-radius: 8px;
+}
+
+.task-card.task-completed .task-title {
+  color: #6c757d;
+  text-decoration: line-through;
+}
+
+.task-card.task-completed .task-description {
+  color: #adb5bd;
+}
+
+.task-card.task-completed .task-actions button {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.task-card.task-completed .task-actions button:disabled {
+  opacity: 0.4;
+}
+
+.task-card.task-completed:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: #dee2e6;
+}
+
 .task-card {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
@@ -2852,6 +2896,32 @@
 
 .dark-mode .project-detail-container .form-label {
   color: #cbd5e1;
+}
+
+/* 暗黑模式下的已完成任务样式 */
+.dark-mode .project-detail-container .task-card.task-completed {
+  opacity: 0.6;
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.dark-mode .project-detail-container .task-card.task-completed::before {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(34, 197, 94, 0.03) 100%);
+}
+
+.dark-mode .project-detail-container .task-card.task-completed .task-title {
+  color: #64748b;
+  text-decoration: line-through;
+}
+
+.dark-mode .project-detail-container .task-card.task-completed .task-description {
+  color: #475569;
+}
+
+.dark-mode .project-detail-container .task-card.task-completed:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border-color: #334155;
 }
 
 .dark-mode .project-detail-container .task-card {
