@@ -1714,23 +1714,44 @@ export default {
     showMoreButton() {
       return Array.isArray(this.searchedUsers) && this.searchedUsers.length > this.displayedUserCount
     },
+    // 团队成员：按角色优先级排序（OWNER > ADMIN > 普通成员），同一角色内保持原有顺序（近似加入时间）
+    sortedTeamMembers() {
+      if (!Array.isArray(this.teamMembers)) {
+        return []
+      }
+      const owners = []
+      const admins = []
+      const members = []
+      this.teamMembers.forEach(member => {
+        if (this.isOwnerMember(member)) {
+          owners.push(member)
+        } else if (this.isAdminRole(member)) {
+          admins.push(member)
+        } else {
+          members.push(member)
+        }
+      })
+      return [...owners, ...admins, ...members]
+    },
     // 团队成员：根据行数控制显示数量，默认两行
     displayedTeamMembers() {
-      if (!Array.isArray(this.teamMembers)) {
+      const sorted = this.sortedTeamMembers
+      if (!Array.isArray(sorted)) {
         return []
       }
       const perRow = this.membersPerRow || 4
       const maxCount = this.visibleMemberRows * perRow
-      return this.teamMembers.slice(0, maxCount)
+      return sorted.slice(0, maxCount)
     },
     // 是否还有更多成员可展示
     hasMoreTeamMembers() {
-      if (!Array.isArray(this.teamMembers)) {
+      const sorted = this.sortedTeamMembers
+      if (!Array.isArray(sorted)) {
         return false
       }
       const perRow = this.membersPerRow || 4
       const maxCount = this.visibleMemberRows * perRow
-      return this.teamMembers.length > maxCount
+      return sorted.length > maxCount
     },
     isProjectManager() {
       // 判断当前用户是否是项目管理员（包括OWNER和ADMIN）
