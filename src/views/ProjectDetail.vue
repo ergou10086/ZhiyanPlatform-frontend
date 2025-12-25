@@ -342,7 +342,7 @@
             >
               申请加入
             </button>
-          </div>
+        </div>
         </div>
         <div class="team-grid">
           <!-- 只展示部分成员，默认两行，通过“查看更多”逐步加载 -->
@@ -420,16 +420,16 @@
                       </svg>
                       设为管理员
                       <span v-if="!isProjectOwner" class="permission-hint">(仅拥有者)</span>
-                    </div>
+            </div>
                     <!-- 只有OWNER可以移除ADMIN身份 -->
                     <div 
                       v-if="isAdminRole(member) && canOperateAsOwner" 
                       class="dropdown-item remove-admin" 
                       @click.stop="setMemberRole(member, 'MEMBER')"
                     >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
                       移除管理员
                     </div>
                   </div>
@@ -469,7 +469,6 @@
             </button>
           </div>
         </div>
-        <!-- 成员较多时的“查看更多”按钮 -->
         <div v-if="hasMoreTeamMembers" class="load-more-container">
           <button
             class="load-more-btn"
@@ -477,6 +476,519 @@
             @click="loadMoreTeamMembers"
           >
             查看更多
+          </button>
+        </div>
+      </div>
+      </div>
+    </div>
+    <!-- 新建任务模态框 -->
+    <div v-if="taskModalOpen" class="modal-overlay" @click.self="closeTaskModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">新建任务</h3>
+          <button class="modal-close" @click="closeTaskModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">任务标题<span class="required-asterisk">*</span></label>
+            <input 
+              v-model="newTask.title" 
+              type="text" 
+              class="form-input" 
+              placeholder="请输入任务标题"
+              maxlength="50"
+            />
+          </div>
+          <div class="form-field">
+            <label class="form-label">任务描述</label>
+            <textarea 
+              v-model="newTask.description" 
+              class="form-textarea" 
+              placeholder="请输入任务描述"
+              rows="3"
+              maxlength="200"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">截止日期</label>
+              <input 
+                v-model="newTask.dueDate" 
+                type="date" 
+                :min="today"
+                class="form-input"
+                @change="validateNewTaskDueDate"
+              />
+              <div v-if="newTask.dateError" class="error-message">{{ newTask.dateError }}</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">优先级</label>
+              <select v-model="newTask.priority" class="form-select">
+                <option value="高">高</option>
+                <option value="中">中</option>
+                <option value="低">低</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">任务人数</label>
+            <input 
+              v-model.number="newTask.participantCount" 
+              type="number" 
+              class="form-input" 
+              placeholder="请输入可参加的成员数量"
+              min="1"
+              step="1"
+            />
+          </div>
+          <div class="form-field form-field-switch">
+            <label class="form-label">里程碑任务</label>
+            <label class="switch-toggle">
+              <input type="checkbox" v-model="newTask.isMilestone" />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" @click="closeTaskModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveNewTask" class="btn btn-primary" :disabled="!newTask.title.trim() || isCreatingTask">
+            {{ isCreatingTask ? '创建中...' : '创建任务' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 接取任务确认弹窗（替代浏览器 confirm） -->
+    <div v-if="claimTaskConfirmOpen" class="modal-overlay" @click.self="cancelClaimTask">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">确认接取任务</h3>
+          <button class="modal-close" @click="cancelClaimTask">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确认接取任务
+            <strong v-if="taskToClaim && taskToClaim.title">“{{ taskToClaim.title }}”</strong>
+            吗？接取后该任务将标记为由你执行。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelClaimTask">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmClaimTask">确认接取</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 取消邀请成员确认弹窗（替代浏览器 confirm） -->
+    <div v-if="removeInviteConfirmOpen" class="modal-overlay" @click.self="cancelRemoveInviteSlot">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">取消邀请成员</h3>
+          <button class="modal-close" @click="cancelRemoveInviteSlot">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要取消该成员的邀请吗？</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRemoveInviteSlot">保留邀请</button>
+          <button type="button" class="btn btn-primary" @click="confirmRemoveInviteSlot">取消邀请</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 移除项目成员确认弹窗（替代浏览器 confirm） -->
+    <div v-if="removeMemberConfirmOpen" class="modal-overlay" @click.self="cancelRemoveMember">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">移除项目成员</h3>
+          <button class="modal-close" @click="cancelRemoveMember">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>
+            确定要移除
+            <strong v-if="memberToRemove && memberToRemove.name">{{ memberToRemove.name }}</strong>
+            <span v-else>该成员</span>
+            吗？移除后该成员将不再属于此项目。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRemoveMember">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmRemoveMember">确认移除</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除项目确认弹窗（替代浏览器 confirm） -->
+    <div v-if="deleteProjectConfirmOpen" class="modal-overlay" @click.self="cancelDeleteProject">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">删除项目</h3>
+          <button class="modal-close" @click="cancelDeleteProject">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要删除此项目吗？此操作不可撤销，项目及其所有数据将被永久删除。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelDeleteProject">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmDeleteProject">确认删除</button>
+        </div>
+      </div>
+    </div>
+    <!-- 删除任务确认弹窗（替代浏览器 confirm） -->
+    <div v-if="deleteTaskConfirmOpen" class="modal-overlay" @click.self="cancelDeleteTask">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">删除任务</h3>
+          <button class="modal-close" @click="cancelDeleteTask">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>确定要删除此任务吗？此操作不可撤销。</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelDeleteTask">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmDeleteTask">确定</button>
+        </div>
+      </div>
+    </div>
+    <!-- 错误提示弹窗（替代浏览器 alert） -->
+    <div v-if="errorDialogOpen" class="modal-overlay" @click.self="closeErrorDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">提示</h3>
+          <button class="modal-close" @click="closeErrorDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>{{ errorMessage }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" @click="closeErrorDialog">确定</button>
+        </div>
+      </div>
+    </div>
+    <!-- 申请加入项目弹窗（替代浏览器 prompt） -->
+    <div v-if="applyJoinDialogOpen" class="modal-overlay" @click.self="closeApplyJoinDialog">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">申请加入项目</h3>
+          <button class="modal-close" @click="closeApplyJoinDialog">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">
+              申请理由
+              <span class="form-label-optional">（可选）</span>
+            </label>
+            <textarea
+              v-model="applyJoinReason"
+              class="form-textarea"
+              rows="3"
+              placeholder="简单介绍一下自己、擅长方向或希望参与的工作内容，有助于项目负责人更快通过申请"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="closeApplyJoinDialog">取消</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="isSubmittingApplyJoin"
+            @click="confirmApplyJoinProject"
+          >
+            {{ isSubmittingApplyJoin ? '提交中...' : '提交申请' }}
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 角色变更确认弹窗（替代浏览器 confirm） -->
+    <div v-if="roleChangeConfirmOpen" class="modal-overlay" @click.self="cancelRoleChange">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">{{ roleChangeTitle }}</h3>
+          <button class="modal-close" @click="cancelRoleChange">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <p>{{ roleChangeMessage }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="cancelRoleChange">取消</button>
+          <button type="button" class="btn btn-primary" @click="confirmRoleChange">确定</button>
+        </div>
+      </div>
+    </div>
+    <!-- 编辑项目模态框 -->
+    <div v-if="editProjectModalOpen" class="modal-overlay" @click.self="closeEditProjectModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">编辑项目</h3>
+          <button class="modal-close" @click="closeEditProjectModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">项目名称</label>
+            <input 
+              v-model="editProjectData.name" 
+              type="text" 
+              class="form-input" 
+              placeholder="请输入项目名称"
+              maxlength="100"
+            />
+          </div>
+          <div class="form-field">
+            <label class="form-label">项目描述</label>
+            <textarea 
+              v-model="editProjectData.description" 
+              class="form-textarea" 
+              placeholder="请输入项目描述"
+              rows="3"
+              maxlength="500"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">开始日期</label>
+              <input 
+                v-model="editProjectData.startDate" 
+                type="date" 
+                class="form-input"
+              />
+            </div>
+            <div class="form-field">
+              <label class="form-label">结束日期</label>
+              <input 
+                v-model="editProjectData.endDate" 
+                type="date" 
+                class="form-input"
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">可见性</label>
+              <select v-model="editProjectData.visibility" class="form-select">
+                <option value="PUBLIC">公开</option>
+                <option value="PRIVATE">私有</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="form-label">项目状态</label>
+              <select v-model="editProjectData.status" class="form-select">
+                <option value="PLANNING">规划中</option>
+                <option value="ONGOING">进行中</option>
+                <option value="COMPLETED">已完成</option>
+                <option value="ARCHIVED">已归档</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" @click="closeEditProjectModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveProjectUpdate" class="btn btn-primary" :disabled="!editProjectData.name.trim()">
+            保存更改
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 编辑任务模态框 -->
+    <div v-if="editTaskModalOpen" class="modal-overlay" @click.self="closeEditTaskModal">
+      <div class="modal-content task-modal" @click.stop>
+        <div class="modal-header">
+          <h3>编辑任务</h3>
+          <button class="modal-close" @click="closeEditTaskModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-field">
+            <label class="form-label">任务标题</label>
+            <input
+              type="text"
+              v-model="editTaskData.title" 
+              class="form-input"
+              placeholder="请输入任务标题"
+            />
+          </div>
+          <div class="form-field">
+            <label class="form-label">任务描述</label>
+            <textarea
+              v-model="editTaskData.description"
+              class="form-textarea"
+              placeholder="请输入任务描述"
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label class="form-label">截止日期</label>
+              <input
+                type="date"
+                v-model="editTaskData.dueDate"
+                :min="today"
+                class="form-input"
+                @change="validateEditTaskDueDate"
+              />
+              <div v-if="editTaskData.dateError" class="error-message">{{ editTaskData.dateError }}</div>
+            </div>
+            <div class="form-field">
+              <label class="form-label">优先级</label>
+              <select v-model="editTaskData.priority" class="form-select">
+                <option value="高">高</option>
+                <option value="中">中</option>
+                <option value="低">低</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" @click="closeEditTaskModal" class="btn btn-secondary">取消</button>
+          <button type="button" @click="saveEditTask" class="btn btn-primary" :disabled="!editTaskData.title.trim()">
+            保存更改
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- 邀请成员弹窗 -->
+    <div v-if="inviteMemberModalOpen" class="modal-overlay" @click.self="closeInviteMemberModal">
+      <div class="modal-content invite-member-modal" @click.stop>
+        <div class="modal-header">
+          <h3 class="modal-title">邀请成员</h3>
+          <button class="modal-close" @click="closeInviteMemberModal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- 搜索用户 -->
+          <div class="search-section">
+            <label class="form-label">搜索用户</label>
+            <div class="search-input-wrapper">
+              <input 
+                v-model="userSearchKeyword" 
+                type="text" 
+                class="form-input search-input" 
+                placeholder="请输入用户ID或姓名进行搜索"
+                @input="handleSearchInput"
+              />
+              <button class="search-btn" @click="searchUsers" :disabled="isSearching">
+                <svg v-if="!isSearching" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span v-else class="loading-spinner-small"></span>
+              </button>
+            </div>
+          </div>
+          <!-- 搜索结果列表 -->
+          <div class="search-results" v-if="searchedUsers.length > 0">
+            <div class="search-results-header">
+              <span class="results-count">找到 {{ searchedUsers.length }} 个用户</span>
+              <span class="selected-count" v-if="selectedUserIds.length > 0">已选 {{ selectedUserIds.length }} 人</span>
+            </div>
+            <div class="user-list">
+              <div 
+                v-for="user in displayedUsers" 
+                :key="user.id || user.userId" 
+                class="user-item"
+                :class="{ 'user-selected': selectedUserIds.includes(user.id || user.userId) }"
+                @click="selectUser(user)"
+              >
+                <div class="user-avatar">
+                  <img v-if="user.avatarUrl || user.avatar || user.avatarData" :src="user.avatarUrl || user.avatar || user.avatarData" alt="用户头像" />
+                  <div v-else class="avatar-placeholder">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="user-info">
+                  <div class="user-name">{{ user.name || user.username }}</div>
+                  <div class="user-email">
+                    <span v-if="user.email">{{ maskEmail(user.email) }}</span>
+                    <span v-else>ID: {{ user.id || user.userId }}</span>
+                  </div>
+                </div>
+                <div class="user-select-indicator" v-if="selectedUserIds.includes(user.id || user.userId)">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 6L9 17L4 12" stroke="#4CAF50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <!-- 更多按钮 -->
+            <div v-if="showMoreButton" class="load-more-container">
+              <button class="btn load-more-btn" @click="loadMoreUsers">
+                更多
+              </button>
+            </div>
+          </div>
+          <!-- 空状态 -->
+          <div class="empty-state" v-else-if="hasSearched && !isSearching">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="8" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21L16.65 16.65" stroke="#d9d9d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>未找到相关用户</p>
+          </div>
+          <!-- 提示信息 -->
+          <div class="search-hint" v-else>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="11" r="8" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M21 21L16.65 16.65" stroke="#bbb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>请输入用户ID或姓名进行搜索</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn secondary" @click="closeInviteMemberModal">取消</button>
+          <button 
+            class="btn primary" 
+            @click="confirmInvite" 
+            :disabled="selectedUserIds.length === 0 || isInviting"
+          >
+            <span v-if="!isInviting">确定邀请{{ selectedUserIds.length > 0 ? ' (' + selectedUserIds.length + ')' : '' }}</span>
+            <span v-else>邀请中...</span>
           </button>
         </div>
       </div>
@@ -710,6 +1222,16 @@
             </div>
           </div>
         </div>
+        <!-- 成员较多时的“查看更多”按钮 -->
+        <div v-if="hasMoreTeamMembers" class="load-more-container">
+          <button
+            class="load-more-btn"
+            type="button"
+            @click="loadMoreTeamMembers"
+          >
+            查看更多
+          </button>
+        </div>
         <div class="modal-footer">
           <!-- 接取任务按钮（仅项目未归档时可见） -->
           <button
@@ -741,6 +1263,7 @@
           <button @click="closeTaskDetailModal" class="btn btn-primary">关闭</button>
         </div>
       </div>
+    </div>
     </div>
     <!-- 任务统计详情弹窗 -->
     <div v-if="statisticsModalOpen && taskForStatistics" class="modal-overlay" @click.self="closeStatisticsModal">
@@ -872,8 +1395,8 @@
         </div>
         <div class="modal-footer">
           <button @click="closeStatisticsModal" class="btn btn-primary">关闭</button>
-        </div>
       </div>
+    </div>
     </div>
     <!-- 分配任务模态框 -->
     <div v-if="assignTaskModalOpen && taskToAssign" class="modal-overlay" @click.self="closeAssignTaskModal">
@@ -963,7 +1486,7 @@
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
-    </div>
+      </div>
     <!-- 图片裁切Modal -->
     <div v-if="showCropModal" class="crop-modal-overlay">
       <div class="crop-modal-content" @click.stop>
@@ -988,12 +1511,10 @@
         <div class="crop-modal-footer">
           <button class="btn-cancel" @click="closeCropModal">重新选择图片</button>
           <button class="btn-confirm" @click="applyCrop">完成裁切</button>
-        </div>
       </div>
     </div>
+    </div>
   </div>
-</div>
-</div>
 </template>
 <script>
 import '@/assets/styles/ProjectDetail.css'
