@@ -272,3 +272,64 @@ export function approveProjectJoin(recipientId) {
 export function rejectProjectJoin(recipientId) {
   return api.post(`/zhiyan/message/project/apply/${recipientId}/reject`)
 }
+
+/**
+ * 邮件通知偏好设置相关API
+ */
+
+/**
+ * 获取当前用户的邮件通知偏好设置
+ */
+export function getEmailNotificationPreference() {
+  return api.get('/zhiyan/message/email-preference')
+}
+
+/**
+ * 更新当前用户的邮件通知偏好设置
+ * @param {Object} data
+ * @param {boolean} data.enabled - 是否启用邮件通知
+ * @param {Array<string>} data.enabledScenes - 启用的业务场景列表
+ */
+export function updateEmailNotificationPreference(data) {
+  return api.put('/zhiyan/message/email-preference', data)
+}
+
+/**
+ * 获取所有高优先级的业务场景列表
+ */
+export function getHighPriorityScenes() {
+  return api.get('/zhiyan/message/email-preference/scenes')
+}
+
+/**
+ * 消息模块API对象
+ */
+export const messageAPI = {
+  // 消息列表相关
+  getInboxMessages,
+  getUnreadCount,
+  getUnreadMessages,
+  markAsRead,
+  batchMarkAsRead,
+  markAllAsRead,
+  clearReadMessages,
+  deleteMessage,
+  batchDeleteMessages,
+  getMessageDetail,
+  getUnreadCountByScene,
+  
+  // 消息发送相关
+  sendMessageToUser,
+  sendMessageToProject,
+  
+  // 项目邀请相关
+  acceptProjectInvitation,
+  rejectProjectInvitation,
+  approveProjectJoin,
+  rejectProjectJoin,
+  
+  // 邮件通知偏好设置相关
+  getEmailNotificationPreference,
+  updateEmailNotificationPreference,
+  getHighPriorityScenes
+}
