@@ -509,7 +509,7 @@
                 <div class="item-header">
                   <h3 class="item-title">{{ task.title }}</h3>
                   <!-- 临近截止警示图标 -->
-                  <div v-if="isOverdue(task.dueDate)" class="deadline-alert overdue" title="任务已逾期">
+                  <div v-if="isOverdue(task.dueDate, task.submissionTime)" class="deadline-alert overdue" title="任务已逾期">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -912,10 +912,11 @@ export default {
           
           // 过滤逾期项
           if (this.showOverdueOnly) {
-            const now = new Date()
             tasks = tasks.filter(task => {
               const dueDate = new Date(task.dueDate || task.due_date || task.taskDueDate)
-              return dueDate < now
+              // 修改逾期判断逻辑：如果有提交时间，使用提交时间判断；否则使用当前时间
+              const judgeTime = task.submissionTime ? new Date(task.submissionTime) : new Date()
+              return dueDate < judgeTime
             })
           }
           
@@ -1588,9 +1589,13 @@ export default {
         if (!isCompleted && (task.dueDate || task.due_date)) {
           const dueDate = new Date(task.dueDate || task.due_date)
           dueDate.setHours(0, 0, 0, 0)
-          
-          // 检查是否逾期（截止日期在今天之前）
-          if (dueDate < now) {
+
+          // 修改逾期判断逻辑：如果有提交时间，使用提交时间判断；否则使用当前时间
+          const judgeTime = task.submissionTime ? new Date(task.submissionTime) : now
+          judgeTime.setHours(0, 0, 0, 0)
+
+          // 检查是否逾期（截止日期在判断时间之前）
+          if (dueDate < judgeTime) {
             overdueCount++
             // 找到这个日期在days数组中的索引（逾期日期）
             const dayIndex = days.findIndex(d => {
@@ -2495,17 +2500,18 @@ export default {
       return diffDays >= 0 && diffDays <= 3
     },
     
-    isOverdue(dueDate) {
+    isOverdue(dueDate, submissionTime) {
       // 判断任务是否已逾期
       if (!dueDate) return false
-      
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      
+
       const deadline = new Date(dueDate)
       deadline.setHours(0, 0, 0, 0)
-      
-      return deadline < today
+
+      // 修改逾期判断逻辑：如果有提交时间，使用提交时间判断；否则使用当前时间
+      const judgeTime = submissionTime ? new Date(submissionTime) : new Date()
+      judgeTime.setHours(0, 0, 0, 0)
+
+      return deadline < judgeTime
     },
     
     animateStats() {
