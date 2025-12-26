@@ -401,12 +401,12 @@ export default {
     // 加载全局用户信息
     this.loadGlobalUserInfo()
     
-    // 并行加载我参与的项目和我的任务，提升加载速度
+    // 并行加载我参与的项目和我的任务，只查询一次，不轮询
     Promise.all([
       this.loadMyProjects(),
       this.loadMyTasks()
     ]).catch(error => {
-      console.error('并行加载数据时出错:', error)
+      console.error('加载数据时出错:', error)
     })
     
     // 添加点击外部关闭菜单的事件监听
@@ -425,6 +425,22 @@ export default {
     }).catch(err => {
       console.warn('科幻背景初始化失败，已忽略：', err)
     })
+    
+    // 通知消息提醒组件首页已激活，自动预加载消息
+    this.$root.$emit('homePageActivated')
+  },
+  // 如果使用 keep-alive，从其他页面返回时刷新数据
+  activated() {
+    console.log('[Home] 页面激活，刷新数据')
+    // 从其他页面返回时，重新加载数据
+    Promise.all([
+      this.loadMyProjects(),
+      this.loadMyTasks()
+    ]).catch(error => {
+      console.error('刷新数据时出错:', error)
+    })
+    // 通知消息提醒组件首页已激活，自动预加载消息
+    this.$root.$emit('homePageActivated')
   },
   beforeDestroy() {
     // 移除事件监听
@@ -704,29 +720,7 @@ export default {
         return
       }
       
-      // 先尝试从缓存加载，立即显示
-      try {
-        const cachedProjects = localStorage.getItem('my_projects_cache')
-        if (cachedProjects) {
-          const parsed = JSON.parse(cachedProjects)
-          // 检查缓存是否过期（5分钟）
-          if (parsed.timestamp && Date.now() - parsed.timestamp < 5 * 60 * 1000) {
-            console.log('[loadMyProjects] 从缓存加载项目列表，数量:', (parsed.data || []).length)
-            this.myProjects = parsed.data || []
-            this.isLoadingProjects = false
-            // 后台更新数据
-            this.loadMyProjectsFromAPI()
-            return
-          } else {
-            console.log('[loadMyProjects] 缓存已过期，从API加载')
-          }
-        } else {
-          console.log('[loadMyProjects] 没有缓存，从API加载')
-        }
-      } catch (e) {
-        console.warn('[loadMyProjects] 缓存读取失败，继续从API加载:', e)
-      }
-      
+      // 直接从API加载，不使用缓存和后台更新，避免闪烁
       this.isLoadingProjects = true
       await this.loadMyProjectsFromAPI()
     },
@@ -791,12 +785,12 @@ export default {
           console.warn('[loadMyProjectsFromAPI] ⚠️ 没有项目数据，清空项目列表')
           this.myProjects = []
         }
+        // 立即更新加载状态，避免闪烁
+        this.isLoadingProjects = false
       } catch (error) {
         console.error('[loadMyProjectsFromAPI] ❌ 加载项目失败:', error)
         this.myProjects = []
-      } finally {
         this.isLoadingProjects = false
-        console.log('[loadMyProjectsFromAPI] 加载完成，isLoadingProjects = false')
       }
     },
     mapStatus(status) {
@@ -915,63 +909,18 @@ export default {
         return
       }
       
-      // 先尝试从缓存加载，立即显示
-      try {
-        const cachedTasks = localStorage.getItem('my_tasks_cache')
-        if (cachedTasks) {
-          const parsed = JSON.parse(cachedTasks)
-          // 延长缓存时间到30分钟，减少不必要的API调用
-          if (parsed.timestamp && Date.now() - parsed.timestamp < 30 * 60 * 1000) {
-            // 缓存中保存的数据已经是过滤和排序后的数据，直接使用
-            const cachedData = parsed.data || []
-            console.log('[loadMyTasks] 从缓存加载任务，数量:', cachedData.length)
-            
-            // 直接使用缓存数据，不再过滤（因为保存时已经过滤过了）
-            // 先显示缓存数据（即使没有被打回状态，也会按优先级排序）
-            this.myTasks = cachedData // 缓存数据已经是排序后的，直接使用
-            this.isLoadingTasks = false
-            console.log('[loadMyTasks] 缓存任务已显示，数量:', this.myTasks.length)
-            
-            // 后台静默更新：延迟执行，避免阻塞UI
-            // 1. 先延迟检查被打回状态（如果缓存中有isRejected标记，可以跳过）
-            setTimeout(() => {
-              // 只检查没有isRejected标记的任务（优化性能）
-              const tasksToCheck = this.myTasks.filter(t => t.isRejected === undefined || t.isRejected === false)
-              if (tasksToCheck.length > 0) {
-                this.checkRejectedSubmissions(tasksToCheck, true).then(() => {
-                  // 检查完成后重新排序并更新显示（静默模式）
-                  const sortedTasks = this.sortTasksByPriority(this.myTasks, true)
-                  this.myTasks = sortedTasks
-                }).catch(error => {
-                  // 静默失败，不影响显示
-                })
-              }
-            }, 1000)
-            
-            // 2. 延迟从API重新加载最新数据（延长到10秒后，减少不必要的请求）
-            setTimeout(() => {
-              this.loadMyTasksFromAPI(true) // 传入true表示静默更新
-            }, 10000)
-            return
-          }
-        }
-      } catch (e) {
-        // 缓存读取失败，继续从API加载
-      }
-      
+      // 直接从API加载，不使用缓存和延迟更新，避免闪烁
       this.isLoadingTasks = true
       await this.loadMyTasksFromAPI()
     },
-    async loadMyTasksFromAPI(silent = false) {
+    async loadMyTasksFromAPI() {
       try {
         // 调用API获取我的任务（增加数量，确保能获取到所有任务）
         const response = await taskAPI.getMyAssignedTasks(0, 20)
         
-        if (!silent) {
-          console.log('[loadMyTasksFromAPI] API响应:', response)
-          console.log('[loadMyTasksFromAPI] response.data类型:', typeof response?.data, '是否为数组:', Array.isArray(response?.data))
-          console.log('[loadMyTasksFromAPI] response.data内容:', response?.data)
-        }
+        console.log('[loadMyTasksFromAPI] API响应:', response)
+        console.log('[loadMyTasksFromAPI] response.data类型:', typeof response?.data, '是否为数组:', Array.isArray(response?.data))
+        console.log('[loadMyTasksFromAPI] response.data内容:', response?.data)
         
         // 处理API返回的数据
         let tasks = []
@@ -1034,14 +983,9 @@ export default {
           
           // 先检查所有任务的提交记录（包括PENDING_REVIEW状态的任务）
           // 因为被打回的任务可能状态还是PENDING_REVIEW，需要先检查提交记录
-          // 静默模式下减少日志输出
-          if (!silent) {
-            console.log('[loadMyTasksFromAPI] 开始检查所有任务的提交记录，任务数量:', mappedTasks.length)
-          }
-          await this.checkRejectedSubmissions(mappedTasks, silent)
-          if (!silent) {
-            console.log('[loadMyTasksFromAPI] 提交记录检查完成')
-          }
+          console.log('[loadMyTasksFromAPI] 开始检查所有任务的提交记录，任务数量:', mappedTasks.length)
+          await this.checkRejectedSubmissions(mappedTasks, false)
+          console.log('[loadMyTasksFromAPI] 提交记录检查完成')
           
           // 过滤掉已完成和待审核的任务（但保留被打回的PENDING_REVIEW任务）
           const activeTasks = mappedTasks.filter(task => {
@@ -1082,74 +1026,61 @@ export default {
             return true
           })
           
-          if (!silent) {
-            console.log('[loadMyTasksFromAPI] 过滤后任务列表:', activeTasks.length, '个任务')
-            console.log('[loadMyTasksFromAPI] 过滤后任务详情:', activeTasks.map(t => ({
-              id: t.id,
-              title: t.title,
-              status: t.status,
-              isRejected: t.isRejected
-            })))
-          }
+          console.log('[loadMyTasksFromAPI] 过滤后任务列表:', activeTasks.length, '个任务')
+          console.log('[loadMyTasksFromAPI] 过滤后任务详情:', activeTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            isRejected: t.isRejected
+          })))
           
           // 确保 activeTasks 没有被意外修改
           if (activeTasks.length === 0) {
-            if (!silent) {
-              console.warn('[loadMyTasksFromAPI] ⚠️ 过滤后没有活跃任务')
-            }
+            console.warn('[loadMyTasksFromAPI] ⚠️ 过滤后没有活跃任务')
             this.myTasks = []
+            this.isLoadingTasks = false
             return
           }
           
           // 排序：被打回的任务排在顶部，然后按优先级排序
           // 创建副本，避免修改原数组
           const tasksToSort = [...activeTasks]
-          if (!silent) {
-            console.log('[loadMyTasksFromAPI] 准备排序，tasksToSort.length:', tasksToSort.length)
-          }
+          console.log('[loadMyTasksFromAPI] 准备排序，tasksToSort.length:', tasksToSort.length)
           const sortedTasks = this.sortTasksByPriority(tasksToSort)
-          if (!silent) {
-            console.log('[loadMyTasksFromAPI] 排序后的任务列表:', sortedTasks.length, '个任务')
-            console.log('[loadMyTasksFromAPI] 排序后的任务详情:', sortedTasks.map(t => ({
+          console.log('[loadMyTasksFromAPI] 排序后的任务列表:', sortedTasks.length, '个任务')
+          console.log('[loadMyTasksFromAPI] 排序后的任务详情:', sortedTasks.map(t => ({
+            id: t.id,
+            title: t.title,
+            isRejected: t.isRejected,
+            priority: t.priority,
+            status: t.status
+          })))
+          
+          // 验证：检查是否有被打回的任务
+          const rejectedTasks = sortedTasks.filter(t => t.isRejected)
+          if (rejectedTasks.length > 0) {
+            console.log('[loadMyTasksFromAPI] ✅ 找到被打回的任务:', rejectedTasks.map(t => ({
               id: t.id,
-              title: t.title,
-              isRejected: t.isRejected,
-              priority: t.priority,
-              status: t.status
+              title: t.title
             })))
-            
-            // 验证：检查是否有被打回的任务
-            const rejectedTasks = sortedTasks.filter(t => t.isRejected)
-            if (rejectedTasks.length > 0) {
-              console.log('[loadMyTasksFromAPI] ✅ 找到被打回的任务:', rejectedTasks.map(t => ({
-                id: t.id,
-                title: t.title
-              })))
-            } else {
-              console.warn('[loadMyTasksFromAPI] ⚠️ 没有找到被打回的任务')
-            }
+          } else {
+            console.warn('[loadMyTasksFromAPI] ⚠️ 没有找到被打回的任务')
           }
           
+          // 立即更新显示，避免闪烁
           this.myTasks = sortedTasks
+          this.isLoadingTasks = false
           
-          // 保存到缓存
-          try {
-            localStorage.setItem('my_tasks_cache', JSON.stringify({
-              data: this.myTasks,
-              timestamp: Date.now()
-            }))
-          } catch (e) {
-            // 忽略缓存写入错误
-          }
+          // 不再保存到缓存，避免后续的缓存更新导致闪烁
         } else {
           console.warn('[loadMyTasksFromAPI] 没有任务数据，tasks.length =', tasks.length)
           console.warn('[loadMyTasksFromAPI] 可能的原因：1) API返回空数据 2) 所有任务都被过滤掉了')
           this.myTasks = []
+          this.isLoadingTasks = false
         }
       } catch (error) {
         console.error('加载任务失败:', error)
         this.myTasks = []
-      } finally {
         this.isLoadingTasks = false
       }
     },

@@ -388,6 +388,31 @@
           </div>
         </div>
 
+        <!-- 邮件通知设置卡片 -->
+        <div class="info-card email-notification-card" v-if="isLoggedIn && isViewingSelf">
+          <div class="info-item">
+            <div class="intro-header">
+              <h3 class="info-label">邮件通知设置</h3>
+            </div>
+            
+            <div class="email-notification-content">
+              <!-- 总开关 -->
+              <div class="email-notification-switch">
+                <span class="switch-text">启用邮件通知</span>
+                <label class="switch-label">
+                  <input 
+                    type="checkbox" 
+                    v-model="emailNotificationEnabled"
+                    @change="handleEmailNotificationToggle"
+                    class="switch-input"
+                  />
+                  <span class="switch-slider"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
           </div>
           <!-- 左侧栏结束 -->
           
@@ -1174,6 +1199,51 @@
       </div>
     </div>
 
+    <!-- 邮件通知设置弹窗 -->
+    <div v-if="showEmailNotificationModal" class="modal-overlay" @click="closeEmailNotificationModal">
+      <div class="modal-content email-notification-modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>邮件通知设置</h3>
+          <button @click="closeEmailNotificationModal" class="modal-close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body email-notification-modal-body">
+          <div class="email-notification-description">
+            <p>开启后，高优先级的业务消息将自动发送到您的邮箱。您可以选择需要接收邮件通知的业务类型。</p>
+          </div>
+          <p class="scenes-title">选择要接收邮件通知的业务类型：</p>
+          <div class="scenes-list">
+            <label 
+              v-for="scene in highPriorityScenes" 
+              :key="scene.code"
+              class="scene-checkbox-label"
+            >
+              <input 
+                type="checkbox" 
+                :value="scene.code"
+                v-model="tempSelectedEmailScenes"
+                class="scene-checkbox"
+              />
+              <span class="scene-checkbox-text">
+                <span class="scene-name">{{ scene.desc }}</span>
+                <span class="scene-module">{{ scene.module }}</span>
+              </span>
+            </label>
+          </div>
+          <div v-if="highPriorityScenes.length === 0" class="scenes-loading">
+            <p>加载中...</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="closeEmailNotificationModal" class="modal-btn modal-btn-cancel">取消</button>
+          <button @click="saveEmailNotificationFromModal" class="modal-btn modal-btn-confirm">保存</button>
+        </div>
+      </div>
+    </div>
+
     <!-- 注销账号确认模态框 -->
     <div v-if="showDeleteAccountModal" class="modal-overlay" @click="closeDeleteAccountModal">
       <div class="modal-content delete-account-modal-content" @click.stop>
@@ -1253,6 +1323,7 @@ import { authAPI } from '@/api/auth'
 import { profileAPI } from '@/api/profile'
 import { projectAPI } from '@/api/project'
 import { knowledgeAPI, TYPE_DISPLAY } from '@/api/knowledge'
+import { messageAPI } from '@/api/message'
 import { addTimestampToUrl } from '@/utils/imageUtils'
 
 export default {
@@ -1353,7 +1424,13 @@ export default {
       orcidSyncError: null,
       orcidDetail: null,
       orcidBindings: {}, // 存储每个项目的绑定选择
-      orcidBindSuccessMessages: [] // 绑定成功的消息列表
+      orcidBindSuccessMessages: [], // 绑定成功的消息列表
+      // 邮件通知设置相关
+      emailNotificationEnabled: false,
+      selectedEmailScenes: [],
+      highPriorityScenes: [],
+      showEmailNotificationModal: false,
+      tempSelectedEmailScenes: [] // 弹窗中临时选中的场景
     }
   },
   computed: {
@@ -1461,6 +1538,8 @@ export default {
     this.loadPresetTags()
     this.loadUserProjects()
     this.load2FAStatus()
+    this.loadEmailNotificationPreference()
+    this.loadHighPriorityScenes()
     document.addEventListener('click', this.handleClickOutside)
     // 监听用户信息更新事件
     this.$root.$on('userInfoUpdated', () => {
@@ -3966,6 +4045,147 @@ export default {
         this.showSuccessToast('所属机构已更新')
       } else {
         throw new Error(response?.msg || '更新失败')
+      }
+    },
+
+    // ===== 邮件通知设置相关方法 =====
+    
+    /**
+     * 加载高优先级业务场景列表
+     */
+    async loadHighPriorityScenes() {
+      try {
+        const response = await messageAPI.getHighPriorityScenes()
+        if (response && response.code === 200 && Array.isArray(response.data)) {
+          this.highPriorityScenes = response.data
+        } else {
+          this.highPriorityScenes = []
+        }
+      } catch (error) {
+        console.error('加载高优先级业务场景失败:', error)
+        this.highPriorityScenes = []
+      }
+    },
+
+    /**
+     * 加载邮件通知偏好设置
+     */
+    async loadEmailNotificationPreference() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      try {
+        const response = await messageAPI.getEmailNotificationPreference()
+        if (response && response.code === 200 && response.data) {
+          this.emailNotificationEnabled = response.data.enabled || false
+          // 后端返回的enabledScenes可能是Set或Array，统一转换为数组
+          if (response.data.enabledScenes) {
+            if (Array.isArray(response.data.enabledScenes)) {
+              this.selectedEmailScenes = response.data.enabledScenes
+            } else if (response.data.enabledScenes instanceof Set) {
+              this.selectedEmailScenes = Array.from(response.data.enabledScenes)
+            } else {
+              this.selectedEmailScenes = []
+            }
+          } else {
+            this.selectedEmailScenes = []
+          }
+          // 初始化临时选中的场景
+          this.tempSelectedEmailScenes = [...this.selectedEmailScenes]
+        } else {
+          this.emailNotificationEnabled = false
+          this.selectedEmailScenes = []
+          this.tempSelectedEmailScenes = []
+        }
+      } catch (error) {
+        console.error('加载邮件通知偏好设置失败:', error)
+        this.emailNotificationEnabled = false
+        this.selectedEmailScenes = []
+        this.tempSelectedEmailScenes = []
+      }
+    },
+
+    /**
+     * 处理邮件通知开关切换
+     */
+    async handleEmailNotificationToggle() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      // 如果启用，打开弹窗让用户选择业务类型
+      if (this.emailNotificationEnabled) {
+        // 如果场景列表为空，则加载
+        if (this.highPriorityScenes.length === 0) {
+          await this.loadHighPriorityScenes()
+        }
+        // 将当前选中的场景复制到临时变量
+        this.tempSelectedEmailScenes = [...this.selectedEmailScenes]
+        // 打开弹窗
+        this.showEmailNotificationModal = true
+      } else {
+        // 如果禁用，清空选中的场景并保存
+        this.selectedEmailScenes = []
+        await this.saveEmailNotificationPreference()
+      }
+    },
+
+    /**
+     * 关闭邮件通知设置弹窗
+     */
+    closeEmailNotificationModal() {
+      this.showEmailNotificationModal = false
+      // 如果关闭弹窗时邮件通知是启用状态但没有选择任何场景，则禁用邮件通知并保存
+      if (this.emailNotificationEnabled && this.selectedEmailScenes.length === 0) {
+        this.emailNotificationEnabled = false
+        this.saveEmailNotificationPreference()
+      }
+    },
+
+    /**
+     * 从弹窗保存邮件通知设置
+     */
+    async saveEmailNotificationFromModal() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      // 如果启用了但没有选择任何场景，提示用户
+      if (this.emailNotificationEnabled && this.tempSelectedEmailScenes.length === 0) {
+        alert('请至少选择一个业务类型')
+        return
+      }
+      
+      // 将临时选中的场景应用到实际选中场景
+      this.selectedEmailScenes = [...this.tempSelectedEmailScenes]
+      
+      // 保存设置
+      await this.saveEmailNotificationPreference()
+      // 关闭弹窗
+      this.showEmailNotificationModal = false
+    },
+
+    /**
+     * 保存邮件通知偏好设置
+     */
+    async saveEmailNotificationPreference() {
+      if (!this.isLoggedIn || !this.isViewingSelf) return
+      
+      try {
+        // 将数组转换为Set（后端期望Set类型，但JSON序列化时会自动转换为数组）
+        const data = {
+          enabled: this.emailNotificationEnabled,
+          enabledScenes: this.emailNotificationEnabled 
+            ? Array.from(new Set(this.selectedEmailScenes)) 
+            : []
+        }
+        
+        const response = await messageAPI.updateEmailNotificationPreference(data)
+        if (response && response.code === 200) {
+          this.showSuccessToast('邮件通知设置已保存')
+        } else {
+          throw new Error(response?.msg || '保存失败')
+        }
+      } catch (error) {
+        console.error('保存邮件通知偏好设置失败:', error)
+        alert('保存失败: ' + (error.message || error.msg || '请稍后重试'))
+        // 重新加载设置以恢复原值
+        await this.loadEmailNotificationPreference()
       }
     }
   }

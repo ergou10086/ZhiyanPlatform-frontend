@@ -883,3 +883,248 @@
     width: 100%;
   }
 }
+
+/* ========== 邮件通知设置样式 ========== */
+.email-notification-card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.email-notification-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.email-notification-content {
+  margin-top: 20px;
+}
+
+.email-notification-description {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.email-notification-description p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 开关样式 */
+.email-notification-switch {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 24px;
+  transition: background-color 0.3s ease;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.switch-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.switch-input:checked + .switch-slider {
+  background-color: #667eea;
+}
+
+.switch-input:checked + .switch-slider::before {
+  transform: translateX(24px);
+}
+
+.switch-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 业务场景选择区域 */
+.email-notification-scenes {
+  margin-top: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.scenes-title {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #555;
+}
+
+.scenes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.scene-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.scene-checkbox-label:hover {
+  background: #f0f0f0;
+  border-color: #667eea;
+}
+
+.scene-checkbox-label:has(.scene-checkbox:checked) {
+  background: #f0f4ff;
+  border-color: #667eea;
+}
+
+.scene-checkbox {
+  width: 18px;
+  height: 18px;
+  margin-right: 12px;
+  cursor: pointer;
+  accent-color: #667eea;
+  flex-shrink: 0;
+}
+
+.scene-checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.scene-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.scene-module {
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+}
+
+.scenes-loading {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+}
+
+/* 暗色模式支持 */
+.dark-mode .email-notification-card {
+  background: #1f2937;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .email-notification-description {
+  background: #374151;
+  border-left-color: #667eea;
+}
+
+.dark-mode .email-notification-description p {
+  color: #e5e7eb;
+}
+
+.dark-mode .email-notification-switch {
+  background: #374151;
+}
+
+.dark-mode .switch-text {
+  color: #e5e7eb;
+}
+
+.dark-mode .email-notification-scenes {
+  background: #374151;
+  border-color: #475569;
+}
+
+.dark-mode .scene-checkbox-label {
+  background: #1f2937;
+  border-color: #475569;
+}
+
+.dark-mode .scene-checkbox-label:hover {
+  background: #374151;
+  border-color: #667eea;
+}
+
+.dark-mode .scene-checkbox-label:has(.scene-checkbox:checked) {
+  background: #1e3a5f;
+  border-color: #667eea;
+}
+
+.dark-mode .scene-name {
+  color: #e5e7eb;
+}
+
+.dark-mode .scene-module {
+  color: #9ca3af;
+}
+
+.dark-mode .scenes-title {
+  color: #e5e7eb;
+}
+
+.dark-mode .scenes-loading {
+  color: #9ca3af;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .email-notification-card {
+    padding: 20px;
+  }
+  
+  .scenes-list {
+    gap: 8px;
+  }
+  
+  .scene-checkbox-label {
+    padding: 10px;
+  }
+}

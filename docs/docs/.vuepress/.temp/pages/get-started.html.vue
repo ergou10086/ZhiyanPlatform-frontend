@@ -13,13 +13,17 @@
 <p>GitHub的第三方登录仅仅会获取你的邮箱，头像和昵称都不是强制获取，如果你没有开启Github邮箱的访问权限，第三方登录很可能失败</p>
 <p>只要重定向过一次Github登录，之后就会自动登陆成功</p>
 <p><img src="@source/get-started/image-20251209100407756.png" alt="image-20251209100407756"></p>
+<p>ORCID 的登录需要你去注册一个 ORCID的账号，然后开放其中的一些必要的个人内容，包括邮箱</p>
+<p>然后点击使用 ORCID 登录，就能进入回调页面，然后使用ORCID账号登录，并且会绑定</p>
+<p><img src="@source/get-started/image-20251225154339909.png" alt="image-20251225154339909"></p>
+<p><img src="@source/get-started/image-20251225154349086.png" alt="image-20251225154349086"></p>
 <h4 id="_2fa相关" tabindex="-1"><a class="header-anchor" href="#_2fa相关"><span>2FA相关</span></a></h4>
 <p>强烈建议每位用户在完成注册的第一次登录之后就开启2FA</p>
 <p>否则极有可能引发账号的安全问题，而且团队有考虑在日后的更新中强制使用2FA双重因素认证</p>
 <p>在个人信息页面开启2FA双重因素认证，推荐使用Microsoft Authenticator</p>
 <p><img src="@source/get-started/image-20251209100414464.png" alt="image-20251209100414464"></p>
 <h4 id="安全检查与提示" tabindex="-1"><a class="header-anchor" href="#安全检查与提示"><span>安全检查与提示</span></a></h4>
-<p>登录会进行一次安全检测，如果两次登录IP出现不一致的问题，会给你发送系统消息，需要你进行认证，目前IP定位会出现运营商不一致的问题</p>
+<p>登录会进行一次安全检测，如果两次登录IP出现不一致的问题，会给你发送系统消息，需要你进行认证，目前IP定位会出现运营商不一致的问题，尚待解决</p>
 <p>如果出现了上述问题，忽视即可，但是不要忽视其他的系统发来的安全信息</p>
 <p><img src="@source/get-started/image-20251209100444399.png" alt="image-20251209100444399"></p>
 <p>可能出现他人冒充系统账号发送安全信息进行诈骗等安全隐患内容，请注意分辨</p>
@@ -27,7 +31,7 @@
 <h4 id="登录后主页相关" tabindex="-1"><a class="header-anchor" href="#登录后主页相关"><span>登录后主页相关</span></a></h4>
 <p>登录完成后就会直接进入主页，快捷操作对应项目位置的导航，主页内部展示用户参与的项目，工作项展示未完成的任务，而且主页的展示包括待审核的任务和各种提醒，包括任务提醒和消息提醒</p>
 <p><img src="@source/get-started/image-20251209100522898.png" alt="image-20251209100522898"></p>
-<p>关于注意，如果没有登录，是无法进入除了项目广场的其他浏览位置的，而且游客没有任何除了查看部分公开资源的其他任何权限，实际上，项目是一个强登录需求的项目</p>
+<p>关于注意，如果没有登录，是无法进入除了项目广场的其他浏览位置的，而且游客没有任何除了查看部分公开资源的其他任何权限，实际上，该平台是一个强登录需求的平台</p>
 <h2 id="个人信息" tabindex="-1"><a class="header-anchor" href="#个人信息"><span>个人信息</span></a></h2>
 <h3 id="个人信息页面简述" tabindex="-1"><a class="header-anchor" href="#个人信息页面简述"><span>个人信息页面简述</span></a></h3>
 <p>个人信息页面需要登录才能进入并且访问</p>
@@ -35,9 +39,9 @@
 <p>总体浏览，个人信息页面如上，其中大部分信息都可以修改</p>
 <h3 id="个人基本信息修改" tabindex="-1"><a class="header-anchor" href="#个人基本信息修改"><span>个人基本信息修改</span></a></h3>
 <p>可以查看你的ID，上传头像什么的，这都是很常规的内容，请注意上传头像的格式</p>
-<p>虽然用户名可以修改，但是限制一周一次，不建议频繁修改用户名，可能导致难以理解的问题</p>
+<p>虽然用户名可以修改，但是限制一周一次，不建议频繁修改用户名，因为可能导致出现难以理解的问题</p>
 <p><img src="@source/get-started/image-20251209102442396.png" alt="image-20251209102442396"></p>
-<p>其中用户ID在搜索用户等涉及到指定用户操作的需求时候都可以使用</p>
+<p>其中用户ID在搜索用户等涉及到指定用户操作的需求时候都可以使用，一般情况下，项目不会检查两个人是否重名用户名，使用ID作为唯一标识</p>
 <h3 id="控制访问隐私" tabindex="-1"><a class="header-anchor" href="#控制访问隐私"><span>控制访问隐私</span></a></h3>
 <p>很多个人信息都可以修改，请注意，其他人是可以看到你的个人信息的</p>
 <p>但是你可以设置其私有性，以控制其他人的访问情况</p>
@@ -56,6 +60,8 @@
 <p>所属机构不要乱填，日后平台可能根据所属机构相关内容扩充业务</p>
 <p><img src="@source/get-started/image-20251209103436296.png" alt="image-20251209103436296"></p>
 <p><s>但是我是测试账号，所以乱写了</s></p>
+<p>推荐从 ORCID 获取翔实，权威的机构名称</p>
+<p><img src="@source/get-started/image-20251225155245715.png" alt="image-20251225155245715"></p>
 <h3 id="个人简介" tabindex="-1"><a class="header-anchor" href="#个人简介"><span>个人简介</span></a></h3>
 <p><img src="@source/get-started/image-20251209103515212.png" alt="image-20251209103515212"></p>
 <p>个人简介就是个人的简单介绍，但是目前不支持富文本，所以用户只能编辑简单的文本</p>
@@ -64,15 +70,32 @@
 <p>研究方向就是研究方向，你主要干什么就写什么，研究方向用于在项目内部进行职位的沟通和任务的分配参考，以及项目推荐算法的使用</p>
 <p><img src="@source/get-started/image-20251209103646483.png" alt="image-20251209103646483"></p>
 <h3 id="学术成果" tabindex="-1"><a class="header-anchor" href="#学术成果"><span>学术成果</span></a></h3>
-<p>像Dimensions一样，你参与的项目中，与你有关的（你上传的，你创建的）成果可以进行绑定，用于展示</p>
+<p>像 Dimensions一样，你参与的项目中，与你有关的（你上传的，你创建的）成果可以进行绑定，用于展示</p>
 <p><img src="@source/get-started/image-20251209103717402.png" alt="image-20251209103717402"></p>
 <p>只能绑定公开的成果，因为项目内私有的成果被其他人查看的时候不会加载</p>
+<h3 id="第三方账号绑定" tabindex="-1"><a class="header-anchor" href="#第三方账号绑定"><span>第三方账号绑定</span></a></h3>
+<p>不推荐使用 Github，因为 Github 进入回调地址有网络代理需求，而且该项目遇到网络代理可能出现问题</p>
+<p><img src="@source/get-started/image-20251225154551917.png" alt="image-20251225154551917"></p>
+<p>ORCID 的账号若绑定，可以选择同步其中的信息到本地</p>
+<p>目前可以获得 关键词，教育经历，就业经历，成果 等个人在 ORCID 公开基础信息，绑定到平台中</p>
+<p><img src="@source/get-started/image-20251225154738949.png" alt="image-20251225154738949"></p>
 <h3 id="_2fa" tabindex="-1"><a class="header-anchor" href="#_2fa"><span>2FA</span></a></h3>
-<p>推荐使用Microsoft Authenticator，作为平台的最可靠的安全防线，请务必使用</p>
+<p>推荐使用Microsoft Authenticator，2FA认证作为平台的最可靠且是最后的安全防线，请注册之后就i务必使用</p>
 <p><img src="@source/get-started/image-20251209103809219.png" alt="image-20251209103809219"></p>
+<p>未来打算开启强制开启 2FA 的功能</p>
+<h3 id="账户管理" tabindex="-1"><a class="header-anchor" href="#账户管理"><span>账户管理</span></a></h3>
+<p>销号属于危险操作</p>
+<p><img src="@source/get-started/image-20251225154809966.png" alt="image-20251225154809966"></p>
+<p>而且如果你希望销号，那么请注意，你负责的项目，上传的成果等内容虽然不回消息，但是平台只会做简单的处理</p>
+<p>如果是你创建的项目，在销号之前，你必须指定一个项目管理员，把这个项目继承给他，让它成为项目创建人</p>
+<p>其中，你负责的任务，成果等，都会显示特殊头像，昵称为“已注销用户”，代表销号</p>
+<p>你走了，但任务总要继续</p>
+<p>而且若开启 2FA，注销需要输入 2FA 验证码</p>
+<p><img src="@source/get-started/image-20251225155118125.png" alt="image-20251225155118125"></p>
+<p>若未开启 2FA 需要做一道数学题作为验证</p>
 <h3 id="查看他人的个人主页" tabindex="-1"><a class="header-anchor" href="#查看他人的个人主页"><span>查看他人的个人主页</span></a></h3>
 <p>可以在项目的位置查看其他人头像，访问其他人的个人主页</p>
-<p>请放心，数据做了很好的脱敏</p>
+<p>请放心，数据做了很好的脱敏，你不必担心你的内容被过度暴露</p>
 <p><img src="@source/get-started/image-20251223154849108.png" alt="image-20251223154849108"></p>
 <h2 id="项目部分" tabindex="-1"><a class="header-anchor" href="#项目部分"><span>项目部分</span></a></h2>
 <h3 id="项目广场" tabindex="-1"><a class="header-anchor" href="#项目广场"><span>项目广场</span></a></h3>
@@ -338,6 +361,15 @@
 <p>而且可以查看与你相关的各个项目</p>
 <p>我的活动内的操作日志主要就是你在各个项目内的所有与你相关的操作日志，而且支持导出为xsl</p>
 <p><img src="@source/get-started/image-20251223154412244.png" alt="image-20251223154412244"></p>
+<h2 id="消息通知" tabindex="-1"><a class="header-anchor" href="#消息通知"><span>消息通知</span></a></h2>
+<p>消息通知会通知你所在的项目中发生的各种变动，不同优先级的通知效果不同，其中，请务必注意，你的操作也会通知给其他人</p>
+<p><img src="@source/get-started/image-20251225155512101.png" alt="image-20251225155512101"></p>
+<p>重要消息例如项目邀请，成员销号等通知，也会在这里特殊标注，必须确认后才会消失</p>
+<p><img src="@source/get-started/image-20251225155549045.png" alt="image-20251225155549045"></p>
+<p>如果你需要向其他成员发送站内信，请使用如下内容</p>
+<p><img src="@source/get-started/image-20251225155617571.png" alt="image-20251225155617571"></p>
+<p><img src="@source/get-started/image-20251225155622020.png" alt="image-20251225155622020"></p>
+<p>目前平台广播接口暂不开放，仅用于开发者进行平台的重大内容通知的一种手段</p>
 </div></template>
 
 

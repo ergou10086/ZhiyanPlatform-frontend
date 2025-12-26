@@ -4,7 +4,7 @@
     <div class="login-left">
       <div class="logo-section">
         <div class="logo-placeholder" :class="{ animated: animateLogo }">
-          <img src="@/assets/image/logo.png" alt="Logo" class="logo-img" />
+          <img src="../assets/image/logo2.png" alt="Logo" class="logo-img" />
         </div>
         <h1 class="system-title" :class="{ animated: animateLogo }">高校科研团队协作与成果管理平台</h1>
         <p class="system-subtitle" :class="{ animated: animateLogo }">
@@ -76,6 +76,10 @@
           <button type="submit" class="login-btn" :disabled="loading || !isVerified">
             {{ loading ? '登录中...' : '登录' }}
           </button>
+
+          <button type="button" class="qrcode-login-btn" @click="openQRCodeLogin" :disabled="qrLoading">
+            {{ qrLoading ? '生成二维码中...' : '手机端登录后点击扫码登录' }}
+          </button>
           
           <!-- 第三方登录分隔线 -->
           <div class="divider">
@@ -94,10 +98,6 @@
           <button type="button" class="orcid-login-btn" @click="handleOrcidLogin">
             <img :src="orcidLogo" alt="ORCID" class="orcid-img" />
             使用 ORCID 登录
-          </button>
-
-          <button type="button" class="qrcode-login-btn" @click="openQRCodeLogin" :disabled="qrLoading">
-            {{ qrLoading ? '生成二维码中...' : '扫码登录' }}
           </button>
           
           <div class="register-link">
