@@ -449,19 +449,23 @@ export default {
       }
       this.submitting = true
       try {
-        const tasks = []
+        const transfers = []
         Object.keys(this.selectedTargets).forEach(projectId => {
           const meta = this.memberMeta[projectId]
           const targetUserId = this.selectedTargets[projectId]
           if (meta && meta.hasCandidates && targetUserId) {
-            tasks.push(projectAPI.updateMemberRole(projectId, targetUserId, 'OWNER'))
+            transfers.push({
+              projectId,
+              newOwnerId: targetUserId
+            })
           }
         })
-        if (tasks.length > 0) {
-          const results = await Promise.all(tasks)
-          const hasError = results.some(res => !res || res.code !== 200)
-          if (hasError) {
-            alert('部分项目移交失败，请稍后重试或检查网络连接。')
+
+        if (transfers.length > 0) {
+          const result = await projectAPI.transferProjectOwnershipBatch(transfers)
+          if (!result || result.code !== 200) {
+            const msg = (result && result.msg) || '批量移交失败，请稍后重试或检查网络连接。'
+            alert(msg)
             this.submitting = false
             return
           }

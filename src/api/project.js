@@ -387,6 +387,36 @@ export const projectAPI = {
     })
   },
 
+  /**
+   * 移交单个项目的所有权
+   * @param {Number|String} projectId - 项目ID
+   * @param {Number|String} newOwnerId - 新的项目负责人用户ID
+   */
+  transferProjectOwnership(projectId, newOwnerId) {
+    console.log('[projectAPI.transferProjectOwnership] 移交项目所有权, 项目ID:', projectId, '新负责人ID:', newOwnerId)
+    const pid = Number(projectId)
+    const uid = Number(newOwnerId)
+    return api.post(`/zhiyan/projects/${pid}/transfer-owner`, {
+      projectId: pid,
+      newOwnerId: uid
+    })
+  },
+
+  /**
+   * 批量移交项目所有权
+   * @param {Array<{ projectId: Number|String, newOwnerId: Number|String }>} transfers
+   */
+  transferProjectOwnershipBatch(transfers) {
+    console.log('[projectAPI.transferProjectOwnershipBatch] 批量移交项目所有权, 数量:', Array.isArray(transfers) ? transfers.length : 0)
+    const normalized = (transfers || []).map(item => ({
+      projectId: Number(item.projectId),
+      newOwnerId: Number(item.newOwnerId)
+    }))
+    return api.post('/zhiyan/projects/ownership/transfer-batch', {
+      transfers: normalized
+    })
+  },
+
   getProjectTasksByStatus(projectId, status = 'DONE', page = 0, size = 20) {
     console.log('[projectAPI.getProjectTasksByStatus] 获取项目任务, 项目ID:', projectId, '状态:', status)
     return api.get(`/zhiyan/projects/tasks/projects/${projectId}/status/${status}`, {
