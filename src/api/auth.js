@@ -118,6 +118,18 @@ export const authAPI = {
     return api.post('/zhiyan/auth/login', data)
   },
 
+  generateLoginQRCode() {
+    return api.post('/zhiyan/auth/qrcode/generate')
+  },
+
+  getLoginQRCodeStatus(qrCodeId) {
+    return api.get(`/zhiyan/auth/qrcode/status/${encodeURIComponent(qrCodeId)}`)
+  },
+
+  getQRCodeLoginResult(qrCodeId) {
+    return api.get(`/zhiyan/auth/qrcode/result/${encodeURIComponent(qrCodeId)}`)
+  },
+
   // 自动登录检查
   autoLoginCheck() {
     return api.get('/zhiyan/auth/auto-login-check')
