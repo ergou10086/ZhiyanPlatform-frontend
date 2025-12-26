@@ -346,9 +346,7 @@
               <!-- ORCID绑定 -->
               <div class="oauth2-binding-item">
                 <div class="oauth2-binding-info">
-                  <svg class="oauth2-icon orcid-icon" viewBox="0 0 24 24" width="20" height="20">
-                    <path fill="currentColor" d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm-2.5 17.5c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5zm5 0c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5z"/>
-                  </svg>
+                  <svg t="1766561879004" class="icon" viewBox="0 0 1024 1024"  version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="7095" width="20" height="20"><path d="M512 0C229.216 0 0 229.216 0 512s229.216 512 512 512 512-229.216 512-512S794.784 0 512 0zM314.4 186.784c22.4 0 40.416 18.4 40.416 40.416s-18.016 40.416-40.416 40.416a40.544 40.544 0 0 1-40.416-40.384c0-22.4 18.016-40.416 40.416-40.416z m-30.784 129.632h61.6v428.416H283.616z m151.968 0h166.4c158.368 0 228 113.184 228 214.4 0 109.984-86.016 214.4-227.2 214.4h-167.2z m61.6 55.584v317.6H595.2c139.616 0 171.616-105.984 171.616-158.816 0-86.016-54.784-158.816-174.816-158.816z" fill="#A6CE39" p-id="7096"></path></svg>
                   <div class="oauth2-binding-text">
                     <span class="oauth2-binding-label">ORCID</span>
                     <span v-if="userInfo.orcidId" class="oauth2-binding-status">
@@ -1471,6 +1469,12 @@ export default {
       // 同时重新加载2FA状态
       this.load2FAStatus()
     })
+    if (this.$route && this.$route.query && this.$route.query.afterTransfer === '1') {
+      this.showSuccessToast('项目移交已完成，请确认注销账号')
+      this.$nextTick(() => {
+        this.handleDeleteAccount()
+      })
+    }
   },
   beforeRouteUpdate(to, from, next) {
     const isReturningToSelf = !!from.query.userId && (typeof to.query.userId === 'undefined' || to.query.userId === null || to.query.userId === '')
@@ -1662,10 +1666,8 @@ export default {
             this.twoFactorEnabled = Boolean(data.twoFactorEnabled)
             console.log('✅ 从服务器更新2FA状态:', this.twoFactorEnabled)
           }
-          
-          console.log('[Profile] 更新后的userInfo.introduction:', this.userInfo.introduction)
-          console.log('[Profile] 更新后的userInfo.description:', this.userInfo.description)
-          console.log('[Profile] 更新后的完整userInfo:', JSON.stringify(this.userInfo))
+
+          console.log('[Profile] 更新后的完整userInfo: 太长了，别打印了,能用')
           
           // 更新 localStorage 中的用户信息
           const savedUserInfo = localStorage.getItem('user_info')
@@ -1752,6 +1754,12 @@ export default {
       }
     },
     triggerAvatarUpload() {
+      // 仅允许本人且已登录操作
+      if (!this.isLoggedIn) {
+        this.modalMessage = '请先登录才能修改头像'
+        this.showModal = true
+        return
+      }
       if (!this.isViewingSelf) return
       const input = this.$refs.avatarUpload
       if (input) {
@@ -2284,7 +2292,7 @@ export default {
         }, 'image/jpeg', 0.9)
       }
       
-      // 🛡️ 修复：添加图片加载错误处理
+      // 🛡添加图片加载错误处理
       img.onerror = (error) => {
         console.error('裁切图片加载失败:', error)
         alert('图片处理失败，请重试')
@@ -2293,14 +2301,6 @@ export default {
       img.src = this.originalAvatarData
     },
     // 头像相关方法
-    triggerAvatarUpload() {
-      if (!this.isLoggedIn) {
-        this.modalMessage = '请先登录才能修改头像'
-        this.showModal = true
-        return
-      }
-      this.$refs.avatarUpload.click()
-    },
     handleAvatarUpload(event) {
       const file = event.target.files[0]
       if (!file) return
@@ -3634,9 +3634,46 @@ export default {
     },
 
     // ===== 账户注销相关方法 =====
-    handleDeleteAccount() {
+    async handleDeleteAccount() {
       if (!this.isLoggedIn || !this.isViewingSelf) return
-      
+
+      if (this.$route && this.$route.query && this.$route.query.afterTransfer === '1') {
+        this.showDeleteAccountModal = true
+        this.deleteAccountVerification = ''
+        this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
+        this.$nextTick(() => {
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+        })
+        return
+      }
+
+      try {
+        const response = await projectAPI.countMyCreatedProjects().catch(error => {
+          console.warn('[Profile] 统计我创建的项目数量失败:', error)
+          return null
+        })
+        let createdCount = 0
+        if (response && response.code === 200) {
+          if (typeof response.data === 'number') {
+            createdCount = response.data
+          } else if (response.data && typeof response.data.count === 'number') {
+            createdCount = response.data.count
+          }
+        }
+        if (createdCount > 0) {
+          const confirmMessage = `检测到你创建了 ${createdCount} 个项目。为了避免项目无人负责，注销账号前需要先完成项目移交。\n\n是否前往“项目移交”页面进行处理？`
+          const goTransfer = window.confirm(confirmMessage)
+          if (goTransfer && (!this.$route || this.$route.path !== '/project-transfer')) {
+            this.$router.push({ path: '/project-transfer' })
+          }
+          return
+        }
+      } catch (error) {
+        console.error('[Profile] 检查我创建的项目数量时出错:', error)
+      }
+
       this.showDeleteAccountModal = true
       this.deleteAccountVerification = ''
       this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'

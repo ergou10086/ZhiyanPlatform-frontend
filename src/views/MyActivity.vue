@@ -1,5 +1,11 @@
 <template>
   <div class="my-activity-container">
+    <div v-if="isOperationLoading" class="operation-loading-overlay">
+      <div class="operation-loading-content">
+        <div class="loading-spinner"></div>
+        <p>{{ operationLoadingText || '处理中...' }}</p>
+      </div>
+    </div>
     <!-- 侧边栏 -->
     <Sidebar :isOpen="sidebarOpen" @close="closeSidebar" />
     
@@ -562,6 +568,9 @@ export default {
       // 侧边栏状态
       sidebarOpen: false,
 
+      operationLoadingCount: 0,
+      operationLoadingText: '',
+
       // 页面内导航
       activePage: 'my-tasks',
       activityNavItems: [
@@ -681,7 +690,32 @@ export default {
     // 预加载ECharts库（在后台加载，不阻塞UI）
     this.preloadECharts()
   },
+  computed: {
+    isOperationLoading() {
+      return this.operationLoadingCount > 0
+    }
+  },
   methods: {
+    beginOperationLoading(text) {
+      this.operationLoadingCount += 1
+      if (text) {
+        this.operationLoadingText = text
+      }
+    },
+    endOperationLoading() {
+      this.operationLoadingCount = Math.max(0, this.operationLoadingCount - 1)
+      if (this.operationLoadingCount === 0) {
+        this.operationLoadingText = ''
+      }
+    },
+    async withOperationLoading(text, fn) {
+      this.beginOperationLoading(text)
+      try {
+        return await fn()
+      } finally {
+        this.endOperationLoading()
+      }
+    },
     ensureTooltipZIndex() {
       // 创建一个style标签，确保ECharts tooltip的z-index足够高
       if (!document.getElementById('echarts-tooltip-zindex-style')) {
@@ -1056,12 +1090,17 @@ export default {
     },
     
     async handleReviewSuccess() {
-      this.loadPendingTasks()
-      this.loadTaskStatistics()
-      this.loadActivityLogs()
-      if (this.reviewMode === 'my-created') {
-        this.loadCreatedTasks()
-      }
+      await this.withOperationLoading('正在刷新审核结果...', async () => {
+        const tasks = [
+          this.loadPendingTasks(),
+          this.loadTaskStatistics(),
+          this.loadActivityLogs()
+        ]
+        if (this.reviewMode === 'my-created') {
+          tasks.push(this.loadCreatedTasks())
+        }
+        await Promise.allSettled(tasks)
+      })
     },
     
     async loadProjects() {
@@ -2813,6 +2852,30 @@ export default {
   min-height: 100vh;
   /* 使用全局背景变量，跟随主题切换 */
   background-color: var(--bg-secondary);
+}
+
+.operation-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.operation-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
 /* 顶部导航栏 - 与其他页面一致 */

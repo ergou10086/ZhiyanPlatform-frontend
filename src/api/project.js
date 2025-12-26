@@ -166,7 +166,7 @@ export const projectAPI = {
    */
   getMyCreatedProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyCreatedProjects] 获取我创建的项目')
-    return api.get('/zhiyan/projects/my-created', {
+    return api.get('/zhiyan/projects/ownership/my-owned', {
       params: { page, size },
       timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })

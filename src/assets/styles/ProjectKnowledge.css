@@ -205,6 +205,14 @@
   will-change: auto;
 }
 
+/* AI 赋能面板：让 AI 聊天 + 思维导图充分占满可用高度 */
+.knowledge-base-container .ai-panel-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
 /* 主页内容样式 */
 .knowledge-base-container .home-content {
   display: flex;

@@ -178,14 +178,15 @@
             @document-created="handleDocumentCreated" 
           />
 
-          <!-- AI 赋能面板 -->
-          <KnowledgeBaseAI 
-            v-else 
-            ref="aiComponent" 
-            :projectId="projectId" 
-            :isArchived="isArchived"
-            @files-changed="handleFilesChanged" 
-          />
+          <!-- AI 赋能面板（直接使用 KnowledgeBaseAI 内部的输入框与对话区） -->
+          <div v-else class="ai-panel-container">
+            <KnowledgeBaseAI
+              ref="aiComponent"
+              :projectId="projectId"
+              :isArchived="isArchived"
+              @files-changed="handleFilesChanged"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -367,7 +368,7 @@ export default {
       // 如果API失败，从localStorage加载项目数据（作为后备）
       const savedProjects = localStorage.getItem('projects')
       console.log('项目知识库 - 正在加载项目ID:', this.projectId, '类型:', typeof this.projectId)
-      console.log('localStorage中的项目数据:', savedProjects)
+      console.log('localStorage中的项目数据: 这个不应该打印的太详细')
       
       if (savedProjects) {
         try {
@@ -1019,7 +1020,6 @@ export default {
         this.uploadingFiles = filesData.uploadingFiles
       }
     },
-    
     // 移除已上传的文件
     removeUploadedFile(fileId) {
       console.log('[ProjectKnowledge] 移除文件:', fileId)

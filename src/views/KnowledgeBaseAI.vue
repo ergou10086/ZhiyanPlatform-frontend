@@ -70,12 +70,21 @@
 
           <!-- ⭐ AI消息：支持Markdown渲染 -->
           <div v-if="message.type === 'left'" class="ai-message-content">
+            <!-- 加载动画：在AI还没有任何输出之前显示 -->
+            <div v-if="index === currentTypingMessageIndex && isSending && !message.content" class="ai-loading-indicator">
+              <div class="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span class="loading-text">AI 正在思考中...</span>
+            </div>
             <!-- 打字时显示纯文本 -->
-            <span v-if="index === currentTypingMessageIndex && isTyping" style="white-space: pre-wrap;">{{ message.content }}</span>
+            <span v-else-if="index === currentTypingMessageIndex && isTyping" style="white-space: pre-wrap;">{{ message.content }}</span>
             <!-- 打字完成后渲染Markdown -->
             <span v-else v-html="formatMarkdown(message.content)"></span>
             <!-- 打字光标 -->
-            <span v-if="index === currentTypingMessageIndex && isTyping" class="cursor-blink">|</span>
+            <span v-if="index === currentTypingMessageIndex && isTyping && message.content" class="cursor-blink">|</span>
           </div>
           <!-- 用户消息：普通文本 -->
           <span v-else-if="message.content">{{ message.content }}</span>
@@ -150,14 +159,17 @@
         />
         <button 
           class="send-btn" 
-          @click="sendMessage"
-          :disabled="(!inputMessage.trim() && selectedLocalFiles.length === 0 && uploadedFiles.length === 0) || isSending"
+          :class="{ 'stop-btn': isSending }"
+          @click="isSending ? stopStream() : sendMessage()"
+          :disabled="!isSending && (!inputMessage.trim() && selectedLocalFiles.length === 0 && uploadedFiles.length === 0)"
         >
           <svg v-if="!isSending" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
-          <div v-else class="loading-spinner"></div>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+          </svg>
         </button>
         </div>
       </div>
@@ -351,60 +363,6 @@
             </div>
           </div>
         </div>
-        
-        <!-- 已上传文件区域 -->
-        <div class="sidebar-files-section">
-          <h4 class="sidebar-files-title">已上传文件 ({{ uploadedFiles.length + uploadingFiles.length }})</h4>
-          
-          <!-- 无文件时的空状态 -->
-          <div v-if="uploadedFiles.length === 0 && uploadingFiles.length === 0" class="sidebar-files-empty">
-            <div class="empty-file-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M13 2V9H20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </div>
-            <p class="empty-file-text">暂无文件</p>
-          </div>
-          
-          <!-- 文件列表 -->
-          <div v-else class="sidebar-files-list">
-            <!-- 上传中的文件 -->
-            <div v-for="file in uploadingFiles" :key="file.id" class="sidebar-file-item uploading">
-              <div class="sidebar-file-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="sidebar-file-info">
-                <div class="sidebar-file-name">{{ file.fileName }}</div>
-                <div class="sidebar-file-status">上传中...</div>
-              </div>
-              <div class="sidebar-loading-spinner"></div>
-            </div>
-            
-            <!-- 已上传的文件 -->
-            <div v-for="file in uploadedFiles" :key="file.id" class="sidebar-file-item">
-              <div class="sidebar-file-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V9L13 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M13 2V9H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </div>
-              <div class="sidebar-file-info">
-                <div class="sidebar-file-name">{{ file.fileName }}</div>
-                <div class="sidebar-file-size">{{ formatFileSize(file.fileSize) }}</div>
-              </div>
-              <button class="sidebar-remove-btn" @click="removeUploadedFile(file.id)" title="移除">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-        
         <!-- 侧边栏底部 -->
         <div class="sidebar-footer">
           <button class="btn-primary" @click="createNewChatSession">
@@ -571,6 +529,7 @@ export default {
       loadingAchievementFiles: false, // 加载成果文件状态
       conversationId: null, // 对话ID，用于维持会话
       currentStreamController: null, // 当前流式响应的控制器
+      currentStreamConversationId: null, // 当前流式响应的 conversationId（用于停止请求）
       // ⭐ 参考Dify的打字机实现
       isTyping: false, // 是否正在打字
       currentTypingMessageIndex: -1, // 当前正在打字的消息索引
@@ -826,6 +785,8 @@ export default {
       this.messages.push(aiMessage)
 
       this.isSending = true
+      // 生成临时 conversationId 用于停止请求（使用 UUID 格式）
+      this.currentStreamConversationId = this.generateUUID()
       this.$nextTick(() => this.scrollToBottom())
 
       // 初始化打字机
@@ -835,27 +796,61 @@ export default {
       try {
         console.log('[发送] 调用预上传模式接口', { query: queryToSend, fileIds: difyFileIdsToSend })
 
-        // 调用新写的只传 ID 的接口
-        this.currentStreamController = await difyAPI.chatStreamWithPreloadedFiles(
+        // 选择合适的流式接口：如果没有任何已上传的 Dify 文件（knowledge flow），
+        // 使用常规的 sendChatMessageStream；否则使用 chatStreamWithPreloadedFiles（knowledge 流程）
+        if (!difyFileIdsToSend || difyFileIdsToSend.length === 0) {
+          console.log('[发送] 无文件，使用普通流式对话接口 sendChatMessageStream')
+          this.currentStreamController = await difyAPI.sendChatMessageStream(
             queryToSend,
             this.conversationId,
-            difyFileIdsToSend,
-            (delta) => {
-              // onMessage
-              this.startTypewriter(this.currentTypingMessageIndex, delta)
+            (delta, eventData) => {
+              // onMessage 回调
+              if (eventData && eventData.conversationId) {
+                this.currentStreamConversationId = eventData.conversationId
+                console.log('[KnowledgeBaseAI] 收到 conversationId:', this.currentStreamConversationId)
+                return
+              }
+              if (delta && delta.trim()) {
+                this.startTypewriter(this.currentTypingMessageIndex, delta)
+              }
             },
             (endData) => {
-              // onEnd: 保存 conversationId
               if (endData && endData.conversation_id) {
                 this.conversationId = endData.conversation_id
               }
               this.handleStreamComplete(aiMessage)
             },
             (err) => {
-              // onError
               this.handleStreamError(err, aiMessage)
             }
-        )
+          )
+        } else {
+          // 有文件时走知识库专用接口
+          this.currentStreamController = await difyAPI.chatStreamWithPreloadedFiles(
+            queryToSend,
+            this.conversationId,
+            difyFileIdsToSend,
+            (delta, eventData) => {
+              if (eventData && eventData.conversationId) {
+                this.currentStreamConversationId = eventData.conversationId
+                console.log('[KnowledgeBaseAI] 收到 conversationId:', this.currentStreamConversationId)
+                return
+              }
+              if (delta && delta.trim()) {
+                this.startTypewriter(this.currentTypingMessageIndex, delta)
+              }
+            },
+            (endData) => {
+              if (endData && endData.conversation_id) {
+                this.conversationId = endData.conversation_id
+              }
+              this.handleStreamComplete(aiMessage)
+            },
+            (err) => {
+              this.handleStreamError(err, aiMessage)
+            }
+          )
+        }
       } catch (e) {
         this.handleStreamError(e, aiMessage)
       }
@@ -868,6 +863,7 @@ export default {
       console.log('[Coze] 🏁 后端流式响应已结束')
       this.isSending = false
       this.currentStreamController = null
+      this.currentStreamConversationId = null
       
       // ⭐ 参考Dify：等待打字机完成
       this.finishTypewriter()
@@ -883,6 +879,7 @@ export default {
         this.currentStreamController = null
       }
       this.isSending = false
+      this.currentStreamConversationId = null
       // 停止打字机，避免继续追加内容
       this.stopTypewriter()
       if (aiMessage) {
@@ -890,6 +887,65 @@ export default {
         aiMessage.content = '抱歉，AI 调用失败：' + msg
       }
       this.saveMessagesToStorage()
+    },
+    
+    /**
+     * 停止流式响应
+     */
+    async stopStream() {
+      if (!this.isSending || !this.currentStreamConversationId) {
+        console.warn('[停止] 没有正在进行的流式响应')
+        return
+      }
+      
+      console.log('[停止] 请求停止流式响应, conversationId:', this.currentStreamConversationId)
+      
+      try {
+        // 先关闭前端的流式连接
+        if (this.currentStreamController) {
+          this.currentStreamController.close()
+          this.currentStreamController = null
+        }
+        
+        // 调用后端停止接口
+        await difyAPI.stopKnowledgeAIStream(this.currentStreamConversationId)
+        
+        console.log('[停止] 流式响应已停止')
+        
+        // 更新状态
+        this.isSending = false
+        this.currentStreamConversationId = null
+        this.stopTypewriter()
+        
+        // 如果当前消息还没有内容，添加提示
+        if (this.currentTypingMessageIndex >= 0 && this.messages[this.currentTypingMessageIndex]) {
+          const currentMsg = this.messages[this.currentTypingMessageIndex]
+          if (!currentMsg.content || currentMsg.content.trim() === '') {
+            currentMsg.content = '响应已停止'
+          } else {
+            currentMsg.content += '\n\n[响应已停止]'
+          }
+        }
+        
+        this.saveMessagesToStorage()
+      } catch (error) {
+        console.error('[停止] 停止流式响应失败:', error)
+        // 即使停止接口调用失败，也要关闭前端连接
+        this.isSending = false
+        this.currentStreamConversationId = null
+        this.stopTypewriter()
+      }
+    },
+    
+    /**
+     * 生成 UUID（用于停止请求的 conversationId）
+     */
+    generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0
+        const v = c === 'x' ? r : (r & 0x3 | 0x8)
+        return v.toString(16)
+      })
     },
     
     /**

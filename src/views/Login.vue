@@ -4,7 +4,7 @@
     <div class="login-left">
       <div class="logo-section">
         <div class="logo-placeholder" :class="{ animated: animateLogo }">
-          <img src="@/assets/image/logo.svg" alt="Logo" class="logo-img" />
+          <img src="@/assets/image/logo.png" alt="Logo" class="logo-img" />
         </div>
         <h1 class="system-title" :class="{ animated: animateLogo }">高校科研团队协作与成果管理平台</h1>
         <p class="system-subtitle" :class="{ animated: animateLogo }">
@@ -92,9 +92,7 @@
           
           <!-- ORCID授权登录按钮 -->
           <button type="button" class="orcid-login-btn" @click="handleOrcidLogin">
-            <svg class="orcid-icon" viewBox="0 0 24 24" width="20" height="20">
-              <path fill="currentColor" d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zm-2.5 17.5c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5zm5 0c-1.5 0-2.5-1-2.5-2.5s1-2.5 2.5-2.5 2.5 1 2.5 2.5-1 2.5-2.5 2.5z"/>
-            </svg>
+            <img :src="orcidLogo" alt="ORCID" class="orcid-img" />
             使用 ORCID 登录
           </button>
           
@@ -117,6 +115,7 @@
 import { authAPI } from '@/api/auth'
 import { saveLoginData, formatApiError, isValidEmail } from '@/utils/auth'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import orcidLogo from '@/assets/image/orcid.png'
 import '@/assets/styles/Login.css'
 
 export default {
@@ -139,10 +138,13 @@ export default {
       showToast: false,
       toastMessage: '',
       animateLogo: false,
-      isVerified: false // 滑动验证是否通过
+      isVerified: false, // 滑动验证是否通过
+      orcidLogo
     }
   },
   mounted() {
+    // 页面加载时保持默认头像状态
+    this.userAvatar = null
     // 检查是否已经播放过动画
     const hasAnimated = localStorage.getItem('authPagesAnimated')
     if (!hasAnimated) {
@@ -162,10 +164,6 @@ export default {
       },
       immediate: false
     }
-  },
-  mounted() {
-    // 页面加载时保持默认头像状态
-    this.userAvatar = null
   },
   methods: {
     loadUserAvatar() {

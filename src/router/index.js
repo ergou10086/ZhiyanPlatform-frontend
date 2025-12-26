@@ -13,11 +13,11 @@ import KnowledgeBaseAI from '../views/KnowledgeBaseAI.vue'
 import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
+import ProjectTransfer from '../views/ProjectTransfer.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
 import ProjectOperationLog from '../views/ProjectOperationLog.vue'
 import MyActivity from '../views/MyActivity.vue'
-import OAuth2Callback from '../views/OAuth2Callback.vue'
 import OAuth2Error from '../views/OAuth2Error.vue'
 import ChangeEmail from '../views/ChangeEmail.vue'
 import NotFound from '../views/NotFound.vue'
@@ -48,21 +48,6 @@ const routes = [
     path: '/change-email',
     name: 'ChangeEmail',
     component: ChangeEmail
-  },
-  {
-    path: '/auth/oauth2/callback/:provider',
-    name: 'OAuth2Callback',
-    component: OAuth2Callback
-  },
-  {
-    path: '/zhiyan/auth/oauth2/callback/:provider',
-    name: 'OAuth2CallbackWithPrefix',
-    component: OAuth2Callback
-  },
-  {
-    path: '/oauth2/callback',
-    name: 'OAuth2CallbackShort',
-    component: OAuth2Callback
   },
   {
     path: '/oauth2/error',
@@ -124,6 +109,11 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile
+  },
+  {
+    path: '/project-transfer',
+    name: 'ProjectTransfer',
+    component: ProjectTransfer
   },
   {
     path: '/my-activity',
@@ -258,7 +248,8 @@ router.beforeEach((to, from, next) => {
     '/project-dashboard',
     '/project-operation-log',
     '/project',
-    '/my-activity'
+    '/my-activity',
+    '/project-transfer'
   ]
   
   const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))

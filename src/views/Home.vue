@@ -346,7 +346,9 @@
     </div>
     
     <!-- 页脚（仅在首页显示） -->
-    <Footer />
+    <div class="footer-wrapper">
+      <Footer />
+    </div>
   </div>
 </template>
 

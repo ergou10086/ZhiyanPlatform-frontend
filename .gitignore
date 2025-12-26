@@ -1,5 +1,7 @@
 node_modules
 
 /bin/
-/docs/docs/.vuepress/
-/docs/docs/get-started/
+#/docs/docs/.vuepress/.cache
+#/docs/docs/.vuepress/.temp
+
+

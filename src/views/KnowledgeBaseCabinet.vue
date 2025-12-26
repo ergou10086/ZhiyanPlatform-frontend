@@ -90,6 +90,33 @@
         <div class="doc-meta" v-if="activeDoc">
           <div class="doc-title">{{ activeDoc.title }}</div>
           <div class="doc-updated">更新日期：{{ activeDoc.updated }}</div>
+          <!-- 协同编辑在线用户条 -->
+          <div
+            class="collab-bar"
+            v-if="isCollabReady && onlineEditors && onlineEditors.length > 0"
+          >
+            <div class="collab-label">正在协同编辑：</div>
+            <div class="collab-users">
+              <div
+                v-for="editor in onlineEditors"
+                :key="editor.userId"
+                class="collab-user"
+                :class="{ 'is-self': String(editor.userId) === String(selfUserId) }"
+              >
+                <div class="collab-avatar">
+                  <img
+                    v-if="editor.avatar"
+                    :src="editor.avatar"
+                    :alt="editor.username || '用户'"
+                  >
+                  <span v-else>{{ (editor.username || '用户').charAt(0) }}</span>
+                </div>
+                <div class="collab-name">
+                  {{ String(editor.userId) === String(selfUserId) ? (editor.username || '我') + '（我）' : (editor.username || '用户') }}
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="doc-actions-top">
             <!-- 导出按钮 -->
             <div class="export-btn-wrapper" ref="exportBtnWrapper">
@@ -124,12 +151,27 @@
         <!-- 非编辑模式：显示渲染后的Markdown -->
         <div v-if="activeDoc && !isEditing" class="markdown-viewer" v-html="renderedMarkdown"></div>
         <!-- 编辑模式：显示源代码 -->
-        <textarea
-          v-else-if="activeDoc && isEditing"
-          class="editor"
-          v-model="activeDocContent" 
-          @input="updateContent"
-        ></textarea>
+        <div v-else-if="activeDoc && isEditing" class="editor-wrapper">
+          <textarea
+            ref="editorTextarea"
+            class="editor"
+            v-model="activeDocContent" 
+            @input="updateContent"
+            @keyup="onEditorKeyUp"
+            @keydown="onEditorKeyDown"
+            @click="onEditorClick"
+            @selectionchange="onEditorSelectionChange"
+          ></textarea>
+          <!-- 协同编辑覆盖层：显示光标和编辑区域 -->
+          <WikiCollaborationOverlay
+            v-if="isEditing && isCollabReady && $refs.editorTextarea"
+            :textarea="$refs.editorTextarea"
+            :cursors="allCursorPositions"
+            :edit-ranges="editRanges"
+            :self-user-id="selfUserId"
+            :editor-info="editorInfoMap"
+          />
+        </div>
         <div v-else class="empty-editor">
           <p>暂无文档内容</p>
         </div>
@@ -270,15 +312,15 @@
               </div>
             </div>
           </div>
-        </div>
-        
-        <!-- 空状态 -->
-        <div class="attachments-empty" v-if="filteredAttachments.length === 0">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <p>暂无附件</p>
-          <span>点击上方按钮上传文件</span>
+          
+          <!-- 空状态（移到附件区域内部） -->
+          <div class="attachments-empty" v-if="filteredAttachments.length === 0">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21.44 11.05L12.25 20.24C11.1242 21.3658 9.59723 21.9983 8.00505 21.9983C6.41286 21.9983 4.88589 21.3658 3.76005 20.24C2.6342 19.1142 2.00171 17.5872 2.00171 15.995C2.00171 14.4028 2.6342 12.8758 3.76005 11.75L12.95 2.56C13.7006 1.80943 14.7186 1.38574 15.78 1.38574C16.8415 1.38574 17.8595 1.80943 18.61 2.56C19.3606 3.31057 19.7843 4.32855 19.7843 5.39C19.7843 6.45145 19.3606 7.46943 18.61 8.22L9.41005 17.41C9.03476 17.7853 8.52577 17.9971 7.99505 17.9971C7.46432 17.9971 6.95533 17.7853 6.58005 17.41C6.20476 17.0347 5.99292 16.5257 5.99292 15.995C5.99292 15.4643 6.20476 14.9553 6.58005 14.58L15.07 6.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p>暂无附件</p>
+            <span>点击上方按钮上传文件</span>
+          </div>
         </div>
         
         <!-- 文档操作按钮 -->
@@ -304,9 +346,26 @@
             @click="toggleEditMode" 
             v-if="!isEditing" 
             :disabled="isArchived || !activeDoc" 
-            :title="isArchived ? '项目已归档，仅支持查看' : (!activeDoc ? '请先选择文档' : '编辑文档')"
+            :title="isArchived ? '项目已归档，仅支持查看' : (!activeDoc ? '请先选择文档' : '在线编辑文档')"
           >
-            编辑
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 4px;">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            在线编辑
+          </button>
+          <button 
+            class="action-btn" 
+            @click="toggleEditRanges" 
+            v-if="isEditing && isCollabReady"
+            :class="{ 'active': showEditRanges }"
+            :title="showEditRanges ? '隐藏编辑区域' : '显示编辑区域'"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right: 4px;">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ showEditRanges ? '隐藏区域' : '显示区域' }}
           </button>
           <button 
             class="action-btn" 
@@ -812,6 +871,9 @@
 <script>
 import '@/assets/styles/KnowledgeBaseCabinet.css'
 import { wikiAPI, PageType } from '@/api/wiki'
+import { createWikiCollaborationClient } from '@/utils/wikiCollaboration'
+import { getCurrentUserId, getCurrentUserName, getCurrentUserAvatar, getCurrentUser } from '@/utils/auth'
+import WikiCollaborationOverlay from '@/components/WikiCollaborationOverlay.vue'
 
 export default {
   name: 'KnowledgeBaseCabinet',
@@ -910,7 +972,21 @@ export default {
       uploadingAttachment: false, // 是否正在上传附件
       attachmentFilter: 'all', // 附件筛选：all/image/file
       attachmentStats: true, // 是否显示附件统计
-      attachmentsCollapsed: false // 附件区域是否折叠
+      attachmentsCollapsed: true, // 附件区域是否折叠，默认折叠
+
+      // 协同编辑相关
+      collabClient: null, // Wiki 协同编辑客户端
+      onlineEditors: [], // 当前页面在线编辑者列表
+      cursorPositions: [], // 其他用户的光标位置（简单展示）
+      selfCursorPosition: null, // 自己的光标位置
+      selfUserId: getCurrentUserId(), // 当前用户 ID
+      isCollabReady: false, // WebSocket 是否已就绪
+      showEditRanges: false, // 是否显示编辑区域高亮
+      editRanges: [], // 编辑区域列表（用于高亮显示）
+      cursorUpdateTimer: null, // 光标位置更新定时器
+      lastCursorOffset: 0, // 上次光标位置
+      lastSelectionStart: 0, // 上次选择开始位置
+      lastSelectionEnd: 0 // 上次选择结束位置
     }
   },
   computed: {
@@ -933,6 +1009,42 @@ export default {
     renderedMarkdown() {
       if (!this.activeDocContent) return ''
       return this.formatMarkdown(this.activeDocContent)
+    },
+    // 编辑者信息映射（用于显示用户名和头像）
+    editorInfoMap() {
+      const map = {}
+      // 添加自己的信息
+      if (this.selfUserId) {
+        const currentUser = getCurrentUser()
+        map[this.selfUserId] = {
+          username: getCurrentUserName() || currentUser?.nickname || currentUser?.name || `用户${this.selfUserId}`,
+          avatar: getCurrentUserAvatar() || currentUser?.avatar || currentUser?.avatarUrl || null
+        }
+      }
+      // 添加其他在线编辑者的信息
+      if (Array.isArray(this.onlineEditors)) {
+        this.onlineEditors.forEach(editor => {
+          if (editor && editor.userId) {
+            map[editor.userId] = {
+              username: editor.username || `用户${editor.userId}`,
+              avatar: editor.avatar || null
+            }
+          }
+        })
+      }
+      return map
+    },
+    // 所有光标位置（包括自己的）
+    allCursorPositions() {
+      const cursors = [...this.cursorPositions]
+      // 添加自己的光标位置
+      if (this.selfCursorPosition && this.isEditing) {
+        cursors.push({
+          ...this.selfCursorPosition,
+          userId: this.selfUserId
+        })
+      }
+      return cursors
     },
     // 扁平化树形结构用于节点选择器
     flatNodeList() {
@@ -1020,6 +1132,15 @@ export default {
       clearTimeout(this.scrollSyncTimer)
       this.scrollSyncTimer = null
     }
+
+    // 离开时退出协同编辑
+    if (this.collabClient) {
+      this.collabClient.leave()
+      this.collabClient = null
+    }
+    
+    // 停止光标跟踪
+    this.stopCursorTracking()
   },
   methods: {
     /**
@@ -1212,6 +1333,20 @@ export default {
       
       const pageIdStr = String(pageId)
 
+      // 如果切换了文档，先清理旧的协同编辑连接（如果不在编辑状态）
+      if (this.activeId && String(this.activeId) !== pageIdStr) {
+        // 如果不在编辑状态，断开协同编辑连接
+        if (!this.isEditing && this.collabClient) {
+          this.collabClient.leave()
+          this.collabClient = null
+          this.isCollabReady = false
+          this.onlineEditors = []
+          this.cursorPositions = []
+        }
+        // 停止光标跟踪
+        this.stopCursorTracking()
+      }
+
       // 立即更新选中状态，确保界面立即响应（放在最前面）
       this.activeId = pageIdStr
 
@@ -1373,6 +1508,110 @@ export default {
           this.loadingDocIds.delete(pageIdStr)
         }
       })
+
+      // 切换文档后，如果正在编辑状态，初始化 / 切换协同编辑客户端
+      // 注意：只在编辑状态下才建立协同编辑连接
+      if (this.isEditing) {
+        this.setupCollaborationForPage(pageIdStr)
+      }
+    },
+
+    /**
+     * 为当前页面初始化协同编辑客户端
+     */
+    setupCollaborationForPage(pageId) {
+      try {
+        // 先关闭旧的客户端
+        if (this.collabClient) {
+          this.collabClient.leave()
+          this.collabClient = null
+        }
+
+        if (!pageId) {
+          this.onlineEditors = []
+          this.cursorPositions = []
+          this.selfCursorPosition = null
+          this.isCollabReady = false
+          return
+        }
+
+        // 创建新的协同编辑客户端
+        const client = createWikiCollaborationClient(pageId)
+
+        // 绑定事件回调
+        client.onEditorsUpdate = (editors) => {
+          // 保证数组结构，过滤空值
+          this.onlineEditors = Array.isArray(editors)
+            ? editors.filter(e => e && e.userId)
+            : []
+        }
+
+        client.onCursorsUpdate = (cursors) => {
+          // 处理单个光标或光标数组
+          const cursorList = Array.isArray(cursors) ? cursors : (cursors ? [cursors] : [])
+          const filteredCursors = cursorList.filter(c => {
+            if (!c || !c.userId) return false
+            // 如果光标有pageId，需要匹配当前页面
+            if (c.pageId !== undefined && String(c.pageId) !== String(pageId)) return false
+            // 过滤掉自己的光标（自己的光标由本地跟踪，不通过服务器同步）
+            if (String(c.userId) === String(this.selfUserId)) return false
+            return true
+          })
+          this.cursorPositions = filteredCursors
+          // 调试日志（仅在开发环境）
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[KnowledgeBaseCabinet] 收到光标更新:', filteredCursors.length, '个其他用户的光标')
+          }
+        }
+
+        client.onContentChange = (change) => {
+          // 当他人保存后，后端会广播完整内容，这里用于被动刷新（仅在非编辑模式下自动同步）
+          if (!change || !change.content) return
+          if (!this.activeId || String(this.activeId) !== String(pageId)) return
+
+          // 如果当前正在编辑且有未保存更改，则不覆盖用户内容
+          if (this.isEditing && this.hasUnsavedChanges) {
+            return
+          }
+
+          // 同步内容到当前文档
+          if (this.activeDoc) {
+            this.activeDoc.content = change.content
+            this.originalContent = change.content
+          }
+        }
+
+        client.onIncrementalChange = (change) => {
+          // 当前版本中不对增量变更做复杂合并，仅预留钩子
+          // 可以在这里根据需要做实时预览或小提示
+        }
+
+        client.onError = () => {
+          this.isCollabReady = false
+        }
+
+        // 连接成功回调
+        client.onConnected = () => {
+          this.isCollabReady = true
+          console.log('[KnowledgeBaseCabinet] 协同编辑连接已就绪, pageId=', pageId)
+          // 如果已经在编辑状态，启动光标跟踪
+          if (this.isEditing) {
+            this.$nextTick(() => {
+              this.startCursorTracking()
+              // 立即发送一次光标位置
+              this.updateCursorPosition()
+            })
+          }
+        }
+
+        this.collabClient = client
+        // 先设置为 false，等连接成功后再设置为 true
+        this.isCollabReady = false
+        client.connect()
+      } catch (e) {
+        console.warn('[KnowledgeBaseCabinet] 初始化协同编辑失败:', e)
+        this.isCollabReady = false
+      }
     },
     
     createNewDocument() {
@@ -1580,11 +1819,30 @@ export default {
     },
 
     toggleEditMode() {
+      if (!this.activeId) {
+        this.$message?.error('请先选择文档')
+        return
+      }
+      
       this.isEditing = true
       // 进入编辑模式时，如果有内容变化，标记为有未保存更改
       if (this.activeDocContent !== this.activeDoc.content) {
         this.hasUnsavedChanges = true
       }
+      
+      // 确保协同编辑已连接（仅在编辑状态下启用）
+      this.$nextTick(() => {
+        if (this.activeId && !this.collabClient) {
+          this.setupCollaborationForPage(String(this.activeId))
+        } else if (this.collabClient && !this.isCollabReady) {
+          this.collabClient.connect()
+        }
+        
+        // 如果连接已就绪，启动光标位置跟踪
+        if (this.isCollabReady) {
+          this.startCursorTracking()
+        }
+      })
     },
 
     cancelEdit() {
@@ -1597,10 +1855,30 @@ export default {
           }
           this.isEditing = false
           this.hasUnsavedChanges = false
+          this.stopCursorTracking()
+          // 退出编辑状态后，断开协同编辑连接
+          if (this.collabClient) {
+            this.collabClient.leave()
+            this.collabClient = null
+          this.isCollabReady = false
+          this.onlineEditors = []
+          this.cursorPositions = []
+          this.selfCursorPosition = null
+          }
         }
       } else {
         this.isEditing = false
         this.hasUnsavedChanges = false
+        this.stopCursorTracking()
+        // 退出编辑状态后，断开协同编辑连接
+        if (this.collabClient) {
+          this.collabClient.leave()
+          this.collabClient = null
+          this.isCollabReady = false
+          this.onlineEditors = []
+          this.cursorPositions = []
+          this.selfCursorPosition = null
+        }
       }
     },
 
@@ -1739,6 +2017,173 @@ export default {
       // 只有在编辑模式下才标记有未保存的更改
       if (this.isEditing) {
         this.hasUnsavedChanges = true
+        // 实时同步增量变更给其他在线编辑者（内容不入库，仅广播）
+        if (this.collabClient && this.isCollabReady && this.activeId) {
+          this.collabClient.sendIncrementalChange({
+            changeType: 'FULL',
+            content: this.activeDocContent || ''
+          })
+        }
+        // 更新编辑区域（如果有选择）
+        this.updateEditRange()
+      }
+    },
+    
+    // 光标位置跟踪相关方法
+    startCursorTracking() {
+      // 只在编辑状态下启动光标跟踪
+      if (!this.isEditing) {
+        return
+      }
+      this.stopCursorTracking()
+      if (!this.$refs.editorTextarea) {
+        // 如果 textarea 还没准备好，延迟重试
+        this.$nextTick(() => {
+          if (this.isEditing && this.$refs.editorTextarea) {
+            this.startCursorTracking()
+          }
+        })
+        return
+      }
+      
+      // 每300ms更新一次光标位置（更频繁的更新以获得更好的实时性）
+      this.cursorUpdateTimer = setInterval(() => {
+        if (this.isEditing) {
+          this.updateCursorPosition()
+        }
+      }, 300)
+      
+      // 立即更新一次
+      this.updateCursorPosition()
+    },
+    
+    stopCursorTracking() {
+      if (this.cursorUpdateTimer) {
+        clearInterval(this.cursorUpdateTimer)
+        this.cursorUpdateTimer = null
+      }
+    },
+    
+    updateCursorPosition() {
+      // 只在编辑状态下发送光标位置
+      if (!this.isEditing) {
+        this.selfCursorPosition = null
+        return
+      }
+      if (!this.$refs.editorTextarea) {
+        this.selfCursorPosition = null
+        return
+      }
+      
+      const textarea = this.$refs.editorTextarea
+      const cursorOffset = textarea.selectionStart
+      
+      // 计算行号和列号
+      const text = textarea.value || ''
+      const textBeforeCursor = text.substring(0, cursorOffset)
+      const lines = textBeforeCursor.split('\n')
+      const line = lines.length - 1
+      const column = lines[lines.length - 1].length
+      
+      // 更新自己的光标位置（用于本地显示）
+      this.selfCursorPosition = {
+        userId: this.selfUserId,
+        pageId: Number(this.activeId),
+        line: line,
+        column: column,
+        offset: cursorOffset
+      }
+      
+      // 只在光标位置变化时发送到服务器
+      if (cursorOffset !== this.lastCursorOffset && this.collabClient && this.isCollabReady && this.activeId) {
+        this.lastCursorOffset = cursorOffset
+        
+        // 发送光标位置到服务器
+        this.collabClient.sendCursor({
+          pageId: Number(this.activeId),
+          line: line,
+          column: column,
+          offset: cursorOffset
+        })
+      }
+    },
+    
+    updateEditRange() {
+      if (!this.$refs.editorTextarea || !this.showEditRanges) return
+      
+      const textarea = this.$refs.editorTextarea
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      
+      // 如果有选择区域，添加到编辑区域列表
+      if (start !== end && (start !== this.lastSelectionStart || end !== this.lastSelectionEnd)) {
+        this.lastSelectionStart = start
+        this.lastSelectionEnd = end
+        
+        // 添加或更新当前用户的编辑区域
+        const existingIndex = this.editRanges.findIndex(
+          r => String(r.userId) === String(this.selfUserId)
+        )
+        
+        const range = {
+          userId: this.selfUserId,
+          start: start,
+          end: end,
+          timestamp: Date.now()
+        }
+        
+        if (existingIndex >= 0) {
+          this.$set(this.editRanges, existingIndex, range)
+        } else {
+          this.editRanges.push(range)
+        }
+        
+        // 清理过期的编辑区域（5秒前）
+        const now = Date.now()
+        this.editRanges = this.editRanges.filter(r => {
+          return (now - (r.timestamp || 0)) < 5000
+        })
+      }
+    },
+    
+    toggleEditRanges() {
+      this.showEditRanges = !this.showEditRanges
+      if (!this.showEditRanges) {
+        // 隐藏时清理编辑区域
+        this.editRanges = []
+      } else {
+        // 显示时更新当前选择
+        this.updateEditRange()
+      }
+    },
+    
+    // 编辑器事件处理
+    onEditorKeyUp(event) {
+      this.updateCursorPosition()
+      if (this.showEditRanges) {
+        this.updateEditRange()
+      }
+    },
+    
+    onEditorKeyDown(event) {
+      // 某些按键需要立即更新光标
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
+        setTimeout(() => {
+          this.updateCursorPosition()
+        }, 10)
+      }
+    },
+    
+    onEditorClick(event) {
+      this.updateCursorPosition()
+      if (this.showEditRanges) {
+        this.updateEditRange()
+      }
+    },
+    
+    onEditorSelectionChange(event) {
+      if (this.showEditRanges) {
+        this.updateEditRange()
       }
     },
     
@@ -1804,6 +2249,14 @@ export default {
 
           // 通知父组件
           this.$emit('document-saved', this.activeDoc)
+
+        // 保存成功后，通过协同编辑通道广播最新内容，方便其他用户同步
+        if (this.collabClient && this.isCollabReady && this.activeId) {
+          this.collabClient.sendContentChange({
+            content: this.activeDocContent || '',
+            changeDescription: '手动保存'
+          })
+        }
         } else {
           console.error('[saveDocument] 保存失败:', response)
           this.$message?.error(response.msg || '保存文档失败')
@@ -1843,6 +2296,13 @@ export default {
 
           // 通知父组件
         this.$emit('document-auto-saved', this.activeDoc)
+        // 自动保存成功后，也通过协同通道广播一次完整内容
+        if (this.collabClient && this.isCollabReady && this.activeId) {
+          this.collabClient.sendContentChange({
+            content: this.activeDocContent || '',
+            changeDescription: '自动保存'
+          })
+        }
         }
       } catch (error) {
         console.error('[autoSave] 自动保存失败:', error)
@@ -4295,6 +4755,76 @@ export default {
   font-weight: 500;
 }
 
+/* 协同编辑在线用户条 */
+.collab-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.collab-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.collab-users {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.collab-user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  font-size: 11px;
+  color: #475569;
+}
+
+.collab-user.is-self {
+  border-color: #5EB6E4;
+  background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+}
+
+.collab-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #4b5563;
+  flex-shrink: 0;
+}
+
+.collab-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collab-name {
+  max-width: 90px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 /* 顶部操作按钮区域 */
 .doc-actions-top {
   position: absolute;
@@ -4339,6 +4869,7 @@ export default {
 /* Markdown渲染视图 */
 .markdown-viewer {
   flex: 1;
+  min-height: 400px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
@@ -4347,7 +4878,6 @@ export default {
   color: #374151;
   background-color: #fff;
   overflow-y: auto;
-  min-height: 0;
 }
 
 .markdown-viewer :deep(h1) {
@@ -6092,16 +6622,18 @@ export default {
 
 .attachments-empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px;
+  padding: 20px;
   color: #94a3b8;
+  text-align: center;
 }
 
 .attachments-empty svg {
-  width: 20px;
-  height: 20px;
+  width: 32px;
+  height: 32px;
   opacity: 0.5;
 }
 
@@ -6109,10 +6641,12 @@ export default {
   margin: 0;
   font-size: 13px;
   color: #94a3b8;
+  font-weight: 500;
 }
 
 .attachments-empty span {
-  display: none;
+  font-size: 12px;
+  color: #cbd5e1;
 }
 
 /* 附件头部操作区 */

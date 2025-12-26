@@ -1,5 +1,11 @@
 <template>
     <div class="project-detail-container" :class="{ 'is-admin': isProjectManager }">
+    <div v-if="isOperationLoading" class="operation-loading-overlay">
+      <div class="operation-loading-content">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">{{ operationLoadingText || '处理中...' }}</p>
+      </div>
+    </div>
     <!-- 加载状态 -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
@@ -472,8 +478,8 @@
       </div>
     </div>
     <!-- 新建任务模态框 -->
-    <div v-if="taskModalOpen" class="modal-overlay" @click.self="closeTaskModal">
-      <div class="modal-content" @click.stop>
+    <div v-if="taskModalOpen" class="modal-overlay" @mousedown.self="onModalOverlayMouseDown" @mouseup.self="onModalOverlayMouseUp(closeTaskModal, $event)">
+      <div class="modal-content" @mousedown.stop="onModalContentMouseDown" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">新建任务</h3>
           <button class="modal-close" @click="closeTaskModal">
@@ -703,8 +709,8 @@
       </div>
     </div>
     <!-- 编辑项目模态框 -->
-    <div v-if="editProjectModalOpen" class="modal-overlay" @click.self="closeEditProjectModal">
-      <div class="modal-content" @click.stop>
+    <div v-if="editProjectModalOpen" class="modal-overlay" @mousedown.self="onModalOverlayMouseDown" @mouseup.self="onModalOverlayMouseUp(closeEditProjectModal, $event)">
+      <div class="modal-content" @mousedown.stop="onModalContentMouseDown" @click.stop>
         <div class="modal-header">
           <h3 class="modal-title">编辑项目</h3>
           <button class="modal-close" @click="closeEditProjectModal">
@@ -780,8 +786,8 @@
       </div>
     </div>
     <!-- 编辑任务模态框 -->
-    <div v-if="editTaskModalOpen" class="modal-overlay" @click.self="closeEditTaskModal">
-      <div class="modal-content task-modal" @click.stop>
+    <div v-if="editTaskModalOpen" class="modal-overlay" @mousedown.self="onModalOverlayMouseDown" @mouseup.self="onModalOverlayMouseUp(closeEditTaskModal, $event)">
+      <div class="modal-content task-modal" @mousedown.stop="onModalContentMouseDown" @click.stop>
         <div class="modal-header">
           <h3>编辑任务</h3>
           <button class="modal-close" @click="closeEditTaskModal">
@@ -1479,6 +1485,9 @@ export default {
       disableAllAnimations: true,
       // 任务加载状态
       isLoadingTasks: false,
+      operationLoadingCount: 0,
+      operationLoadingText: '',
+      modalOverlayMouseDownOnSelf: false,
       taskTypeOpen: false,
       selectedTaskType: '',
       statusDropdownOpen: false,
@@ -1592,6 +1601,9 @@ export default {
     }
   },
   computed: {
+    isOperationLoading() {
+      return this.operationLoadingCount > 0
+    },
     filteredTasks() {
       let tasks = this.tasks
       if (this.selectedTaskType) {
@@ -1787,6 +1799,39 @@ export default {
     this.$eventBus.off(this.$EventTypes.USER_AVATAR_UPDATED, this.handleAvatarUpdated)
   },
   methods: {
+    onModalOverlayMouseDown() {
+      this.modalOverlayMouseDownOnSelf = true
+    },
+    onModalContentMouseDown() {
+      this.modalOverlayMouseDownOnSelf = false
+    },
+    onModalOverlayMouseUp(closeFn, event) {
+      const shouldClose = this.modalOverlayMouseDownOnSelf && event && event.target === event.currentTarget
+      this.modalOverlayMouseDownOnSelf = false
+      if (shouldClose && typeof closeFn === 'function') {
+        closeFn()
+      }
+    },
+    beginOperationLoading(text) {
+      this.operationLoadingCount += 1
+      if (text) {
+        this.operationLoadingText = text
+      }
+    },
+    endOperationLoading() {
+      this.operationLoadingCount = Math.max(0, this.operationLoadingCount - 1)
+      if (this.operationLoadingCount === 0) {
+        this.operationLoadingText = ''
+      }
+    },
+    async withOperationLoading(text, fn) {
+      this.beginOperationLoading(text)
+      try {
+        return await fn()
+      } finally {
+        this.endOperationLoading()
+      }
+    },
     openTaskListModal() {
       this.taskListModalOpen = true
     },
@@ -3551,61 +3596,63 @@ export default {
         alert('请输入项目名称')
         return
       }
-      try {
-        // 使用项目API模块更新项目
-        const { projectAPI } = await import('@/api/project')
-        console.log('使用项目API模块更新项目...')
-        console.log('项目ID:', this.project.id, '类型:', typeof this.project.id)
-        console.log('更新数据:', this.editProjectData)
-        const response = await projectAPI.updateProject(this.project.id, this.editProjectData)
-        console.log('更新项目API返回结果:', response)
-        console.log('更新后的项目数据:', response.data)
-        // 检查API返回结果
-        if (response.code === 200) {
-          // 使用后端返回的最新数据更新本地项目
-          if (response.data) {
-            // 更新项目ID（确保使用后端返回的ID）
-            this.project.id = response.data.id
-            this.project.name = response.data.name
-            this.project.title = response.data.name
-            this.project.description = response.data.description
-            this.project.startDate = response.data.startDate
-            this.project.endDate = response.data.endDate
-            this.project.visibility = response.data.visibility
-            this.project.status = response.data.status
-            this.project.imageUrl = response.data.imageUrl
-            this.project.image = response.data.imageUrl
-            // 更新项目周期显示
-            if (response.data.startDate && response.data.endDate) {
-              this.project.period = `${response.data.startDate} 至 ${response.data.endDate}`
+      await this.withOperationLoading('正在保存项目修改...', async () => {
+        try {
+          // 使用项目API模块更新项目
+          const { projectAPI } = await import('@/api/project')
+          console.log('使用项目API模块更新项目...')
+          console.log('项目ID:', this.project.id, '类型:', typeof this.project.id)
+          console.log('更新数据:', this.editProjectData)
+          const response = await projectAPI.updateProject(this.project.id, this.editProjectData)
+          console.log('更新项目API返回结果:', response)
+          console.log('更新后的项目数据:', response.data)
+          // 检查API返回结果
+          if (response.code === 200) {
+            // 使用后端返回的最新数据更新本地项目
+            if (response.data) {
+              // 更新项目ID（确保使用后端返回的ID）
+              this.project.id = response.data.id
+              this.project.name = response.data.name
+              this.project.title = response.data.name
+              this.project.description = response.data.description
+              this.project.startDate = response.data.startDate
+              this.project.endDate = response.data.endDate
+              this.project.visibility = response.data.visibility
+              this.project.status = response.data.status
+              this.project.imageUrl = response.data.imageUrl
+              this.project.image = response.data.imageUrl
+              // 更新项目周期显示
+              if (response.data.startDate && response.data.endDate) {
+                this.project.period = `${response.data.startDate} 至 ${response.data.endDate}`
+              }
+              console.log('项目更新成功，最新项目ID:', this.project.id)
+              console.log('更新后的项目完整数据:', this.project)
+            } else {
+              // 如果后端没有返回数据，使用编辑表单的数据
+              this.project.name = this.editProjectData.name
+              this.project.title = this.editProjectData.name
+              this.project.description = this.editProjectData.description
+              this.project.startDate = this.editProjectData.startDate
+              this.project.endDate = this.editProjectData.endDate
+              this.project.visibility = this.editProjectData.visibility
+              this.project.status = this.editProjectData.status
+              // 更新项目周期显示
+              if (this.editProjectData.startDate && this.editProjectData.endDate) {
+                this.project.period = `${this.editProjectData.startDate} 至 ${this.editProjectData.endDate}`
+              }
             }
-            console.log('项目更新成功，最新项目ID:', this.project.id)
-            console.log('更新后的项目完整数据:', this.project)
+            // 保存到localStorage
+            this.saveProjectData()
+            this.closeEditProjectModal()
+            this.showSuccessToast('项目更新成功！')
           } else {
-            // 如果后端没有返回数据，使用编辑表单的数据
-            this.project.name = this.editProjectData.name
-            this.project.title = this.editProjectData.name
-            this.project.description = this.editProjectData.description
-            this.project.startDate = this.editProjectData.startDate
-            this.project.endDate = this.editProjectData.endDate
-            this.project.visibility = this.editProjectData.visibility
-            this.project.status = this.editProjectData.status
-            // 更新项目周期显示
-            if (this.editProjectData.startDate && this.editProjectData.endDate) {
-              this.project.period = `${this.editProjectData.startDate} 至 ${this.editProjectData.endDate}`
-            }
+            alert('更新失败：' + (response.msg || '未知错误'))
           }
-          // 保存到localStorage
-          this.saveProjectData()
-          this.closeEditProjectModal()
-          this.showSuccessToast('项目更新成功！')
-        } else {
-          alert('更新失败：' + (response.msg || '未知错误'))
+        } catch (error) {
+          console.error('更新项目失败:', error)
+          alert('更新项目失败，请稍后重试')
         }
-      } catch (error) {
-        console.error('更新项目失败:', error)
-        alert('更新项目失败，请稍后重试')
-      }
+      })
     },
     async changeStatus(newStatus) {
       // 更改项目状态
@@ -3718,74 +3765,65 @@ export default {
         alert('任务截止日期不能早于今天')
         return
       }
-      // 设置创建中状态
       this.isCreatingTask = true
-      try {
-        // 导入任务API
-        const { taskAPI } = await import('@/api/task')
-        // 构建任务数据（使用后端需要的格式）
-        const taskData = {
-          projectId: this.project.id,
-          title: this.newTask.title.trim(),
-          description: this.newTask.description.trim(),
-          priority: this.getPriorityValue(this.newTask.priority), // 转换为英文枚举值
-          dueDate: this.newTask.dueDate || null,
-          assigneeIds: [], // 新任务默认没有执行者
-          requiredPeople: this.newTask.participantCount || 1, // 发送任务人数限制到后端
-          isMilestone: this.newTask.isMilestone || false // 是否为里程碑任务
-        }
-        console.log('[saveNewTask] 创建任务，数据:', taskData)
-        // 调用后端API创建任务
-        const response = await taskAPI.createTask(taskData)
-        console.log('[saveNewTask] API返回结果:', response)
-        if (response && response.code === 200) {
-          // 创建成功，重新加载任务列表
-          await this.loadProjectTasks()
-          this.closeTaskModal()
-          this.showSuccessToast('任务创建成功！')
-        } else {
-          // 检查是否是401认证错误
-          if (response && response.code === 401) {
-            alert('登录已过期，请重新登录')
-            // 清除token并跳转到登录页
-            localStorage.removeItem('access_token')
-            localStorage.removeItem('refresh_token')
-            localStorage.removeItem('user_info')
-            window.location.href = '/login'
-          } else {
-            alert('创建任务失败：' + (response.msg || '未知错误'))
+      await this.withOperationLoading('正在创建任务...', async () => {
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const taskData = {
+            projectId: this.project.id,
+            title: this.newTask.title.trim(),
+            description: this.newTask.description.trim(),
+            priority: this.getPriorityValue(this.newTask.priority),
+            dueDate: this.newTask.dueDate || null,
+            assigneeIds: [],
+            requiredPeople: this.newTask.participantCount || 1,
+            isMilestone: this.newTask.isMilestone || false
           }
-        }
-      } catch (error) {
-        console.error('[saveNewTask] 创建任务失败:', error)
-        // 检查是否是401认证错误
-        if (error && (error.code === 401 || error.status === 401 || 
-            (error.response && error.response.status === 401))) {
-          alert('登录已过期，请重新登录')
-          // 清除token并跳转到登录页
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('user_info')
-          window.location.href = '/login'
-        } else {
-          // 检查错误消息中是否包含认证相关信息
-          const errorMsg = error?.msg || error?.message || String(error)
-          if (errorMsg.includes('登录') || errorMsg.includes('Token') || errorMsg.includes('认证')) {
+          console.log('[saveNewTask] 创建任务，数据:', taskData)
+          const response = await taskAPI.createTask(taskData)
+          console.log('[saveNewTask] API返回结果:', response)
+          if (response && response.code === 200) {
+            await this.loadProjectTasks()
+            this.closeTaskModal()
+            this.showSuccessToast('任务创建成功！')
+          } else {
+            if (response && response.code === 401) {
+              alert('登录已过期，请重新登录')
+              localStorage.removeItem('access_token')
+              localStorage.removeItem('refresh_token')
+              localStorage.removeItem('user_info')
+              window.location.href = '/login'
+            } else {
+              alert('创建任务失败：' + (response.msg || '未知错误'))
+            }
+          }
+        } catch (error) {
+          console.error('[saveNewTask] 创建任务失败:', error)
+          if (error && (error.code === 401 || error.status === 401 || 
+              (error.response && error.response.status === 401))) {
             alert('登录已过期，请重新登录')
             localStorage.removeItem('access_token')
             localStorage.removeItem('refresh_token')
             localStorage.removeItem('user_info')
             window.location.href = '/login'
           } else {
-            alert('创建任务失败：' + errorMsg)
+            const errorMsg = error?.msg || error?.message || String(error)
+            if (errorMsg.includes('登录') || errorMsg.includes('Token') || errorMsg.includes('认证')) {
+              alert('登录已过期，请重新登录')
+              localStorage.removeItem('access_token')
+              localStorage.removeItem('refresh_token')
+              localStorage.removeItem('user_info')
+              window.location.href = '/login'
+            } else {
+              alert('创建任务失败：' + errorMsg)
+            }
           }
+        } finally {
+          setTimeout(() => {
+            this.isCreatingTask = false
+          }, 1000)
         }
-      } finally {
-        // 1秒后才能再次点击
-        setTimeout(() => {
-          this.isCreatingTask = false
-        }, 1000)
-      }
+      })
     },
     editTask(task) {
       // 归档项目：不允许编辑任务（按钮已禁用，这里再兜底一次）
@@ -3830,32 +3868,30 @@ export default {
         alert('任务截止日期不能早于今天')
         return
       }
-      try {
-        // 导入任务API
-        const { taskAPI } = await import('@/api/task')
-        // 构建更新数据
-        const updateData = {
-          title: this.editTaskData.title.trim(),
-          description: this.editTaskData.description.trim(),
-          priority: this.getPriorityValue(this.editTaskData.priority),
-          dueDate: this.editTaskData.dueDate || null
+      await this.withOperationLoading('正在保存任务修改...', async () => {
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const updateData = {
+            title: this.editTaskData.title.trim(),
+            description: this.editTaskData.description.trim(),
+            priority: this.getPriorityValue(this.editTaskData.priority),
+            dueDate: this.editTaskData.dueDate || null
+          }
+          console.log('[saveEditTask] 更新任务，ID:', this.editTaskData.taskId, '数据:', updateData)
+          const response = await taskAPI.updateTask(this.editTaskData.taskId, updateData)
+          console.log('[saveEditTask] API返回结果:', response)
+          if (response && response.code === 200) {
+            await this.loadProjectTasks()
+            this.closeEditTaskModal()
+            this.showSuccessToast('任务更新成功！')
+          } else {
+            alert('更新任务失败：' + (response.msg || '未知错误'))
+          }
+        } catch (error) {
+          console.error('[saveEditTask] 更新任务失败:', error)
+          alert('更新任务失败，请稍后重试')
         }
-        console.log('[saveEditTask] 更新任务，ID:', this.editTaskData.taskId, '数据:', updateData)
-        // 调用后端API更新任务
-        const response = await taskAPI.updateTask(this.editTaskData.taskId, updateData)
-        console.log('[saveEditTask] API返回结果:', response)
-        if (response && response.code === 200) {
-          // 更新成功，重新加载任务列表
-          await this.loadProjectTasks()
-          this.closeEditTaskModal()
-          this.showSuccessToast('任务更新成功！')
-        } else {
-          alert('更新任务失败：' + (response.msg || '未知错误'))
-        }
-      } catch (error) {
-        console.error('[saveEditTask] 更新任务失败:', error)
-        alert('更新任务失败，请稍后重试')
-      }
+      })
     },
     validateEditTaskDueDate() {
       this.editTaskData.dateError = ''
@@ -4131,41 +4167,35 @@ export default {
         this.showErrorToast('项目已归档，只能查看，不能更改任务状态')
         return
       }
-      try {
-        // 导入任务API
-        const { taskAPI } = await import('@/api/task')
-        // 将中文状态转换为后端枚举值
-        const statusValue = this.getStatusValue(newStatus)
-        console.log(`[changeTaskStatus] 更新任务状态，任务ID: ${task.id}, 新状态: ${newStatus} (${statusValue})`)
-        // 调用后端API更新任务状态
-        const response = await taskAPI.updateTaskStatus(task.id, statusValue)
-        console.log('[changeTaskStatus] API返回结果:', response)
-        if (response && response.code === 200) {
-          console.log('[changeTaskStatus] ✅ 任务状态更新成功，重新加载任务列表')
-          // 关闭状态菜单
-          this.$set(task, 'showStatusMenu', false)
-          // ✅ 重新从后端加载最新的任务列表，确保数据一致性
-          await this.loadProjectTasks()
-          this.showSuccessToast('任务状态已更新！')
-          console.log(`任务"${task.title}"状态已更改为: ${newStatus} (${statusValue})`)
-          // 触发全局事件，通知其他页面状态已更新
-          this.$root.$emit('taskStatusChanged', {
-            projectId: this.project.id,
-            taskId: task.id,
-            newStatus: newStatus,
-            statusValue: statusValue
-          })
-        } else {
-          alert('更新任务状态失败：' + (response.msg || '未知错误'))
-          // 关闭状态菜单
+      await this.withOperationLoading('正在更新任务状态...', async () => {
+        try {
+          const { taskAPI } = await import('@/api/task')
+          const statusValue = this.getStatusValue(newStatus)
+          console.log(`[changeTaskStatus] 更新任务状态，任务ID: ${task.id}, 新状态: ${newStatus} (${statusValue})`)
+          const response = await taskAPI.updateTaskStatus(task.id, statusValue)
+          console.log('[changeTaskStatus] API返回结果:', response)
+          if (response && response.code === 200) {
+            console.log('[changeTaskStatus] ✅ 任务状态更新成功，重新加载任务列表')
+            this.$set(task, 'showStatusMenu', false)
+            await this.loadProjectTasks()
+            this.showSuccessToast('任务状态已更新！')
+            console.log(`任务"${task.title}"状态已更改为: ${newStatus} (${statusValue})`)
+            this.$root.$emit('taskStatusChanged', {
+              projectId: this.project.id,
+              taskId: task.id,
+              newStatus: newStatus,
+              statusValue: statusValue
+            })
+          } else {
+            alert('更新任务状态失败：' + (response.msg || '未知错误'))
+            this.$set(task, 'showStatusMenu', false)
+          }
+        } catch (error) {
+          console.error('[changeTaskStatus] 更新任务状态失败:', error)
+          alert('更新任务状态失败，请稍后重试')
           this.$set(task, 'showStatusMenu', false)
         }
-      } catch (error) {
-        console.error('[changeTaskStatus] 更新任务状态失败:', error)
-        alert('更新任务状态失败，请稍后重试')
-        // 关闭状态菜单
-        this.$set(task, 'showStatusMenu', false)
-      }
+      })
     },
     // 打开接取任务确认弹窗
     assignTask(task) {
@@ -4188,43 +4218,40 @@ export default {
         this.cancelClaimTask()
         return
       }
-      try {
-        const currentUserId = this.getCurrentUserId()
-        const currentUserName = this.getCurrentUserName()
-        console.log('[assignTask] 开始接取任务, ID:', task.id, '当前状态:', task.status)
-        // 调用后端专门的接取任务API
-        const { taskAPI } = await import('@/api/task')
-        const response = await taskAPI.claimTask(task.id)
-        console.log('[assignTask] 后端返回:', response)
-        if (response && response.code === 200) {
-          console.log('[assignTask] ✅ 任务接取成功')
-          // 添加延迟确保数据库事务完成
-          await new Promise(resolve => setTimeout(resolve, 300))
-          // 重新从后端加载最新的任务列表
-          await this.loadProjectTasks()
-          // 强制Vue更新视图
-          this.$nextTick(() => {
-            this.$forceUpdate()
-          })
-          this.showSuccessToast(`成功接取任务: ${task.title}`)
-          // 验证数据是否更新
-          const updatedTask = this.tasks.find(t => t.id === task.id)
-          console.log('[assignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
-          if (updatedTask && updatedTask.status === '待接取') {
-            console.warn('[assignTask] ⚠️ 状态未更新，再次尝试加载')
-            await new Promise(resolve => setTimeout(resolve, 500))
+      await this.withOperationLoading('正在接取任务...', async () => {
+        try {
+          const currentUserId = this.getCurrentUserId()
+          const currentUserName = this.getCurrentUserName()
+          console.log('[assignTask] 开始接取任务, ID:', task.id, '当前状态:', task.status)
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.claimTask(task.id)
+          console.log('[assignTask] 后端返回:', response)
+          if (response && response.code === 200) {
+            console.log('[assignTask] ✅ 任务接取成功')
+            await new Promise(resolve => setTimeout(resolve, 300))
             await this.loadProjectTasks()
-            this.$forceUpdate()
+            this.$nextTick(() => {
+              this.$forceUpdate()
+            })
+            this.showSuccessToast(`成功接取任务: ${task.title}`)
+            const updatedTask = this.tasks.find(t => t.id === task.id)
+            console.log('[assignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
+            if (updatedTask && updatedTask.status === '待接取') {
+              console.warn('[assignTask] ⚠️ 状态未更新，再次尝试加载')
+              await new Promise(resolve => setTimeout(resolve, 500))
+              await this.loadProjectTasks()
+              this.$forceUpdate()
+            }
+          } else {
+            alert('接取任务失败：' + (response.msg || '未知错误'))
           }
-        } else {
-          alert('接取任务失败：' + (response.msg || '未知错误'))
+        } catch (error) {
+          console.error('[assignTask] 接取任务失败:', error)
+          alert('接取任务失败，请稍后重试')
+        } finally {
+          this.cancelClaimTask()
         }
-      } catch (error) {
-        console.error('[assignTask] 接取任务失败:', error)
-        alert('接取任务失败，请稍后重试')
-      } finally {
-        this.cancelClaimTask()
-      }
+      })
     },
     // 打开分配任务模态框
     openAssignTaskModal(task) {
@@ -4271,49 +4298,42 @@ export default {
         return
       }
       
-      try {
-        console.log('[confirmAssignTask] 开始分配任务, ID:', this.taskToAssign.id, '当前状态:', this.taskToAssign.status)
-        console.log('[confirmAssignTask] 当前执行者:', currentAssigneeIds)
-        console.log('[confirmAssignTask] 新增执行者:', this.selectedAssigneeId)
-        
-        // 将新成员添加到现有执行者列表中（保持字符串格式，避免大整数精度丢失）
-        const updatedAssigneeIds = [...currentAssigneeIds.map(id => String(id)), String(this.selectedAssigneeId)]
-        console.log('[confirmAssignTask] 更新后的执行者列表:', updatedAssigneeIds)
-        
-        // 调用后端API分配任务
-        const { taskAPI } = await import('@/api/task')
-        const response = await taskAPI.assignTask(this.taskToAssign.id, updatedAssigneeIds)
-        console.log('[confirmAssignTask] 后端返回:', response)
-        if (response && response.code === 200) {
-          console.log('[confirmAssignTask] ✅ 任务分配成功')
-          // ✅ 添加延迟确保数据库事务完成
-          await new Promise(resolve => setTimeout(resolve, 300))
-          // ✅ 重新从后端加载最新的任务列表
-          await this.loadProjectTasks()
-          // ✅ 强制Vue更新视图
-          this.$nextTick(() => {
-            this.$forceUpdate()
-          })
-          this.showSuccessToast(`成功将任务"${this.taskToAssign.title}"分配给 ${selectedMember.name}`)
-          // ✅ 保存任务ID以便后续验证（因为closeAssignTaskModal会清空taskToAssign）
-          const assignedTaskId = this.taskToAssign.id
-          this.closeAssignTaskModal()
-          // ✅ 验证数据是否更新
-          const updatedTask = this.tasks.find(t => t.id === assignedTaskId)
-          console.log('[confirmAssignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
-          if (updatedTask && updatedTask.status === '待接取') {
-            console.warn('[confirmAssignTask] ⚠️ 状态未更新，再次尝试加载')
-            await new Promise(resolve => setTimeout(resolve, 500))
+      await this.withOperationLoading('正在分配任务...', async () => {
+        try {
+          console.log('[confirmAssignTask] 开始分配任务, ID:', this.taskToAssign.id, '当前状态:', this.taskToAssign.status)
+          console.log('[confirmAssignTask] 当前执行者:', currentAssigneeIds)
+          console.log('[confirmAssignTask] 新增执行者:', this.selectedAssigneeId)
+          const updatedAssigneeIds = [...currentAssigneeIds.map(id => String(id)), String(this.selectedAssigneeId)]
+          console.log('[confirmAssignTask] 更新后的执行者列表:', updatedAssigneeIds)
+          const { taskAPI } = await import('@/api/task')
+          const response = await taskAPI.assignTask(this.taskToAssign.id, updatedAssigneeIds)
+          console.log('[confirmAssignTask] 后端返回:', response)
+          if (response && response.code === 200) {
+            console.log('[confirmAssignTask] ✅ 任务分配成功')
+            await new Promise(resolve => setTimeout(resolve, 300))
             await this.loadProjectTasks()
-            this.$forceUpdate()
+            this.$nextTick(() => {
+              this.$forceUpdate()
+            })
+            this.showSuccessToast(`成功将任务"${this.taskToAssign.title}"分配给 ${selectedMember.name}`)
+            const assignedTaskId = this.taskToAssign.id
+            this.closeAssignTaskModal()
+            const updatedTask = this.tasks.find(t => t.id === assignedTaskId)
+            console.log('[confirmAssignTask] 更新后的任务状态:', updatedTask?.status, '执行者:', updatedTask?.assignee_name)
+            if (updatedTask && updatedTask.status === '待接取') {
+              console.warn('[confirmAssignTask] ⚠️ 状态未更新，再次尝试加载')
+              await new Promise(resolve => setTimeout(resolve, 500))
+              await this.loadProjectTasks()
+              this.$forceUpdate()
+            }
+          } else {
+            alert('分配任务失败：' + (response.msg || '未知错误'))
           }
-        } else {
-          alert('分配任务失败：' + (response.msg || '未知错误'))
+        } catch (error) {
+          console.error('[confirmAssignTask] 分配任务失败:', error)
+          alert('分配任务失败，请稍后重试')
         }
-      } catch (error) {
-        console.error('[confirmAssignTask] 分配任务失败:', error)
-        alert('分配任务失败，请稍后重试')
-      }
+      })
     },
     // ==================== 任务提交相关方法 (新) ====================
     /**
@@ -4380,7 +4400,7 @@ export default {
     /**
      * 任务提交成功回调
      */
-    handleTaskSubmitSuccess(submission) {
+    async handleTaskSubmitSuccess(submission) {
       console.log('任务提交成功:', submission)
       this.showSuccessToast('任务提交成功，等待审核')
       // 立即更新当前任务的hasSubmission标志
@@ -4396,7 +4416,9 @@ export default {
       // 关闭弹窗
       this.closeTaskSubmissionModal()
       // 刷新任务列表（后台同步）
-      this.loadProjectTasks()
+      await this.withOperationLoading('正在刷新任务列表...', async () => {
+        await this.loadProjectTasks()
+      })
     },
     /**
      * 加载任务提交历史

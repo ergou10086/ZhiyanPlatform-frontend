@@ -11,6 +11,7 @@ export default defineUserConfig({
   description: '智研平台——高校科研团队协作与成果管理平台 - 帮助文档',
 
   // 设置 base 路径，使文档可以通过 /docs/ 访问
+  //base: '/docs/',
   base: '/docs/',
 
   // 设置构建输出目录到主项目的 public/docs
@@ -24,7 +25,8 @@ export default defineUserConfig({
     logo: 'logo.svg',
     navbar: [
       { text: '首页', link: '/' },
-      { text: '快速开始', link: '/get-started.html' }
+      { text: '快速开始', link: '/get-started.html' },
+      { text: '演示视频', link: '/videos/' }
     ],
     sidebar: {
       '/': [
@@ -32,6 +34,14 @@ export default defineUserConfig({
           text: '指南',
           children: [
             '/get-started.md'
+          ]
+        }
+      ],
+      '/videos/': [
+        {
+          text: '演示视频',
+          children: [
+            '/introduction.md'
           ]
         }
       ]
