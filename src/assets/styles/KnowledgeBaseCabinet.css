@@ -431,6 +431,7 @@
   display: flex; 
   flex-direction: column; 
   min-height: 0;
+  flex: 1;
   box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.04),
     0 1px 4px rgba(0, 0, 0, 0.02),
@@ -439,7 +440,7 @@
   backdrop-filter: blur(20px);
   position: relative;
   overflow-x: hidden;
-  overflow-y: hidden;
+  overflow-y: visible;
 }
 
 .cabinet-view .editor-pane::before {
@@ -511,15 +512,24 @@
 }
 
 /* ========== 编辑器 ========== */
+.cabinet-view .editor-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
 .cabinet-view .editor { 
-  flex: 1; 
+  width: 100%;
+  flex: 1;
+  min-height: 400px;
   border: 2px solid #e2e8f0; 
   border-radius: 16px; 
   padding: 24px; 
   font-size: 15px;
   line-height: 1.8;
   resize: none;
-  min-height: 0;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   box-shadow: 
@@ -531,6 +541,7 @@
   word-break: break-word;
   overflow-wrap: break-word;
   white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 .cabinet-view .editor.readonly {
@@ -1815,4 +1826,17 @@
 
 .dark-mode .cabinet-view .upload-dialog-overlay {
   background: rgba(15, 23, 42, 0.8);
+}
+
+/* 编辑区域高亮按钮 */
+.document-actions .action-btn.active {
+  background: linear-gradient(135deg, #5EB6E4 0%, #0044CC 100%);
+  color: white;
+  border-color: #5EB6E4;
+  box-shadow: 0 2px 8px rgba(94, 182, 228, 0.3);
+}
+
+.document-actions .action-btn.active:hover {
+  background: linear-gradient(135deg, #0044CC 0%, #003399 100%);
+  box-shadow: 0 4px 12px rgba(94, 182, 228, 0.4);
 }

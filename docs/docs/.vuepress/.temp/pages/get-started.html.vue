@@ -162,6 +162,60 @@
 <p><img src="@source/get-started/image-20251223162304293.png" alt="image-20251223162304293"></p>
 <p>导出全部的操作日志太多了，你可以导出本周的全部操作日志，然后表格内按星期几分开</p>
 <h2 id="任务部分" tabindex="-1"><a class="header-anchor" href="#任务部分"><span>任务部分</span></a></h2>
+<h3 id="任务查看" tabindex="-1"><a class="header-anchor" href="#任务查看"><span>任务查看</span></a></h3>
+<p>进入一个公开的项目，你可以在任务列表查看到他们的任务</p>
+<p><img src="@source/get-started/image-20251225112810715.png" alt="image-20251225112810715"></p>
+<p>进入一个你加入的项目，在任务列表不仅可以查看任务，而且也可以进行对应的操作</p>
+<p><img src="@source/get-started/image-20251225112854425.png" alt="image-20251225112854425"></p>
+<p>点击任务的信息，如果你是任务的创建者，还可以进行修改</p>
+<p><img src="@source/get-started/image-20251225114348362.png" alt="image-20251225114348362"></p>
+<p>当然可以删除，但是任务删除是真删除，而且可能引起大量的业务链断裂，请妥善处理</p>
+<h3 id="任务新建" tabindex="-1"><a class="header-anchor" href="#任务新建"><span>任务新建</span></a></h3>
+<p>项目内的任何人都可以新建任务，新建任务需要填写的内容如下</p>
+<p><img src="@source/get-started/image-20251225112909367.png" alt="image-20251225112909367"></p>
+<p>里程碑任务就是项目内部的重要人物，将会在项目的仪表盘中以时序图的形式展示</p>
+<p>请妥善填写优先级，这涉及到消息提醒的强度等相关内容</p>
+<p>截止日期只会无法提交任务，不会影响其他内容，所以请妥善设计任务的截止日期</p>
+<p><img src="@source/get-started/image-20251225114330269.png" alt="image-20251225114330269"></p>
+<h3 id="任务的接取与分配" tabindex="-1"><a class="header-anchor" href="#任务的接取与分配"><span>任务的接取与分配</span></a></h3>
+<p>任务被创建，那么肯定要有人来处理任务，任务的处理有两种方式，成员主动接取任务与任务创建者去分配任务</p>
+<p>接取任务就可以查看未满员的任务，可以进行接取，当然谁都可以接取，包括任务的创建者</p>
+<p><img src="@source/get-started/image-20251225114433126.png" alt="image-20251225114433126"></p>
+<p>任务分配只能是任务的创建者分配给其他成员，期望其任务的完成</p>
+<p><img src="@source/get-started/image-20251225114533590.png" alt="image-20251225114533590"></p>
+<p>已经接取的成员不能被分配</p>
+<p><img src="@source/get-started/image-20251225114554933.png" alt="image-20251225114554933"></p>
+<p>可以点击任务的详情，查看这个任务的人员分布情况</p>
+<p><img src="@source/get-started/image-20251225114611698.png" alt="image-20251225114611698"></p>
+<p>任务只要有人接取，那么就可以开始进行，不必要等待人满</p>
+<h3 id="任务提交" tabindex="-1"><a class="header-anchor" href="#任务提交"><span>任务提交</span></a></h3>
+<p>任务的执行者都可以进行任务提交，两处按钮均有效</p>
+<p><img src="@source/get-started/image-20251225114710534.png" alt="image-20251225114710534"></p>
+<p>涉及到任务合作的，请在线下妥善合作，这涉及到后面的任务审核的业务</p>
+<p>提交任务的填写的信息请妥当填写，这涉及到后面的任务审核的业务</p>
+<p><img src="@source/get-started/image-20251225114736893.png" alt="image-20251225114736893"></p>
+<p>可以上传或不上传附件</p>
+<p>任务提交后，没有审核结果的时候，可以进行更改</p>
+<p><img src="@source/get-started/image-20251225114850076.png" alt="image-20251225114850076"></p>
+<p><img src="@source/get-started/image-20251225114926601.png" alt="image-20251225114926601"></p>
+<p>提交任务后，任务的状态会自动更改为待审核</p>
+<p><img src="@source/get-started/image-20251225114948390.png" alt="image-20251225114948390"></p>
+<p>同时任务即使被提交，任务信息也是支持再编辑的，为了保持数据的活动性，但是这个业务容易引起歧义，妥善使用</p>
+<h3 id="任务审核" tabindex="-1"><a class="header-anchor" href="#任务审核"><span>任务审核</span></a></h3>
+<p>在我的活动部分，可以看到我发布的任务，我需要审核的任务和我待审核的任务</p>
+<p><img src="@source/get-started/image-20251225115128224.png" alt="image-20251225115128224"></p>
+<p>可以在这里查看项目情况，下载附件，提交说明等，来给出对应的审核结果</p>
+<p>任务的审核人也就是任务的创建者，如果任务的创建者同时也接取了任务，那么也需要自己给自己审核一下</p>
+<p><img src="@source/get-started/image-20251225115217258.png" alt="image-20251225115217258"></p>
+<p>批准通过或者拒绝都会有对应的消息提醒</p>
+<p><img src="@source/get-started/image-20251225115339767.png" alt="image-20251225115339767"></p>
+<p>多人完成的任务中，如果每个人都提交了对应的内容且不同，那么如果一个人通过的审核，任务就会过审，状态信息就会被改变</p>
+<p><img src="@source/get-started/image-20251225115453288.png" alt="image-20251225115453288"></p>
+<p><img src="@source/get-started/image-20251225115508702.png" alt="image-20251225115508702"></p>
+<p>审核通过的任务会自动更改状态为已完成，同时写入操作日志等内容，已完成的任务无法再编辑其任务信息和进行成员调动，但是查看不受限制，删除也可以删除（为什么要删除一个已完成的任务，每个任务都很珍贵）</p>
+<p><img src="@source/get-started/image-20251225120303765.png" alt="image-20251225120303765"></p>
+<p>不推荐手动调整任务的状态为已完成，但是为了必要的情况保留了这个功能。但是请以任务的审核情况为标准</p>
+<p>但是待接取的任务无法设置其状态，总不能啥也不干就偷偷设置成已完成吧</p>
 <h2 id="知识库部分" tabindex="-1"><a class="header-anchor" href="#知识库部分"><span>知识库部分</span></a></h2>
 <h3 id="主页" tabindex="-1"><a class="header-anchor" href="#主页"><span>主页</span></a></h3>
 <p>知识库的主页用于展示项目内成果总数、知识文档、团队成员以及针对知识库部分的，全员的最近活动</p>
@@ -240,11 +294,12 @@
 <p><img src="@source/get-started/image-20251223153753694.png" alt="image-20251223153753694"></p>
 <p><img src="@source/get-started/image-20251223153802971.png" alt="image-20251223153802971"></p>
 <h4 id="_2-已上传文档" tabindex="-1"><a class="header-anchor" href="#_2-已上传文档"><span>2.已上传文档</span></a></h4>
-<p>上传成功的 文档会在这里显示</p>
+<p>上传成功的文件会在这里显示</p>
 <p><img src="@source/get-started/image-20251223153827542.png" alt="image-20251223153827542"></p>
-<h4 id="_3-发送" tabindex="-1"><a class="header-anchor" href="#_3-发送"><span>3.发送</span></a></h4>
-<p>上传文件后，ai会给出相应的回答</p>
-<p>注意，该部分AI支持查阅文献操作，可以进行尝试，但是信息来源高度依赖于知网，请保证您有对应的需求</p>
+<p>可以在本轮对话中携带文件进行对话，AI会结合文件的内容及其AI自己的知识库内容进行回复</p>
+<h4 id="_3-发送消息" tabindex="-1"><a class="header-anchor" href="#_3-发送消息"><span>3.发送消息</span></a></h4>
+<p>上传文件后，ai会结合上传的文件内容给出相应的回答</p>
+<p>可以通过关键词，触发该部分AI的文献查询功能，但是请注意，该文献查询严格依赖于知网，请保证你有对应的访问能力</p>
 <h4 id="_4-思维导图部分" tabindex="-1"><a class="header-anchor" href="#_4-思维导图部分"><span>4.思维导图部分</span></a></h4>
 <p>可以输入指定的提示词，让AI针对你的文件内容生成思维导图，如果你让ai生成思维导图回到该区域显示，点击上方按钮可以刷新或收起</p>
 <p><img src="@source/get-started/image-20251223153421415.png" alt="image-20251223153421415"></p>
@@ -254,8 +309,30 @@
 <p>可以查看和ai的历史对话记录</p>
 <p><img src="@source/get-started/image-20251223153457608.png" alt="image-20251223153457608"></p>
 <h4 id="_6-新建对话" tabindex="-1"><a class="header-anchor" href="#_6-新建对话"><span>6.新建对话</span></a></h4>
-<p>可以和ai开始新对话</p>
+<p>可以和ai开始新对话，新对话不会保存对应的文件等内容</p>
+<p>dify 中的 conversationId 也会变化，所以是一轮完全的新对话</p>
 <h2 id="ai实验分析助手" tabindex="-1"><a class="header-anchor" href="#ai实验分析助手"><span>AI实验分析助手</span></a></h2>
+<h3 id="普通对话" tabindex="-1"><a class="header-anchor" href="#普通对话"><span>普通对话</span></a></h3>
+<p>输入问题，直接发送即可，如果误触或者提前感知AI回复内容不合需求，可以停止AI输出，中断本次响应</p>
+<p><img src="@source/get-started/image-20251225110213428.png" alt="image-20251225110213428"></p>
+<h3 id="文件相关对话" tabindex="-1"><a class="header-anchor" href="#文件相关对话"><span>文件相关对话</span></a></h3>
+<p>该AI支持长轮文本携带功能，只要你不在左侧已上传文件部分删除掉你上传的文件，上传到已上传文件部分的文件会一直在本轮对话中生效，但是请注意，请合理使用该功能，如果携带文件过多，可能会影响回复的能力</p>
+<p><img src="@source/get-started/image-20251225110455574.png" alt="image-20251225110455574"></p>
+<h3 id="任务成果草稿生成" tabindex="-1"><a class="header-anchor" href="#任务成果草稿生成"><span>任务成果草稿生成</span></a></h3>
+<p>这是AI实验分析助手的核心能力，其中，AI 实验分析助手能够根据你选择的任务，自动生成对应的成果然后上传</p>
+<p><img src="@source/get-started/image-20251225110711477.png" alt="image-20251225110711477"></p>
+<p>首先，选择项目，然后选择项目中已经完成任务，目前推荐一次只选择一个任务进行生成，多任务处理会出现混淆的问题</p>
+<p><img src="@source/get-started/image-20251225111153673.png" alt="image-20251225111153673"></p>
+<p>其中，会在这里展示已经完成任务关联的附件</p>
+<p><img src="@source/get-started/image-20251225111141423.png" alt="image-20251225111141423"></p>
+<p>补充要求会作为额外的提示词来加入到AI的本轮生成中，所以在这里你可以指定的一些自定义的内容</p>
+<p><img src="@source/get-started/image-20251225111350499.png" alt="image-20251225111350499"></p>
+<p>点击生成成果旁边的生成按钮就可以生成，可以二次手动编辑，导出，重新生成和保存为成果</p>
+<p><img src="@source/get-started/image-20251225111459364.png" alt="image-20251225111459364"></p>
+<p>保存为成果就会自动生成对应的成果，并将AI生成成果作为成果中的一个文件去自动上传</p>
+<p><img src="@source/get-started/image-20251225111753689.png" alt="image-20251225111753689"></p>
+<p>强烈推荐AI生成后手动修改一些信息，否则随机生成的内容长期放置容易混淆</p>
+<p><img src="@source/get-started/image-20251225111810259.png" alt="image-20251225111810259"></p>
 <h2 id="我的活动" tabindex="-1"><a class="header-anchor" href="#我的活动"><span>我的活动</span></a></h2>
 <p>我的活动部分，可以查看与我相关的任务，任务的各统计部分会以仪表盘的形式呈现出来</p>
 <p>而且可以查看与你相关的各个项目</p>
