@@ -1447,6 +1447,580 @@
   color: #6c757d;
 }
 
+/* === 从 ProjectDetail.vue 迁移的任务/统计/里程碑样式（原 <style scoped>） === */
+/* 任务状态下拉框按钮禁用样式 */
+.task-status-btn.disabled,
+.task-status-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #f3f4f6 !important;
+  color: #9ca3af !important;
+}
+
+.task-status-btn.disabled:hover,
+.task-status-btn:disabled:hover {
+  transform: none;
+  filter: none;
+  opacity: 0.6;
+}
+
+/* 任务列表底部"更多"按钮靠左对齐 */
+.more-button-container {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 16px;
+  padding-left: 0;
+}
+
+/* 任务已满员状态样式 */
+.assign-status-badge.task-full {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 任务参与人数显示样式 */
+.task-participant-count {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* 任务元信息区域 - 确保换行显示 */
+.task-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* 任务操作区域 - 独立一行，不与上方文本重叠 */
+.task-assign-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  clear: both;
+}
+
+/* 分配任务模态框 - 当前执行者状态 */
+.task-assignee-status {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.task-assignee-status .status-label {
+  font-weight: 500;
+  color: #374151;
+  margin-right: 8px;
+}
+
+.task-assignee-status .status-value {
+  color: #6b7280;
+}
+
+.task-assignee-status .status-count {
+  color: #10b981;
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+/* 已分配成员样式 */
+.member-select-item.already-assigned {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+}
+
+.already-assigned-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #10b981;
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* 任务详情模态框按钮样式 */
+.btn-success {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-success:active {
+  transform: translateY(0);
+}
+
+/* 接取人数显示样式 */
+.text-success {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.text-warning {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.task-full-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.overdue-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.task-info-icon.participants {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* 统计信息图标样式 */
+.task-info-icon.statistics {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* 统计信息网格布局 */
+.task-statistics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.stat-label {
+  color: #6b7280;
+  font-weight: 400;
+}
+
+.stat-value {
+  color: #1f2937;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* 可点击的卡片样式 */
+.task-info-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-info-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.click-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* 统计详情弹窗样式 */
+.statistics-modal {
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.statistics-modal-body {
+  padding: 24px;
+}
+
+.statistics-task-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.statistics-section {
+  margin-bottom: 24px;
+}
+
+.statistics-section .section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.statistics-section .section-header svg {
+  color: #8b5cf6;
+}
+
+.statistics-section .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+/* 统计概览卡片区域 */
+.stats-overview {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.stat-card-label {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #8b5cf6;
+}
+
+.stat-card-value.approved {
+  color: #10b981;
+}
+
+/* 执行者列表样式 */
+.assignees-list {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.assignee-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.assignee-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+}
+
+.assignee-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* 头像图片容器 */
+.assignee-avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background-color: #f3f4f6;
+}
+
+/* 头像图片 */
+.assignee-avatar-img .avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.assignee-info {
+  flex: 1;
+}
+
+.assignee-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.assignee-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.assignee-type {
+  padding: 2px 8px;
+  background-color: #ddd6fe;
+  color: #6d28d9;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.assignee-time {
+  color: #9ca3af;
+}
+
+/* 提交详情样式 */
+.submission-details {
+  background-color: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.submission-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.submission-meta .meta-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.submission-meta .meta-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.submission-meta .meta-value {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.status-approved {
+  color: #10b981 !important;
+}
+
+.submission-content {
+  margin-bottom: 16px;
+}
+
+.content-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.content-text {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  background-color: white;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  white-space: pre-wrap;
+}
+
+.submission-attachments {
+  margin-top: 16px;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background-color: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+}
+
+.attachment-item:hover {
+  background-color: #f3f4f6;
+  border-color: #8b5cf6;
+}
+
+.attachment-item svg {
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+.attachment-name {
+  font-size: 13px;
+  color: #4b5563;
+  text-decoration: none;
+  flex: 1;
+}
+
+.attachment-name:hover {
+  color: #8b5cf6;
+  text-decoration: underline;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+/* 里程碑开关样式 */
+.form-field-switch {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
+}
+
+.switch-toggle {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.switch-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e5e7eb;
+  border-radius: 24px;
+  transition: all 0.3s ease;
+}
+
+.switch-slider::before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.switch-toggle input:checked + .switch-slider {
+  background-color: #3b82f6;
+}
+
+.switch-toggle input:checked + .switch-slider::before {
+  transform: translateX(20px);
+}
+
+.switch-toggle input:focus + .switch-slider {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+/* 里程碑任务卡片样式 */
+.milestone-card {
+  grid-column: span 2;
+}
+
+.milestone-card .task-info-icon.milestone {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.milestone-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.milestone-switch-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.milestone-status-text {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
 /* 下拉菜单样式 */
 .dropdown {
   position: relative;

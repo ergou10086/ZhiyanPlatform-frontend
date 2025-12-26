@@ -13,6 +13,7 @@ import KnowledgeBaseAI from '../views/KnowledgeBaseAI.vue'
 import AIAssistant from '../views/AIAssistant.vue'
 import Profile from '../views/Profile.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
+import ProjectTransfer from '../views/ProjectTransfer.vue'
 import ProjectKnowledge from '../views/ProjectKnowledge.vue'
 import ProjectDashboard from '../views/ProjectDashboard.vue'
 import ProjectOperationLog from '../views/ProjectOperationLog.vue'
@@ -108,6 +109,11 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile
+  },
+  {
+    path: '/project-transfer',
+    name: 'ProjectTransfer',
+    component: ProjectTransfer
   },
   {
     path: '/my-activity',
@@ -242,7 +248,8 @@ router.beforeEach((to, from, next) => {
     '/project-dashboard',
     '/project-operation-log',
     '/project',
-    '/my-activity'
+    '/my-activity',
+    '/project-transfer'
   ]
   
   const needsAuth = authRequiredPages.some(page => to.path.startsWith(page))

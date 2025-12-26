@@ -1469,6 +1469,12 @@ export default {
       // 同时重新加载2FA状态
       this.load2FAStatus()
     })
+    if (this.$route && this.$route.query && this.$route.query.afterTransfer === '1') {
+      this.showSuccessToast('项目移交已完成，请确认注销账号')
+      this.$nextTick(() => {
+        this.handleDeleteAccount()
+      })
+    }
   },
   beforeRouteUpdate(to, from, next) {
     const isReturningToSelf = !!from.query.userId && (typeof to.query.userId === 'undefined' || to.query.userId === null || to.query.userId === '')
@@ -3628,9 +3634,46 @@ export default {
     },
 
     // ===== 账户注销相关方法 =====
-    handleDeleteAccount() {
+    async handleDeleteAccount() {
       if (!this.isLoggedIn || !this.isViewingSelf) return
-      
+
+      if (this.$route && this.$route.query && this.$route.query.afterTransfer === '1') {
+        this.showDeleteAccountModal = true
+        this.deleteAccountVerification = ''
+        this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'
+        this.$nextTick(() => {
+          if (this.$refs.deleteAccountVerificationInput) {
+            this.$refs.deleteAccountVerificationInput.focus()
+          }
+        })
+        return
+      }
+
+      try {
+        const response = await projectAPI.countMyCreatedProjects().catch(error => {
+          console.warn('[Profile] 统计我创建的项目数量失败:', error)
+          return null
+        })
+        let createdCount = 0
+        if (response && response.code === 200) {
+          if (typeof response.data === 'number') {
+            createdCount = response.data
+          } else if (response.data && typeof response.data.count === 'number') {
+            createdCount = response.data.count
+          }
+        }
+        if (createdCount > 0) {
+          const confirmMessage = `检测到你创建了 ${createdCount} 个项目。为了避免项目无人负责，注销账号前需要先完成项目移交。\n\n是否前往“项目移交”页面进行处理？`
+          const goTransfer = window.confirm(confirmMessage)
+          if (goTransfer && (!this.$route || this.$route.path !== '/project-transfer')) {
+            this.$router.push({ path: '/project-transfer' })
+          }
+          return
+        }
+      } catch (error) {
+        console.error('[Profile] 检查我创建的项目数量时出错:', error)
+      }
+
       this.showDeleteAccountModal = true
       this.deleteAccountVerification = ''
       this.deleteAccountVerificationType = this.twoFactorEnabled ? '2fa' : 'username'

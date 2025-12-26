@@ -33,32 +33,27 @@ apiInstance.interceptors.request.use(
 // 响应拦截器
 apiInstance.interceptors.response.use(
   response => {
-    console.log('✅ 头像API成功响应:', response.status)
-    console.log('头像API响应数据:', response.data)
-    console.log('头像API完整数据:', JSON.stringify(response.data, null, 2))
-    
-    // 验证响应结构
-    if (response.data && response.data.code) {
-      console.log('✅ 响应code:', response.data.code)
-      console.log('✅ 响应msg:', response.data.msg)
-      console.log('✅ 响应data存在:', !!response.data.data)
-      if (response.data.data) {
-        console.log('✅ data中的minio_url:', response.data.data.minio_url)
-        console.log('✅ data中的cdn_url:', response.data.data.cdn_url)
-      }
-    }
-    
+    // 仅输出轻量级调试信息，避免打印完整的头像二进制/Base64 数据
+    const simpleData = response && response.data ? response.data : null
+    const code = simpleData && typeof simpleData.code !== 'undefined' ? simpleData.code : undefined
+    const hasData = !!(simpleData && simpleData.data)
+    console.log('✅ 头像API成功响应:', response.status, 'code:', code, 'hasData:', hasData)
+
     return response.data
   },
   error => {
     console.error('❌ 头像API错误:', error)
-    
+
     if (error.response) {
       const { status, data } = error.response
+      // 避免直接打印包含大体积头像数据的完整响应体
       console.error('服务器错误 status:', status)
-      console.error('服务器错误 data:', data)
-      console.error('服务器错误完整数据:', JSON.stringify(data, null, 2))
-      
+      if (data && typeof data === 'object') {
+        console.error('服务器错误 data.code:', data.code, 'msg:', data.msg)
+      } else {
+        console.error('服务器错误 data(简要):', data)
+      }
+
       if (status === 401) {
         // token过期，跳转到登录页
         localStorage.removeItem('access_token')
