@@ -95,6 +95,10 @@
             <img :src="orcidLogo" alt="ORCID" class="orcid-img" />
             使用 ORCID 登录
           </button>
+
+          <button type="button" class="qrcode-login-btn" @click="openQRCodeLogin" :disabled="qrLoading">
+            {{ qrLoading ? '生成二维码中...' : '扫码登录' }}
+          </button>
           
           <div class="register-link">
             <span>还没有账号？</span>
@@ -107,6 +111,29 @@
     <!-- 成功提示Toast -->
     <div v-if="showToast" class="success-toast">
       {{ toastMessage }}
+    </div>
+
+    <div v-if="showQRCodeModal" class="qrcode-modal-mask" @click.self="closeQRCodeLogin">
+      <div class="qrcode-modal">
+        <div class="qrcode-modal-header">
+          <div class="qrcode-modal-title">扫码登录</div>
+          <button type="button" class="qrcode-modal-close" @click="closeQRCodeLogin">×</button>
+        </div>
+        <div class="qrcode-modal-body">
+          <div v-if="qrLoading" class="qrcode-modal-tip">二维码生成中...</div>
+          <div v-else-if="qrError" class="qrcode-modal-tip">{{ qrError }}</div>
+          <template v-else>
+            <img v-if="qrImageSrc" :src="qrImageSrc" class="qrcode-image" alt="QRCode" />
+            <div class="qrcode-modal-tip">
+              <div>请使用移动端个人信息页的“扫码登录(PC)”扫描此二维码</div>
+              <div v-if="qrStatusText" class="qrcode-status">当前状态：{{ qrStatusText }}</div>
+            </div>
+          </template>
+        </div>
+        <div class="qrcode-modal-footer">
+          <button type="button" class="qrcode-modal-btn" @click="refreshQRCode" :disabled="qrLoading">刷新二维码</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -139,7 +166,16 @@ export default {
       toastMessage: '',
       animateLogo: false,
       isVerified: false, // 滑动验证是否通过
-      orcidLogo
+      orcidLogo,
+
+      showQRCodeModal: false,
+      qrLoading: false,
+      qrError: '',
+      qrCodeId: '',
+      qrImageSrc: '',
+      qrStatusText: '',
+      qrPollTimer: null,
+      qrPollLock: false
     }
   },
   mounted() {
@@ -151,6 +187,9 @@ export default {
       this.animateLogo = true
       localStorage.setItem('authPagesAnimated', 'true')
     }
+  },
+  beforeDestroy() {
+    this.stopQRCodePolling()
   },
   watch: {
     'loginForm.email': {
@@ -368,6 +407,123 @@ export default {
       } catch (error) {
         console.error('❌ ORCID登录失败:', error)
         alert('ORCID登录失败：' + (error.message || '网络错误'))
+      }
+    }
+    ,
+
+    async openQRCodeLogin() {
+      this.showQRCodeModal = true
+      await this.refreshQRCode()
+    },
+
+    closeQRCodeLogin() {
+      this.showQRCodeModal = false
+      this.qrError = ''
+      this.qrStatusText = ''
+      this.qrCodeId = ''
+      this.qrImageSrc = ''
+      this.stopQRCodePolling()
+    },
+
+    stopQRCodePolling() {
+      if (this.qrPollTimer) {
+        clearInterval(this.qrPollTimer)
+        this.qrPollTimer = null
+      }
+      this.qrPollLock = false
+    },
+
+    async refreshQRCode() {
+      this.stopQRCodePolling()
+      this.qrError = ''
+      this.qrStatusText = ''
+      this.qrLoading = true
+      try {
+        const res = await authAPI.generateLoginQRCode()
+        if (!(res && res.code === 200 && res.data)) {
+          this.qrError = (res && (res.msg || res.message)) || '生成二维码失败'
+          return
+        }
+
+        this.qrCodeId = res.data.qrCodeId
+        const base64 = res.data.qrCodeBase64
+        if (base64) {
+          this.qrImageSrc = base64.startsWith('data:image') ? base64 : `data:image/png;base64,${base64}`
+        } else {
+          this.qrImageSrc = ''
+        }
+
+        this.qrStatusText = this.mapQRCodeStatus(res.data.status)
+        this.startQRCodePolling()
+      } catch (e) {
+        this.qrError = formatApiError(e)
+      } finally {
+        this.qrLoading = false
+      }
+    },
+
+    mapQRCodeStatus(status) {
+      if (!status) return ''
+      const map = {
+        PENDING: '待扫描',
+        SCANNED: '已扫描，等待确认',
+        CONFIRMED: '已确认',
+        EXPIRED: '已过期',
+        CANCELLED: '已取消'
+      }
+      return map[status] || String(status)
+    },
+
+    startQRCodePolling() {
+      if (!this.qrCodeId) return
+      this.qrPollTimer = setInterval(() => {
+        this.pollQRCodeStatus()
+      }, 2000)
+    },
+
+    async pollQRCodeStatus() {
+      if (!this.qrCodeId || this.qrPollLock) return
+      this.qrPollLock = true
+      try {
+        const res = await authAPI.getLoginQRCodeStatus(this.qrCodeId)
+        if (!(res && res.code === 200 && res.data)) {
+          return
+        }
+        const status = res.data.status
+        this.qrStatusText = this.mapQRCodeStatus(status)
+
+        if (status === 'EXPIRED' || status === 'CANCELLED') {
+          this.stopQRCodePolling()
+          this.qrError = status === 'EXPIRED' ? '二维码已过期，请刷新' : '移动端已取消授权'
+          return
+        }
+
+        if (status === 'CONFIRMED') {
+          this.stopQRCodePolling()
+          const loginRes = await authAPI.getQRCodeLoginResult(this.qrCodeId)
+          if (loginRes && loginRes.code === 200 && loginRes.data) {
+            const loginData = {
+              accessToken: loginRes.data.accessToken,
+              refreshToken: loginRes.data.refreshToken,
+              rememberMeToken: loginRes.data.rememberMeToken,
+              userInfo: loginRes.data.user
+            }
+            saveLoginData(loginData)
+            this.showSuccessToast('扫码登录成功！')
+            this.$root.$emit('userInfoUpdated')
+            this.closeQRCodeLogin()
+            setTimeout(() => {
+              this.$router.replace('/home')
+            }, 600)
+          } else {
+            this.qrError = (loginRes && (loginRes.msg || loginRes.message)) || '获取登录结果失败'
+          }
+        }
+      } catch (e) {
+        // 轮询时不弹 alert，避免刷屏
+        console.error('轮询二维码状态失败:', e)
+      } finally {
+        this.qrPollLock = false
       }
     }
   }

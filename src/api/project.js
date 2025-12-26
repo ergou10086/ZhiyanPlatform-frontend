@@ -166,7 +166,7 @@ export const projectAPI = {
    */
   getMyCreatedProjects(page = 0, size = 10) {
     console.log('[projectAPI.getMyCreatedProjects] 获取我创建的项目')
-    return api.get('/zhiyan/projects/my-created', {
+    return api.get('/zhiyan/projects/ownership/my-owned', {
       params: { page, size },
       timeout: 60000 // 列表查询可能需要更长时间，设置为60秒
     })
@@ -384,6 +384,36 @@ export const projectAPI = {
     // 后端使用 @RequestParam，需要通过 params 传递参数
     return api.put(`/zhiyan/projects/${projectId}/members/${userId}/role`, null, {
       params: { newRole: role }
+    })
+  },
+
+  /**
+   * 移交单个项目的所有权
+   * @param {Number|String} projectId - 项目ID
+   * @param {Number|String} newOwnerId - 新的项目负责人用户ID
+   */
+  transferProjectOwnership(projectId, newOwnerId) {
+    console.log('[projectAPI.transferProjectOwnership] 移交项目所有权, 项目ID:', projectId, '新负责人ID:', newOwnerId)
+    const pid = Number(projectId)
+    const uid = Number(newOwnerId)
+    return api.post(`/zhiyan/projects/${pid}/transfer-owner`, {
+      projectId: pid,
+      newOwnerId: uid
+    })
+  },
+
+  /**
+   * 批量移交项目所有权
+   * @param {Array<{ projectId: Number|String, newOwnerId: Number|String }>} transfers
+   */
+  transferProjectOwnershipBatch(transfers) {
+    console.log('[projectAPI.transferProjectOwnershipBatch] 批量移交项目所有权, 数量:', Array.isArray(transfers) ? transfers.length : 0)
+    const normalized = (transfers || []).map(item => ({
+      projectId: Number(item.projectId),
+      newOwnerId: Number(item.newOwnerId)
+    }))
+    return api.post('/zhiyan/projects/ownership/transfer-batch', {
+      transfers: normalized
     })
   },
 
