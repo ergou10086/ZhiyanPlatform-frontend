@@ -1,7 +1,7 @@
 ---
 home: true
 title: 智研平台帮助文档
-heroImage: /logo.png
+heroImage: /logo2.png
 heroText: 智研平台
 tagline: 高校科研团队协作与成果管理平台
 actions:

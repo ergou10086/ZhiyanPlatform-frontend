@@ -36,7 +36,6 @@
               <li><a :href="docsBaseUrl" class="footer-link">帮助文档</a></li>
               <li><a :href="docsBaseUrl + 'get-started.html'" class="footer-link">快速开始</a></li>
               <li><a :href="apiDocsUrl" target="_blank" rel="noopener" class="footer-link">API文档</a></li>
-              <li><a :href="usageGuideUrl" class="footer-link">使用指南</a></li>
             </ul>
           </div>
 

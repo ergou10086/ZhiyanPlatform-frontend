@@ -6,7 +6,7 @@
     <div class="change-email-left">
       <div class="logo-section">
         <div class="logo-placeholder" :class="{ animated: animateLogo }">
-          <img src="@/assets/image/logo.svg" alt="Logo" class="logo-img" />
+          <img src="@/assets/image/logo.png" alt="Logo" class="logo-img" />
         </div>
         <h1 class="system-title" :class="{ animated: animateLogo }">
           高校科研团队协作与成果管理平台
