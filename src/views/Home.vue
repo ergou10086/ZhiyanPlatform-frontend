@@ -425,6 +425,9 @@ export default {
     }).catch(err => {
       console.warn('科幻背景初始化失败，已忽略：', err)
     })
+    
+    // 通知消息提醒组件首页已激活，自动预加载消息
+    this.$root.$emit('homePageActivated')
   },
   // 如果使用 keep-alive，从其他页面返回时刷新数据
   activated() {
@@ -436,6 +439,8 @@ export default {
     ]).catch(error => {
       console.error('刷新数据时出错:', error)
     })
+    // 通知消息提醒组件首页已激活，自动预加载消息
+    this.$root.$emit('homePageActivated')
   },
   beforeDestroy() {
     // 移除事件监听

@@ -123,8 +123,13 @@ export default {
     // 监听路由变化，切换页面时重新加载消息
     '$route'(to, from) {
       if (this.isHomePage) {
-        // 路由切换时在后台静默刷新，不打断用户当前查看状态
-        this.loadProjectMessages(true)
+        // 路由切换到首页时，自动预加载消息（静默模式）
+        const token = localStorage.getItem('access_token')
+        const userInfo = localStorage.getItem('user_info')
+        const isAuthenticated = !!(token && userInfo)
+        if (isAuthenticated) {
+          this.loadProjectMessages(true)
+        }
       }
     }
   },  
@@ -141,23 +146,44 @@ export default {
       window.addEventListener('focus', this.handleWindowFocus)
       document.addEventListener('visibilitychange', this.handleVisibilityChange)
     }
+    // 监听首页激活事件，自动预加载消息
+    this.$root.$on('homePageActivated', this.handleHomePageActivated)
   },
   beforeDestroy() {
     window.removeEventListener('focus', this.handleWindowFocus)
     document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+    this.$root.$off('homePageActivated', this.handleHomePageActivated)
   },
   methods: {
-    // 鼠标移入悬浮入口，展开并尝试刷新一次最新消息
+    // 鼠标移入悬浮入口，展开并显示已加载的消息
     handleMouseEnter() {
       this.isHovered = true
       const token = localStorage.getItem('access_token')
       const userInfo = localStorage.getItem('user_info')
       const isAuthenticated = !!(token && userInfo)
       if (!isAuthenticated || !this.isHomePage) return
-      // 避免重复请求：只在当前没有加载中时触发一次刷新
+      
+      // 如果已经有数据，直接显示，不重新加载
+      if (this.projectMessages.length > 0) {
+        // 已有数据，直接显示，无需加载
+        return
+      }
+      
+      // 如果没有数据且不在加载中，才触发加载（静默模式，避免闪烁）
       if (!this.isLoadingMessages) {
-        // 鼠标悬停时是用户主动查看，保留可见的加载态
-        this.loadProjectMessages(false)
+        this.loadProjectMessages(true)
+      }
+    },
+    // 处理首页激活事件，自动预加载消息
+    handleHomePageActivated() {
+      if (this.isHomePage) {
+        const token = localStorage.getItem('access_token')
+        const userInfo = localStorage.getItem('user_info')
+        const isAuthenticated = !!(token && userInfo)
+        if (isAuthenticated) {
+          // 首页激活时，静默预加载消息
+          this.loadProjectMessages(true)
+        }
       }
     },
     // 页面从后台切回或窗口聚焦时静默刷新消息
