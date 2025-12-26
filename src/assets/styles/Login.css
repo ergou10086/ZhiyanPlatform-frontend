@@ -463,25 +463,27 @@
 
 .login-container .qrcode-login-btn {
   width: 100%;
-  padding: 12px 24px;
-  background: #ffffff;
-  color: #1f2937;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 0;
+  background: transparent;
+  color: #3B82F6;
+  border: none;
+  border-radius: 0;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
+  padding-right: 2px;
+  margin-top: 10px;
   margin-bottom: 16px;
 }
 
 .login-container .qrcode-login-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  border-color: #d1d5db;
+  color: #2563EB;
+  transform: none;
+  box-shadow: none;
 }
 
 .login-container .qrcode-login-btn:disabled {

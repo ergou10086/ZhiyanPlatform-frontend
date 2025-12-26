@@ -76,6 +76,10 @@
           <button type="submit" class="login-btn" :disabled="loading || !isVerified">
             {{ loading ? '登录中...' : '登录' }}
           </button>
+
+          <button type="button" class="qrcode-login-btn" @click="openQRCodeLogin" :disabled="qrLoading">
+            {{ qrLoading ? '生成二维码中...' : '手机端登录后点击扫码登录' }}
+          </button>
           
           <!-- 第三方登录分隔线 -->
           <div class="divider">
@@ -94,10 +98,6 @@
           <button type="button" class="orcid-login-btn" @click="handleOrcidLogin">
             <img :src="orcidLogo" alt="ORCID" class="orcid-img" />
             使用 ORCID 登录
-          </button>
-
-          <button type="button" class="qrcode-login-btn" @click="openQRCodeLogin" :disabled="qrLoading">
-            {{ qrLoading ? '生成二维码中...' : '扫码登录' }}
           </button>
           
           <div class="register-link">
