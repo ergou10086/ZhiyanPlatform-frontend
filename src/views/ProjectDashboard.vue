@@ -2,16 +2,7 @@
   <div class="dashboard-container">
     <canvas ref="bgCanvas" class="bg-canvas"></canvas>
     
-    <!-- 加载指示器 -->
-    <div v-if="isLoading" class="loading-overlay">
-      <div class="loading-content">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">正在加载数据...</div>
-        <div class="loading-progress">
-          <div class="loading-progress-bar" :style="{ width: loadingProgress + '%' }"></div>
-        </div>
-      </div>
-    </div>
+    <!-- 加载指示器已移除，直接显示内容以减少负载 -->
     
     <!-- 第一屏：KPI卡片 -->
     <div class="dashboard-section kpi-section">
@@ -996,18 +987,10 @@ export default {
     // 可按需通过项目ID拉取统计数据：this.$route.params.id
   },
   async mounted() {
-    // 每次首次挂载时重置饼图 key，确保进入页面时播放一次动画
+    // 禁用动画，直接显示数据以减少负载
     this.statusChartKey = Date.now()
 
-    // 固定加载遮罩显示约 2 秒，之后无论接口是否完成都先展示页面
-    this.isLoading = true
-    this.loadingProgress = 10
-    setTimeout(() => {
-      this.isLoading = false
-      this.loadingProgress = 100
-    }, 2000)
-
-    // 优化加载策略：保持原有数据加载流程，但不再由其控制遮罩，只负责填充数据
+    // 直接加载数据，不显示加载遮罩
     ;(async () => {
       try {
         // 第一步：并行加载关键数据（第一屏需要的数据）
@@ -1018,30 +1001,25 @@ export default {
         ])
 
         this.allTasks = allTasks
-        this.loadingProgress = 40
 
         // 第二步：仅加载首屏必须的 KPI / 任务统计
         await this.loadTaskStatistics(allTasks)
-        this.loadingProgress = 70
 
-        // 在关键数据渲染完成后，再延迟初始化与数据无关的效果和监听
-        setTimeout(() => {
-          // 启动粒子背景（可选，默认关闭以防页面卡死）
-          if (this.enableBackgroundEffects) {
-            this.initParticles()
-            window.addEventListener('resize', this.resizeCanvas)
-          }
+        // 禁用粒子背景动画以减少负载
+        // 不再初始化粒子背景
 
-          // 添加滚动监听，用于检测何时滚动到图表section
-          this.setupScrollObserver()
+        // 简化滚动监听，不触发动画
+        this.setupScrollObserver()
 
-          // 点击外部关闭导出菜单
-          document.addEventListener('click', this.handleClickOutside)
-        }, 0)
+        // 点击外部关闭导出菜单
+        document.addEventListener('click', this.handleClickOutside)
 
-        // 数字滚动动画 + 饼图动画
-        Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 800))
-        this.animatePieChart()
+        // 直接显示数值，不使用动画
+        Object.keys(this.kpis).forEach(key => {
+          this.display[key] = this.kpis[key]
+        })
+        // 禁用饼图动画
+        this.pieAnimationProgress = 1
 
         // 第三步：其余统计和图表异步加载（不再阻塞界面显示）
         setTimeout(() => {
@@ -1108,8 +1086,8 @@ export default {
           display: false
         },
         animation: {
-          animateScale: true,
-          animateRotate: true,
+          animateScale: false,
+          animateRotate: false,
           duration: 800,
           easing: 'easeOutQuart'
         },
@@ -1458,54 +1436,21 @@ export default {
   },
   methods: {
     /**
-     * 设置滚动监听器，检测图表section是否进入视口
+     * 设置滚动监听器（简化版，不触发动画以减少负载）
      */
     setupScrollObserver() {
-      // 使用 Intersection Observer API 监听图表section
+      // 简化滚动监听，不触发任何动画
+      // 仅用于必要的功能，不用于动画触发
       const options = {
-        root: null, // 使用视口作为根
+        root: null,
         rootMargin: '0px',
-        threshold: 0.3 // 当30%的section可见时触发
+        threshold: 0.3
       }
 
       this.scrollObserver = new IntersectionObserver((entries) => {
+        // 禁用所有动画触发，仅保留必要的功能
         entries.forEach(entry => {
-          // 监听顶部 KPI 区（包含任务状态分布饼图）
-          if (entry.target.classList.contains('kpi-section')) {
-            if (entry.isIntersecting) {
-              // 每次滚动回到这一屏时，重置饼图 key，强制重新挂载以触发 Chart.js 动画
-              this.statusChartKey = Date.now()
-            }
-          }
-          if (entry.target.classList.contains('charts-section')) {
-            if (entry.isIntersecting) {
-              console.log('[ProjectDashboard] 图表section进入视口，触发动画')
-              this.playChartsAnimation()
-            }
-          }
-          // 监听成果统计section
-          if (entry.target.classList.contains('achievements-section')) {
-            if (entry.isIntersecting) {
-              console.log('[ProjectDashboard] 成果统计section进入视口，触发贡献图表动画')
-              this.contributionChartAnimated = true
-            } else {
-              // 离开视口时重置动画状态
-              this.contributionChartAnimated = false
-            }
-          }
-          // 监听成员任务统计section
-          if (entry.target.classList.contains('member-submission-section')) {
-            if (entry.isIntersecting) {
-              console.log('[ProjectDashboard] 成员任务统计section进入视口，触发柱状图和散点图动画')
-              this.memberTaskBarsAnimated = true
-              // 触发散点图动画
-              this.triggerTimelineScatterAnimation()
-            } else {
-              // 离开视口时重置动画状态
-              this.memberTaskBarsAnimated = false
-              this.timelineScatterAnimated = false
-            }
-          }
+          // 不再触发任何动画
         })
       }, options)
 
@@ -1533,77 +1478,31 @@ export default {
     },
 
     /**
-     * 播放图表动画
+     * 播放图表动画（已禁用以减少负载）
      */
     playChartsAnimation() {
-      // 重置并播放饼图动画
-      this.animatePieChart()
-      
-      // 柱状图的动画是通过CSS实现的，可以通过重新触发来实现
-      this.triggerBarChartAnimation()
-      
-      // 触发树状图动画
-      this.triggerTreemapAnimation()
+      // 禁用所有动画
     },
 
     /**
-     * 触发柱状图动画
+     * 触发柱状图动画（已禁用）
      */
     triggerBarChartAnimation() {
-      // 通过移除并重新添加动画class来重新触发动画
-      const bars = this.$el.querySelectorAll('.bar')
-      bars.forEach(bar => {
-        // 移除动画class
-        bar.style.animation = 'none'
-        // 强制重排
-        void bar.offsetHeight
-        // 重新添加动画
-        bar.style.animation = ''
-      })
+      // 禁用动画
     },
 
     /**
-     * 触发树状图动画
+     * 触发树状图动画（已禁用）
      */
     triggerTreemapAnimation() {
-      console.log('[ProjectDashboard] 触发树状图动画')
-      const container = this.$el.querySelector('.treemap-container')
-      if (!container) return
-      
-      const blocks = container.querySelectorAll('.treemap-block')
-      console.log('[ProjectDashboard] 找到方块数量:', blocks.length)
-      
-      // 移除所有方块的动画class
-      blocks.forEach(block => {
-        block.classList.add('no-animation')
-      })
-      
-      // 强制重排
-      void container.offsetHeight
-      
-      // 短暂延迟后重新添加动画
-      setTimeout(() => {
-        blocks.forEach(block => {
-          block.classList.remove('no-animation')
-        })
-      }, 50)
+      // 禁用动画
     },
 
     /**
-     * 触发任务完成时间线散点图动画
+     * 触发任务完成时间线散点图动画（已禁用）
      */
     triggerTimelineScatterAnimation() {
-      console.log('[ProjectDashboard] 触发散点图动画')
-      // 先重置动画状态
-      this.timelineScatterAnimated = false
-      
-      // 强制重排后重新触发动画
-      this.$nextTick(() => {
-        // 短暂延迟后启动动画，确保DOM已更新
-        setTimeout(() => {
-          this.timelineScatterAnimated = true
-        }, 50)
-      })
+      // 禁用动画
     },
 
     /**
@@ -4087,10 +3986,12 @@ export default {
     refreshDash() {
       // 刷新数据
       this.loadTaskStatistics().then(() => {
-        // 刷新动画
-        Object.keys(this.kpis).forEach(key => this.animateCount(key, this.kpis[key], 600))
-        // 重新播放饼图动画
-        this.animatePieChart()
+        // 直接更新数值，不使用动画
+        Object.keys(this.kpis).forEach(key => {
+          this.display[key] = this.kpis[key]
+        })
+        // 禁用饼图动画
+        this.pieAnimationProgress = 1
       })
     },
     animateCount(key, target, duration = 800) {
@@ -4339,12 +4240,20 @@ export default {
 </script>
 
 <style scoped>
+/* 全局禁用所有动画以减少负载 */
+.dashboard-container *,
+.dashboard-container *::before,
+.dashboard-container *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 .dashboard-container{
   position:relative;
   height:100vh;
   overflow-y:scroll;
   scroll-snap-type:y mandatory;
-  scroll-behavior:smooth;
+  scroll-behavior:auto;
   /* 使用全局背景变量，白天为浅色，黑夜为深色 */
   background: var(--bg-secondary);
 }
@@ -4355,71 +4264,7 @@ export default {
   height:0;
 }
 
-/* 加载指示器样式 */
-.loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.loading-content {
-  text-align: center;
-  padding: 40px;
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-  min-width: 300px;
-}
-
-.loading-spinner {
-  width: 60px;
-  height: 60px;
-  margin: 0 auto 20px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 16px;
-  color: #4b5563;
-  margin-bottom: 20px;
-  font-weight: 500;
-}
-
-.loading-progress {
-  width: 100%;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.loading-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
+/* 加载指示器样式已移除以减少负载 */
 
 /* 每个section占据一个完整屏幕 */
 .dashboard-section{
@@ -4895,7 +4740,7 @@ export default {
   min-width: 180px;
   z-index: 1000;
   overflow: hidden;
-  animation: slideDown 0.2s ease;
+  animation: none !important;
 }
 
 @keyframes slideDown {
@@ -5454,7 +5299,7 @@ export default {
   color:#64748b;
   font-size:14px;
   font-weight:500;
-  animation:bounce 2s infinite;
+  animation: none !important;
   z-index:100;
   pointer-events:none;
 }
@@ -5941,7 +5786,7 @@ export default {
   overflow: hidden;
   min-width: 70px;
   min-height: 50px;
-  animation: treemapFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+  animation: none !important;
 }
 
 /* 为不同位置的方块添加延迟 */
@@ -6121,7 +5966,7 @@ export default {
 .line-chart-empty{height:220px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#f8fafc,#fff);border:1px dashed #e5e7eb;border-radius:8px}
 .line-chart svg{max-width:500px;width:90%;height:160px;overflow:visible;margin:0 auto}
 .line-area{opacity:0.6;transition:opacity 0.3s ease}
-.line{stroke-dasharray:200;stroke-dashoffset:200;animation:dash 1200ms ease forwards;filter:drop-shadow(0 2px 4px rgba(59,130,246,0.2))}
+.line{stroke-dasharray:200;stroke-dashoffset:0;animation:none;filter:drop-shadow(0 2px 4px rgba(59,130,246,0.2))}
 .line-point{filter:drop-shadow(0 2px 4px rgba(59,130,246,0.3));transition:all 0.3s ease;cursor:pointer}
 .line-point:hover{r:3.5;fill:#2563eb}
 .line-label{font-size:5px;fill:#1e40af;font-weight:700;text-anchor:middle;pointer-events:none}
@@ -6605,20 +6450,11 @@ export default {
   transform-origin: center bottom;
 }
 
-/* 面积图初始状态（未触发动画时） */
-.stacked-area-chart:not(.chart-animated) .area-path {
-  opacity: 0;
-  transform: scaleY(0);
-}
-
-/* 面积图动画 */
-.stacked-area-chart.chart-animated .area-path.achievement-area {
-  animation: areaGrowUp 0.8s ease-out forwards;
-}
-
-.stacked-area-chart.chart-animated .area-path.wiki-area {
-  animation: areaGrowUp 0.8s ease-out 0.2s forwards;
-  opacity: 0;
+/* 面积图直接显示，不使用动画 */
+.stacked-area-chart .area-path {
+  opacity: 1 !important;
+  transform: scaleY(1) !important;
+  animation: none !important;
 }
 
 @keyframes areaGrowUp {
@@ -7454,10 +7290,9 @@ export default {
   transform: scale(0);
 }
 
-/* 只有当父元素有 bubbles-animated class 时才播放入场动画 */
-.timeline-scatter-svg .scatter-bubbles.bubbles-animated .task-bubble {
-  animation: bubbleEnter 0.6s ease-out forwards;
-  animation-delay: var(--delay, 0s);
+/* 禁用所有气泡动画以减少负载 */
+.timeline-scatter-svg .scatter-bubbles .task-bubble {
+  animation: none !important;
 }
 
 .timeline-scatter-svg .task-bubble:hover {

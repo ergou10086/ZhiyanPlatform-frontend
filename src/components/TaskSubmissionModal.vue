@@ -1,6 +1,12 @@
 <template>
   <div v-if="visible" class="modal-overlay">
     <div class="modal-content task-submission-modal" @click.stop>
+      <div v-if="isUploadingFiles" class="file-upload-loading-overlay">
+        <div class="file-upload-loading-content">
+          <div class="file-upload-loading-spinner"></div>
+          <div class="file-upload-loading-text">{{ uploadLoadingText || '附件上传中...' }}</div>
+        </div>
+      </div>
       <div class="modal-header">
         <h3 class="modal-title">{{ latestSubmission ? '更改提交' : '提交任务' }}</h3>
         <button class="modal-close" @click="handleClose">
@@ -150,6 +156,8 @@ export default {
       },
       uploadedFiles: [],
       isSubmitting: false,
+      isUploadingFiles: false,
+      uploadLoadingText: '',
       showToast: false,
       toastMessage: ''
     }
@@ -256,82 +264,77 @@ export default {
       
       if (files.length === 0) return
 
-      // 上传文件
-      for (const file of files) {
-        // 检查文件大小（100MB限制）
-        if (file.size > 100 * 1024 * 1024) {
-          this.showErrorToast(`文件 ${file.name} 超过100MB限制，已跳过`)
-          continue
-        }
+      this.isUploadingFiles = true
 
-        try {
-          console.log('开始上传文件:', file.name)
-          const response = await uploadSubmissionFile(file)
-          console.log('上传响应:', response)
-          
-          if (response && response.code === 200 && response.data) {
-            this.uploadedFiles.push({
-              filename: response.data.filename || file.name,
-              url: response.data.url,
-              size: file.size
-            })
-            this.formData.attachmentUrls.push(response.data.url)
-            this.showSuccessToast(`文件 ${file.name} 上传成功`)
-          } else {
-            const errorMsg = (response && response.msg) || '上传失败'
-            console.error('上传失败，响应:', response)
+      // 上传文件
+      try {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i]
+          this.uploadLoadingText = `附件上传中... (${i + 1}/${files.length})`
+          if (file.size > 100 * 1024 * 1024) {
+            this.showErrorToast(`文件 ${file.name} 超过100MB限制，已跳过`)
+            continue
+          }
+
+          try {
+            console.log('开始上传文件:', file.name)
+            const response = await uploadSubmissionFile(file)
+            console.log('上传响应:', response)
+            
+            if (response && response.code === 200 && response.data) {
+              this.uploadedFiles.push({
+                filename: response.data.filename || file.name,
+                url: response.data.url,
+                size: file.size
+              })
+              this.formData.attachmentUrls.push(response.data.url)
+              this.showSuccessToast(`文件 ${file.name} 上传成功`)
+            } else {
+              const errorMsg = (response && response.msg) || '上传失败'
+              console.error('上传失败，响应:', response)
+              this.showErrorToast(`文件 ${file.name} 上传失败：${errorMsg}`)
+            }
+          } catch (error) {
+            console.error('文件上传异常 - 完整错误对象:', error)
+            console.error('错误对象类型:', typeof error)
+            console.error('错误对象键:', error ? Object.keys(error) : 'error is null/undefined')
+            
+            let errorMsg = '网络错误或服务器异常'
+            
+            try {
+              if (error) {
+                if (error.msg && typeof error.msg === 'string') {
+                  errorMsg = error.msg
+                }
+                else if (error.message && typeof error.message === 'string') {
+                  errorMsg = error.message
+                }
+                else if (typeof error === 'string') {
+                  errorMsg = error
+                }
+                else if (error.response && error.response.data) {
+                  const data = error.response.data
+                  errorMsg = data.msg || data.message || data.error || errorMsg
+                  console.error('服务器返回的错误:', data)
+                }
+                else if (typeof error === 'object') {
+                  errorMsg = error.error || JSON.stringify(error)
+                }
+              }
+            } catch (parseError) {
+              console.error('解析错误信息失败:', parseError)
+              errorMsg = '文件上传失败，请稍后重试'
+            }
+            
+            console.error('最终错误消息:', errorMsg)
             this.showErrorToast(`文件 ${file.name} 上传失败：${errorMsg}`)
           }
-        } catch (error) {
-          console.error('文件上传异常 - 完整错误对象:', error)
-          console.error('错误对象类型:', typeof error)
-          console.error('错误对象键:', error ? Object.keys(error) : 'error is null/undefined')
-          
-          // 更安全的错误提取
-          // API响应拦截器已经处理过，error 可能是：
-          // 1. 后端的R对象 {code, msg, data} - 最常见
-          // 2. Error对象 {message}
-          // 3. 字符串
-          // 4. 原始的axios error {response: {data}} - 较少见
-          let errorMsg = '网络错误或服务器异常'
-          
-          try {
-            if (error) {
-              // 优先级1: 后端的R对象（最常见的情况）
-              if (error.msg && typeof error.msg === 'string') {
-                errorMsg = error.msg
-              }
-              // 优先级2: Error对象的message
-              else if (error.message && typeof error.message === 'string') {
-                errorMsg = error.message
-              }
-              // 优先级3: 字符串
-              else if (typeof error === 'string') {
-                errorMsg = error
-              }
-              // 优先级4: 原始的axios error（较少见，但保留兼容性）
-              else if (error.response && error.response.data) {
-                const data = error.response.data
-                errorMsg = data.msg || data.message || data.error || errorMsg
-                console.error('服务器返回的错误:', data)
-              }
-              // 优先级5: 其他对象类型，尝试提取有用信息
-              else if (typeof error === 'object') {
-                errorMsg = error.error || JSON.stringify(error)
-              }
-            }
-          } catch (parseError) {
-            console.error('解析错误信息失败:', parseError)
-            errorMsg = '文件上传失败，请稍后重试'
-          }
-          
-          console.error('最终错误消息:', errorMsg)
-          this.showErrorToast(`文件 ${file.name} 上传失败：${errorMsg}`)
         }
+      } finally {
+        this.isUploadingFiles = false
+        this.uploadLoadingText = ''
+        event.target.value = ''
       }
-
-      // 清空input，允许重复选择同一文件
-      event.target.value = ''
     },
 
     removeFile(index) {
@@ -555,14 +558,59 @@ export default {
 }
 
 .modal-content {
+  position: relative;
   background: white;
   border-radius: 12px;
   max-width: 700px;
   width: 100%;
   max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.file-upload-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.75);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.file-upload-loading-content {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.file-upload-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.file-upload-loading-text {
+  color: #333;
+  font-size: 14px;
 }
 
 .modal-header {

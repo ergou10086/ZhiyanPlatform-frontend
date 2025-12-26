@@ -1,6 +1,12 @@
 <template>
   <div v-if="visible" class="modal-overlay" @click="handleClose">
     <div class="modal-content submission-review-modal" @click.stop>
+      <div v-if="isSubmitting" class="review-submit-loading-overlay">
+        <div class="review-submit-loading-content">
+          <div class="review-submit-loading-spinner"></div>
+          <div class="review-submit-loading-text">提交中...</div>
+        </div>
+      </div>
       <div class="modal-header">
         <h3 class="modal-title">审核任务提交</h3>
         <button class="modal-close" @click="handleClose">
@@ -216,9 +222,15 @@ export default {
     }
   },
   methods: {
-    handleClose() {
+    closeModal() {
       this.$emit('update:visible', false)
       this.$emit('close')
+    },
+    handleClose() {
+      if (this.isSubmitting) {
+        return
+      }
+      this.closeModal()
     },
 
     resetForm() {
@@ -356,7 +368,7 @@ export default {
           const statusText = this.reviewData.reviewStatus === 'APPROVED' ? '批准' : '拒绝'
           this.$toast && this.$toast(`审核${statusText}成功`)
           this.$emit('success', response.data)
-          this.handleClose()
+          this.closeModal()
         } else {
           this.$toast && this.$toast(response.msg || '审核失败')
         }
@@ -388,6 +400,7 @@ export default {
 }
 
 .modal-content {
+  position: relative;
   background: white;
   border-radius: 12px;
   max-width: 700px;
@@ -396,6 +409,51 @@ export default {
   display: flex;
   flex-direction: column;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+}
+
+.review-submit-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.75);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+}
+
+.review-submit-loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+.review-submit-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+
+.review-submit-loading-text {
+  color: #333;
+  font-size: 14px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .modal-header {
