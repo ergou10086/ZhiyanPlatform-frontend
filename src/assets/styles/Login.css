@@ -461,6 +461,129 @@
   border-color: #8FB32A;
 }
 
+.login-container .qrcode-login-btn {
+  width: 100%;
+  padding: 12px 24px;
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.login-container .qrcode-login-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-color: #d1d5db;
+}
+
+.login-container .qrcode-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.login-container .qrcode-modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+}
+
+.login-container .qrcode-modal {
+  width: 92%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.login-container .qrcode-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.login-container .qrcode-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.login-container .qrcode-modal-close {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  color: #6b7280;
+}
+
+.login-container .qrcode-modal-body {
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-container .qrcode-image {
+  width: 220px;
+  height: 220px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.login-container .qrcode-modal-tip {
+  text-align: center;
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.login-container .qrcode-status {
+  margin-top: 8px;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+.login-container .qrcode-modal-footer {
+  padding: 14px 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-container .qrcode-modal-btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-container .qrcode-modal-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .login-container {
