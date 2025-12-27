@@ -326,8 +326,43 @@ export default {
       return dateTimeStr.replace('T', ' ')
     },
     getOperationTypeText(type) {
-      // 简化映射：只显示操作类型，不做详细映射
-      return type || '未知操作'
+      if (!type) return '未知操作'
+      
+      // 如果已经是中文（包含中文字符），直接返回
+      if (/[\u4e00-\u9fa5]/.test(type)) {
+        return type
+      }
+      
+      // 英文枚举名到中文的映射
+      const typeMap = {
+        // 通用操作
+        'CREATE': '创建',
+        'UPDATE': '更新',
+        'DELETE': '删除',
+        'STATUS_CHANGE': '状态变更',
+        
+        // 项目操作
+        'MEMBER_ADD': '添加成员',
+        'MEMBER_REMOVE': '移除成员',
+        'ROLE_CHANGE': '角色变更',
+        
+        // 任务操作
+        'ASSIGN': '分配任务',
+        'SUBMIT': '提交任务',
+        'REVIEW': '审核任务',
+        'COMPLETE': '完成任务',
+        
+        // Wiki操作
+        'MOVE': '移动Wiki页面',
+        
+        // 成果操作
+        'UPDATE_STATUS': '更新成果状态',
+        'UPDATE_DETAIL': '更新成果详情',
+        'FILE_UPLOAD': '文件上传',
+        'FILE_DELETE': '文件删除'
+      }
+      
+      return typeMap[type] || type
     },
     getSourceText(source) {
       const sourceMap = {

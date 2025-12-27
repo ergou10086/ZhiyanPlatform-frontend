@@ -448,6 +448,22 @@ export const knowledgeAPI = {
   getUserIdFromToken() {
     console.log('[knowledgeAPI.getUserIdFromToken] 从Token获取用户ID')
     return api.get('/zhiyan/achievement/token/user-id')
+  },
+
+  /**
+   * 获取项目成果贡献统计数据
+   * 用于生成贡献热力图
+   * @param {Number} projectId - 项目ID
+   * @param {String} startDate - 开始日期（格式：yyyy-MM-dd，可选）
+   * @param {String} endDate - 结束日期（格式：yyyy-MM-dd，可选）
+   * @returns {Promise<Array>} 返回贡献统计数据列表
+   */
+  getContributions(projectId, startDate = null, endDate = null) {
+    console.log('[knowledgeAPI.getContributions] 获取项目成果贡献统计, projectId:', projectId, 'startDate:', startDate, 'endDate:', endDate)
+    const params = {}
+    if (startDate) params.startDate = startDate
+    if (endDate) params.endDate = endDate
+    return api.get(`/zhiyan/achievement/contribution/${projectId}`, { params })
   }
 }
 

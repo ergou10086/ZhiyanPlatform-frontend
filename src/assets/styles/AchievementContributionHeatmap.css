@@ -1,0 +1,337 @@
+/* 成果贡献热力图样式 */
+
+.contribution-heatmap-container {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 24px;
+  margin-top: 24px;
+  border: 1px solid #e1e4e8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 头部区域 */
+.heatmap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.heatmap-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #24292e;
+  margin: 0;
+}
+
+.total-contributions {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #6e7781;
+  font-size: 14px;
+}
+
+.total-count {
+  font-weight: 600;
+  color: #24292e;
+  font-size: 16px;
+}
+
+.total-label {
+  font-size: 13px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  padding: 6px 12px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6e7781;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  background: #f6f8fa;
+  border-color: #0366d6;
+  color: #0366d6;
+}
+
+.toggle-btn.active {
+  background: #0366d6;
+  border-color: #0366d6;
+  color: #ffffff;
+}
+
+/* 加载状态 */
+.heatmap-loading {
+  padding: 40px 0;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-rows: repeat(7, 14px);
+  grid-auto-flow: column;
+  grid-auto-columns: 14px;
+  gap: 3px;
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.skeleton-cell {
+  width: 14px;
+  height: 14px;
+  background: #ebedf0;
+  border-radius: 3px;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 无数据状态 */
+.heatmap-empty {
+  text-align: center;
+  padding: 60px 0;
+  color: #959da5;
+  font-size: 14px;
+}
+
+/* 热力图内容 */
+.heatmap-content {
+  position: relative;
+  overflow-x: auto;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.heatmap-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.weekday-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-right: 10px;
+  font-size: 12px;
+  color: #6e7781;
+  width: 24px;
+  flex-shrink: 0;
+  padding-top: 24px; /* 与月份标签对齐 */
+}
+
+
+.weekday-label {
+  height: 14px;
+  line-height: 14px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.heatmap-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.month-labels {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #6e7781;
+  height: 18px;
+}
+
+.month-label {
+  text-align: left;
+  font-size: 12px;
+  padding-left: 3px;
+  font-weight: 500;
+}
+
+.quarter-labels {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #6e7781;
+  height: 18px;
+}
+
+.quarter-label {
+  text-align: left;
+  font-size: 12px;
+  padding-left: 3px;
+  font-weight: 500;
+}
+
+/* 热力图网格 - GitHub风格：7行（星期）× N列（周） */
+.heatmap-grid {
+  display: grid;
+  gap: 3px;
+  width: fit-content;
+}
+
+.heatmap-grid.view-day {
+  /* 日视图：7行 × 53列（约53周），每个格子代表一天 */
+  grid-template-rows: repeat(7, 14px); /* 放大到14px */
+  grid-auto-flow: column;
+  grid-auto-columns: 14px; /* 放大到14px */
+  margin: 0 auto; /* 居中 */
+}
+
+.heatmap-grid.view-week {
+  /* 周视图：单行或多行，每个格子代表一周的总贡献 */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-width: 100%;
+  justify-content: center; /* 居中显示 */
+  align-items: flex-start;
+}
+
+.heatmap-cell {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, outline 0.15s ease;
+  position: relative;
+  outline: 1px solid transparent;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.3);
+  outline: 2px solid rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 贡献量级别样式 */
+.heatmap-cell.level-0 {
+  background-color: #ebedf0 !important;
+}
+
+.heatmap-cell.level-1 {
+  background-color: #9be9a8 !important;
+}
+
+.heatmap-cell.level-2 {
+  background-color: #40c463 !important;
+}
+
+.heatmap-cell.level-3 {
+  background-color: #30a14e !important;
+}
+
+.heatmap-cell.level-4 {
+  background-color: #216e39 !important;
+}
+
+/* Tooltip */
+.heatmap-tooltip {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-100%);
+  margin-top: -8px;
+}
+
+.tooltip-content {
+  background: #000000;
+  color: #ffffff;
+  border-radius: 3px;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 2px;
+}
+
+.tooltip-count {
+  font-size: 11px;
+  color: #ffffff;
+  opacity: 0.9;
+}
+
+/* 图例 */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+  gap: 8px;
+  font-size: 12px;
+  color: #6e7781;
+}
+
+.legend-label {
+  font-size: 12px;
+}
+
+.legend-colors {
+  display: flex;
+  gap: 2px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .contribution-heatmap-container {
+    padding: 16px;
+  }
+
+  .heatmap-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .heatmap-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .skeleton-grid {
+    grid-template-columns: repeat(26, 10px);
+  }
+}
+

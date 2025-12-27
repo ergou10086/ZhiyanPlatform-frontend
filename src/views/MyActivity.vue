@@ -2383,6 +2383,11 @@ export default {
     getLogTypeText(type) {
       if (!type) return '未知操作'
       
+      // 如果已经是中文（包含中文字符），直接返回
+      if (/[\u4e00-\u9fa5]/.test(type)) {
+        return type
+      }
+      
       const typeMap = {
         // 通用操作
         'CREATE': '创建',
@@ -2407,8 +2412,8 @@ export default {
         // 成果操作
         'UPDATE_STATUS': '更新成果状态',
         'UPDATE_DETAIL': '更新成果详情',
-        'FILE_UPLOAD': '上传文件',
-        'FILE_DELETE': '删除文件'
+        'FILE_UPLOAD': '文件上传',
+        'FILE_DELETE': '文件删除'
       }
       
       return typeMap[type] || type

@@ -94,6 +94,12 @@
       </div>
     </div>
 
+    <!-- 成果贡献热力图 -->
+    <AchievementContributionHeatmap 
+      v-if="projectId"
+      :project-id="projectId"
+    />
+
     <!-- 隐藏的文件输入 -->
     <input 
       ref="fileInput" 
@@ -1260,9 +1266,13 @@ import { marked } from 'marked'
 import { getLinkedTasks as apiGetLinkedTasks, linkTasksToAchievement as apiLinkTasks, unlinkTasksFromAchievement as apiUnlinkTasks } from '@/api/taskResult'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github-dark.css' // 代码高亮主题
+import AchievementContributionHeatmap from '@/components/AchievementContributionHeatmap.vue'
 
 export default {
   name: 'KnowledgeBaseCatalog',
+  components: {
+    AchievementContributionHeatmap
+  },
   props: {
     archiveRows: {
       type: Array,
